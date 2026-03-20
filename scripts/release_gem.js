@@ -18,8 +18,8 @@ const versionRegex = /\d+.\d+.\d+/;
 const dist = path.join(process.cwd(), "dist");
 
 const writeOptions = { encoding: "utf-8", flag: "w+" };
-const jsRegex = /(makerspace-react.js).*/
-const cssRegex = /(makerspace-react.css).*/
+const jsRegex = /(makerspace-react2026.js).*/
+const cssRegex = /(makerspace-react2026.css).*/
 
 const writeFileToFolder = (folder) => (file) => {
   const sourcePath = path.join(dist, file);
