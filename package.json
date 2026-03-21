@@ -112,7 +112,7 @@
     "start": "npx webpack serve --config dev.config.js",
     "open": "yarn start --open",
     "build": "npx webpack  --config prod.config.js",
-    "test": "$(npm bin)/jest --no-cache",
+    "test": "npx jest --no-cache",
     "test-watch": "yarn test --watch",
     "wdio": "TS_NODE_PROJECT=./tsconfig.wdio.json wdio tests/config/wdio.conf.js",
     "wdio-local": "rm -fr ./tmp/screenshots && yarn build && STATIC_SERVER=true yarn wdio",
