@@ -5,11 +5,19 @@ orbs:
 jobs:
   build:
     docker:
-      - image: circleci/ruby:2.6.6-stretch-node-browsers
+      - image: cimg/ruby:2.6.9-browsers
       - image: redis
     executor: ruby/default
     steps:
       - checkout
+      - run:
+          name: Which bundler?
+          command: |
+            gem install bundler:1.17.3
+            bundle -v
+            echo -n "node "
+            node -v
+            ruby -v
       - run:
           name: Install Dependencies
           command: yarn install --ignore-platform && yarn build
@@ -26,7 +34,7 @@ jobs:
           path: ./tmp/screenshots
   publish:
     docker:
-      - image: circleci/ruby:2.6.6-stretch-node-browsers
+      - image: cimg/ruby:2.6.9-browsers
     executor: ruby/default
     steps:
       - checkout
