@@ -30,6 +30,7 @@ import { useSearchQuery, useSetSearchQuery } from "hooks/useSearchQuery";
 import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
+import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
 
 const MemberProfile: React.FC = () => {
   const { match: { params: { memberId, resource } }, history } = useReactRouter<{ memberId: string, resource: string }>();
