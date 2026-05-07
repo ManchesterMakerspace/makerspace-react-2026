@@ -6,6 +6,7 @@ import { useApiState, getApiState } from "../reducer/hooks";
 import { buildQueryString } from "../reducer/functions";
 import { TransactionAction, } from "../reducer";
 import { getStore } from "app/main";
+import { handle401IfNeeded } from "ui/common/globalAuthInterceptor";
 
 export interface ReadTransaction<Args, T> extends TransactionState<T> {
   refresh: () => void;
@@ -42,6 +43,7 @@ const useReadTransaction = <Args, Resp>(
         const response = await transaction(args);
 
         if (isApiErrorResponse(response)) {
+          if (handle401IfNeeded(response)) return;
           dispatch({
             response,
             type: TransactionAction.Failure,

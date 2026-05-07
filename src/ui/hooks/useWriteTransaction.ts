@@ -1,5 +1,6 @@
 import * as React from "react";
 import { ApiErrorResponse, ApiDataResponse, isApiErrorResponse } from "makerspace-ts-api-client";
+import { handle401IfNeeded } from "ui/common/globalAuthInterceptor";
 
 import { TransactionState, ApiFunction } from "ui/hooks/types";
 
@@ -28,6 +29,8 @@ const useWriteTransaction = <Args, Resp>(
 
     const response = await transaction(args);
     const error = (response as ApiErrorResponse).error;
+
+    if (isApiErrorResponse(response) && handle401IfNeeded(response)) return response;
 
     setState(prevState => ({
       ...prevState,
