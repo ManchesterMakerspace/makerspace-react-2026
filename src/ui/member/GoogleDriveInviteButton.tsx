@@ -54,6 +54,7 @@ const GoogleDriveInviteButton: React.FC<Props> = ({ member }) => {
             variant="outlined"
             disabled={loading}
             onClick={handleInvite}
+            style={{ marginRight: ".25em" }}
             startIcon={loading
               ? <CircularProgress size={16} />
               : <GoogleIcon />

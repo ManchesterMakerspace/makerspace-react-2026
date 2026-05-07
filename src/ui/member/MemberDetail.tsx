@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import useReactRouter from "use-react-router";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
-import { displayMemberExpiration, memberIsBoardMember, memberIsResourceManager } from "ui/member/utils";
+import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 import KeyValueItem from "ui/common/KeyValueItem";
 import DetailView from "ui/common/DetailView";
@@ -35,7 +35,7 @@ import GoogleDriveInviteButton from "ui/member/GoogleDriveInviteButton";
 
 const MemberProfile: React.FC = () => {
   const { match: { params: { memberId, resource } }, history } = useReactRouter<{ memberId: string, resource: string }>();
-  const { currentUser: { id: currentUserId, isAdmin, isBoardMember, isResourceManager }, permissions } = useAuthState();
+  const { currentUser: { id: currentUserId, isAdmin, isResourceManager }, permissions } = useAuthState();
 
   const {
     isNewMember
@@ -49,7 +49,7 @@ const MemberProfile: React.FC = () => {
 
   const isOwnProfile = currentUserId === memberId;
   const billingEnabled = !!permissions[Whitelists.billing];
-  const canChargeMember = (isAdmin || isBoardMember || isResourceManager) && !isOwnProfile;
+  const canChargeMember = (isAdmin || isResourceManager) && !isOwnProfile;
 
   const goToSettings = React.useCallback(() => {
     history.push(Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUserId));
@@ -83,7 +83,7 @@ const MemberProfile: React.FC = () => {
   }, [initRender, isOwnProfile, rentals]);
 
   const { customerId, earnedMembershipId } = member;
-  const isEarnedMember = !!earnedMembershipId && (isOwnProfile || isAdmin || isBoardMember);
+  const isEarnedMember = !!earnedMembershipId && (isOwnProfile || isAdmin);
 
   const setSearchQuery = useSetSearchQuery();
   const closeNotification = React.useCallback(() => {
@@ -148,7 +148,7 @@ const MemberProfile: React.FC = () => {
               label="Account Settings"
               onClick={goToSettings}
             />] : [],
-          ...(isAdmin || isBoardMember) ? [
+          ...isAdmin ? [
             <EditMember member={member} key="edit-member" onEdit={refreshMember}/>,
             <RenewMember member={member} key="renew-member" onRenew={refreshMember}/>,
             <AccessCardForm memberId={memberId} key="card-form"/>,
@@ -166,7 +166,7 @@ const MemberProfile: React.FC = () => {
             <KeyValueItem label="Email">
               <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {member.email ? <a id="member-detail-email" href={`mailto:${member.email}`}>{member.email}</a> : "N/A"}
-                {(isAdmin || isBoardMember || isResourceManager) && (
+                {(isAdmin || isResourceManager) && (
                   <>
                     <EmailStatusIcon mailtrap={(member as any).mailtrap} />
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
@@ -216,7 +216,7 @@ const MemberProfile: React.FC = () => {
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}
-            {((member as any).groupName || isAdmin || isBoardMember) && (
+            {((member as any).groupName || isAdmin) && (
               <KeyValueItem label="Household">
                 {(member as any).householdRole === "primary" && (
                   <span id="member-detail-household-role">Primary Member</span>
@@ -224,7 +224,7 @@ const MemberProfile: React.FC = () => {
                 {(member as any).householdRole === "secondary" && (
                   <span id="member-detail-household-role">Secondary Member</span>
                 )}
-                {!(member as any).groupName && (isAdmin || isBoardMember) && (
+                {!(member as any).groupName && isAdmin && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
               </KeyValueItem>
@@ -233,7 +233,7 @@ const MemberProfile: React.FC = () => {
           </>
         )}
         activeResourceName={resource}
-        resources={(isOwnProfile || isAdmin || isBoardMember) && [
+        resources={(isOwnProfile || isAdmin) && [
           ...isEarnedMember ?
           [{
             name: "membership",

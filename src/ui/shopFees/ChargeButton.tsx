@@ -25,7 +25,7 @@ const ChargeButton: React.FC<Props> = ({ member }) => {
       key="charge-member"
       color="secondary"
       variant="outlined"
-      label="Send Charge"
+      label="Shop Fee"
       onClick={handleClick}
     />
   );
