@@ -24,13 +24,21 @@ const GoogleDriveInviteButton: React.FC<Props> = ({ member }) => {
   const [success,  setSuccess]  = React.useState(false);
   const [error,    setError]    = React.useState<string | null>(null);
 
+  const getCsrfToken = (): string => {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  };
+
   const handleInvite = async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/admin/members/${member.id}/invite_google_drive`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": getCsrfToken(),
+        },
       });
       if (res.ok) {
         setSuccess(true);
