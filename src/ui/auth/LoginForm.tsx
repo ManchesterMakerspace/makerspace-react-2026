@@ -78,10 +78,20 @@ class LoginForm extends React.Component<Props, State> {
     }
   }
 
-  public componentDidMount() {
+  public async componentDidMount() {
     const { auth, pushLocation } = this.props;
     if (auth) {
       pushLocation(Routing.Members);
+    }
+    // Load Firebase provider flags from system config
+    const { data } = await getSystemConfigs();
+    if (data && data.flags) {
+      this.setState({
+        firebaseGoogleEnabled:    !!data.flags.firebase_google_enabled,
+        firebaseAppleEnabled:     !!data.flags.firebase_apple_enabled,
+        firebaseGithubEnabled:    !!data.flags.firebase_github_enabled,
+        firebaseMicrosoftEnabled: !!data.flags.firebase_microsoft_enabled,
+      });
     }
   }
 
@@ -91,18 +101,6 @@ class LoginForm extends React.Component<Props, State> {
     const { isRequesting, auth, error, pushLocation} = this.props;
     if (wasRequesting && !isRequesting && !error && auth) {
       pushLocation(Routing.Members);
-    }
-  }
-
-  async componentDidMount() {
-    const { data } = await getSystemConfigs();
-    if (data && data.flags) {
-      this.setState({
-        firebaseGoogleEnabled:    !!data.flags.firebase_google_enabled,
-        firebaseAppleEnabled:     !!data.flags.firebase_apple_enabled,
-        firebaseGithubEnabled:    !!data.flags.firebase_github_enabled,
-        firebaseMicrosoftEnabled: !!data.flags.firebase_microsoft_enabled,
-      });
     }
   }
 
