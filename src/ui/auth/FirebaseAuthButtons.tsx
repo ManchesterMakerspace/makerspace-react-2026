@@ -77,7 +77,7 @@ const FirebaseAuthButtons: React.FC<Props> = ({ onGoogleSignIn, onAppleSignIn, o
           : <GoogleLogo />
         }
         Continue with Google
-      </Button>
+      </Button>}
 
       {/* Apple */}
       {appleEnabled && (
