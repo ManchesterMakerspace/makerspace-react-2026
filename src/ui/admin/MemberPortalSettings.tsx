@@ -5,6 +5,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  Chip,
   Switch,
   FormControlLabel,
   Button,
@@ -33,12 +34,13 @@ import {
   JobStatus,
 } from 'api/systemConfig';
 
-type TabKey = 'slack' | 'volunteer' | 'jobs';
+type TabKey = 'slack' | 'volunteer' | 'jobs' | 'auth';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'slack',     label: 'Slack' },
   { key: 'volunteer', label: 'Volunteer' },
   { key: 'jobs',      label: 'Jobs' },
+  { key: 'auth',      label: 'Authentication' },
 ];
 
 const JOB_LABELS: Record<string, string> = {
@@ -576,6 +578,13 @@ const MemberPortalSettings: React.FC = () => {
             onRunJob={handleRunJob}
             runningJob={runningJob}
             jobMessage={jobMessage}
+          />
+        )}
+        {activeTab === 'auth' && (
+          <AuthTab
+            config={config}
+            onFlagToggle={handleFlagToggle}
+            togglingFlag={togglingFlag}
           />
         )}
       </Grid>
