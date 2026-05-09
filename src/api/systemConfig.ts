@@ -54,10 +54,6 @@ export interface SystemConfigData {
   flags: {
     slack_sync_enabled: boolean;
     volunteer_bounty_token_enabled: boolean;
-    firebase_google_enabled: boolean;
-    firebase_apple_enabled: boolean;
-    firebase_github_enabled: boolean;
-    firebase_microsoft_enabled: boolean;
   };
   jobs: JobStatus[];
   slack: SlackSettings;

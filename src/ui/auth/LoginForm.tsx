@@ -17,7 +17,6 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import Form from "ui/common/Form";
 import FormModal from "ui/common/FormModal";
 import { requestPasswordReset, isApiErrorResponse } from "makerspace-ts-api-client";
-import { getSystemConfigs } from "api/systemConfig";
 import FirebaseAuthButtons from "ui/auth/FirebaseAuthButtons";
 import { signInWithGoogle, signInWithApple, signInWithGitHub, signInWithMicrosoft } from "ui/auth/firebase";
 
@@ -50,10 +49,6 @@ interface State {
   email: string;
   firebaseLoading: boolean;
   firebaseError: string;
-  firebaseGoogleEnabled: boolean;
-  firebaseAppleEnabled: boolean;
-  firebaseGithubEnabled: boolean;
-  firebaseMicrosoftEnabled: boolean;
 }
 interface Props extends OwnProps, DispatchProps, StateProps {}
 
@@ -72,10 +67,6 @@ class LoginForm extends React.Component<Props, State> {
       email: "",
       firebaseLoading: false,
       firebaseError: "",
-      firebaseGoogleEnabled: false,
-      firebaseAppleEnabled: false,
-      firebaseGithubEnabled: false,
-      firebaseMicrosoftEnabled: false,
     }
   }
 
@@ -84,16 +75,7 @@ class LoginForm extends React.Component<Props, State> {
     if (auth) {
       pushLocation(Routing.Members);
     }
-    // Load Firebase provider flags from system config
-    const { data } = await getSystemConfigs();
-    if (data && data.flags) {
-      this.setState({
-        firebaseGoogleEnabled:    !!data.flags.firebase_google_enabled,
-        firebaseAppleEnabled:     !!data.flags.firebase_apple_enabled,
-        firebaseGithubEnabled:    !!data.flags.firebase_github_enabled,
-        firebaseMicrosoftEnabled: !!data.flags.firebase_microsoft_enabled,
-      });
-    }
+
   }
 
   public componentDidUpdate(prevProps: Props) {
@@ -195,18 +177,6 @@ class LoginForm extends React.Component<Props, State> {
 
     return (
       <>
-        <FirebaseAuthButtons
-          onGoogleSignIn={this.handleGoogleSignIn}
-          onAppleSignIn={this.handleAppleSignIn}
-          onGitHubSignIn={this.handleGitHubSignIn}
-          onMicrosoftSignIn={this.handleMicrosoftSignIn}
-          loading={this.state.firebaseLoading}
-          error={this.state.firebaseError}
-          googleEnabled={this.state.firebaseGoogleEnabled}
-          appleEnabled={this.state.firebaseAppleEnabled}
-          githubEnabled={this.state.firebaseGithubEnabled}
-          microsoftEnabled={this.state.firebaseMicrosoftEnabled}
-        />
         <Form
           ref={this.setFormRef}
           id={loginPrefix}
@@ -243,6 +213,14 @@ class LoginForm extends React.Component<Props, State> {
           {error && <ErrorMessage id={`${loginPrefix}-error`} error={error}/>}
         </Form>
         {this.renderPasswordReset()}
+        <FirebaseAuthButtons
+          onGoogleSignIn={this.handleGoogleSignIn}
+          onAppleSignIn={this.handleAppleSignIn}
+          onGitHubSignIn={this.handleGitHubSignIn}
+          onMicrosoftSignIn={this.handleMicrosoftSignIn}
+          loading={this.state.firebaseLoading}
+          error={this.state.firebaseError}
+        />
       </>
     );
   }
