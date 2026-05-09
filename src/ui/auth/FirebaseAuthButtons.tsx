@@ -6,7 +6,7 @@ import Typography from '@material-ui/core/Typography';
 
 // Provider availability — update and redeploy when each provider is configured
 const APPLE_ENABLED     = false; // Pending Apple Developer account
-const GITHUB_ENABLED    = false; // Pending GitHub OAuth app
+const GITHUB_ENABLED    = true;  // Configured in Firebase console
 const MICROSOFT_ENABLED = false; // Pending Azure app registration
 
 const GoogleLogo: React.FC = () => (
