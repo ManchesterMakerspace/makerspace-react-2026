@@ -6,7 +6,7 @@ import { ActionButton } from "../common/ButtonRow";
 import FormModal from "ui/common/FormModal";
 import InvoiceDetails from "./InvoiceDetails";
 import SettleInvoiceModal from "./SettleInvoiceModal";
-import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 
 interface Props {
   invoice: Invoice;
@@ -14,7 +14,7 @@ interface Props {
 }
 
 const ViewInvoiceModal: React.FC<Props> = ({ invoice, onUpdate }) => {
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canSettleInvoices: isAdmin } = useCapabilities();
   const {isOpen, openModal, closeModal} = useModal();
 
   return (

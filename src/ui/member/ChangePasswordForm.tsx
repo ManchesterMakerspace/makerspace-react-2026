@@ -14,6 +14,7 @@ import FormLabel from "@material-ui/core/FormLabel";
 
 import ErrorMessage from "ui/common/ErrorMessage";
 import { useAuthState } from "ui/reducer/hooks";
+import { useCapabilities } from "app/permissions";
 
 interface Props {
   // The member whose password is being changed.
@@ -40,7 +41,8 @@ const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
 const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail }) => {
-  const { currentUser: { isAdmin, id: currentUserId } } = useAuthState();
+  const { currentUser: { id: currentUserId } } = useAuthState();
+  const { canChangeOtherPasswords: isAdmin } = useCapabilities();
   const isOwnPassword = currentUserId === memberId;
 
   const [adminMode, setAdminMode] = React.useState<AdminMode>("reset");

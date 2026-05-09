@@ -4,13 +4,13 @@ import useWriteTransaction from "../hooks/useWriteTransaction";
 import { ActionButton } from "../common/ButtonRow";
 import useModal from "../hooks/useModal";
 import Form from "../common/Form";
-import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import MemberForm from "./MemberForm";
 
 
 const CreateMember: React.FC<{ onCreate: (id: string) => void }> = ({ onCreate }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canCreateMembers } = useCapabilities();
   const formRef = React.useRef<MemberForm>();
 
   const onSuccess = React.useCallback(({ response }) => {
@@ -55,7 +55,7 @@ const CreateMember: React.FC<{ onCreate: (id: string) => void }> = ({ onCreate }
       {isOpen && (
         <MemberForm
           ref={formRef}
-          isAdmin={isAdmin}
+          isAdmin={canCreateMembers}
           isOpen={true}
           isRequesting={isRequesting}
           error={error}

@@ -4,13 +4,13 @@ import useWriteTransaction from "../hooks/useWriteTransaction";
 import { ActionButton } from "../common/ButtonRow";
 import useModal from "../hooks/useModal";
 import Form from "../common/Form";
-import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import MemberForm from "./MemberForm";
 
 
 const EditMember: React.FC<{ member: Member, onEdit?: () => void; formOnly?: boolean }> = ({ member = {} as Member, formOnly, onEdit }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canEditMembers } = useCapabilities();
   const formRef = React.useRef<MemberForm>();
 
   const onSuccess = React.useCallback(() => {
@@ -21,7 +21,7 @@ const EditMember: React.FC<{ member: Member, onEdit?: () => void; formOnly?: boo
     isRequesting: memberUpdating,
     error: updateError,
     call: update,
-  } = useWriteTransaction(isAdmin ? adminUpdateMember : updateMember, onSuccess);
+  } = useWriteTransaction(canEditMembers ? adminUpdateMember : updateMember, onSuccess);
 
   const onSubmit = React.useCallback(async (form: Form) => {
     const validUpdate: Record<string, any> = await formRef.current.validate(form);
@@ -58,7 +58,7 @@ const EditMember: React.FC<{ member: Member, onEdit?: () => void; formOnly?: boo
         <MemberForm
           ref={formRef}
           member={member}
-          isAdmin={isAdmin}
+          isAdmin={canEditMembers}
           isOpen={true}
           isRequesting={memberUpdating}
           error={updateError}

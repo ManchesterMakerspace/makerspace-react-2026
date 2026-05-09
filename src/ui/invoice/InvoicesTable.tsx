@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { adminListInvoices, listInvoices, getMember, Invoice } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import useReadTransaction from "../hooks/useReadTransaction";
 import StatefulTable from "../common/table/StatefulTable";
 import { InvoiceableResourceDisplay } from "app/entities/invoice";
@@ -26,7 +27,8 @@ import { Routing } from "app/constants";
 
 const InvoicesTable: React.FC<{ stageInvoice(invoice: Invoice): void }> = ({ stageInvoice }) => {
   const { match: { params: { memberId } } } =  useReactRouter<{ memberId: string }>();
-  const { currentUser: { isAdmin, id: currentUserId } } = useAuthState();
+  const { currentUser: { id: currentUserId } } = useAuthState();
+  const { canManageInvoices: isAdmin } = useCapabilities();
   const viewingOwnInvoices = memberId === currentUserId;
 
   const { params } = useQueryContext({

@@ -11,6 +11,7 @@ import { numberAsCurrency } from "ui/utils/numberAsCurrency";
 import { renderTransactionStatus, getTransactionDescription, writeReport } from "ui/transactions/utils";
 import { Member, Transaction, adminListTransaction, listTransactions } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import { useQueryContext, withQueryContext } from "../common/Filters/QueryContext";
 import useReadTransaction from "../hooks/useReadTransaction";
 import StatefulTable from "../common/table/StatefulTable";
@@ -91,7 +92,7 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
     initialStatus: transactionStatusParam
   })
 
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canRefundTransactions: isAdmin } = useCapabilities();
   const {
     params: { pageNum, order, orderBy, ...restParams },
     changePage

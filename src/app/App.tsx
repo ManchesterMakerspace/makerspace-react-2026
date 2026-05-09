@@ -24,8 +24,7 @@ const App: React.FC = () => {
     setupGlobalAuthInterceptor(dispatch);
     setGlobalDispatch(dispatch);
   }, []);
-  const { currentUser, currentUser: { id: currentUserId, isAdmin, isBoardMember, isResourceManager }, permissions, isRequesting, error } = useAuthState();
-  const isCheckoutApprover = !!(currentUser as any)?.isCheckoutApprover;
+  const { currentUser, currentUser: { id: currentUserId }, permissions, isRequesting, error } = useAuthState();
   const [attemptingLogin, setAttemptingLogin] = React.useState(true);
   const [loginAttempted, setLoginAttempted] = React.useState<boolean>();
   const [authSettled, setAuthSettled] = React.useState<boolean>();
@@ -75,10 +74,6 @@ const App: React.FC = () => {
               ? <PrivateRouting
                   permissions={permissions}
                   currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                  isBoardMember={!!isBoardMember}
-                  isResourceManager={!!isResourceManager}
-                  isCheckoutApprover={isCheckoutApprover}
                 />
               : <PublicRouting />)
         }

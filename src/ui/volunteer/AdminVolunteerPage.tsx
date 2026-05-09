@@ -29,7 +29,7 @@ import useReadTransaction from 'ui/hooks/useReadTransaction';
 import useWriteTransaction from 'ui/hooks/useWriteTransaction';
 import extractTotalItems from 'ui/utils/extractTotalItems';
 import { useAuthState } from 'ui/reducer/hooks';
-import { memberIsAdmin } from 'ui/member/utils';
+import { useCapabilities } from 'app/permissions';
 
 import { VolunteerCredit, VolunteerTask, VolunteerEvent } from 'app/entities/volunteer';
 import {
@@ -116,8 +116,7 @@ const ReasonModal: React.FC<ReasonModalProps> = ({ title, isOpen, onClose, onSub
 // ── Credits Tab ───────────────────────────────────────────────────────────────
 
 const CreditsTabInner: React.FC = () => {
-  const { currentUser } = useAuthState();
-  const isAdmin = memberIsAdmin(currentUser);
+  const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
@@ -333,8 +332,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSa
 };
 
 const TasksTabInner: React.FC = () => {
-  const { currentUser } = useAuthState();
-  const isAdmin = memberIsAdmin(currentUser);
+  const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
@@ -600,8 +598,7 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ eventId, onClose, o
 };
 
 const EventsTabInner: React.FC = () => {
-  const { currentUser } = useAuthState();
-  const isAdmin = memberIsAdmin(currentUser);
+  const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
   const [statusFilter, setStatusFilter]     = React.useState('open');
   const [selectedIds, setSelectedIds]       = React.useState<string[]>([]);

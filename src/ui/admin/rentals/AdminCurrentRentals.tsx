@@ -19,7 +19,7 @@ import CreateRentalAdmin from "ui/rentals/CreateRentalAdmin";
 import EditRental from "ui/rentals/EditRental";
 import RenewRental from "ui/rentals/RenewRental";
 import DeleteRentalModal from "ui/rentals/DeleteRentalModal";
-import { useAuthState } from "ui/reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import { RentalStatus } from "app/entities/rentalSpot";
 import { markRentalVacated } from "api/rentals";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
@@ -43,7 +43,7 @@ const getRentalStatus = (row: Rental): { label: string; color: Status } => {
 };
 
 const AdminCurrentRentalsInner: React.FC = () => {
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canDeleteRentals: isAdmin } = useCapabilities();
   const [selectedId, setSelectedId] = React.useState<string>();
   const { params } = useQueryContext();
 

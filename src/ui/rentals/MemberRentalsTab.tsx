@@ -7,6 +7,7 @@ import MemberRentalsList from "ui/rentals/MemberRentalsList";
 import RentalSpotsBrowser from "ui/rentalSpots/RentalSpotsBrowser";
 import CreateRentalAdmin from "ui/rentals/CreateRentalAdmin";
 import { useAuthState } from "ui/reducer/hooks";
+import { useCapabilities } from "app/permissions";
 
 interface Props {
   member:    Member;
@@ -14,9 +15,9 @@ interface Props {
 }
 
 const MemberRentalsTab: React.FC<Props> = ({ member, onUpdate }) => {
-  const { currentUser: { id: currentUserId, isAdmin, isResourceManager } } = useAuthState();
+  const { currentUser: { id: currentUserId } } = useAuthState();
+  const { canManageRentals: canManage } = useCapabilities();
   const isOwnProfile = currentUserId === member.id;
-  const canManage = isAdmin || isResourceManager;
 
   const [browserKey, setBrowserKey] = React.useState(0);
 

@@ -13,6 +13,7 @@ import useReadTransaction from "../hooks/useReadTransaction";
 import extractTotalItems from "../utils/extractTotalItems";
 import useModal from "../hooks/useModal";
 import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import StatefulTable from "../common/table/StatefulTable";
 import { withQueryContext, useQueryContext } from "../common/Filters/QueryContext";
 
@@ -37,10 +38,11 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
 
   const { params, changePage } = useQueryContext();
   const { isOpen, openModal, closeModal } = useModal();
-  const { currentUser: { id: currentUserId, isAdmin } } = useAuthState();
+  const { currentUser: { id: currentUserId } } = useAuthState();
+  const { canManageEarnedMemberships } = useCapabilities();
   const { match: { params: { memberId } } } =  useReactRouter<{ memberId: string }>();
   const isOwnMembership = currentUserId === memberId;
-  const asAdmin = isAdmin && !isOwnMembership
+  const asAdmin = canManageEarnedMemberships && !isOwnMembership
 
   const setSeleted = React.useCallback((ids: string[]) => {
     setSelectedId(Array.isArray(ids) && ids[0] || undefined);

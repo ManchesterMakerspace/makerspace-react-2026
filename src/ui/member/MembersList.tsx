@@ -23,6 +23,7 @@ import useReadTransaction from 'ui/hooks/useReadTransaction';
 import StatefulTable from '../common/table/StatefulTable';
 import { useQueryContext, withQueryContext } from '../common/Filters/QueryContext';
 import { useAuthState } from 'ui/reducer/hooks';
+import { useCapabilities } from 'app/permissions';
 
 const baseFields: Column<MemberSummary>[] = [
   {
@@ -87,9 +88,9 @@ const MembersList: React.FC = () => {
   const [selectedId, setSelectedId] = React.useState<string>();
   const { history } = useReactRouter();
   const { params, setParam } = useQueryContext({ currentMembers: true });
-  const { currentUser: { isAdmin, isBoardMember, isResourceManager } } = useAuthState();
-
-  const canViewAll = isAdmin || isBoardMember || isResourceManager;
+  useAuthState(); // required for auth context
+  const caps = useCapabilities();
+  const canViewAll = caps.canViewAllMembers;
   const updateFilter = React.useCallback(
     () => setParam('currentMembers', !params.currentMembers),
     [params, setParam]
@@ -108,7 +109,7 @@ const MembersList: React.FC = () => {
   return (
     <Grid container spacing={3} justify='center'>
       <Grid item md={10} xs={12}>
-        {isAdmin && (
+        {caps.canCreateMembers && (
           <Grid>
             <CreateMember onCreate={onCreate} />
             <RenewMember member={selectedMember} onRenew={onRenew} />
@@ -118,10 +119,10 @@ const MembersList: React.FC = () => {
             />
           </Grid>
         )}
-        {isResourceManager && !isBoardMember && (
+        {canViewAll && !caps.canCreateMembers && (
           <Grid>
             <Typography variant='body2' color='textSecondary' style={{ marginBottom: 8 }} data-testid='rm-notice'>
-              You are viewing members in read-only mode as a Resource Manager.
+              You are viewing members in read-only mode.
             </Typography>
           </Grid>
         )}

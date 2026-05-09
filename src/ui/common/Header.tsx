@@ -150,7 +150,7 @@ class Header extends React.Component<Props, State> {
       <>
         <span style={{ display: "inline-flex", alignItems: "center" }}>
           <Typography variant="body1" color="secondary">
-            {currentUser.firstname}
+            {currentUser.firstname} {currentUser.lastname}
           </Typography>
           {roleBadge(currentUser)}
         </span>

@@ -18,6 +18,7 @@ import RenewRental from "ui/rentals/RenewRental";
 import EditRental from "ui/rentals/EditRental";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { useAuthState } from "ui/reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import { useQueryContext, withQueryContext } from "ui/common/Filters/QueryContext";
 import { RentalStatus, RentalStatusDisplay } from "app/entities/rentalSpot";
 
@@ -44,8 +45,8 @@ const getRentalStatus = (row: Rental): { label: string; color: Status } => {
 };
 
 const RentalsList: React.FC<{ member?: Member }> = ({ member }) => {
-  const { currentUser: { id, isAdmin, isResourceManager } } = useAuthState();
-  const canManage = isAdmin || isResourceManager;
+  const { currentUser: { id } } = useAuthState();
+  const { canManageRentals: canManage, canDeleteRentals: isAdmin } = useCapabilities();
   const asAdmin = canManage && id !== (member && member.id);
 
   const fields: Column<Rental>[] = [

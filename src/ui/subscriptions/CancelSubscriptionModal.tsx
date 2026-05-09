@@ -5,6 +5,7 @@ import FormModal from "ui/common/FormModal";
 import { isCanceled } from "ui/subscriptions/utils";
 import { adminCancelSubscription, cancelSubscription, Subscription } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import useWriteTransaction from "../hooks/useWriteTransaction";
 import { ActionButton } from "../common/ButtonRow";
 import useModal from "../hooks/useModal";
@@ -16,9 +17,10 @@ interface Props {
 }
 
 const CancelSubscriptionModal: React.FC<Props> = ({ subscription, onSuccess }) => {
-  const { currentUser: { id, isAdmin } } = useAuthState();
+  const { currentUser: { id } } = useAuthState();
+  const { canCancelOtherSubscriptions } = useCapabilities();
   const { isOpen, openModal, closeModal } = useModal();
-  const asAdmin = isAdmin && id !== subscription.memberId;
+  const asAdmin = canCancelOtherSubscriptions && id !== subscription.memberId;
 
   const { isRequesting, error, call } = useWriteTransaction(asAdmin ? adminCancelSubscription : cancelSubscription, () => {
     closeModal();

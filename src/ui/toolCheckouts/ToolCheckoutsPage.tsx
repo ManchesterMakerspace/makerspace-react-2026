@@ -9,14 +9,15 @@ import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
 import CheckoutApproversManager from "./CheckoutApproversManager";
 import { useAuthState } from "ui/reducer/hooks";
-import { memberIsAdmin, memberIsResourceManager } from "ui/member/utils";
+import { memberIsResourceManager } from "ui/member/utils";
+import { useCapabilities } from "app/permissions";
 
 type TabKey = "roster" | "shops" | "tools" | "approvers";
 
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
-  const isAdmin = memberIsAdmin(currentUser);
   const isRM = memberIsResourceManager(currentUser);
+  const caps = useCapabilities();
   const [activeTab, setActiveTab] = React.useState<TabKey>("roster");
 
   const tabs: { key: TabKey; label: string; adminOnly?: boolean }[] = [
@@ -26,7 +27,7 @@ const ToolCheckoutsPage: React.FC = () => {
     { key: "approvers", label: "Approvers", adminOnly: true },
   ];
 
-  const visibleTabs = tabs.filter(t => !t.adminOnly || isAdmin);
+  const visibleTabs = tabs.filter(t => !t.adminOnly || caps.canManageCheckoutApprovers);
 
   return (
     <Grid container spacing={3} justify="center">
@@ -52,10 +53,10 @@ const ToolCheckoutsPage: React.FC = () => {
         </Tabs>
       </Grid>
       <Grid item md={10} xs={12}>
-        {activeTab === "roster" && <CheckoutRoster isAdmin={isAdmin} isResourceManager={isRM} />}
+        {activeTab === "roster" && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={isRM} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}
-        {activeTab === "approvers" && isAdmin && <CheckoutApproversManager />}
+        {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>
     </Grid>
   );

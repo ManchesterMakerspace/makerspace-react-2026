@@ -31,13 +31,14 @@ import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
 import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
+import { useCapabilities } from "app/permissions";
 import GoogleDriveInviteButton from "ui/member/GoogleDriveInviteButton";
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 
 const MemberProfile: React.FC = () => {
   const { match: { params: { memberId, resource } }, history } = useReactRouter<{ memberId: string, resource: string }>();
-  const { currentUser: { id: currentUserId, isAdmin, isBoardMember, isResourceManager }, permissions } = useAuthState();
-  const isAdminOrBoard = isAdmin || !!isBoardMember;
+  const { currentUser: { id: currentUserId }, permissions } = useAuthState();
+  const caps = useCapabilities();
 
   const {
     isNewMember
@@ -51,7 +52,7 @@ const MemberProfile: React.FC = () => {
 
   const isOwnProfile = currentUserId === memberId;
   const billingEnabled = !!permissions[Whitelists.billing];
-  const canChargeMember = (isAdminOrBoard || isResourceManager) && !isOwnProfile;
+  const canChargeMember = caps.canManageRentals && !isOwnProfile;
 
   const goToSettings = React.useCallback(() => {
     history.push(Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUserId));
@@ -85,7 +86,7 @@ const MemberProfile: React.FC = () => {
   }, [initRender, isOwnProfile, rentals]);
 
   const { customerId, earnedMembershipId } = member;
-  const isEarnedMember = !!earnedMembershipId && (isOwnProfile || isAdmin);
+  const isEarnedMember = !!earnedMembershipId && (isOwnProfile || caps.canManageEarnedMemberships);
 
   const setSearchQuery = useSetSearchQuery();
   const closeNotification = React.useCallback(() => {
@@ -150,7 +151,7 @@ const MemberProfile: React.FC = () => {
               label="Account Settings"
               onClick={goToSettings}
             />] : [],
-          ...isAdminOrBoard ? [
+          ...caps.canEditMembers ? [
             <EditMember member={member} key="edit-member" onEdit={refreshMember}/>,
             <RenewMember member={member} key="renew-member" onRenew={refreshMember}/>,
             <AccessCardForm memberId={memberId} key="card-form"/>,
@@ -168,7 +169,7 @@ const MemberProfile: React.FC = () => {
             <KeyValueItem label="Email">
               <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {member.email ? <a id="member-detail-email" href={`mailto:${member.email}`}>{member.email}</a> : "N/A"}
-                {(isAdminOrBoard || isResourceManager) && (
+                {caps.canViewEmailStatus && (
                   <>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ fontSize: '0.8rem', color: '#555' }}>Email status:</span>
@@ -200,7 +201,7 @@ const MemberProfile: React.FC = () => {
                         Manage Subscription
                       </Link>
                     )}
-                    {!isOwnProfile && isAdminOrBoard && (
+                    {!isOwnProfile && caps.canManageBilling && (
                         <Link to={
                           `${
                             Routing.Billing}/${
@@ -213,7 +214,7 @@ const MemberProfile: React.FC = () => {
                     )}
                   </span>
                 )}
-                {isAdminOrBoard && member.customerId && (
+                {caps.canManageBilling && member.customerId && (
                   <a target="blank" href={`https://www.braintreegateway.com/merchants/vfx5f27bnwwjjyqx/customers/${member.customerId}`}>
                     View in Braintree
                   </a>
@@ -222,7 +223,7 @@ const MemberProfile: React.FC = () => {
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}
-            {((member as any).groupName || isAdminOrBoard) && (
+            {((member as any).groupName || caps.canEditMembers) && (
               <KeyValueItem label="Household">
                 {(member as any).householdRole === "primary" && (
                   <span id="member-detail-household-role">Primary Member</span>
@@ -230,7 +231,7 @@ const MemberProfile: React.FC = () => {
                 {(member as any).householdRole === "secondary" && (
                   <span id="member-detail-household-role">Secondary Member</span>
                 )}
-                {!(member as any).groupName && isAdminOrBoard && (
+                {!(member as any).groupName && caps.canEditMembers && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
               </KeyValueItem>
@@ -239,7 +240,7 @@ const MemberProfile: React.FC = () => {
           </>
         )}
         activeResourceName={resource}
-        resources={(isOwnProfile || isAdminOrBoard) && [
+        resources={(isOwnProfile || caps.canEditMembers) && [
           ...isEarnedMember ?
           [{
             name: "membership",

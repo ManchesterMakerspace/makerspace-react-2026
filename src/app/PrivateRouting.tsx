@@ -22,23 +22,17 @@ import ShopFeesPage from 'ui/shopFees/ShopFeesPage';
 import ToolCheckoutsPage from 'ui/toolCheckouts/ToolCheckoutsPage';
 import MemberPortalSettings from 'ui/admin/MemberPortalSettings';
 import AdminVolunteerPage from 'ui/volunteer/AdminVolunteerPage';
+import { useCapabilities } from 'app/permissions';
 
 interface Props {
   currentUserId: string,
   permissions: CollectionOf<Permission>,
-  isAdmin: boolean;
-  isBoardMember: boolean;
-  isResourceManager: boolean;
-  isCheckoutApprover: boolean;
 }
 
-const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions, isAdmin, isBoardMember, isResourceManager, isCheckoutApprover }) => {
+const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions }) => {
+  const caps = useCapabilities();
   const billingEnabled = permissions[Whitelists.billing] || false;
-  const isAdminOrBoard = isAdmin || isBoardMember;
-  const earnedMembershipEnabled = isAdminOrBoard && permissions[Whitelists.earnedMembership];
-  const canManageShopFees = isAdminOrBoard || isResourceManager;
-  const canManageCheckouts = isAdminOrBoard || isResourceManager || isCheckoutApprover;
-  const canManageVolunteer = isAdminOrBoard || isResourceManager;
+  const earnedMembershipEnabled = caps.canManageEarnedMemberships && permissions[Whitelists.earnedMembership];
 
   return (
     <Switch>
@@ -48,11 +42,11 @@ const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions, isAdmin,
       <Route exact path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={SettingsContainer} />
       <Route exact path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={MemberDetail} />
       <Route exact path={Routing.Rentals} component={RentalsList} />
-      {(isAdminOrBoard || isResourceManager) && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
-      {canManageShopFees && <Route exact path={Routing.ShopFees} component={ShopFeesPage} />}
-      {canManageCheckouts && <Route exact path={Routing.ToolCheckouts} component={ToolCheckoutsPage} />}
-      {canManageVolunteer && <Route exact path={Routing.Volunteer} component={AdminVolunteerPage} />}
-      {isAdmin && <Route exact path={Routing.SystemSettings} component={MemberPortalSettings} />}
+      {caps.canManageRentals && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
+      {caps.canManageShopFees && <Route exact path={Routing.ShopFees} component={ShopFeesPage} />}
+      {caps.canManageCheckouts && <Route exact path={Routing.ToolCheckouts} component={ToolCheckoutsPage} />}
+      {caps.canManageVolunteer && <Route exact path={Routing.Volunteer} component={AdminVolunteerPage} />}
+      {caps.canViewPortalSettings && <Route exact path={Routing.SystemSettings} component={MemberPortalSettings} />}
       {billingEnabled && <Route exact path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={BillingContainer} />}
       {billingEnabled && <Route exact path={Routing.Receipt} component={Receipt}/>}
       {billingEnabled && <Route path={Routing.Checkout} component={CheckoutPage} />}

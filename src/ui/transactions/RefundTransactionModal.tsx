@@ -6,7 +6,7 @@ import FormModal from "ui/common/FormModal";
 import KeyValueItem from "ui/common/KeyValueItem";
 import { timeToDate } from "ui/utils/timeToDate";
 import { numberAsCurrency } from "ui/utils/numberAsCurrency";
-import { useAuthState } from "../reducer/hooks";
+import { useCapabilities } from "app/permissions";
 import { ActionButton } from "../common/ButtonRow";
 import useModal from "../hooks/useModal";
 import useWriteTransaction from "../hooks/useWriteTransaction";
@@ -17,7 +17,7 @@ interface OwnProps {
 }
 
 const RefundTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transaction, onSuccess }) => {
-  const { currentUser: { isAdmin } } = useAuthState();
+  const { canRefundTransactions: isAdmin } = useCapabilities();
   const { isOpen, openModal, closeModal } = useModal();
 
   const title = isAdmin ? "Refund Transaction" : "Request Refund";
