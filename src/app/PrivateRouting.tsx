@@ -27,16 +27,18 @@ interface Props {
   currentUserId: string,
   permissions: CollectionOf<Permission>,
   isAdmin: boolean;
+  isBoardMember: boolean;
   isResourceManager: boolean;
   isCheckoutApprover: boolean;
 }
 
-const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions, isAdmin, isResourceManager, isCheckoutApprover }) => {
+const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions, isAdmin, isBoardMember, isResourceManager, isCheckoutApprover }) => {
   const billingEnabled = permissions[Whitelists.billing] || false;
-  const earnedMembershipEnabled = isAdmin && permissions[Whitelists.earnedMembership];
-  const canManageShopFees = isAdmin || isResourceManager;
-  const canManageCheckouts = isAdmin || isResourceManager || isCheckoutApprover;
-  const canManageVolunteer = isAdmin || isResourceManager;
+  const isAdminOrBoard = isAdmin || isBoardMember;
+  const earnedMembershipEnabled = isAdminOrBoard && permissions[Whitelists.earnedMembership];
+  const canManageShopFees = isAdminOrBoard || isResourceManager;
+  const canManageCheckouts = isAdminOrBoard || isResourceManager || isCheckoutApprover;
+  const canManageVolunteer = isAdminOrBoard || isResourceManager;
 
   return (
     <Switch>
@@ -46,7 +48,7 @@ const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions, isAdmin,
       <Route exact path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={SettingsContainer} />
       <Route exact path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={MemberDetail} />
       <Route exact path={Routing.Rentals} component={RentalsList} />
-      {(isAdmin || isResourceManager) && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
+      {(isAdminOrBoard || isResourceManager) && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
       {canManageShopFees && <Route exact path={Routing.ShopFees} component={ShopFeesPage} />}
       {canManageCheckouts && <Route exact path={Routing.ToolCheckouts} component={ToolCheckoutsPage} />}
       {canManageVolunteer && <Route exact path={Routing.Volunteer} component={AdminVolunteerPage} />}

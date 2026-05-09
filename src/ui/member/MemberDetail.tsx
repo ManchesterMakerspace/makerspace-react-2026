@@ -36,7 +36,8 @@ import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 
 const MemberProfile: React.FC = () => {
   const { match: { params: { memberId, resource } }, history } = useReactRouter<{ memberId: string, resource: string }>();
-  const { currentUser: { id: currentUserId, isAdmin, isResourceManager }, permissions } = useAuthState();
+  const { currentUser: { id: currentUserId, isAdmin, isBoardMember, isResourceManager }, permissions } = useAuthState();
+  const isAdminOrBoard = isAdmin || !!isBoardMember;
 
   const {
     isNewMember
@@ -50,7 +51,7 @@ const MemberProfile: React.FC = () => {
 
   const isOwnProfile = currentUserId === memberId;
   const billingEnabled = !!permissions[Whitelists.billing];
-  const canChargeMember = (isAdmin || isResourceManager) && !isOwnProfile;
+  const canChargeMember = (isAdminOrBoard || isResourceManager) && !isOwnProfile;
 
   const goToSettings = React.useCallback(() => {
     history.push(Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUserId));
@@ -149,7 +150,7 @@ const MemberProfile: React.FC = () => {
               label="Account Settings"
               onClick={goToSettings}
             />] : [],
-          ...isAdmin ? [
+          ...isAdminOrBoard ? [
             <EditMember member={member} key="edit-member" onEdit={refreshMember}/>,
             <RenewMember member={member} key="renew-member" onRenew={refreshMember}/>,
             <AccessCardForm memberId={memberId} key="card-form"/>,
@@ -167,7 +168,7 @@ const MemberProfile: React.FC = () => {
             <KeyValueItem label="Email">
               <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                 {member.email ? <a id="member-detail-email" href={`mailto:${member.email}`}>{member.email}</a> : "N/A"}
-                {(isAdmin || isResourceManager) && (
+                {(isAdminOrBoard || isResourceManager) && (
                   <>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <span style={{ fontSize: '0.8rem', color: '#555' }}>Email status:</span>
@@ -199,7 +200,7 @@ const MemberProfile: React.FC = () => {
                         Manage Subscription
                       </Link>
                     )}
-                    {!isOwnProfile && isAdmin && (
+                    {!isOwnProfile && isAdminOrBoard && (
                         <Link to={
                           `${
                             Routing.Billing}/${
@@ -212,7 +213,7 @@ const MemberProfile: React.FC = () => {
                     )}
                   </span>
                 )}
-                {isAdmin && member.customerId && (
+                {isAdminOrBoard && member.customerId && (
                   <a target="blank" href={`https://www.braintreegateway.com/merchants/vfx5f27bnwwjjyqx/customers/${member.customerId}`}>
                     View in Braintree
                   </a>
@@ -221,7 +222,7 @@ const MemberProfile: React.FC = () => {
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}
-            {((member as any).groupName || isAdmin) && (
+            {((member as any).groupName || isAdminOrBoard) && (
               <KeyValueItem label="Household">
                 {(member as any).householdRole === "primary" && (
                   <span id="member-detail-household-role">Primary Member</span>
@@ -229,7 +230,7 @@ const MemberProfile: React.FC = () => {
                 {(member as any).householdRole === "secondary" && (
                   <span id="member-detail-household-role">Secondary Member</span>
                 )}
-                {!(member as any).groupName && isAdmin && (
+                {!(member as any).groupName && isAdminOrBoard && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
               </KeyValueItem>
@@ -238,7 +239,7 @@ const MemberProfile: React.FC = () => {
           </>
         )}
         activeResourceName={resource}
-        resources={(isOwnProfile || isAdmin) && [
+        resources={(isOwnProfile || isAdminOrBoard) && [
           ...isEarnedMember ?
           [{
             name: "membership",
