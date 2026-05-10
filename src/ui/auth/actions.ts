@@ -57,9 +57,44 @@ export const loginUserAction = (
   dispatch({ type: AuthAction.StartAuthRequest });
 
   if (!loginForm) {
-    // Session restore — no TOTP intercept needed
-    const response = await signIn({ body: {} });
-    await handleAuthWithPermissions(response, dispatch, true);
+    // Session restore — use raw fetch so we can detect totp_enrollment_required
+    const res = await fetch('/api/members/sign_in', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': (() => {
+          const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+          return match ? decodeURIComponent(match[1]) : '';
+        })(),
+      },
+      body: JSON.stringify({}),
+    });
+
+    if (res.ok) {
+      const member = await res.json();
+      if (member.totp_enrollment_required) {
+        const permissionsResponse = await listMembersPermissions({ id: member.id });
+        if (isApiErrorResponse(permissionsResponse)) {
+          dispatch({ type: AuthAction.AuthUserFailure, error: undefined });
+        } else {
+          dispatch({
+            type: AuthAction.AuthUserSuccess,
+            data: { member, permissions: permissionsResponse.data }
+          });
+          dispatch({ type: AuthAction.TotpEnrollmentRequired });
+        }
+      } else {
+        await handleAuthWithPermissions(
+          { data: member, response: res } as any,
+          dispatch,
+          true
+        );
+      }
+    } else {
+      // Not signed in — silently fail (expected on fresh load)
+      dispatch({ type: AuthAction.AuthUserFailure, error: undefined });
+    }
     return;
   }
 
@@ -109,9 +144,9 @@ export const loginUserAction = (
 }
 
 export const sessionLoginUserAction = (): ThunkAction<Promise<void>, {}, {}, AnyAction> => async (dispatch) => {
-  dispatch({ type: AuthAction.StartAuthRequest });
-  const response = await signIn({ body: {} });
-  await handleAuthWithPermissions(response, dispatch, true);
+  // Delegate to loginUserAction (no form = session restore path) so that
+  // totp_enrollment_required is handled consistently everywhere.
+  await dispatch(loginUserAction());
 }
 
 export const refreshUserAction = sessionLoginUserAction;
