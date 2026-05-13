@@ -1,33 +1,32 @@
-import * as React from "react";
-import Typography from "@material-ui/core/Typography";
+import * as React from 'react';
+import Typography from '@material-ui/core/Typography';
 import Grid from '@material-ui/core/Grid';
-import Paper from "@material-ui/core/Paper";
-import Divider from "@material-ui/core/Divider";
+import Paper from '@material-ui/core/Paper';
+import Divider from '@material-ui/core/Divider';
 
 import { discountParam, invoiceOptionParam, noneInvoiceOption, ssmDiscount } from '../MembershipOptions';
-import { useSearchQuery, useSetSearchQuery } from "hooks/useSearchQuery";
-import { useMembershipOptions } from "hooks/useMembershipOptions";
-import { numberAsCurrency } from "ui/utils/numberAsCurrency";
-import { TextInput } from "components/Form/inputs/TextInput";
-import { CheckboxInput } from "components/Form/inputs/CheckboxInput";
-import { FormField } from "components/Form/FormField";
-import KeyValueItem from "ui/common/KeyValueItem";
-import { useTotal } from "./constant";
+import { useSearchQuery, useSetSearchQuery } from 'hooks/useSearchQuery';
+import { useMembershipOptions } from 'hooks/useMembershipOptions';
+import { numberAsCurrency } from 'ui/utils/numberAsCurrency';
+import { TextInput } from 'components/Form/inputs/TextInput';
+import { CheckboxInput } from 'components/Form/inputs/CheckboxInput';
+import { FormField } from 'components/Form/FormField';
+import KeyValueItem from 'ui/common/KeyValueItem';
+import { useTotal } from './constant';
 
 interface Props {
   readOnly?: boolean;
 }
 
-
 const fields = {
   invoiceOption: {
-    name: "invoiceOption",
-    validate: (val: string) => !val && "Please select a membership before continuing"
+    name: 'invoiceOption',
+    validate: (val: string) => !val && 'Please select a membership before continuing'
   },
   discountId: {
-    name: "discountId",
-    label: "Discount Code",
-    validate: (discountIds: string[]) => (val: string) => (val && ![ssmDiscount, ...discountIds].includes(val)) && "Discount Code not recognized"
+    name: 'discountId',
+    label: 'Discount Code',
+    validate: (discountIds: string[]) => (val: string) => (val && ![ssmDiscount, ...discountIds].includes(val)) && 'Discount Code not recognized'
   }
 }
 
@@ -42,22 +41,28 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
 
   const { allOptions, discounts } = useMembershipOptions(true);
 
-  React.useEffect(() => {
-    setInvoiceOption(allOptions.find(({ id }) => id === invoiceOptionIdParam));
-  }, [invoiceOptionIdParam, allOptions]);
-
   const [invoiceOption, setInvoiceOption] = React.useState(allOptions.find(({ id }) => id === invoiceOptionIdParam));
   const setSearchQuery = useSetSearchQuery();
 
-  const [discountId, setDiscountId] = React.useState(discountIdParam)
+  const [discountId, setDiscountId] = React.useState(discountIdParam);
   const updateDiscountId = React.useCallback((discountCode: string) => {
     setSearchQuery({ [discountParam]: discountCode });
     setDiscountId(discountCode);
   }, [setDiscountId, setSearchQuery]);
 
+  React.useEffect(() => {
+    const newOption = allOptions.find(({ id }) => id === invoiceOptionIdParam);
+    setInvoiceOption(newOption);
+    // If the newly selected plan has no discount configured, clear any SSM discount from the URL
+    if (!newOption?.discountId && discountId === ssmDiscount) {
+      updateDiscountId('');
+    }
+  }, [invoiceOptionIdParam, allOptions]);
+
   const selectedDiscount = discounts.find(d => d.id === discountId);
 
   const isNoneOption = invoiceOption?.id === noneInvoiceOption.id;
+  const planHasDiscount = !!invoiceOption?.discountId;
 
   const singleMonth = invoiceOption?.quantity === 1;
   const isSsmDiscount = discountId === ssmDiscount;
@@ -65,26 +70,26 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
   const total = useTotal(invoiceOption && Number(invoiceOption.amount), discountId);
 
   return !!invoiceOption && (
-    <div id="cart-preview">
+    <div id='cart-preview'>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-          <Typography variant="subtitle1">
+          <Typography variant='subtitle1'>
             <strong>Name:</strong> {invoiceOption.name}
           </Typography>
         </Grid>
         <Grid item xs={12}>
-          <Typography variant="subtitle1">
-            <strong>Description:</strong> {invoiceOption.description || "-"}
+          <Typography variant='subtitle1'>
+            <strong>Description:</strong> {invoiceOption.description || '-'}
           </Typography>
         </Grid>
         {!isNoneOption && (
           <>
             <Grid item xs={12}>
-              <Typography id="subtotal" variant="subtitle1">
+              <Typography id='subtotal' variant='subtitle1'>
                 <strong>Subtotal:</strong> {
-                `${numberAsCurrency(invoiceOption.amount)}${!invoiceOption.planId ? "" :
+                `${numberAsCurrency(invoiceOption.amount)}${!invoiceOption.planId ? '' :
                 ` / ${
-                  singleMonth ? "" : `${invoiceOption.quantity} `} month${singleMonth ? "" : "s"}`}`
+                  singleMonth ? '' : `${invoiceOption.quantity} `} month${singleMonth ? '' : 's'}`}`
                 }
               </Typography>
             </Grid>
@@ -95,19 +100,21 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
             )}
             {renderDiscountSection && (
               <Grid item xs={12}>
-                {readOnly ? <KeyValueItem id="discountId" label={fields.discountId.label}>{discountId}</KeyValueItem> : (
+                {readOnly ? <KeyValueItem id='discountId' label={fields.discountId.label}>{discountId}</KeyValueItem> : (
                   <>
-                    <Typography variant="subtitle1">
+                    <Typography variant='subtitle1'>
                       Qualify for a discount? Select one below or enter a discount code. Proof of applicable affiliation required during orientation.
                     </Typography>
 
-                    <CheckboxInput
-                      value={isSsmDiscount}
-                      fieldName={ssmDiscount}
-                      disabled={discountId && discountId !== ssmDiscount}
-                      onChange={checked => updateDiscountId(checked ? ssmDiscount : "")}
-                      label={`Student, Military, Senior 10% off`}
-                    />
+                    {planHasDiscount && (
+                      <CheckboxInput
+                        value={isSsmDiscount}
+                        fieldName={ssmDiscount}
+                        disabled={discountId && discountId !== ssmDiscount}
+                        onChange={checked => updateDiscountId(checked ? ssmDiscount : '')}
+                        label={'Student, Military, Senior 10% off'}
+                      />
+                    )}
 
                     <TextInput
                       fieldName={fields.discountId.name}
@@ -118,7 +125,7 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                       validate={fields.discountId.validate(discounts.map(d => d.id))}
                     />
                     {selectedDiscount &&
-                      <Typography variant="subtitle1">
+                      <Typography variant='subtitle1'>
                         {selectedDiscount.name}
                       </Typography>
                     }
@@ -131,7 +138,7 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
             </Grid>
 
             <Grid item xs={12}>
-              <Typography variant="h6" paragraph={true} id="total">
+              <Typography variant='h6' paragraph={true} id='total'>
                 <strong>Total Due: </strong>
                 {total}
               </Typography>
@@ -151,11 +158,10 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
   });
 
   return (
-    <Paper style={{ position: "fixed", padding: "1em" }}>
+    <Paper style={{ position: 'fixed', padding: '1em' }}>
       <Grid container spacing={2}>
         <Grid item xs={12}>
-
-          <Typography variant="h4">
+          <Typography variant='h4'>
             Selection
           </Typography>
         </Grid>
@@ -166,7 +172,7 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
           </Grid>
         ) : (
           <Grid item xs={12}>
-            <Typography variant="h5">
+            <Typography variant='h5'>
               Select a membership option
             </Typography>
           </Grid>
