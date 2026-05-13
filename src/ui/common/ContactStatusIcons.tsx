@@ -3,6 +3,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import ErrorIcon from '@material-ui/icons/Error';
 import InfoOutlined from '@material-ui/icons/InfoOutlined';
+import SecurityIcon from '@material-ui/icons/Security';
 
 // Mailtrap webhook event values (event field, not status)
 const GOOD_STATUSES = ['delivery', 'open', 'click'];
@@ -68,5 +69,54 @@ export const SlackStatusIcon: React.FC<{ slack?: SlackData }> = ({ slack }) => {
     <Tooltip title={`Slack account linked: ${slack.name}`}>
       <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
     </Tooltip>
+  );
+};
+
+export const TotpStatusIcon: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  if (enabled) {
+    return (
+      <Tooltip title='Two-factor authentication enabled'>
+        <SecurityIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
+      </Tooltip>
+    );
+  }
+  return (
+    <Tooltip title='Two-factor authentication not enabled'>
+      <SecurityIcon fontSize='small' style={{ color: '#bdbdbd', verticalAlign: 'middle' }} />
+    </Tooltip>
+  );
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  admin:            'Admin',
+  board_member:     'Board',
+  resource_manager: 'RM',
+};
+
+const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
+  admin:            { bg: '#d32f2f', color: '#fff' },
+  board_member:     { bg: '#7b1fa2', color: '#fff' },
+  resource_manager: { bg: '#1565c0', color: '#fff' },
+};
+
+export const RoleBadge: React.FC<{ role?: string }> = ({ role }) => {
+  if (!role || role === 'member') return null;
+  const label = ROLE_LABELS[role] || role;
+  const style = ROLE_COLORS[role] || { bg: '#9e9e9e', color: '#fff' };
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '2px 8px',
+      borderRadius: 12,
+      fontSize: '0.7rem',
+      fontWeight: 600,
+      backgroundColor: style.bg,
+      color: style.color,
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase' as const,
+      whiteSpace: 'nowrap' as const,
+    }}>
+      {label}
+    </span>
   );
 };

@@ -210,7 +210,7 @@ const MemberProfile: React.FC = () => {
             <AdminChangePasswordModal member={member} key="change-password"/>,
             <HouseholdModal member={member} key="household" onUpdate={refreshMember}/>,
             <GoogleDriveInviteButton member={member} key="google-drive-invite" />,
-            ...((member as any).totp_enabled ? [
+            ...((member as any).totpEnabled ? [
               <Reset2FAButton key="reset-2fa" memberId={memberId} onReset={refreshMember} />
             ] : [])
           ] : [],
