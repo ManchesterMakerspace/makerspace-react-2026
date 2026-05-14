@@ -1,12 +1,14 @@
-import * as React from "react";
-import * as Braintree from "braintree-web";
-import useReadTransaction from "ui/hooks/useReadTransaction";
-import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import { getNewPaymentMethod, createPaymentMethod as createPaymentMethodApi } from "makerspace-ts-api-client";
-import { PayPalProvider } from "./PayPalForm";
-import { CreditCardProvider } from "./CreditCardForm";
-import { useSetSearchQuery } from "hooks/useSearchQuery";
-import { paymentMethodQueryParam } from "./constants";
+import * as React from 'react';
+import * as Braintree from 'braintree-web';
+import useReadTransaction from 'ui/hooks/useReadTransaction';
+import useWriteTransaction from 'ui/hooks/useWriteTransaction';
+import { getNewPaymentMethod, createPaymentMethod as createPaymentMethodApi } from 'makerspace-ts-api-client';
+import { AnyPaymentMethod } from 'app/entities/paymentMethod';
+import { PayPalProvider } from './PayPalForm';
+import { VenmoProvider } from './VenmoForm';
+import { CreditCardProvider } from './CreditCardForm';
+import { useSetSearchQuery } from 'hooks/useSearchQuery';
+import { paymentMethodQueryParam } from './constants';
 
 interface PaymentMethodsContext {
   braintreeClient: Braintree.Client;
@@ -22,9 +24,13 @@ const PaymentMethodsContext = React.createContext<PaymentMethodsContext>({
   error: undefined,
 });
 
-interface Props {}
+interface Props {
+  // Optional callback for flows that don't use URL params (e.g. manage payment methods modal).
+  // When provided, called with the new payment method on success instead of setting a URL param.
+  onSuccess?: (paymentMethod: AnyPaymentMethod) => void;
+}
 
-export const PaymentMethodsProvider: React.FC<Props> = ({ children }) => {
+export const PaymentMethodsProvider: React.FC<Props> = ({ children, onSuccess }) => {
   const setSearch = useSetSearchQuery();
 
   const {
@@ -38,15 +44,20 @@ export const PaymentMethodsProvider: React.FC<Props> = ({ children }) => {
     error: createPaymentMethodError,
     isRequesting: creatingPaymentMethod
   } = useWriteTransaction(createPaymentMethodApi, ({ response }) => {
-    // On success, store nonce in URL for later
-    setSearch({ [paymentMethodQueryParam]: response.data.id });
+    if (onSuccess) {
+      // Manage-payment-methods flow: call callback directly, don't touch the URL
+      onSuccess(response.data as AnyPaymentMethod);
+    } else {
+      // Signup flow: store token in URL for use in subsequent steps
+      setSearch({ [paymentMethodQueryParam]: response.data.id });
+    }
   });
 
   const [clientError, setClientError] = React.useState<Braintree.BraintreeError>();
   const [client, setClient] = React.useState<Braintree.Client>();
   const [clientLoading, setClientLoading] = React.useState(false);
 
-  // Initialize Braintree once the token is loaded or changes
+  // Initialize Braintree client once the token is loaded or changes
   React.useEffect(() => {
     if (data?.clientToken) {
       setClientLoading(true);
@@ -82,7 +93,9 @@ export const PaymentMethodsProvider: React.FC<Props> = ({ children }) => {
     <PaymentMethodsContext.Provider value={context}>
       <CreditCardProvider>
         <PayPalProvider>
-          {children}
+          <VenmoProvider>
+            {children}
+          </VenmoProvider>
         </PayPalProvider>
       </CreditCardProvider>
     </PaymentMethodsContext.Provider>

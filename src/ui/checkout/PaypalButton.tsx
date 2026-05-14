@@ -1,121 +1,103 @@
-import * as React from "react";
-import { connect } from "react-redux";
+import * as React from 'react';
+import * as Braintree from 'braintree-web';
 import Grid from '@material-ui/core/Grid';
-import isString from "lodash-es/isString";
+import Typography from '@material-ui/core/Typography';
 
-//@ts-ignore
-import * as Braintree from "braintree-web";
-//@ts-ignore
-import * as checkoutJs from "paypal-checkout";
+import ErrorMessage from 'ui/common/ErrorMessage';
+import LoadingOverlay from 'ui/common/LoadingOverlay';
+import { createPaymentMethod } from 'makerspace-ts-api-client';
+import { AnyPaymentMethod } from 'app/entities/paymentMethod';
 
-import ErrorMessage from "ui/common/ErrorMessage";
-import LoadingOverlay from "ui/common/LoadingOverlay";
-import Typography from "@material-ui/core/Typography";
-import { createPaymentMethod } from "makerspace-ts-api-client";
-import { AnyPaymentMethod } from "app/entities/paymentMethod";
-
-interface OwnProps {
-  braintreeInstance: any;
+interface Props {
+  braintreeInstance: Braintree.Client;
   clientToken: string;
   paymentMethodCallback?: (paymentMethod: AnyPaymentMethod) => void;
 }
 
-interface Props extends OwnProps {}
+const PaypalButton: React.FC<Props> = ({ braintreeInstance, paymentMethodCallback }) => {
+  const [error, setError] = React.useState<string>();
+  const [loading, setLoading] = React.useState(false);
+  const initialized = React.useRef(false);
 
-interface State {
-  paypalInstance: any;
-  braintreeError: Braintree.BraintreeError;
-  paypalRequesting: boolean;
-}
-
-class PaypalButton extends React.Component<Props, State> {
-
-  constructor(props: Props) {
-    super(props);
-
-    this.state = {
-      paypalInstance: undefined,
-      braintreeError: undefined,
-      paypalRequesting: false,
+  React.useEffect(() => {
+    if (braintreeInstance && !initialized.current) {
+      initialized.current = true;
+      initPaypal();
     }
-  }
+  }, [braintreeInstance]);
 
-  public componentDidMount() {
-    this.props.braintreeInstance && this.initPaypal();
-  }
-
-  public componentDidUpdate(prevProps: Props) {
-    const { braintreeInstance } = this.props;
-    const { braintreeInstance: prevBraintreeInstance } = prevProps;
-    if (!prevBraintreeInstance && braintreeInstance) {
-      this.initPaypal();
-    }
-  }
-
-  private initPaypal = async () => {
-    const { braintreeInstance } = this.props;
+  const initPaypal = async () => {
+    setLoading(true);
     try {
-      this.setState({ paypalRequesting: true });
-      await (Braintree as any).paypalCheckout.create({
-        client: braintreeInstance
-      }, (paypalCheckoutErr: any, paypalCheckoutInstance: any) => {
-
-        if (paypalCheckoutErr) throw paypalCheckoutErr;
-        checkoutJs.Button.render({
-          env: process.env.NODE_ENV,
-          payment: () => {
-            return paypalCheckoutInstance.createPayment({
-              flow: 'vault',
-            });
-          },
-
-          onAuthorize: (data: any, actions: any) => {
-            this.setState({ braintreeError: undefined });
-            return paypalCheckoutInstance.tokenizePayment(data, async (err: any, payload: any) => {
-              if (err) throw err;
-              try {
-                await createPaymentMethod({ body: { paymentMethodNonce: payload.nonce, makeDefault: true }});
-                this.props.paymentMethodCallback && this.props.paymentMethodCallback(payload);
-              } catch (e) {
-                const { errorMessage } = e;
-                this.setState({ braintreeError: errorMessage });
-              }
-            });
-          },
-
-          onCancel: (data: any) => {
-            console.log('checkout.js payment canceled');
-          },
-
-          onError: (err: any) => {
-            if (err) throw err;
-          }
-        }, '#paypal-button').then(() => {
-          this.setState({ paypalInstance: paypalCheckoutInstance, paypalRequesting: false });
+      const paypalCheckoutInstance = await new Promise<any>((resolve, reject) => {
+        Braintree.paypalCheckout.create({ client: braintreeInstance }, (err, instance) => {
+          if (err) { reject(err); } else { resolve(instance); }
         });
       });
+
+      // Disable credit and card funding sources — show only the PayPal button
+      await paypalCheckoutInstance.loadPayPalSDK({
+        vault: true,
+        'disable-funding': 'credit,card',
+      });
+
+      const buttonInstance = window.paypal.Buttons({
+        fundingSource: window.paypal.FUNDING.PAYPAL,
+
+        style: {
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal',
+          height: 36,
+        } as any,
+
+        createBillingAgreement: () => paypalCheckoutInstance.createPayment({ flow: 'vault' }),
+
+        onApprove: async (data: any) => {
+          setLoading(true);
+          setError(undefined);
+          try {
+            const payload = await paypalCheckoutInstance.tokenizePayment(data);
+            await createPaymentMethod({ body: { paymentMethodNonce: payload.nonce, makeDefault: true } });
+            paymentMethodCallback && paymentMethodCallback(payload);
+          } catch (err) {
+            setError(err.errorMessage || err.message || String(err));
+          } finally {
+            setLoading(false);
+          }
+        },
+
+        onCancel: (_data: any) => {
+          console.log('PayPal payment cancelled');
+        },
+
+        onError: (err: any) => {
+          setError(err.message || String(err));
+          setLoading(false);
+        }
+      });
+
+      if (buttonInstance.isEligible()) {
+        await buttonInstance.render('#paypal-button-checkout');
+      }
+
+      setLoading(false);
     } catch (err) {
-      this.setState({ braintreeError: err, paypalRequesting: false });
+      setError(err.message || String(err));
+      setLoading(false);
     }
-  }
+  };
 
-  public render(): JSX.Element {
-    const { braintreeError, paypalRequesting } = this.state;
-    const { braintreeInstance } = this.props;
-    const error = braintreeError && (isString(braintreeError) ? braintreeError : braintreeError.message);
-    const loading = braintreeInstance && paypalRequesting;
-    return (
-      <Grid container spacing={2} style={{position: "relative", overflow: "hidden"}}>
-        <Grid item xs={12} style={{textAlign: "center"}}>
-            <button id="paypal-button" style={{ background: "none", border: "none" }} />
-            {loading && <Typography variant="body1">Contacting PayPal</Typography>}
-            {error && <ErrorMessage error={error} id="paypal-error"/>}
-        </Grid>
-
-        {loading && <LoadingOverlay id="paypal-button" />}
+  return (
+    <Grid container spacing={2} style={{ position: 'relative', overflow: 'hidden' }}>
+      <Grid item xs={12} style={{ textAlign: 'center' }}>
+        <div id='paypal-button-checkout' />
+        {loading && <Typography variant='body1'>Contacting PayPal</Typography>}
+        {error && <ErrorMessage error={error} id='paypal-error' />}
       </Grid>
-    )
-  }
-}
+      {loading && <LoadingOverlay id='paypal-button-checkout' />}
+    </Grid>
+  );
+};
 
 export default PaypalButton;

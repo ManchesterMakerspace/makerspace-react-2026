@@ -1,14 +1,16 @@
-import * as React from "react";
-import * as Braintree from "braintree-web";
-import { HostedFieldsHostedFieldsCard } from "braintree-web/modules/hosted-fields";
-import Grid from "@material-ui/core/Grid";
-import { usePaymentMethodsContext } from "./PaymentMethodsContext";
-import { useFormContext, FormContextProvider } from "components/Form/FormContext";
-import { EmittedBy, CreditCardFields, hostedFieldStyles } from "./constants";
-import ErrorMessage from "ui/common/ErrorMessage";
-import { CollectionOf } from "app/interfaces";
-import { message } from "makerspace-ts-api-client";
-import useWriteTransaction from "ui/hooks/useWriteTransaction";
+import * as React from 'react';
+import * as Braintree from 'braintree-web';
+import Grid from '@material-ui/core/Grid';
+import { usePaymentMethodsContext } from './PaymentMethodsContext';
+import { useFormContext, FormContextProvider } from 'components/Form/FormContext';
+import { EmittedBy, CreditCardFields, hostedFieldStyles } from './constants';
+import ErrorMessage from 'ui/common/ErrorMessage';
+import { CollectionOf } from 'app/interfaces';
+import { message } from 'makerspace-ts-api-client';
+import useWriteTransaction from 'ui/hooks/useWriteTransaction';
+
+// HostedFieldsHostedFieldsCard no longer exported from sub-module in newer @types/braintree-web
+type CardType = any;
 
 interface CreditCardContext {
   initialize(): void;
@@ -16,7 +18,7 @@ interface CreditCardContext {
   validate(): CollectionOf<any>;
   loading: boolean;
   error: Braintree.BraintreeError | string;
-  cardType: HostedFieldsHostedFieldsCard
+  cardType: CardType;
 }
 
 const CreditCardContext = React.createContext({
@@ -39,12 +41,25 @@ export const CreditCardProvider: React.FC<Props> = ({ children }) => {
   const [instanceError, setInstanceError] = React.useState<Braintree.BraintreeError | string>();
   const [instance, setInstance] = React.useState<Braintree.HostedFields>();
   const [instanceLoading, setInstanceLoading] = React.useState(true);
-  const [cardType, setCardType] = React.useState<HostedFieldsHostedFieldsCard>();
+  const [cardType, setCardType] = React.useState<CardType>();
+  const initialized = React.useRef(false);
 
   const { call: reportError } = useWriteTransaction(message);
 
+  // Tear down hosted fields on unmount to release iframe elements for reuse
+  React.useEffect(() => {
+    return () => {
+      if (instance) {
+        instance.teardown(() => {});
+      }
+    };
+  }, [instance]);
+
   const initFields = React.useCallback(() => {
+    if (!braintreeClient || initialized.current) return;
+    initialized.current = true;
     setInstanceLoading(true);
+
     Braintree.hostedFields.create({
       client: braintreeClient,
       styles: hostedFieldStyles,
@@ -52,7 +67,7 @@ export const CreditCardProvider: React.FC<Props> = ({ children }) => {
           fields[key] = {
             selector: `#${field.name}`,
             placeholder: field.placeholder
-          }
+          };
         return fields;
       }, {} as Braintree.HostedFieldFieldOptions),
     }, (err, hostedFieldsInstance: Braintree.HostedFields) => {
@@ -62,41 +77,39 @@ export const CreditCardProvider: React.FC<Props> = ({ children }) => {
         setInstanceError(err);
         reportError({ body: { message: err.message } });
         return;
-      };
+      }
       setInstance(hostedFieldsInstance);
 
-      hostedFieldsInstance.on("validityChange", (event) => {
+      hostedFieldsInstance.on('validityChange', (event) => {
         const { fields, emittedBy } = event;
         const { isPotentiallyValid } = fields[emittedBy];
         setInstanceError(undefined);
-
         if (!isPotentiallyValid) {
-          setError(emittedBy, "Invalid")
+          setError(emittedBy, 'Invalid');
         }
       });
 
-      hostedFieldsInstance.on("cardTypeChange", (event) => {
+      hostedFieldsInstance.on('cardTypeChange', (event) => {
         const { cards } = event;
         if (cards.length === 1) {
           setCardType(cards[0]);
         }
       });
 
-      hostedFieldsInstance.on("empty", (event) => {
+      hostedFieldsInstance.on('empty', (event) => {
         const { emittedBy } = event;
         if (emittedBy === EmittedBy.Number) {
           setCardType(undefined);
         }
       });
 
-      hostedFieldsInstance.on("blur", (event) => {
+      hostedFieldsInstance.on('blur', (event) => {
         const { fields, emittedBy } = event;
         const { isValid, isPotentiallyValid } = fields[emittedBy];
         if (!isValid || !isPotentiallyValid) {
-          setError(emittedBy, "Invalid")
+          setError(emittedBy, 'Invalid');
         }
       });
-
     });
   }, [braintreeClient, setInstance, setInstanceError, setInstanceLoading, setCardType, setError]);
 
@@ -104,29 +117,28 @@ export const CreditCardProvider: React.FC<Props> = ({ children }) => {
     return new Promise<void>((resolve, reject) => {
       setInstanceError(undefined);
       setInstanceLoading(true);
-      instance && instance.tokenize({ vault: true }, (err: Braintree.BraintreeError, payload:{ [key: string]: string }) => {
+      // payload typed as any — HostedFieldsTokenizePayload type changed in newer braintree-web types
+      instance && instance.tokenize({ vault: true }, (err: Braintree.BraintreeError, payload: any) => {
         setInstanceLoading(false);
         if (err) {
           setInstanceError(err);
           reject(err);
           return;
         }
-
         return createPaymentMethod(payload.nonce, true).then(resolve).catch(reject);
       });
     });
-
   }, [instance, setInstanceLoading, setInstanceError]);
 
   React.useEffect(() => {
     instance?.setPlaceholder(
-      EmittedBy.Cvv, cardType?.code.size === 4 ? "1234" : "123"
-    )
+      EmittedBy.Cvv, cardType?.code.size === 4 ? '1234' : '123'
+    );
   }, [cardType]);
 
   const validate = React.useCallback(() => {
     if (!instance) {
-      setInstanceError("Please try again");
+      setInstanceError('Please try again');
       return { error: true };
     }
 
@@ -134,10 +146,9 @@ export const CreditCardProvider: React.FC<Props> = ({ children }) => {
     const isValid = Object.keys(CreditCardFields).every(fieldName => formState.fields[fieldName]?.isValid);
 
     if (!isValid) {
-      setInstanceError("Invalid card information. Review your selections and try again");
+      setInstanceError('Invalid card information. Review your selections and try again');
       return { error: true };
     }
-
   }, [instance, setInstanceError]);
 
   const context: CreditCardContext = React.useMemo(() => {
@@ -164,8 +175,8 @@ export function useCreditCardContext(): CreditCardContext {
   return React.useContext(CreditCardContext);
 }
 
-export const CreditCardForm: React.FC = ({ }) => {
-  const { error: ccError, cardType, initialize, submit } = useCreditCardContext();
+export const CreditCardForm: React.FC = () => {
+  const { error: ccError, cardType, initialize } = useCreditCardContext();
   const { error: createPaymentMethodError } = usePaymentMethodsContext();
   const error = ccError || createPaymentMethodError;
 
@@ -174,76 +185,49 @@ export const CreditCardForm: React.FC = ({ }) => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justify="center">
+    <Grid container spacing={8} justify='center'>
       <Grid item xs={12}>
-        <form id="cc-form" className={`scale-down ${cardType?.type}`}>
-          <div className="cardinfo-card-number">
-            <label
-              className="cardinfo-label"
-              htmlFor={CreditCardFields[EmittedBy.Number].name}
-            >
+        <form id='cc-form' className={`scale-down ${cardType?.type}`}>
+          <div className='cardinfo-card-number'>
+            <label className='cardinfo-label' htmlFor={CreditCardFields[EmittedBy.Number].name}>
               {CreditCardFields[EmittedBy.Number].label}
             </label>
-            <div
-              className='input-wrapper'
-              id={CreditCardFields[EmittedBy.Number].name}
-            ></div>
-            <div className={cardType?.type} id="card-image"></div>
+            <div className='input-wrapper' id={CreditCardFields[EmittedBy.Number].name}></div>
+            <div className={cardType?.type} id='card-image'></div>
           </div>
 
-          <div className="cardinfo-wrapper">
-            <div className="cardinfo-exp-date">
-              <label
-                className="cardinfo-label"
-                htmlFor={CreditCardFields[EmittedBy.ExpirationDate].name}
-              >
+          <div className='cardinfo-wrapper'>
+            <div className='cardinfo-exp-date'>
+              <label className='cardinfo-label' htmlFor={CreditCardFields[EmittedBy.ExpirationDate].name}>
                 {CreditCardFields[EmittedBy.ExpirationDate].label}
               </label>
-              <div
-                className='input-wrapper'
-                id={CreditCardFields[EmittedBy.ExpirationDate].name}
-              ></div>
+              <div className='input-wrapper' id={CreditCardFields[EmittedBy.ExpirationDate].name}></div>
             </div>
 
-            <div className="cardinfo-cvv">
-              <label
-                className="cardinfo-label"
-                htmlFor={CreditCardFields[EmittedBy.Cvv].name}
-              >
+            <div className='cardinfo-cvv'>
+              <label className='cardinfo-label' htmlFor={CreditCardFields[EmittedBy.Cvv].name}>
                 {CreditCardFields[EmittedBy.Cvv].label}
               </label>
               <div className='input-wrapper' id={CreditCardFields[EmittedBy.Cvv].name}></div>
             </div>
           </div>
 
-          <div className="cardinfo-name">
-            <label
-              className="cardinfo-label"
-              htmlFor={CreditCardFields[EmittedBy.CardholderName].name}
-            >
+          <div className='cardinfo-name'>
+            <label className='cardinfo-label' htmlFor={CreditCardFields[EmittedBy.CardholderName].name}>
               {CreditCardFields[EmittedBy.CardholderName].label}
             </label>
-            <div
-              className='input-wrapper'
-              id={CreditCardFields[EmittedBy.CardholderName].name}
-            ></div>
+            <div className='input-wrapper' id={CreditCardFields[EmittedBy.CardholderName].name}></div>
           </div>
 
-          <div className="cardinfo-postalcode">
-            <label
-              className="cardinfo-label"
-              htmlFor={CreditCardFields[EmittedBy.PostalCode].name}
-            >
+          <div className='cardinfo-postalcode'>
+            <label className='cardinfo-label' htmlFor={CreditCardFields[EmittedBy.PostalCode].name}>
               {CreditCardFields[EmittedBy.PostalCode].label}
             </label>
-            <div
-              className='input-wrapper'
-              id={CreditCardFields[EmittedBy.PostalCode].name}
-            ></div>
+            <div className='input-wrapper' id={CreditCardFields[EmittedBy.PostalCode].name}></div>
           </div>
         </form>
-        {error && <ErrorMessage error={typeof error === "string" ? error : error.message} />}
+        {error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
       </Grid>
     </Grid>
-  )
-}
+  );
+};

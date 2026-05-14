@@ -1,170 +1,177 @@
-import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import Form from "ui/common/Form";
+import * as React from 'react';
+import withStyles from '@material-ui/core/styles/withStyles';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Radio from '@material-ui/core/Radio';
+import Accordion from '@material-ui/core/Accordion';
+import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import Button from '@material-ui/core/Button';
+import Grid from '@material-ui/core/Grid';
 
-//@ts-ignore
-import * as Braintree from "braintree-web";
-import { PaymentMethodType, AnyPaymentMethod } from "app/entities/paymentMethod";
+import { AnyPaymentMethod } from 'app/entities/paymentMethod';
+import FormModal from 'ui/common/FormModal';
+import LoadingOverlay from 'ui/common/LoadingOverlay';
+import { RadioGroup } from 'components/Form/inputs/RadioGroup';
+import { FormContextProvider, useFormContext } from 'components/Form/FormContext';
+import { PaymentMethodsProvider, usePaymentMethodsContext } from '../../pages/registration/PaymentMethods/PaymentMethodsContext';
+import { CreditCardConsumer, CreditCardForm, useCreditCardContext } from '../../pages/registration/PaymentMethods/CreditCardForm';
+import { PayPalConsumer, PayPalForm } from '../../pages/registration/PaymentMethods/PayPalForm';
+import { VenmoConsumer, VenmoForm } from '../../pages/registration/PaymentMethods/VenmoForm';
+import { PaymentType, paymentTypeFieldName } from '../../pages/registration/PaymentMethods/constants';
 
-import CreditCardForm from "ui/checkout/CreditCardForm";
-import PaypalButton from "ui/checkout/PaypalButton";
-import FormModal from "ui/common/FormModal";
-import { getNewPaymentMethod, isApiErrorResponse } from "makerspace-ts-api-client";
-
-
-interface OwnProps {
-  closeHandler: () => void;
-  onSuccess: (paymentMethod: AnyPaymentMethod) => void;
+interface Props {
   isOpen: boolean;
-}
-interface Props extends OwnProps {}
-
-interface State {
-  braintreeInstance: any;
-  braintreeError: Braintree.BraintreeError;
-  paymentMethodNonce: string;
-  paymentMethodType: PaymentMethodType;
-  clientToken: string;
-  requestingClientToken: boolean;
-  braintreeRequesting: boolean;
-  clientTokenError: string;
-  methodLoading: boolean;
+  onSuccess: (paymentMethod: AnyPaymentMethod) => void;
+  closeHandler: () => void;
 }
 
-const defaultState: State = {
-  braintreeError: undefined,
-  paymentMethodNonce: undefined,
-  braintreeInstance: undefined,
-  braintreeRequesting: false,
-  paymentMethodType: undefined,
-  clientToken: undefined,
-  requestingClientToken: false,
-  clientTokenError: "",
-  methodLoading: false,
+const AccordionSummary = withStyles({
+  root: {
+    backgroundColor: 'rgba(0, 0, 0, .03)',
+    borderBottom: '1px solid rgba(0, 0, 0, .125)',
+    marginBottom: -1,
+    minHeight: 56,
+    '&$expanded': {
+      minHeight: 56,
+    },
+  },
+  content: {
+    '&$expanded': {
+      margin: '12px 0',
+    },
+  },
+  expanded: {},
+})(MuiAccordionSummary);
+
+// Separate component so useCreditCardContext() is inside the CreditCardProvider tree
+const CreditCardAccordionContent: React.FC = () => {
+  const { submit, loading, validate } = useCreditCardContext();
+
+  const handleSave = React.useCallback(async () => {
+    const errors = validate();
+    if (!errors) {
+      await submit();
+    }
+  }, [submit, validate]);
+
+  return (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <CreditCardForm />
+      </Grid>
+      <Grid item xs={12}>
+        <Button
+          id='save-card-button'
+          variant='contained'
+          color='primary'
+          onClick={handleSave}
+          disabled={loading}
+          fullWidth
+        >
+          Save Card
+        </Button>
+      </Grid>
+    </Grid>
+  );
 };
 
-class PaymentMethodForm extends React.Component<Props, State> {
-  public formRef: Form;
-  private setFormRef = (ref: Form) => this.formRef = ref;
+// Inner content has access to all context providers
+const AddPaymentMethodContent: React.FC = () => {
+  const { loading } = usePaymentMethodsContext();
+  const { values, setValue } = useFormContext();
 
-  constructor(props: Props) {
-    super(props);
+  const updateType = React.useCallback((newType: PaymentType) => () => {
+    setValue(paymentTypeFieldName, newType);
+  }, [setValue]);
 
-    this.state = { ...defaultState };
-  }
+  return (
+    <CreditCardConsumer>
+      {({ loading: ccLoading }) => (
+        <PayPalConsumer>
+          {({ loading: paypalLoading }) => (
+            <VenmoConsumer>
+              {({ loading: venmoLoading }) => (
+                <RadioGroup fieldName={paymentTypeFieldName} defaultValue={PaymentType.CreditCard}>
+                  <>
+                    {(loading || ccLoading || paypalLoading || venmoLoading) && (
+                      <LoadingOverlay id='add-payment-method' />
+                    )}
 
-  public componentDidUpdate(prevProps: Props) {
-    const { isOpen: wasOpen } = prevProps;
-    if (!wasOpen && this.props.isOpen) {
-      this.getClientToken();
-      this.setState({ ...defaultState });
-    }
-  }
+                    <Accordion
+                      expanded={values[paymentTypeFieldName] === PaymentType.CreditCard}
+                      onClick={updateType(PaymentType.CreditCard)}
+                    >
+                      <AccordionSummary aria-controls='cc-content' id='cc-header'>
+                        <FormControlLabel
+                          value={PaymentType.CreditCard}
+                          label='Debit or Credit Card'
+                          control={<Radio color='primary' />}
+                        />
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <CreditCardAccordionContent />
+                      </AccordionDetails>
+                    </Accordion>
 
-  private getClientToken = async () => {
-    this.setState({ requestingClientToken: true });
+                    <Accordion
+                      expanded={values[paymentTypeFieldName] === PaymentType.PayPal}
+                      onClick={updateType(PaymentType.PayPal)}
+                    >
+                      <AccordionSummary aria-controls='paypal-content' id='paypal-header'>
+                        <FormControlLabel
+                          value={PaymentType.PayPal}
+                          label='PayPal'
+                          control={<Radio color='primary' />}
+                        />
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <PayPalForm />
+                      </AccordionDetails>
+                    </Accordion>
 
-    let token;
-    let error = "";
-    const result = await getNewPaymentMethod();
-    if (isApiErrorResponse(result)) {
-      error = result.error.message;
-    } else {
-      token = result.data.clientToken;
-    }
-    this.setState({
-      requestingClientToken: false,
-      clientTokenError: error,
-      clientToken: token
-    });
+                    <Accordion
+                      expanded={values[paymentTypeFieldName] === PaymentType.Venmo}
+                      onClick={updateType(PaymentType.Venmo)}
+                    >
+                      <AccordionSummary aria-controls='venmo-content' id='venmo-header'>
+                        <FormControlLabel
+                          value={PaymentType.Venmo}
+                          label='Venmo'
+                          control={<Radio color='primary' />}
+                        />
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <VenmoForm />
+                      </AccordionDetails>
+                    </Accordion>
+                  </>
+                </RadioGroup>
+              )}
+            </VenmoConsumer>
+          )}
+        </PayPalConsumer>
+      )}
+    </CreditCardConsumer>
+  );
+};
 
-    if (token) {
-      this.initBraintree();
-    }
-  }
-
-  private initBraintree = async () => {
-    const { clientToken } = this.state;
-
-    try {
-      this.setState({ braintreeRequesting: true });
-      await Braintree.client.create({
-        authorization: clientToken,
-      }, (err, clientInstance) => {
-        if (err) throw err;
-        this.setState({ braintreeInstance: clientInstance, braintreeRequesting: false });
-      });
-    } catch (err) {
-      this.setState({ braintreeError: err, braintreeRequesting: false });
-    }
-  }
-
-  private selectCC = () => this.setState({ paymentMethodType: PaymentMethodType.CreditCard });
-
-  private toggleMethodLoading = (on: boolean) => {
-    this.setState({ methodLoading: on });
-  }
-
-  private renderPaymentMethod = () => {
-    const { braintreeInstance, paymentMethodType, clientToken } = this.state;
-    const { onSuccess, closeHandler } = this.props;
-
-    switch (paymentMethodType) {
-      case PaymentMethodType.CreditCard:
-        return (
-          <CreditCardForm
-            toggleLoading={this.toggleMethodLoading}
-            closeHandler={closeHandler}
-            braintreeInstance={braintreeInstance}
-            clientToken={clientToken}
-            onSuccess={onSuccess}
-          />
-        );
-      default:
-        return <></>;
-    }
-  }
-
-  public render(): JSX.Element {
-    const { paymentMethodType } = this.state;
-
-    const { braintreeError, braintreeInstance, clientToken, requestingClientToken, clientTokenError, braintreeRequesting, methodLoading } = this.state;
-    const error = clientTokenError || (braintreeError && braintreeError.message);
-    const { isOpen, closeHandler } = this.props;
-    const loading = requestingClientToken || braintreeRequesting || methodLoading;
-
-    return (
-      <FormModal
-        id="payment-method-form"
-        title={!paymentMethodType && "Select a payment method type"}
-        formRef={this.setFormRef}
-        isOpen={isOpen}
-        closeHandler={!paymentMethodType ? closeHandler : undefined}
-        loading={loading}
-        error={error}
-      >
-        {paymentMethodType ? (
-          this.renderPaymentMethod()
-        ) : (
-          <Grid container justify="center" spacing={2}>
-            <Grid item xs={12} md={6}>
-              <Button fullWidth variant="outlined" onClick={this.selectCC} id="card-payment">
-                Credit or debit card
-              </Button>
-            </Grid>
-            <Grid item xs={12}>
-              <PaypalButton
-                clientToken={clientToken}
-                braintreeInstance={braintreeInstance}
-                paymentMethodCallback={closeHandler}
-              />
-            </Grid>
-          </Grid>
-        )}
-      </FormModal>
-    );
-  }
-}
+// Providers are outside FormModal so they initialize once regardless of modal open/close state.
+// This prevents the "Element already contains a Braintree iframe" error from re-initialization.
+const PaymentMethodForm: React.FC<Props> = ({ isOpen, onSuccess, closeHandler }) => {
+  return (
+    <PaymentMethodsProvider onSuccess={onSuccess}>
+      <FormContextProvider>
+        <FormModal
+          id='payment-method-form'
+          title='Add Payment Method'
+          isOpen={isOpen}
+          closeHandler={closeHandler}
+        >
+          <AddPaymentMethodContent />
+        </FormModal>
+      </FormContextProvider>
+    </PaymentMethodsProvider>
+  );
+};
 
 export default PaymentMethodForm;
