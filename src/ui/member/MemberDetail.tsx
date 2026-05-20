@@ -32,7 +32,8 @@ import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
 import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
-import GoogleDriveInviteButton from "ui/member/GoogleDriveInviteButton";
+import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
+import SlackInviteButton from 'ui/member/SlackInviteButton';
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 
 
@@ -209,7 +210,8 @@ const MemberProfile: React.FC = () => {
             <AccessCardForm memberId={memberId} key="card-form"/>,
             <AdminChangePasswordModal member={member} key="change-password"/>,
             <HouseholdModal member={member} key="household" onUpdate={refreshMember}/>,
-            <GoogleDriveInviteButton member={member} key="google-drive-invite" />,
+            <GoogleDriveInviteButton member={member} key='google-drive-invite' />,
+            <SlackInviteButton member={member} key='slack-invite' />,
             ...((member as any).totpEnabled ? [
               <Reset2FAButton key="reset-2fa" memberId={memberId} onReset={refreshMember} />
             ] : [])
