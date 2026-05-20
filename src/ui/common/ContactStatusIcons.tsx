@@ -59,14 +59,14 @@ export const EmailStatusIcon: React.FC<{ mailtrap?: MailtrapData }> = ({ mailtra
 export const SlackStatusIcon: React.FC<{ slack?: SlackData }> = ({ slack }) => {
   if (!slack) {
     return (
-      <Tooltip title='No Slack account linked to this member'>
-        <InfoOutlined fontSize='small' style={{ color: '#9e9e9e', verticalAlign: 'middle' }} />
+      <Tooltip title='No Slack account linked — member will not receive Slack notifications'>
+        <ErrorIcon fontSize='small' style={{ color: '#ff9800', verticalAlign: 'middle' }} />
       </Tooltip>
     );
   }
 
   return (
-    <Tooltip title={`Slack account linked: ${slack.name}`}>
+    <Tooltip title={`Slack linked: ${slack.name}`}>
       <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
     </Tooltip>
   );
