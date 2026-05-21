@@ -22,6 +22,15 @@ const PROVIDERS: Record<string, string> = {
   microsoft: 'microsoft.com',
 };
 
+// OAuth scopes to request per provider.
+// 'profile' is required to include name fields in the Firebase ID token.
+// Without this, Google only returns email — name is absent from the JWT.
+const OAUTH_SCOPES: Partial<Record<ProviderKey, string>> = {
+  google:    'email profile',
+  apple:     'email name',
+  microsoft: 'email profile',
+};
+
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 
 // Runtime config cache — fetched once from /api/config
@@ -75,7 +84,7 @@ export const initiateProviderSignIn = async (provider: ProviderKey): Promise<voi
       body: JSON.stringify({
         providerId,
         continueUri,
-        ...(provider === 'microsoft' ? { oauthScope: 'email profile' } : {}),
+        ...(OAUTH_SCOPES[provider] ? { oauthScope: OAUTH_SCOPES[provider] } : {}),
       }),
     }
   );
