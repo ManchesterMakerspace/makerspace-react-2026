@@ -4,6 +4,7 @@ import DetailView from "ui/common/DetailView";
 import SubscriptionsList from "ui/subscriptions/SubscriptionsList";
 import TransactionsList from "ui/transactions/TransactionsList";
 import OptionsList from "ui/billing/OptionsList";
+import InvoicesTable from "ui/invoice/InvoicesTable";
 import BillingContextContainer from "./BillingContextContainer";
 import KeyValueItem from "../common/KeyValueItem";
 import useReadTransaction from "../hooks/useReadTransaction";
@@ -61,6 +62,11 @@ const BillingContainer: React.FC = () => {
           {
             name: "transactions",
             content: <TransactionsList />
+          },
+          {
+            name: "outstanding",
+            displayName: "Outstanding Invoices / Dues",
+            content: <InvoicesTable stageInvoice={() => {}} />
           },
         ]}
       />
