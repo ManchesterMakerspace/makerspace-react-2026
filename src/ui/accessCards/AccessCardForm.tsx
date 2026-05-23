@@ -145,7 +145,7 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
             />
           </Grid><table>
           <tr><td>{member.address.street}</td><td>Unit: </td><td>{member.address.unit}</td></tr>
-          <tr><td>{member.address.city}</td><td>{member.address.state}</td><td>{member.address.postal_code}</td></tr>
+          <tr><td>{member.address.city}</td><td>{member.address.state}</td><td>{member.address.postalCode}</td></tr>
           </table>
       </FormModal>}
     </>
