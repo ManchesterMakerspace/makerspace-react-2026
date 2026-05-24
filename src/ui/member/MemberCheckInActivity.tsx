@@ -51,7 +51,11 @@ const MemberCheckInActivity: React.FC = () => {
 
   // Fetch check-in data when member loads or week range changes
   React.useEffect(() => {
-    if (!member.id || !hasPermission) return;
+    if (!member.id || !hasPermission) {
+      console.log("No access to view CheckInActivity");
+      return;
+    }
+    else console.log("Viewing {member.id} CheckInActivity");
 
     const fetchCheckInData = async () => {
       setIsLoading(true);
@@ -76,6 +80,7 @@ const MemberCheckInActivity: React.FC = () => {
         if (cardUids.length === 0) {
           setRecords([]);
           setIsLoading(false);
+          console.log("No cardUids for {member.id} CheckInActivity");
           return;
         }
 
@@ -152,6 +157,7 @@ const MemberCheckInActivity: React.FC = () => {
   }
 
   if (memberError || !member.id) {
+    console.log("No member when fetching CheckInActivity");
     return (
       <Paper style={{ padding: "16px" }}>
         <ErrorMessage error="Member not found" />
