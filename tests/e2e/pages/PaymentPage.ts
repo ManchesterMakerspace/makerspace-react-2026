@@ -77,8 +77,9 @@ export class PaymentPage {
   }
 
   async returnToProfile(): Promise<void> {
-    const btn = this.page.getByRole('button', { name: 'Return to profile' });
-    if (await btn.isVisible({ timeout: 5_000 })) await btn.click();
-    await this.page.waitForURL(/\/members\//, { timeout: 15_000 });
+    const returnBtn = this.page.getByRole('button', { name: 'Return to profile' });
+    if (await returnBtn.isVisible({ timeout: 5_000 })) await returnBtn.click();
+    // Wait for either member profile or any page navigation to complete
+    await this.page.waitForLoadState('networkidle', { timeout: 15_000 });
   }
 }

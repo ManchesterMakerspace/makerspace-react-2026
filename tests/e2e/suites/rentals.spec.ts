@@ -4,7 +4,6 @@ import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { AdminRentalsPage } from '../pages/AdminRentalsPage';
 import { MemberRentalsPage } from '../pages/MemberRentalsPage';
-import { mockDocumentRoutes } from '../fixtures/routes';
 import { adminMember, basicMember } from '../fixtures/testData';
 
 const GREEN_TOTE      = 'Green Tote';
@@ -68,7 +67,6 @@ test.describe('Admin creates rental type and spot', () => {
 test.describe('Member self-assigns rental spot', () => {
 
   test('Member sees Rentals tab on profile', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
@@ -81,7 +79,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('Member sees spot dropdown on Rentals tab', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
@@ -97,7 +94,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('Member selects GT1 from dropdown', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
@@ -114,7 +110,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('Rental agreement appears after confirming', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
@@ -133,7 +128,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('Member signs agreement and proceeds', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
@@ -155,7 +149,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('GT1 rental appears in member rentals table', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
@@ -171,7 +164,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('Member pays rental invoice from Dues tab', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const payment = new PaymentPage(page);
@@ -186,10 +178,12 @@ test.describe('Member self-assigns rental spot', () => {
     await rentals.selectDuesInvoice();
     await payment.paySelectedDues();
 
-    // Payment checkout
-    await page.waitForSelector('#checkout-invoices-table', { timeout: 15_000 });
+    // Step 1: Select payment method — Visa radio must be clicked first
     await payment.selectSavedVisa();
     await page.getByRole('button', { name: 'Next' }).click();
+
+    // Step 2: Review and confirm purchase
+    await page.waitForSelector('#checkout-invoices-table', { timeout: 15_000 });
     await page.getByRole('button', { name: 'Submit Payment' }).click();
     await page.getByRole('checkbox', { name: 'I agree' }).check();
     await page.getByRole('button', { name: 'Confirm' }).click();
@@ -198,7 +192,6 @@ test.describe('Member self-assigns rental spot', () => {
   });
 
   test('No past due invoices after payment', async ({ page }) => {
-    await mockDocumentRoutes(page);
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);

@@ -2,7 +2,6 @@ import { test, expect } from '@playwright/test';
 import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
-import { mockDocumentRoutes } from '../fixtures/routes';
 import { buildTestMember, newVisa, adminMember } from '../fixtures/testData';
 import { createRejectCard } from '../fixtures/seed';
 
@@ -26,7 +25,6 @@ test.describe('Self-registration from home page', () => {
 
   test('Member completes full self-registration and lands on profile', async ({ page }) => {
     // Mock document routes BEFORE navigation to prevent Google Drive loop
-    await mockDocumentRoutes(page);
     const payment = new PaymentPage(page);
     const member  = new MemberPage(page);
 
