@@ -154,7 +154,7 @@ const MemberCheckInActivity: React.FC = () => {
   if (memberError || !member.id) {
     return (
       <Paper style={{ padding: "16px" }}>
-        <ErrorMessage message="Member not found" />
+        <ErrorMessage error="Member not found" />
       </Paper>
     );
   }
@@ -214,7 +214,7 @@ const MemberCheckInActivity: React.FC = () => {
 
       {loadError && (
         <Grid item xs={12}>
-          <ErrorMessage message={loadError} />
+          <ErrorMessage error={loadError} />
         </Grid>
       )}
 
