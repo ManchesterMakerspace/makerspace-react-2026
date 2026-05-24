@@ -14,6 +14,7 @@ export namespace Routing {
   export const Members = "/members";
   export const Documents = `/agreements/${Routing.PathPlaceholder.Resource}/${Routing.PathPlaceholder.ResourceId}${Routing.PathPlaceholder.Optional}`;
   export const Profile = `${Members}/${PathPlaceholder.MemberId}`;
+  export const CheckInActivity = `${Profile}/checkin-activity`;
 
   export const Billing = "/billing";
   export const Subscriptions = "/subscriptions";
