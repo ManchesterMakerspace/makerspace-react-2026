@@ -147,6 +147,21 @@ class Header extends React.Component<Props, State> {
       ...(canManageVolunteer ? [this.renderMenuNavLink(Routing.Volunteer, "Volunteer", "volunteer")] : []),
     ];
 
+    // Settings submenu items - shown when privilegedItems.length < 5
+    const settingsSubRoutes = [
+      { route: "profile", label: "Personal Information", id: "settings-submenu-profile" },
+      ...(billingEnabled ? [
+        { route: "subscriptions", label: "Subscriptions", id: "settings-submenu-subscriptions" },
+        { route: "payment-methods", label: "Payment Methods", id: "settings-submenu-payment-methods" },
+      ] : []),
+      { route: "security", label: "Security", id: "settings-submenu-security" },
+    ];
+
+    const settingsItems: JSX.Element[] = settingsSubRoutes.map(({ route, label, id }) => {
+      const subSettingsUrl = `${settingsUrl}/${route}`;
+      return this.renderMenuNavLink(subSettingsUrl, label, id);
+    });
+
     return (
       <>
         <span style={{ display: "inline-flex", alignItems: "center" }}>
@@ -180,6 +195,10 @@ class Header extends React.Component<Props, State> {
           {/* Privileged section */}
           {privilegedItems.length > 0 && <Divider />}
           {privilegedItems}
+
+          {/* Settings submenu - shown when privilegedItems.length < 5 */}
+          {privilegedItems.length < 5 && settingsItems.length > 0 && <Divider />}
+          {privilegedItems.length < 5 && settingsItems}
 
           {/* Logout */}
           <Divider />
