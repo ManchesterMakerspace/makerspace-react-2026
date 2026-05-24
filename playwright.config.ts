@@ -19,7 +19,8 @@ export default defineConfig({
     : [['list'], ['html', { open: 'on-failure', outputFolder: 'tmp/playwright-report' }]],
 
   use: {
-    baseURL: process.env.APP_URL || 'http://localhost:3035',
+    baseURL: process.env.APP_URL || 'http://localhost:30',
+    viewport: { width: 1280, height: 900 },
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

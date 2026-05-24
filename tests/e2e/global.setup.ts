@@ -1,23 +1,28 @@
 import { execSync } from 'child_process';
 
 function runRailsCmd(cmd: string): void {
-  const railsDir = process.env.RAILS_DIR;
-  execSync(`RAILS_ENV=test ${cmd}`, {
-    stdio: 'inherit',
-    cwd: railsDir || process.cwd(),
-  });
+  const railsDir       = process.env.RAILS_DIR;
+  const railsContainer = process.env.RAILS_CONTAINER;
+
+  if (railsContainer) {
+    // Local dev — no RAILS_ENV override, resets development DB
+    execSync(`docker exec ${railsContainer} ${cmd}`, { stdio: 'inherit' });
+  } else {
+    // CI — test environment
+    execSync(cmd, {
+      stdio: 'inherit',
+      cwd: railsDir || process.cwd(),
+      env: { ...process.env, RAILS_ENV: 'test' },
+    });
+  }
 }
 
-async function globalSetup(): Promise<void> {
-  if (process.env.SKIP_DB_RESET === 'true') {
+async function globalSetup() {
+  if (process.env.SKIP_DB_RESET) {
     console.log('[setup] SKIP_DB_RESET set — skipping database reset.');
     return;
   }
-
-  // SeedData now handles everything in order:
-  //   permissions → members → rental infrastructure (types + spots) → rentals → payments → etc.
-  // No separate seeds_rental_spots.rb runner needed.
-  console.log('[setup] Resetting and seeding test database...');
+  console.log('[setup] Resetting and seeding database...');
   runRailsCmd('bundle exec rake db:db_reset');
   console.log('[setup] Database ready.');
 }
