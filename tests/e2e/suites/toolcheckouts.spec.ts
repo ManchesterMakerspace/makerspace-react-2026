@@ -62,7 +62,7 @@ test.describe('RM checks out member on woodshop tool', () => {
     await auth.signIn(rmMember0.email, rmMember0.password);
     await checkouts.goto();
 
-    await checkouts.checkOutMember('Basic Member0', WOODSHOP, BANDSAW);
+    await checkouts.checkOutMember('Basic Member0', 'Basic Member0', WOODSHOP, BANDSAW);
     await checkouts.verifyCheckoutInTable('Basic Member0', BANDSAW);
   });
 });
@@ -84,7 +84,7 @@ test.describe('RM checks out member on metalshop CNC mill with prereq warning', 
 
     // Search for Basic Member1
     await page.locator('input[id^="react-select"]').last().fill('Basic Member1');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
     await page.getByRole('option', { name: /Basic Member1/i }).first().click();
 
     // Select metalshop and CNC mill

@@ -64,7 +64,9 @@ export class AdminVolunteerPage {
   // Select a task row by task title (avoids hardcoded IDs)
   async selectTaskByTitle(title: string): Promise<void> {
     const row = this.page.getByRole('row', { name: new RegExp(title, 'i') });
+    await row.waitFor({ state: 'visible', timeout: 10_000 });
     await row.locator('input[type="checkbox"]').check();
+    await this.page.getByRole('button', { name: 'Verify' }).waitFor({ state: 'visible', timeout: 5_000 });
   }
 
   async clickVerify(): Promise<void> {
@@ -84,22 +86,28 @@ export class MemberVolunteerPage {
   }
 
   async selectFirstAvailableTask(): Promise<void> {
-    // Select the first unclaimed task checkbox
-    await this.page.locator('table input[type="checkbox"]').first().check();
+    // Tasks table is below events — select first row in bounty tasks table
+    const table = this.page.locator('#member-volunteer-tasks-table');
+    await table.waitFor({ state: 'visible', timeout: 10_000 });
+    await table.locator('input[type="checkbox"]').first().check();
+    // Wait for Claim Task button to appear (only visible after selection)
+    await this.page.getByRole('button', { name: 'Claim Task' }).waitFor({ state: 'visible', timeout: 5_000 });
   }
 
   async claimTask(): Promise<void> {
     await this.page.getByRole('button', { name: 'Claim Task' }).click();
-    await this.page.waitForTimeout(500);
+    await this.page.waitForTimeout(1000);
   }
 
   async selectClaimedTask(): Promise<void> {
-    await this.page.locator('table input[type="checkbox"]').first().check();
+    const table = this.page.locator('#member-volunteer-tasks-table');
+    await table.locator('input[type="checkbox"]').first().check();
+    await this.page.getByRole('button', { name: 'Mark Complete' }).waitFor({ state: 'visible', timeout: 5_000 });
   }
 
   async markComplete(): Promise<void> {
     await this.page.getByRole('button', { name: 'Mark Complete' }).click();
-    await this.page.waitForTimeout(500);
+    await this.page.waitForTimeout(1000);
   }
 
   async verifyTaskStatus(status: string): Promise<void> {

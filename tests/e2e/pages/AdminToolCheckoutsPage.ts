@@ -60,9 +60,9 @@ export class AdminToolCheckoutsPage {
     await this.page.getByRole('button', { name: 'Add Approver' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Search for member
-    await this.page.locator('input[id^="react-select"]').last().fill(memberEmail.split('@')[0]);
-    await this.page.waitForTimeout(500);
+    // Search by email — unique and unambiguous
+    await this.page.locator('input[id^="react-select"]').last().fill(memberEmail);
+    await this.page.waitForTimeout(1000);
     await this.page.getByRole('option').first().click();
 
     // Select shop chip
@@ -78,9 +78,9 @@ export class AdminToolCheckoutsPage {
     await this.page.getByRole('button', { name: 'Check Out Member' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Search for member
+    // Full name search supported via Member.name_search_criteria Rails fix
     await this.page.locator('input[id^="react-select"]').last().fill(memberName);
-    await this.page.waitForTimeout(500);
+    await this.page.waitForTimeout(1000);
     await this.page.getByRole('option', { name: new RegExp(memberName, 'i') }).first().click();
 
     // Select shop

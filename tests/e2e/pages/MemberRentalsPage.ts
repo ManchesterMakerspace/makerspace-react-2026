@@ -67,11 +67,9 @@ export class MemberRentalsPage {
 
   async verifyNoPastDueInvoices(): Promise<void> {
     await this.page.getByRole('tab', { name: /dues/i }).click();
-    await this.page.waitForTimeout(1000);
-    // Pay Selected Dues should be disabled or absent
-    const payBtn = this.page.getByRole('button', { name: 'Pay Selected Dues' });
-    const isDisabled = await payBtn.getAttribute('disabled') !== null;
-    const isHidden   = !await payBtn.isVisible();
-    expect(isDisabled || isHidden).toBeTruthy();
+    await this.page.waitForTimeout(2000);
+    // No past due invoices — either no dues rows or status is not 'Past Due'
+    const pastDue = this.page.getByText('Past Due');
+    await expect(pastDue).not.toBeVisible({ timeout: 10_000 });
   }
 }

@@ -98,8 +98,12 @@ export class MemberPage {
   }
 
   async searchMembers(query: string): Promise<void> {
-    await this.page.getByRole('textbox', { name: 'Search...' }).fill(query);
-    await this.page.getByRole('textbox', { name: 'Search...' }).press('Enter');
+    const searchBox = this.page.getByRole('textbox', { name: 'Search...' });
+    // Wait for search input to be enabled — it's disabled while members table loads
+    await searchBox.waitFor({ state: 'visible', timeout: 15_000 });
+    await expect(searchBox).toBeEnabled({ timeout: 10_000 });
+    await searchBox.fill(query);
+    await searchBox.press('Enter');
     await this.page.waitForTimeout(500);
   }
 
