@@ -52,14 +52,14 @@ const FooterBase: React.FC<Props> = ({ logout }) => {
       <a href="https://wiki.manchestermakerspace.org/" style={linkStyle} aria-label="Public Wiki" title="Public Wiki" onClick={(e) => logoutAndGo(e, "https://wiki.manchestermakerspace.org/")}>
         <span className="material-symbols-rounded" style={iconStyle}>help_center</span>
       </a>
-      <a href="https://manchestermakerspace.slack.com/archives/C29L2UMDF" style={linkStyle} aria-label="Slack" title="Slack" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.slack.com/archives/C29L2UMDF")}>
+      <a href="https://manchestermakerspace.org/calendar" style={linkStyle} aria-label="Event Calendar" title="Event Calendar" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/calendar")}>
+        <span className="material-symbols-rounded" style={iconStyle}>calendar_month</span>
+      </a>
+      <a href="https://manchestermakerspace.slack.com/archives/C29L2UMDF" style={linkStyle} aria-label="Chat with us on Slack" title="Chat with us on Slack" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.slack.com/archives/C29L2UMDF")}>
         <span className="material-symbols-rounded" style={iconStyle}>chat</span>
       </a>
-      <a href={mailtoHref} style={linkStyle} aria-label="Email" title="Email" onClick={(e) => logoutAndGo(e, mailtoHref)}>
+      <a href={mailtoHref} style={linkStyle} aria-label="Contact us via Email" title="Contact Us" onClick={(e) => logoutAndGo(e, mailtoHref)}>
         <span className="material-symbols-rounded" style={iconStyle}>mail</span>
-      </a>
-      <a href="https://manchestermakerspace.org/calendar" style={linkStyle} aria-label="Calendar" title="Calendar" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/calendar")}>
-        <span className="material-symbols-rounded" style={iconStyle}>calendar_month</span>
       </a>
     </footer>
   );
