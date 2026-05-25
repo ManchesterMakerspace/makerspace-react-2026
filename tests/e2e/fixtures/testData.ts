@@ -57,3 +57,6 @@ export const basicMember   = { email: 'basic_member0@test.com',   password: 'pas
 export const adminMember   = { email: 'admin_member0@test.com',   password: 'password' };
 export const paypalMember  = { email: 'paypal_member0@test.com',  password: 'password' };
 export const expiredMember = { email: 'expired_member0@test.com', password: 'password' };
+export const rmMember0     = { email: 'rm_member0@test.com',      password: 'password' };
+export const rmMember1     = { email: 'rm_member1@test.com',      password: 'password' };
+export const basicMember1  = { email: 'basic_member1@test.com',   password: 'password' };
