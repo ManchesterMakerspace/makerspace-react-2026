@@ -76,8 +76,8 @@ const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions }) => {
       <Route exact path={`${Routing.Documents}`} component={AgreementContainer} />
       <Route exact path={Routing.SignUp} component={SignUpWorkflow}/>
       <Route exact path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={SettingsContainer} />
-      <Route exact path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={MemberDetail} />
       <Route exact path={Routing.CheckInActivity} component={MemberCheckInActivity} />
+      <Route exact path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={MemberDetail} />
       <Route exact path={Routing.Rentals} component={RentalsList} />
       {caps.canManageRentals && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
       {caps.canManageShopFees && <Route exact path={Routing.ShopFees} component={ShopFeesPage} />}
