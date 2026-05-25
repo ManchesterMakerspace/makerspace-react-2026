@@ -27,12 +27,17 @@ export class MemberRentalsPage {
 
   async acceptAndSignAgreement(): Promise<void> {
     await this.page.getByRole('checkbox', { name: /I have read and agree to the/i }).check();
-    // Single click on canvas to sign
+    // Use mouse drag to draw signature — single click is not enough
     const canvas = this.page.locator('canvas').first();
     await canvas.waitFor({ state: 'visible', timeout: 10_000 });
     const box = await canvas.boundingBox();
     if (box) {
-      await this.page.mouse.click(box.x + 302, box.y + 107);
+      await this.page.mouse.move(box.x + 100, box.y + 80);
+      await this.page.mouse.down();
+      await this.page.mouse.move(box.x + 200, box.y + 80);
+      await this.page.mouse.move(box.x + 200, box.y + 120);
+      await this.page.mouse.move(box.x + 150, box.y + 120);
+      await this.page.mouse.up();
     }
   }
 

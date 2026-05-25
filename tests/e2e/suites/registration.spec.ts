@@ -52,7 +52,15 @@ test.describe('Self-registration from home page', () => {
     const canvas = page.locator('canvas').first();
     await canvas.waitFor({ state: 'visible' });
     const box = await canvas.boundingBox();
-    if (box) await page.mouse.click(box.x + 253, box.y + 155);
+    if (box) {
+      // Use mouse drag to draw signature — single click is not enough
+      await page.mouse.move(box.x + 100, box.y + 100);
+      await page.mouse.down();
+      await page.mouse.move(box.x + 200, box.y + 100);
+      await page.mouse.move(box.x + 200, box.y + 150);
+      await page.mouse.move(box.x + 150, box.y + 150);
+      await page.mouse.up();
+    }
     await page.getByRole('button', { name: 'Next' }).click();
 
     // ── Step 3: Membership — One Month already selected, just click Next ──
