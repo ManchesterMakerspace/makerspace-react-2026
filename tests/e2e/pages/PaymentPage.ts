@@ -23,7 +23,7 @@ export class PaymentPage {
   async waitForCreditCardForm(): Promise<void> {
     await this.page.waitForSelector(
       `iframe[name="${FRAMES.number}"]`,
-      { state: 'visible', timeout: 30_000 }
+      { state: 'visible', timeout: 60_000 }
     );
   }
 

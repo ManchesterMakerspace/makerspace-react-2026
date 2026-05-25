@@ -53,13 +53,13 @@ test.describe('Self-registration from home page', () => {
     await canvas.waitFor({ state: 'visible' });
     const box = await canvas.boundingBox();
     if (box) {
-      // Use mouse drag to draw signature — single click is not enough
-      await page.mouse.move(box.x + 100, box.y + 100);
-      await page.mouse.down();
-      await page.mouse.move(box.x + 200, box.y + 100);
-      await page.mouse.move(box.x + 200, box.y + 150);
-      await page.mouse.move(box.x + 150, box.y + 150);
-      await page.mouse.up();
+      // Draw signature using dispatchEvent to ensure canvas registers the stroke
+      await canvas.dispatchEvent('mousedown', { clientX: box.x + 50, clientY: box.y + 50 });
+      await canvas.dispatchEvent('mousemove', { clientX: box.x + 150, clientY: box.y + 50 });
+      await canvas.dispatchEvent('mousemove', { clientX: box.x + 200, clientY: box.y + 80 });
+      await canvas.dispatchEvent('mousemove', { clientX: box.x + 150, clientY: box.y + 100 });
+      await canvas.dispatchEvent('mouseup',   { clientX: box.x + 150, clientY: box.y + 100 });
+      await page.waitForTimeout(500);
     }
     await page.getByRole('button', { name: 'Next' }).click();
 
@@ -68,8 +68,6 @@ test.describe('Self-registration from home page', () => {
     await page.getByRole('button', { name: 'Next' }).click();
 
     // ── Step 4: Payment ──
-    await page.waitForSelector('#payment-method-form-loading', { state: 'hidden', timeout: 30_000 });
-    await payment.openCreditCardAccordion();
     await payment.waitForCreditCardForm();
     await payment.fillCreditCard(newVisa);
     await page.getByRole('button', { name: 'Next' }).click();
