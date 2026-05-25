@@ -51,7 +51,11 @@ const MemberCheckInActivity: React.FC = () => {
 
   // Fetch check-in data when member loads or week range changes
   React.useEffect(() => {
-    if (!member.id || !hasPermission) return;
+    if (!member.id || !hasPermission) {
+      console.log("No access to view CheckInActivity");
+      return;
+    }
+    else console.log("Viewing {member.id} CheckInActivity");
 
     const fetchCheckInData = async () => {
       setIsLoading(true);
@@ -76,6 +80,7 @@ const MemberCheckInActivity: React.FC = () => {
         if (cardUids.length === 0) {
           setRecords([]);
           setIsLoading(false);
+          console.log("No cardUids for {member.id} CheckInActivity");
           return;
         }
 
@@ -107,12 +112,14 @@ const MemberCheckInActivity: React.FC = () => {
         let allRecords: CheckInRecord[] = [];
 
         if (checkinsResponse.ok) {
-          const checkins = await checkinsResponse.json();
+          const checkinsPayload = await checkinsResponse.json();
+          const checkins = checkinsPayload.checkins || [];
           allRecords = allRecords.concat(checkins);
         }
 
         if (rejectionsResponse.ok) {
-          const rejections = await rejectionsResponse.json();
+          const rejectionsPayload = await rejectionsResponse.json();
+          const rejections = rejectionsPayload.rejections || [];
           allRecords = allRecords.concat(rejections);
         }
 
@@ -152,6 +159,7 @@ const MemberCheckInActivity: React.FC = () => {
   }
 
   if (memberError || !member.id) {
+    console.log("No member when fetching CheckInActivity");
     return (
       <Paper style={{ padding: "16px" }}>
         <ErrorMessage error="Member not found" />
@@ -177,7 +185,7 @@ const MemberCheckInActivity: React.FC = () => {
     if (record.time) {
       return timeToDate(record.time);
     }
-    return "—";
+    return "-";
   };
 
   // Filter out empty/zero/negative values
@@ -280,14 +288,14 @@ const MemberCheckInActivity: React.FC = () => {
                               )}
                             </div>
                           ) : (
-                            "—"
+                            "-"
                           )}
                         </TableCell>
                       )}
                       {!isAdmin && (
                         <>
-                          <TableCell>{record.validity ? record.validity : "—"}</TableCell>
-                          <TableCell>{record.where ? record.where : "—"}</TableCell>
+                          <TableCell>{record.validity ? record.validity : "-"}</TableCell>
+                          <TableCell>{record.where ? record.where : "-"}</TableCell>
                         </>
                       )}
                     </TableRow>

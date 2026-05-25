@@ -4,6 +4,7 @@ import { useDispatch } from "react-redux";
 
 import { sessionLoginUserAction } from "ui/auth/actions";
 import Header from "ui/common/Header";
+import Footer from "ui/common/Footer";
 import LoadingOverlay from 'ui/common/LoadingOverlay';
 import { useAuthState } from "ui/reducer/hooks";
 import PrivateRouting from 'app/PrivateRouting';
@@ -84,6 +85,7 @@ const App: React.FC = () => {
                 />
               : <PublicRouting />)
         }
+      <Footer />
       </div>
     </ErrorBoundary>
 
