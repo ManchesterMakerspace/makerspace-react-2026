@@ -23,7 +23,7 @@ import { timeToDate } from "ui/utils/timeToDate";
 interface CheckInRecord {
   _id?: string;
   time?: number;
-  timeOf?: Date;
+  dateOf?: Date;
   validity?: string;
   where?: string;
   [key: string]: any;
@@ -112,12 +112,14 @@ const MemberCheckInActivity: React.FC = () => {
         let allRecords: CheckInRecord[] = [];
 
         if (checkinsResponse.ok) {
-          const checkins = await checkinsResponse.json();
+          const checkinsPayload = await checkinsResponse.json();
+          const checkins = checkinsPayload.checkins || [];
           allRecords = allRecords.concat(checkins);
         }
 
         if (rejectionsResponse.ok) {
-          const rejections = await rejectionsResponse.json();
+          const rejectionsPayload = await rejectionsResponse.json();
+          const rejections = rejectionsPayload.rejections || [];
           allRecords = allRecords.concat(rejections);
         }
 
@@ -134,7 +136,7 @@ const MemberCheckInActivity: React.FC = () => {
             const filtered: CheckInRecord = {};
             if (record._id) filtered._id = record._id;
             if (record.time) filtered.time = record.time;
-            if (record.timeOf) filtered.timeOf = record.timeOf;
+            if (record.dateOf) filtered.dateOf = record.dateOf;
             if (record.validity) filtered.validity = record.validity;
             if (record.where) filtered.where = record.where;
             return filtered;
@@ -177,13 +179,13 @@ const MemberCheckInActivity: React.FC = () => {
 
   // Format timestamp
   const formatTimestamp = (record: CheckInRecord): string => {
-    if (record.timeOf) {
-      return timeToDate(new Date(record.timeOf).getTime());
+    if (record.dateOf) {
+      return timeToDate(new Date(record.dateOf).getTime());
     }
     if (record.time) {
       return timeToDate(record.time);
     }
-    return "—";
+    return "-";
   };
 
   // Filter out empty/zero/negative values
@@ -256,7 +258,7 @@ const MemberCheckInActivity: React.FC = () => {
                 {records.map((record, idx) => {
                   const visibleFields = Object.entries(record)
                     .filter(([key, value]) => {
-                      if (key === "_id" || key === "time" || key === "timeOf" || key === "validity" || key === "where") {
+                      if (key === "_id" || key === "time" || key === "dateOf" || key === "validity" || key === "where") {
                         return false;
                       }
                       return shouldDisplay(value);
@@ -286,14 +288,14 @@ const MemberCheckInActivity: React.FC = () => {
                               )}
                             </div>
                           ) : (
-                            "—"
+                            "-"
                           )}
                         </TableCell>
                       )}
                       {!isAdmin && (
                         <>
-                          <TableCell>{record.validity ? record.validity : "—"}</TableCell>
-                          <TableCell>{record.where ? record.where : "—"}</TableCell>
+                          <TableCell>{record.validity ? record.validity : "-"}</TableCell>
+                          <TableCell>{record.where ? record.where : "-"}</TableCell>
                         </>
                       )}
                     </TableRow>
