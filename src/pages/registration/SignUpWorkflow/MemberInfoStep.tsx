@@ -191,7 +191,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   fieldName={SignUpFields.email.name}
                   placeholder={SignUpFields.email.placeholder}
                 />
-                <br>If this email is associated with a Google or Github account, you can switch to federated login at any time after activation.</br>
+                <br>If this email is associated with a Google or Github account, you can switch to federated login after you finish signing up.
               </Grid>
               <Grid item xs={12} sm={6}>
                 <ConfirmEmailField />
