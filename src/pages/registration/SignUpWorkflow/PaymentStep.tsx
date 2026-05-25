@@ -9,12 +9,14 @@ import { FormContextConsumer, FormContextProvider } from "components/Form/FormCo
 import { useSetSearchQuery } from "hooks/useSearchQuery";
 import { CreditCardConsumer } from "../PaymentMethods/CreditCardForm";
 import { PaymentMethods, handleSubmit, selectedFieldName, validatePaymentMethods } from "../PaymentMethods";
+import { PaymentMethodsProvider } from "../PaymentMethods/PaymentMethodsContext";
 import { CartPreview } from "./CartPreview";
 
 export const PaymentStep: React.FC = ({ children }) => {
   const setSearch = useSetSearchQuery();
 
   return (
+    <PaymentMethodsProvider>
     <CreditCardConsumer>
       {({ submit: submitCC, validate: validateCC }) => (
         <FormContextProvider 
@@ -72,5 +74,6 @@ export const PaymentStep: React.FC = ({ children }) => {
         </FormContextProvider>
       )}
     </CreditCardConsumer>
+    </PaymentMethodsProvider>
   );
 };

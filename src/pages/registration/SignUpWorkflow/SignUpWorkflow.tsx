@@ -29,7 +29,6 @@ import { PaymentStep } from "./PaymentStep";
 import { ReviewStep } from "./ReviewStep";
 import { BeforeLeave, SignUpContextProvider, useAllowLeave } from "./SignUpContext";
 import { useFormContext } from "components/Form/FormContext";
-import { PaymentMethodsProvider } from "../PaymentMethods/PaymentMethodsContext";
 import { useSearchQuery } from "hooks/useSearchQuery";
 import { paymentMethodQueryParam } from "../PaymentMethods";
 import { useAuthState } from "ui/reducer/hooks";
@@ -166,8 +165,7 @@ export const SignUpWorkflow: React.FC = () => {
   const nextLabel = activeStep === stepOrder.indexOf(ReviewStep) ? "Submit Payment" :
                     (activeStep === stepOrder.length - 1 ? "Submit" : "Next");
   return (
-    <PaymentMethodsProvider>
-      <SignUpContextProvider setActiveStep={setActiveStep}>
+    <SignUpContextProvider setActiveStep={setActiveStep}>
         {({ allowLeave, nextDisabled, prevDisabled }) => (
           <Grid container justify="center" spacing={2}>
             <Grid item sm={10} xs={12}>
@@ -242,7 +240,6 @@ export const SignUpWorkflow: React.FC = () => {
           </Grid>
         )}
       </SignUpContextProvider>
-    </PaymentMethodsProvider>
   );
 };
 
