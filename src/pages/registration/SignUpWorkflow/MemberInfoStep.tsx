@@ -99,8 +99,8 @@ export const MemberInfoStep: React.FC = ({ children }) => {
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <Typography variant="body1">
-                  To create an account, first enter your email address and select a password for your Makerspace account.
-                  All members are required to provide a street address, and should bring a government ID with matching address whn you visit to activate your membership and rceive your kyfob. 
+                  To create an account, first enter your email address and select a password for your Makerspace account. 
+                  All members are required to provide their mailing address, which will be verified upon receipt of their 24/7 access key. 
                   We do not sell any of your personal information.
                 </Typography>
               </Grid>
@@ -191,7 +191,6 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   fieldName={SignUpFields.email.name}
                   placeholder={SignUpFields.email.placeholder}
                 />
-                <br>If this email is associated with a Google or Github account, you can switch to federated login after you finish signing up.
               </Grid>
               <Grid item xs={12} sm={6}>
                 <ConfirmEmailField />
