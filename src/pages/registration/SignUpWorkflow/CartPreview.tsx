@@ -106,14 +106,17 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                       Qualify for a discount? Select one below or enter a discount code. Proof of applicable affiliation required during orientation.
                     </Typography>
 
-                    {planHasDiscount && (
-                      <CheckboxInput
-                        value={isSsmDiscount}
-                        fieldName={ssmDiscount}
-                        disabled={discountId && discountId !== ssmDiscount}
-                        onChange={checked => updateDiscountId(checked ? ssmDiscount : '')}
-                        label={'Student, Military, Senior 10% off'}
-                      />
+                    <CheckboxInput
+                      value={isSsmDiscount}
+                      fieldName={ssmDiscount}
+                      disabled={discountId && discountId !== ssmDiscount}
+                      onChange={checked => updateDiscountId(checked ? ssmDiscount : '')}
+                      label={'Student, Military, Senior 10% off'}
+                    />
+                    {isSsmDiscount && !planHasDiscount && (
+                      <Typography variant='body2' style={{ color: 'red' }}>
+                        Discount not available for selected membership plan.
+                      </Typography>
                     )}
 
                     <TextInput
@@ -122,7 +125,10 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                       onChange={updateDiscountId}
                       value={discountId}
                       disabled={isSsmDiscount}
-                      validate={fields.discountId.validate(discounts.map(d => d.id))}
+                      validate={(val: string) => {
+                        if (val === ssmDiscount && !planHasDiscount) return 'Discount not available for selected membership plan.';
+                        return fields.discountId.validate(discounts.map(d => d.id))(val);
+                      }}
                     />
                     {selectedDiscount &&
                       <Typography variant='subtitle1'>
