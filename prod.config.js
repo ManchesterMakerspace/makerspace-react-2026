@@ -95,7 +95,8 @@ module.exports = env => ({
   plugins: [
     new ForkTsCheckerWebpackPlugin({
       checkSyntacticErrors: true,
-      async: false
+      async: false,
+      reportFiles: ['src/**']
     }),
     new webpack.NamedModulesPlugin(),
     new MiniCssExtractPlugin({

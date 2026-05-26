@@ -6,4 +6,8 @@
     "tests",
     "tmp"
   ],
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "types": []
+  }
 }
