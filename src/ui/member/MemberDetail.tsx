@@ -31,6 +31,7 @@ import { useSearchQuery, useSetSearchQuery } from "hooks/useSearchQuery";
 import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
+import MemberCheckInActivity from "ui/member/MemberCheckInActivity";
 import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
 import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
 import SlackInviteButton from 'ui/member/SlackInviteButton';
@@ -91,6 +92,7 @@ const MemberProfile: React.FC = () => {
     canViewEmailStatus,
     canManageBilling,
     canManageShopFees,
+    canManageCheckoutApprovers,
   } = useCapabilities();
 
   const {
@@ -324,6 +326,11 @@ const MemberProfile: React.FC = () => {
             name: "volunteer",
             displayName: "Volunteer",
             content: <MemberVolunteerTab member={member} />
+          }] : [],
+          ...canManageCheckoutApprovers ? [{
+            name: "checkin-activity",
+            displayName: "Check-In Activity",
+            content: <MemberCheckInActivity />
           }] : [],
         ]}
       />
