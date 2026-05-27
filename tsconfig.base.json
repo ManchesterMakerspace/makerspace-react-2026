@@ -5,10 +5,7 @@
     "baseUrl": "src",
     "outDir": "dist",
     "paths": {
-      "*": [
-        "*",
-        "src/*"
-      ]
+      "*": ["*", "src/*"]
     },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -20,18 +17,11 @@
     "removeComments": false,
     "preserveConstEnums": true,
     "skipLibCheck": true,
-    "suppressImplicitAnyIndexErrors": true,
-    "lib": [
-      "es6",
-      "dom",
-      "es2015",
-      "es2016",
-      "es2017.object"
-    ],
+    "lib": ["es2017", "dom", "es2018", "es2019", "es2020"],
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
-    "target": "es5",
+    "target": "es2017",
     "jsx": "react",
     "typeRoots": [
       "node_modules/@types",
