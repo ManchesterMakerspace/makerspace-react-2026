@@ -1,8 +1,8 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import Grid from '@material-ui/core/Grid';
-import Button from '@material-ui/core/Button';
-import Typography from '@material-ui/core/Typography';
+import Grid from '@mui/material/Grid';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 
 import { usePaymentMethodsContext } from './PaymentMethodsContext';
 import { FormContextProvider, useFormContext } from 'components/Form/FormContext';
@@ -151,7 +151,7 @@ export const VenmoForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justify='center'>
+    <Grid container spacing={8} justifyContent='center'>
       <Grid item xs={12}>
         {supported ? (
           <Button

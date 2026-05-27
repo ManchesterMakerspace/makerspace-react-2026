@@ -1,7 +1,7 @@
 import * as React from "react";
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Hidden from "@material-ui/core/Hidden";
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Hidden from "@mui/material/Hidden";
 import { InvoiceOption } from "makerspace-ts-api-client";
 import { PromotionCards } from './PromotionCards';
 import { MembershipOptionCards, NoneOption } from './MembershipOptionCards';
@@ -20,7 +20,7 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
   const { defaultOption } = useMembershipOptions();
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       {shortForm ? (
         <Grid item xs={12}>
           {defaultOption && (

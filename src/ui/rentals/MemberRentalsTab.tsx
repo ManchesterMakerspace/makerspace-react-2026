@@ -1,6 +1,6 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Divider from "@material-ui/core/Divider";
+import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 import { Member } from "makerspace-ts-api-client";
 
 import MemberRentalsList from "ui/rentals/MemberRentalsList";

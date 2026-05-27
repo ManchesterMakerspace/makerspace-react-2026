@@ -1,5 +1,5 @@
 import * as React from "react";
-import Button, { ButtonProps } from "@material-ui/core/Button";
+import Button, { ButtonProps } from "@mui/material/Button";
 import kebabCase from "lodash-es/kebabCase";
 
 export interface ActionButtonProps {
@@ -26,7 +26,7 @@ export const ActionButton: React.FC<ActionButtonProps> = (props) => (
   </Button>
 )
 
-const ButtonRow: React.SFC<{ actionButtons: ActionButtonProps[] }> = (props) => {
+const ButtonRow: React.FC<{ actionButtons: ActionButtonProps[] }> = (props) => {
   return (
     <>
       {Array.isArray(props.actionButtons) && props.actionButtons.map((action, index) => (

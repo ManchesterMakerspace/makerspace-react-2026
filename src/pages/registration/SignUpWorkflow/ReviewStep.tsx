@@ -1,17 +1,17 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 
-import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
-import Link from "@material-ui/core/Link";
-import Paper from "@material-ui/core/Paper";
-import Grid from "@material-ui/core/Grid";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Grid from "@mui/material/Grid";
 import { paymentMethodQueryParam } from "../PaymentMethods";
 import { discountParam, invoiceOptionParam, ssmDiscount } from "../MembershipOptions";
 import { useSearchQuery } from "hooks/useSearchQuery";
 import { useAuthState } from "ui/reducer/hooks";
 import { useMembershipOptions } from "hooks/useMembershipOptions";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import { buildProfileRouting, buildNewMemberProfileRoute } from "ui/member/utils";
 import { MembershipPreview } from "./CartPreview";
 import { CheckboxInput } from "components/Form/inputs/CheckboxInput";
@@ -43,7 +43,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
   const { setActiveStep } = useSignUpContext();
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile);
 
   const onSuccess = React.useCallback(({ response: { data: transaction } }: TransactionResponse) => {
@@ -68,7 +68,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
       )
     });
 
-    history.push(url);
+    navigate(url);
   }, [create, history, currentUser.id, isNewMember]);
 
   const { call, isRequesting: submitting, error: paymentError, } = useWriteTransaction(createTransaction, onSuccess);

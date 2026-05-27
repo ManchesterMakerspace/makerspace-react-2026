@@ -1,6 +1,6 @@
 import * as React from 'react';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
 
 import { CreditCard, PayPalAccount } from 'makerspace-ts-api-client';
 import { VenmoAccount } from 'app/entities/paymentMethod';

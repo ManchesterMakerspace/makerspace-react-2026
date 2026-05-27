@@ -1,20 +1,20 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import IconButton from "@material-ui/core/IconButton";
-import Tooltip from "@material-ui/core/Tooltip";
-import Checkbox from "@material-ui/core/Checkbox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Divider from "@material-ui/core/Divider";
-import Paper from "@material-ui/core/Paper";
-import Chip from "@material-ui/core/Chip";
-import Select from "@material-ui/core/Select";
-import FormLabel from "@material-ui/core/FormLabel";
-import AddIcon from "@material-ui/icons/Add";
-import DeleteIcon from "@material-ui/icons/Delete";
-import SendIcon from "@material-ui/icons/Send";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Divider from "@mui/material/Divider";
+import Paper from "@mui/material/Paper";
+import Chip from "@mui/material/Chip";
+import Select from "@mui/material/Select";
+import FormLabel from "@mui/material/FormLabel";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SendIcon from "@mui/icons-material/Send";
 
 import ErrorMessage from "ui/common/ErrorMessage";
 import LoadingOverlay from "ui/common/LoadingOverlay";
@@ -470,7 +470,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
           {/* Total + send button */}
           <Grid item xs={12}>
             <Divider style={{ marginBottom: 16 }} />
-            <Grid container justify="space-between" alignItems="center">
+            <Grid container justifyContent="space-between" alignItems="center">
               <div>
                 {isMultiLine && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
@@ -535,7 +535,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
               <Paper variant="outlined" style={{ padding: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>{invoiceName}</Typography>
                 {lineItems.map((l, i) => (
-                  <Grid container justify="space-between" key={i}>
+                  <Grid container justifyContent="space-between" key={i}>
                     <Typography variant="body2">{l.name} ×{l.quantity}</Typography>
                     <Typography variant="body2">
                       {numberAsCurrency(l.unitPrice * l.quantity)}
@@ -543,7 +543,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                   </Grid>
                 ))}
                 <Divider style={{ margin: "8px 0" }} />
-                <Grid container justify="space-between">
+                <Grid container justifyContent="space-between">
                   <Typography variant="subtitle2">Total</Typography>
                   <Typography variant="subtitle2">{numberAsCurrency(total)}</Typography>
                 </Grid>

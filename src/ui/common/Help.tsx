@@ -1,8 +1,8 @@
 import * as React from "react";
-import Tooltip from "@material-ui/core/Tooltip";
-import Typography from "@material-ui/core/Typography";
-import IconButton from "@material-ui/core/IconButton";
-import HelpOutlineOutlined from "@material-ui/icons/HelpOutlineOutlined";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import HelpOutlineOutlined from "@mui/icons-material/HelpOutlineOutlined";
 import useModal from "ui/hooks/useModal";
 import { useAuthState } from "ui/reducer/hooks";
 import FormModal from "ui/common/FormModal";

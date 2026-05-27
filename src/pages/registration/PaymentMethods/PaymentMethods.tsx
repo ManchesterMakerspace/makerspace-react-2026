@@ -1,11 +1,11 @@
 import * as React from 'react';
-import withStyles from '@material-ui/core/styles/withStyles';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Radio from '@material-ui/core/Radio';
-import Accordion from '@material-ui/core/Accordion';
-import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import Grid from '@material-ui/core/Grid';
+import { styled } from '@mui/material/styles';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Accordion from '@mui/material/Accordion';
+import MuiAccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Grid from '@mui/material/Grid';
 
 import { listPaymentMethods, isApiErrorResponse } from 'makerspace-ts-api-client';
 
@@ -28,7 +28,10 @@ import {
 
 interface Props {}
 
-const AccordionSummary = withStyles({
+const AccordionSummary = styled(MuiAccordionSummary)(({
+  theme,
+}) => ({
+
   root: {
     backgroundColor: 'rgba(0, 0, 0, .03)',
     borderBottom: '1px solid rgba(0, 0, 0, .125)',
@@ -44,7 +47,8 @@ const AccordionSummary = withStyles({
     },
   },
   expanded: {},
-})(MuiAccordionSummary);
+}
+));
 
 export const PaymentMethods: React.FC<Props> = () => {
   const { loading } = usePaymentMethodsContext();

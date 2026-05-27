@@ -1,6 +1,6 @@
 import * as React from "react";
-import Select from "@material-ui/core/Select";
-import FormLabel from "@material-ui/core/FormLabel";
+import Select from "@mui/material/Select";
+import FormLabel from "@mui/material/FormLabel";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
 

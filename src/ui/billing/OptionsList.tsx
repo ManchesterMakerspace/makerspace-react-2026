@@ -1,6 +1,6 @@
 import * as React from "react";
-import { connect } from "react-redux";
-import Grid from "@material-ui/core/Grid";
+import { useSelector, useDispatch } from 'react-redux';
+import Grid from '@mui/material/Grid';
 
 import { InvoiceOption, InvoiceableResource } from "makerspace-ts-api-client";
 import { InvoiceOperation, InvoiceOptionQueryParams } from "app/entities/invoice";
@@ -307,47 +307,24 @@ class OptionsList extends React.Component<Props, State> {
   }
 }
 
-const mapStateToProps = (
-  state: ReduxState,
-  _ownProps: OwnProps
-): StateProps => {
-  const {
-    entities: options,
-    read: {
-      totalItems,
-      isRequesting: loading,
-      error
-    },
-    create: {
-      isRequesting: isCreating,
-      error: createError
-    },
-    update: {
-      isRequesting: isUpdating,
-      error: updateError,
-    },
-    delete: {
-      isRequesting: isDeleting,
-      error: deleteError,
-    }
-  } = state.billing;
+const OptionsListContainer: React.FC<{}> = () => {
+  const dispatch = useDispatch<ScopedThunkDispatch>();
 
-  return {
+  const { entities: options, read, create, update, delete: del } = useSelector(
+    (state: any) => state.billing
+  );
+
+  const props = {
     options,
-    totalItems,
-    loading,
-    error,
-    isWriting: isCreating || isUpdating || isDeleting,
-    writeError: createError || updateError || deleteError,
-  }
-}
+    totalItems: read.totalItems,
+    loading: read.isRequesting,
+    error: read.error,
+    isWriting: create.isRequesting || update.isRequesting || del.isRequesting,
+    writeError: create.error || update.error || del.error,
+    getOptions: (queryParams?: any) => dispatch(readOptionsAction(queryParams)),
+  };
 
-const mapDispatchToProps = (
-  dispatch: ScopedThunkDispatch
-): DispatchProps => {
-  return {
-    getOptions: (queryParams) => dispatch(readOptionsAction(queryParams)),
-  }
-}
+  return <OptionsList {...props} />;
+};
 
-export default connect(mapStateToProps, mapDispatchToProps)(OptionsList);
+export default OptionsListContainer;

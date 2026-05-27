@@ -1,10 +1,10 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 import { useDispatch } from "react-redux";
-import useReactRouter from "use-react-router";
 
 import { Routing } from "app/constants";
 import { SignUpFields, EmailExistsError, signUpPrefix, Action } from "ui/auth/constants";
@@ -47,8 +47,8 @@ const ConfirmEmailField: React.FC = () => {
 export const MemberInfoStep: React.FC = ({ children }) => {
   const { isOpen: emailNoteOpen, openModal: openEmailNote, closeModal: closeEmailNote } = useModal();
   const dispatch = useDispatch();
-  const { history } = useReactRouter();
-  const goToLogin = React.useCallback(() => history.push(Routing.Login), [history]);
+  const navigate = useNavigate();
+  const goToLogin = React.useCallback(() => navigate(Routing.Login), [history]);
   
   const { isRequesting, error } = useAuthState();
 

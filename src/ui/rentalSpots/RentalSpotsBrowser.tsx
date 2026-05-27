@@ -1,17 +1,17 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import MenuItem from "@material-ui/core/MenuItem";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Divider from "@material-ui/core/Divider";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { Member } from "makerspace-ts-api-client";
-import useReactRouter from "use-react-router";
 
 import { RentalSpot } from "app/entities/rentalSpot";
 import { Routing } from "app/constants";
@@ -39,7 +39,7 @@ const warningBoxStyle: React.CSSProperties = {
 };
 
 const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const [selectedRentalId, setSelectedRentalId] = React.useState<string>("");
   const [requestNotes,     setRequestNotes]      = React.useState<string>("");
   const [confirmOpen,      setConfirmOpen]        = React.useState(false);
@@ -60,7 +60,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
 
     // Redirect to agreement page if we have a rental ID
     if (rentalId) {
-      history.push(
+      navigate(
         Routing.Documents
           .replace(Routing.PathPlaceholder.Resource, "rental")
           .replace(Routing.PathPlaceholder.ResourceId, rentalId)

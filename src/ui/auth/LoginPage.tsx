@@ -1,18 +1,18 @@
 import * as React from 'react';
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 
-import Grid from '@material-ui/core/Grid';
-import Paper from '@material-ui/core/Paper';
-import Button from '@material-ui/core/Button';
-import Hidden from '@material-ui/core/Hidden';
+import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import Hidden from '@mui/material/Hidden';
 
 import LoginForm from "ui/auth/LoginForm";
 import { Routing } from 'app/constants';
 import Logo from "../../assets/FilledLaserableLogo.svg";
 
 const LoginPage: React.FC = () => {
-  const { history } = useReactRouter();
-  const goToRegister = React.useCallback(() => history.push(Routing.Root), []);
+  const navigate = useNavigate();
+  const goToRegister = React.useCallback(() => navigate(Routing.Root), []);
   return (
     <Grid container spacing={3}>
       <Hidden smDown>

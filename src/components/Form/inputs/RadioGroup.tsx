@@ -1,5 +1,5 @@
 import * as React from "react";
-import MaterialRadioGroup from "@material-ui/core/RadioGroup";
+import MaterialRadioGroup from "@mui/material/RadioGroup";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
 import ErrorMessage from "ui/common/ErrorMessage";

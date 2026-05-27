@@ -1,7 +1,7 @@
 import * as React from "react";
-import { connect } from "react-redux";
-import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
-import Grid from "@material-ui/core/Grid";
+import { useSelector, useDispatch } from 'react-redux';
+import { Link } from 'react-router-dom';
+import Grid from '@mui/material/Grid';
 
 import { QueryParams, CollectionOf } from "app/interfaces";
 
@@ -19,7 +19,7 @@ import { displayMemberExpiration } from "ui/member/utils";
 import MemberStatusLabel from "ui/member/MemberStatusLabel";
 
 
-interface OwnProps extends RouteComponentProps<{}> {}
+interface OwnProps {}
 interface DispatchProps {
   getMemberships: (queryParams?: QueryParams) => void;
 }
@@ -280,44 +280,26 @@ class EarnedMembershipList extends React.Component<Props, State> {
   }
 }
 
-const mapStateToProps = (
-  state: ReduxState,
-  _ownProps: OwnProps
-): StateProps => {
-  const {
-    entities: memberships,
-    read: {
-      totalItems,
-      isRequesting: loading,
-      error
-    },
-    create: {
-      isRequesting: isCreating,
-      error: createError,
-    },
-    update: {
-      isRequesting: isUpdating,
-      error: updateError
-    },
-  } = state.earnedMemberships;
-  return {
+const EarnedMembershipsListContainer: React.FC = () => {
+  const dispatch = useDispatch<ScopedThunkDispatch>();
+
+  const { entities: memberships, read, create, update } = useSelector(
+    (state: any) => state.earnedMemberships
+  );
+
+  const props = {
     memberships,
-    totalItems,
-    loading,
-    error,
-    isUpdating,
-    updateError,
-    isCreating,
-    createError,
-  }
-}
+    totalItems: read.totalItems,
+    loading: read.isRequesting,
+    error: read.error,
+    isUpdating: update.isRequesting,
+    updateError: update.error,
+    isCreating: create.isRequesting,
+    createError: create.error,
+    getMemberships: (queryParams?: any) => dispatch(readMembershipsAction(queryParams)),
+  };
 
-const mapDispatchToProps = (
-  dispatch: ScopedThunkDispatch
-): DispatchProps => {
-  return {
-    getMemberships: (queryParams) => dispatch(readMembershipsAction(queryParams)),
-  }
-}
+  return <EarnedMembershipList {...props} />;
+};
 
-export default withRouter(connect(mapStateToProps, mapDispatchToProps)(EarnedMembershipList));
+export default EarnedMembershipsListContainer;

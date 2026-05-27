@@ -19,13 +19,13 @@ import {
   Select,
   MenuItem,
   FormControl,
-} from '@material-ui/core';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import ErrorIcon from '@material-ui/icons/Error';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import EditIcon from '@material-ui/icons/Edit';
-import SaveIcon from '@material-ui/icons/Save';
-import CancelIcon from '@material-ui/icons/Cancel';
+} from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 import {
   getSystemConfigs,
@@ -723,7 +723,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <Grid container justify='center' style={{ padding: 48 }}>
+      <Grid container justifyContent='center' style={{ padding: 48 }}>
         <CircularProgress />
       </Grid>
     );
@@ -731,7 +731,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (error || !config) {
     return (
-      <Grid container justify='center' style={{ padding: 48 }}>
+      <Grid container justifyContent='center' style={{ padding: 48 }}>
         <Typography color='error'>{error || 'Unable to load settings.'}</Typography>
       </Grid>
     );

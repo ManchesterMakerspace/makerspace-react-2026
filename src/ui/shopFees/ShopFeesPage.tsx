@@ -1,9 +1,9 @@
 import * as React from "react";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import useReactRouter from "use-react-router";
+import { useLocation } from 'react-router-dom';
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import SendChargeForm from "./SendChargeForm";
 import FeeCatalog from "./FeeCatalog";
@@ -20,7 +20,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ];
 
 const ShopFeesPage: React.FC = () => {
-  const { location } = useReactRouter();
+  const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const preselectedMemberId = searchParams.get(MEMBER_ID_PARAM);
   const preselectedMemberName = searchParams.get(MEMBER_NAME_PARAM);

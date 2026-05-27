@@ -1,5 +1,5 @@
 import * as React from "react";
-import Select from "@material-ui/core/Select";
+import Select from "@mui/material/Select";
 import { ApiFunction } from "../hooks/types";
 import { SelectOption } from "./AsyncSelect";
 import useReadTransaction from "../hooks/useReadTransaction";

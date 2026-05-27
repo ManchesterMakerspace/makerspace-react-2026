@@ -1,7 +1,7 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import Grid from "@material-ui/core/Grid";
-import Divider from "@material-ui/core/Divider";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 import { listRentals, Rental } from "makerspace-ts-api-client";
 
 import LoadingOverlay from "ui/common/LoadingOverlay";

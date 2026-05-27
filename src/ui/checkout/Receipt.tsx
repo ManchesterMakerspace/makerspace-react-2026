@@ -1,8 +1,8 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate, useParams } from 'react-router-dom';
 
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import { buildProfileRouting } from "ui/member/utils";
 import { useAuthState } from "../reducer/hooks";
@@ -14,8 +14,9 @@ const receiptContainerId = "receipt-container";
 
 const Receipt: React.FC = () => {
   const { currentUser: { id: userId } } = useAuthState();
-  const { history, match: { params: { invoiceId } } } = useReactRouter<{ invoiceId: string }>();
-  const goToProfile = React.useCallback(() => history.push(buildProfileRouting(userId)), [history, userId]);
+  const { invoiceId } = useParams();
+  const navigate = useNavigate();
+  const goToProfile = React.useCallback(() => navigate(buildProfileRouting(userId)), [history, userId]);
   const printReceipt = React.useCallback(() => {
     window.frames[receiptContainerId].focus();
     window.frames[receiptContainerId].print();

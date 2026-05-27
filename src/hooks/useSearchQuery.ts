@@ -1,13 +1,13 @@
 import { LocationDescriptorObject } from "history";
+import { useNavigate } from 'react-router-dom';
 import * as React from "react";
-import useReactRouter from "use-react-router";
 
 type SearchParams = {
   [key: string]: string;
 }
 
 export const useSearchQuery = (params: SearchParams): SearchParams => {
-  const { location: { search } } = useReactRouter();
+  const { search } = useLocation();
 
   return React.useMemo(() =>  {
     const searchParams = new URLSearchParams(search);
@@ -20,7 +20,8 @@ export const useSearchQuery = (params: SearchParams): SearchParams => {
 }
 
 export const useSetSearchQuery = (pushLocationOverloads?: LocationDescriptorObject<any>): ((params: SearchParams) => void) => {
-  const { history, location: { search } } = useReactRouter();
+  const { search } = useLocation();
+  const navigate = useNavigate();
 
   return React.useCallback((params: SearchParams) => {
     const searchParams = new URLSearchParams(search);
@@ -29,7 +30,7 @@ export const useSetSearchQuery = (pushLocationOverloads?: LocationDescriptorObje
       value ? searchParams.set(key, value) : searchParams.delete(key);
     })
 
-    history.push({ search: searchParams.toString(), ...pushLocationOverloads });
+    navigate({ search: searchParams.toString(), ...pushLocationOverloads });
   }, [history, search, pushLocationOverloads]);
 }
 

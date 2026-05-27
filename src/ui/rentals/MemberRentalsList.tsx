@@ -1,13 +1,13 @@
 import * as React from "react";
 import moment from "moment";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
-import Tooltip from "@material-ui/core/Tooltip";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Tooltip from "@mui/material/Tooltip";
 import { Rental, listRentals, Member } from "makerspace-ts-api-client";
 
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -140,7 +140,7 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Grid container justify="flex-end" alignItems="center" style={{ marginBottom: 8 }}>
+        <Grid container justifyContent="flex-end" alignItems="center" style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
             {selectedRental && isCancellable && (
               <Button variant="outlined" color="secondary"

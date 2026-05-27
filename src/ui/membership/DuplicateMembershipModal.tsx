@@ -1,6 +1,6 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
 
 import { listInvoices, Invoice, message } from "makerspace-ts-api-client";
 
@@ -10,7 +10,7 @@ import FormModal from "../common/FormModal";
 import { buildProfileRouting } from "../member/utils";
 import { useAuthState } from "../reducer/hooks";
 import { useUUID } from "../hooks/useUUID";
-import { Link } from "@material-ui/core";
+import { Link } from "@mui/material";
 import { Routing } from "app/constants";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 
@@ -23,8 +23,8 @@ const DuplicateMembershipModal: React.FC = () => {
   const { currentUser: { id: currentUserId, email, subscriptionId, subscription } } = useAuthState();
   const [blockingMemberInvoice, setBlockingMemberInvoice] = React.useState<Invoice>();
 
-  const { history } = useReactRouter();
-  const goToProfile = React.useCallback(() => history.push(buildProfileRouting(currentUserId)), [history, currentUserId]);
+  const navigate = useNavigate();
+  const goToProfile = React.useCallback(() => navigate(buildProfileRouting(currentUserId)), [history, currentUserId]);
   React.useEffect(() => {
     const blockingMemberInvoice = invoices.find(invoice => !!invoice.subscriptionId);
     setBlockingMemberInvoice(blockingMemberInvoice);

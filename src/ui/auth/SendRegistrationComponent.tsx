@@ -1,15 +1,16 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate, useParams } from 'react-router-dom';
 import { sendRegistrationEmail } from "makerspace-ts-api-client";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import Form from "ui/common/Form";
 import { Routing } from "app/constants";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 
 const SendRegistrationComponent: React.FC = () => {
-  const { history, match: { params: { email } } } = useReactRouter<{ email: string }>();
-  const goToMembers = React.useCallback(() => history.push(Routing.Members), []);
+  const { email } = useParams();
+  const navigate = useNavigate();
+  const goToMembers = React.useCallback(() => navigate(Routing.Members), []);
   const { isRequesting, error, call } = useWriteTransaction(sendRegistrationEmail);
   const [success, setSuccess] = React.useState(false);
 

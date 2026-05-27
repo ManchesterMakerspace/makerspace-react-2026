@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { Switch, Route, Redirect } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
-import { Routing, Whitelists } from "app/constants";
-import NotFound from "ui/common/NotFound";
-import MembersList from "ui/member/MembersList";
+import { Routing, Whitelists } from 'app/constants';
+import NotFound from 'ui/common/NotFound';
+import MembersList from 'ui/member/MembersList';
 import RentalsList from 'ui/rentals/RentalsList';
 import EarnedMembershipsList from 'ui/earnedMemberships/EarnedMembershipsList';
 import MemberDetail from 'ui/member/MemberDetail';
@@ -16,7 +16,7 @@ import { Permission } from 'app/entities/permission';
 import { CollectionOf } from 'app/interfaces';
 import SendRegistrationComponent from 'ui/auth/SendRegistrationComponent';
 import AgreementContainer from 'ui/documents/AgreementsContainer';
-import UnsubscribeEmails from "ui/member/UnsubscribeEmails";
+import UnsubscribeEmails from 'ui/member/UnsubscribeEmails';
 import { SignUpWorkflow } from 'pages/registration/SignUpWorkflow/SignUpWorkflow';
 import AdminRentalsPage from 'ui/admin/rentals/AdminRentalsPage';
 import ShopFeesPage from 'ui/shopFees/ShopFeesPage';
@@ -25,20 +25,14 @@ import MemberPortalSettings from 'ui/admin/MemberPortalSettings';
 import AdminVolunteerPage from 'ui/volunteer/AdminVolunteerPage';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
-import useReactRouter from 'use-react-router';
 
 interface Props {
-  currentUserId: string,
-  permissions: CollectionOf<Permission>,
+  currentUserId: string;
+  permissions: CollectionOf<Permission>;
 }
 
-/**
- * LogUnauthorizedRouteAccess
- * React component that logs when an authenticated user attempts to access
- * a route that is not defined in the routing configuration or that they don't have permission to access.
- */
 const LogUnauthorizedRouteAccess: React.FC = () => {
-  const { location: { pathname } } = useReactRouter();
+  const { pathname } = useLocation();
   const { currentUser: { id: userId } } = useAuthState();
 
   React.useEffect(() => {
@@ -50,55 +44,52 @@ const LogUnauthorizedRouteAccess: React.FC = () => {
   return null;
 };
 
-const PrivateRouting: React.SFC<Props> = ({ currentUserId, permissions }) => {
+const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
   const caps = useCapabilities();
   const { totpEnrollmentRequired } = useAuthState();
   const billingEnabled = permissions[Whitelists.billing] || false;
   const earnedMembershipEnabled = caps.canManageEarnedMemberships && permissions[Whitelists.earnedMembership];
 
-  // Hard gate — member must enroll in TOTP before accessing anything else
   if (totpEnrollmentRequired) {
     return (
-      <Switch>
+      <Routes>
         <Route
-          exact
           path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`}
-          component={SettingsContainer}
+          element={<SettingsContainer />}
         />
-        <Redirect to={`/members/${currentUserId}/settings/security`} />
-      </Switch>
+        <Route path="*" element={<Navigate to={`/members/${currentUserId}/settings/security`} replace />} />
+      </Routes>
     );
   }
 
   return (
-    <Switch>
-      <Route exact path={Routing.Members} component={MembersList} />
-      <Route exact path={`${Routing.Documents}`} component={AgreementContainer} />
-      <Route exact path={Routing.SignUp} component={SignUpWorkflow}/>
-      <Route exact path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={SettingsContainer} />
-      <Route exact path={Routing.CheckInActivity} component={MemberCheckInActivity} />
-      <Route exact path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={MemberDetail} />
-      <Route exact path={Routing.Rentals} component={RentalsList} />
-      {caps.canManageRentals && <Route exact path={Routing.AdminRentals} component={AdminRentalsPage} />}
-      {caps.canManageShopFees && <Route exact path={Routing.ShopFees} component={ShopFeesPage} />}
-      {caps.canManageCheckouts && <Route exact path={Routing.ToolCheckouts} component={ToolCheckoutsPage} />}
-      {caps.canManageVolunteer && <Route exact path={Routing.Volunteer} component={AdminVolunteerPage} />}
-      {caps.canViewPortalSettings && <Route exact path={Routing.SystemSettings} component={MemberPortalSettings} />}
-      {billingEnabled && <Route exact path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} component={BillingContainer} />}
-      {billingEnabled && <Route exact path={Routing.Receipt} component={Receipt}/>}
-      {billingEnabled && <Route path={Routing.Checkout} component={CheckoutPage} />}
-      <Route exact path={Routing.SendRegistration} component={SendRegistrationComponent}/>
-      {earnedMembershipEnabled && <Route exact path={Routing.EarnedMemberships} component={EarnedMembershipsList}/>}
-      <Route exact path={Routing.Unsubscribe} component={UnsubscribeEmails} />
-      <Redirect to={`${Routing.Members}/${currentUserId}`} />
-      <Route render={() => (
+    <Routes>
+      <Route path={Routing.Members} element={<MembersList />} />
+      <Route path={Routing.Documents} element={<AgreementContainer />} />
+      <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
+      <Route path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<SettingsContainer />} />
+      <Route path={Routing.CheckInActivity} element={<MemberCheckInActivity />} />
+      <Route path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<MemberDetail />} />
+      <Route path={Routing.Rentals} element={<RentalsList />} />
+      {caps.canManageRentals && <Route path={Routing.AdminRentals} element={<AdminRentalsPage />} />}
+      {caps.canManageShopFees && <Route path={Routing.ShopFees} element={<ShopFeesPage />} />}
+      {caps.canManageCheckouts && <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />}
+      {caps.canManageVolunteer && <Route path={Routing.Volunteer} element={<AdminVolunteerPage />} />}
+      {caps.canViewPortalSettings && <Route path={Routing.SystemSettings} element={<MemberPortalSettings />} />}
+      {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
+      {billingEnabled && <Route path={Routing.Receipt} element={<Receipt />} />}
+      {billingEnabled && <Route path={Routing.Checkout} element={<CheckoutPage />} />}
+      <Route path={Routing.SendRegistration} element={<SendRegistrationComponent />} />
+      {earnedMembershipEnabled && <Route path={Routing.EarnedMemberships} element={<EarnedMembershipsList />} />}
+      <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
+      <Route path="*" element={
         <>
           <LogUnauthorizedRouteAccess />
-          <NotFound />
+          <Navigate to={`${Routing.Members}/${currentUserId}`} replace />
         </>
-      )} />
-    </Switch>
-  )
+      } />
+    </Routes>
+  );
 };
 
 export default PrivateRouting;

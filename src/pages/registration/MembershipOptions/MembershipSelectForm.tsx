@@ -1,11 +1,11 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import Grid from '@material-ui/core/Grid';
-import Box from "@material-ui/core/Box";
-import Divider from "@material-ui/core/Divider";
-import Hidden from "@material-ui/core/Hidden";
-import useTheme from "@material-ui/core/styles/useTheme";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
+import Typography from "@mui/material/Typography";
+import Grid from '@mui/material/Grid';
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import Hidden from "@mui/material/Hidden";
+import useTheme from "@mui/material/styles/useTheme";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 import { InvoiceOption } from "makerspace-ts-api-client";
 import { discountParam, invoiceOptionParam, MembershipOptions } from '../MembershipOptions';

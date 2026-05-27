@@ -1,10 +1,10 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid"
-import ErrorIcon from '@material-ui/icons/Error';
+import Grid from "@mui/material/Grid"
+import ErrorIcon from '@mui/icons-material/Error';
 import { message } from "makerspace-ts-api-client";
 
 import useWriteTransaction from "../hooks/useWriteTransaction";
-import { Typography } from "@material-ui/core";
+import { Typography } from "@mui/material";
 
 interface Props {
   reportError(error: string): void;
@@ -34,7 +34,7 @@ class ErrorBoundaryInternal extends React.Component<Props, { hasError: boolean }
         <Grid
           container
           direction="row"
-          justify="center"
+          justifyContent="center"
           alignItems="center"
         >
           <ErrorIcon fontSize="large" color="error"/>

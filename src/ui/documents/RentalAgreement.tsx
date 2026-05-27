@@ -1,13 +1,13 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Paper from "@material-ui/core/Paper";
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
-import Grid from "@material-ui/core/Grid";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import { useNavigate } from 'react-router-dom';
+import Paper from "@mui/material/Paper";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 
 import { updateRental, getRental } from "makerspace-ts-api-client";
 import { buildProfileRouting } from "../member/utils";
@@ -23,7 +23,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 const rentalAgreement = documents[Documents.RentalAgreement];
 
 const RentalAgreement: React.FC<{ rentalId: string }> = ({ rentalId }) => {
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { executeScroll } = useScrollToHeader();
   const [declineConfirmOpen, setDeclineConfirmOpen] = React.useState(false);
@@ -38,13 +38,13 @@ const RentalAgreement: React.FC<{ rentalId: string }> = ({ rentalId }) => {
   const onSignSuccess = React.useCallback(() => {
     executeScroll();
     // Redirect to invoices tab after signing
-    history.push(`${buildProfileRouting(currentUserId)}/invoices`);
+    navigate(`${buildProfileRouting(currentUserId)}/invoices`);
   }, [history, executeScroll, currentUserId]);
 
   const onDeclineSuccess = React.useCallback(() => {
     setDeclineConfirmOpen(false);
     // Redirect back to profile rentals tab
-    history.push(`${buildProfileRouting(currentUserId)}/rentals`);
+    navigate(`${buildProfileRouting(currentUserId)}/rentals`);
   }, [history, currentUserId]);
 
   const {
@@ -77,7 +77,7 @@ const RentalAgreement: React.FC<{ rentalId: string }> = ({ rentalId }) => {
           {rentalStatus === "cancelled" && "This rental has been cancelled."}
           {!["agreement_denied", "active", "cancelled"].includes(rentalStatus) && `This rental cannot be signed at this stage (status: ${rentalStatus}).`}
         </Typography>
-        <Button variant="outlined" onClick={() => history.push(buildProfileRouting(currentUserId) + "/rentals")}>
+        <Button variant="outlined" onClick={() => navigate(buildProfileRouting(currentUserId) + "/rentals")}>
           Return to Rentals
         </Button>
       </Paper>

@@ -1,12 +1,12 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { updateMember } from "makerspace-ts-api-client";
-import Grid from "@material-ui/core/Grid";
-import Accordion from "@material-ui/core/Accordion";
-import AccordionSummary from "@material-ui/core/AccordionSummary";
-import AccordionDetails from "@material-ui/core/AccordionDetails";
-import Typography from "@material-ui/core/Typography";
-import ExpandMore from "@material-ui/icons/ExpandMore";
+import Grid from "@mui/material/Grid";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Typography from "@mui/material/Typography";
+import ExpandMore from "@mui/icons-material/ExpandMore";
 import DocumentFrame, { documents, Documents } from "ui/documents/Document";
 import { Form } from "components/Form/Form";
 import { SignatureBlock } from "ui/documents/SignatureBlock";

@@ -1,7 +1,7 @@
 import * as React from "react";
 import isString from "lodash-es/isString";
 
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 //@ts-ignore
 import * as Braintree from "braintree-web";

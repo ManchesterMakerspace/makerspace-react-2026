@@ -1,6 +1,6 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import { Link } from "@material-ui/core";
+import Grid from "@mui/material/Grid";
+import { Link } from "@mui/material";
 import { Documents, documents } from "./Document";
 
 const PreviewMemberContract: React.FC  = () => {

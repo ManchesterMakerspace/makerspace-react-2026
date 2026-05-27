@@ -1,6 +1,5 @@
 import * as React from "react";
-import Dialog from "@material-ui/core/Dialog";
-import { withStyles } from '@material-ui/core/styles';
+import Dialog from "@mui/material/Dialog";
 
 import Form from "ui/common/Form";
 
@@ -28,19 +27,18 @@ const styles = {
 
 export const formDialogClass = "form-modal-dialog";
 
-const FormModal = (props: FormModalProps & { classes: any }) => {
+const FormModal = (props: FormModalProps) => {
   const { formRef, isOpen, id, loading, title, closeHandler, cancelText,
-    submitText, onSubmit, children, error, style, fullScreen, classes } = props;
+    submitText, onSubmit, children, error, style, fullScreen } = props;
 
   return (
     <Dialog
+      sx={{ "& .MuiDialogContent-root": { overflow: "visible" }, "& .MuiPaper-root": { overflow: "visible" } }}
       className={formDialogClass}
-      classes={{ paperScrollPaper: classes.root }}
       fullWidth={true}
       fullScreen={fullScreen}
       open={isOpen}
       onClose={closeHandler}
-      disableBackdropClick={true}
       scroll={"body"}
     >
       <Form
@@ -61,4 +59,4 @@ const FormModal = (props: FormModalProps & { classes: any }) => {
   );
 }
 
-export default withStyles(styles)(FormModal);
+export default FormModal;

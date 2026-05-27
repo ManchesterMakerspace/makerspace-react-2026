@@ -1,10 +1,10 @@
 import React from "react";
 
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
-import Button from "@material-ui/core/Button";
-import Grid from "@material-ui/core/Grid";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import Grid from "@mui/material/Grid";
 
 import { CollectionOf } from "app/interfaces";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -55,7 +55,7 @@ const FormContent = <V extends unknown>({
       <DialogContent style={{ overflow: 'visible' }}>
         {children}
 
-        <Grid container spacing={2} justify="center">
+        <Grid container spacing={2} justifyContent="center">
           <Grid item xs={12}>
             {form.isDirty && !loading && error && <ErrorMessage error={error} id={`${id}-error`}/>}
           </Grid>

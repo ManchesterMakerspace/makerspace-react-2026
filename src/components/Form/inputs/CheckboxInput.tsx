@@ -1,6 +1,6 @@
 import * as React from "react";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Checkbox from "@material-ui/core/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
 import ErrorMessage from "ui/common/ErrorMessage";

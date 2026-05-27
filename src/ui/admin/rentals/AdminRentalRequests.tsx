@@ -1,12 +1,12 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { Link } from "react-router-dom";
 import { Rental } from "makerspace-ts-api-client";
 
@@ -82,7 +82,7 @@ const AdminRentalRequests: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center" style={{ marginBottom: 8 }}>
+        <Grid container justifyContent="space-between" alignItems="center" style={{ marginBottom: 8 }}>
           <Typography variant="h6">Pending Rental Requests</Typography>
           <div style={{ display: "flex", gap: 8 }}>
             {selectedRental && (

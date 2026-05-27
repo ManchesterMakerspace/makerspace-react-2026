@@ -1,6 +1,6 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import Select from "@material-ui/core/Select";
+import Typography from "@mui/material/Typography";
+import Select from "@mui/material/Select";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";

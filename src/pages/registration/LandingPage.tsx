@@ -4,13 +4,13 @@
  */
 
  import * as React from 'react';
- import useReactRouter from "use-react-router";
- 
- import Grid from '@material-ui/core/Grid';
- import Paper from '@material-ui/core/Paper';
- import Button from "@material-ui/core/Button";
- import Typography from '@material-ui/core/Typography';
- import Hidden from "@material-ui/core/Hidden";
+import { useNavigate } from 'react-router-dom';
+  
+ import Grid from '@mui/material/Grid';
+ import Paper from '@mui/material/Paper';
+ import Button from "@mui/material/Button";
+ import Typography from '@mui/material/Typography';
+ import Hidden from "@mui/material/Hidden";
  
  import Logo from "../../assets/FilledLaserableLogo.svg";
  
@@ -21,8 +21,8 @@ import { useMembershipOptions } from 'hooks/useMembershipOptions';
 import { AppLoading } from 'components/AppLoading/AppLoading';
  
  const LandingPage: React.FC = () => {
-   const { history } = useReactRouter();
-   const goToSignIn = () => history.push({ pathname: Routing.Login });
+   const navigate = useNavigate();
+   const goToSignIn = () => navigate({ pathname: Routing.Login });
    const goToSignUp = useGoToSignUp();
 
   const { loading } = useMembershipOptions();

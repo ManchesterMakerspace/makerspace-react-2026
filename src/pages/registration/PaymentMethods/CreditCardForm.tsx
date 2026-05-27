@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import Grid from '@material-ui/core/Grid';
+import Grid from '@mui/material/Grid';
 import { usePaymentMethodsContext } from './PaymentMethodsContext';
 import { useFormContext, FormContextProvider } from 'components/Form/FormContext';
 import { EmittedBy, CreditCardFields, hostedFieldStyles } from './constants';
@@ -185,7 +185,7 @@ export const CreditCardForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justify='center'>
+    <Grid container spacing={8} justifyContent='center'>
       <Grid item xs={12}>
         <form id='cc-form' className={`scale-down ${cardType?.type}`}>
           <div className='cardinfo-card-number'>

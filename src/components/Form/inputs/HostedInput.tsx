@@ -1,6 +1,6 @@
 import * as React from "react";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
 import { InputProps } from "./types";
 import { FormField } from "../FormField";
 import ErrorMessage from "ui/common/ErrorMessage";

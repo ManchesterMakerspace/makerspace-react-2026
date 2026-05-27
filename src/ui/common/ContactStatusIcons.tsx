@@ -1,9 +1,9 @@
 import * as React from 'react';
-import Tooltip from '@material-ui/core/Tooltip';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import ErrorIcon from '@material-ui/icons/Error';
-import InfoOutlined from '@material-ui/icons/InfoOutlined';
-import SecurityIcon from '@material-ui/icons/Security';
+import Tooltip from '@mui/material/Tooltip';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import SecurityIcon from '@mui/icons-material/Security';
 
 // Mailtrap webhook event values (event field, not status)
 const GOOD_STATUSES = ['delivery', 'open', 'click'];

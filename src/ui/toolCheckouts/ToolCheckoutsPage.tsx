@@ -1,8 +1,8 @@
 import * as React from "react";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
@@ -30,7 +30,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const visibleTabs = tabs.filter(t => !t.adminOnly || caps.canManageCheckoutApprovers);
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item md={10} xs={12}>
         <Typography variant="h5" gutterBottom>Tool Checkouts</Typography>
         <Typography variant="body2" color="textSecondary">

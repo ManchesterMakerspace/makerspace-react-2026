@@ -1,13 +1,13 @@
 import * as React from 'react';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
-import Divider from '@material-ui/core/Divider';
-import Tooltip from '@material-ui/core/Tooltip';
-import AssignmentIcon from '@material-ui/icons/Assignment';
-import CheckIcon from '@material-ui/icons/Check';
-import EventIcon from '@material-ui/icons/Event';
-import CancelIcon from '@material-ui/icons/Cancel';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import CheckIcon from '@mui/icons-material/Check';
+import EventIcon from '@mui/icons-material/Event';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { Member } from 'makerspace-ts-api-client';
 
 import StatefulTable from 'ui/common/table/StatefulTable';

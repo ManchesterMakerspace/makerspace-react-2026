@@ -1,12 +1,12 @@
 import * as React from "react";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
 
 interface Props {
   label: string;
   id: string;
 }
-const HostedInput: React.SFC<Props> = (props) => {
+const HostedInput: React.FC<Props> = (props) => {
   return (
     <FormControl
       fullWidth

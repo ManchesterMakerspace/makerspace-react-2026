@@ -1,39 +1,30 @@
-/**
- * Main injection point for application.  Webpacker compiles everything in this folder by default.
- */
-import "react-app-polyfill/ie11";
-import "react-app-polyfill/stable";
-import "assets/application";
-import { composeWithDevTools } from 'redux-devtools-extension';
+import 'react-app-polyfill/ie11';
+import 'react-app-polyfill/stable';
+import 'assets/application';
+
 import * as React from 'react';
-import { createBrowserHistory, History } from "history";
+import { createRoot } from 'react-dom/client';
+import { composeWithDevTools } from 'redux-devtools-extension';
 import { applyMiddleware, createStore, Store } from 'redux';
-import reduxThunk from "redux-thunk";
-import { Provider } from "react-redux";
-import * as ReactDOM from 'react-dom';
-import { ConnectedRouter, routerMiddleware } from 'connected-react-router';
-import { Theme, MuiThemeProvider, createMuiTheme } from '@material-ui/core';
+import reduxThunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-import App from "app/App";
+import App from 'app/App';
+import { State as ReduxState, getRootReducer } from 'ui/reducer';
+import { ToastContextProvider } from 'components/Toast/Toast';
 
-import { State as ReduxState, getRootReducer } from "ui/reducer";
-import { ToastContextProvider } from "components/Toast/Toast";
-
-
-const history: History = createBrowserHistory();
 const store: Store<ReduxState> = createStore(
-  getRootReducer(history), // new root reducer with router state
+  getRootReducer(),
   composeWithDevTools(
-    applyMiddleware(
-      routerMiddleware(history), // for dispatching history actions
-      reduxThunk
-    ),
+    applyMiddleware(reduxThunk),
   ),
 );
 
 export const getStore = () => store;
 
-const theme: Theme = createMuiTheme({
+const theme = createTheme({
   palette: {
     secondary: {
       light: '#9E3321',
@@ -44,16 +35,17 @@ const theme: Theme = createMuiTheme({
   },
 });
 
-ReactDOM.render(
+const container = document.body.appendChild(document.createElement('div'));
+const root = createRoot(container);
+
+root.render(
   <Provider store={store}>
-  { /* ConnectedRouter will use the store from Provider automatically */}
-    <ConnectedRouter history={history}>
-      <MuiThemeProvider theme={theme}>
+    <BrowserRouter>
+      <ThemeProvider theme={theme}>
         <ToastContextProvider>
-          <App/>
+          <App />
         </ToastContextProvider>
-      </MuiThemeProvider>
-    </ConnectedRouter>
-  </Provider>,
-  document.body.appendChild(document.createElement('div'))
+      </ThemeProvider>
+    </BrowserRouter>
+  </Provider>
 );

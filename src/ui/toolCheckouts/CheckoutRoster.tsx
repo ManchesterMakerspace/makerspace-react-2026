@@ -1,13 +1,13 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import TextField from "@material-ui/core/TextField";
-import Select from "@material-ui/core/Select";
-import FormLabel from "@material-ui/core/FormLabel";
-import Chip from "@material-ui/core/Chip";
-import Button from "@material-ui/core/Button";
-import BlockIcon from "@material-ui/icons/Block";
-import AddIcon from "@material-ui/icons/Add";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import FormLabel from "@mui/material/FormLabel";
+import Chip from "@mui/material/Chip";
+import Button from "@mui/material/Button";
+import BlockIcon from "@mui/icons-material/Block";
+import AddIcon from "@mui/icons-material/Add";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -274,7 +274,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
     <Grid container spacing={3}>
       {!preselectedMember && (
         <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center">
             <div>
               <Typography variant="h6">Tool Checkout Roster</Typography>
               <Typography variant="body2" color="textSecondary">
@@ -301,7 +301,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
 
       {preselectedMember && canManage && (
         <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center">
             <div />
             <div style={{ display: "flex", gap: 8 }}>
               {selectedCheckout?.active && (

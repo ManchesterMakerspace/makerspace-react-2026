@@ -1,14 +1,14 @@
 import * as React from "react";
 
-import TextField from "@material-ui/core/TextField";
-import FormControl from "@material-ui/core/FormControl";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormLabel from "@material-ui/core/FormLabel";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import Radio from "@material-ui/core/Radio";
-import Grid from "@material-ui/core/Grid";
-import Select from "@material-ui/core/Select";
-import Checkbox from "@material-ui/core/Checkbox";
+import TextField from "@mui/material/TextField";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
+import RadioGroup from "@mui/material/RadioGroup";
+import Radio from "@mui/material/Radio";
+import Grid from "@mui/material/Grid";
+import Select from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
 
 import FormModal from "ui/common/FormModal";
 import Form from "ui/common/Form";

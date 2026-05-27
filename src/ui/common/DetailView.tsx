@@ -1,10 +1,10 @@
 import * as React from "react";
+import { useNavigate } from 'react-router-dom';
 import capitalize from "lodash-es/capitalize";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 
 interface Resource {
@@ -51,7 +51,7 @@ const DetailView: React.FC<OwnProps> = ({
         if (resource !== newResource.name) {
           const hasSubpath = resources.some(resource => pathname.endsWith(`/${resource.name}`));
           const newPath = hasSubpath ? pathname.replace(/\/[^\/]*$/, `/${newResource.name}`) : `${pathname}/${newResource.name}`;
-          history.push(newPath);
+          navigate(newPath);
         }        
       }
     }

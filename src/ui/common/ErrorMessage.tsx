@@ -1,14 +1,14 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import ErrorIcon from '@material-ui/icons/Error';
-import Grid from '@material-ui/core/Grid';
+import Typography from "@mui/material/Typography";
+import ErrorIcon from '@mui/icons-material/Error';
+import Grid from '@mui/material/Grid';
 
 interface ErrorProps {
   error: string | JSX.Element;
   id?: string;
 }
 
-const ErrorMessage: React.SFC<ErrorProps> = (props) => {
+const ErrorMessage: React.FC<ErrorProps> = (props) => {
   const { error, id } = props;
   return error ? (
     <Grid

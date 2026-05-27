@@ -1,9 +1,9 @@
 import * as React from "react";
 import range from "lodash-es/range";
-import Grid from "@material-ui/core/Grid";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormLabel from "@material-ui/core/FormLabel";
-import Select from "@material-ui/core/Select";
+import Grid from "@mui/material/Grid";
+import MenuItem from "@mui/material/MenuItem";
+import FormLabel from "@mui/material/FormLabel";
+import Select from "@mui/material/Select";
 
 import Form from "ui/common/Form";
 import { reportRequirementFields, formPrefix } from "ui/reports/constants";

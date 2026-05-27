@@ -1,18 +1,18 @@
 import * as React from 'react';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
-import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Divider from '@material-ui/core/Divider';
-import TextField from '@material-ui/core/TextField';
-import Chip from '@material-ui/core/Chip';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import LockIcon from '@material-ui/icons/Lock';
+import Typography from '@mui/material/Typography';
+import Grid from '@mui/material/Grid';
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import Chip from '@mui/material/Chip';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LockIcon from '@mui/icons-material/Lock';
 import ErrorMessage from 'ui/common/ErrorMessage';
 import ChangePasswordForm from 'ui/member/ChangePasswordForm';
 import { useAuthState } from 'ui/reducer/hooks';
 import { useDispatch } from 'react-redux';
-import { push } from 'connected-react-router';
+import { useNavigate } from 'react-router-dom';
 import { Action as AuthAction } from 'ui/auth/constants';
 
 type EnrollStep = 'idle' | 'qr' | 'verify' | 'done';
@@ -241,7 +241,7 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
   const onEnrollmentComplete = React.useCallback(() => {
     dispatch({ type: AuthAction.ClearEnrollmentRequired });
     // Redirect to their profile now that enrollment is done
-    dispatch(push(`/members/${memberId}`));
+    navigate(`/members/${memberId}`);
   }, [dispatch, memberId]);
 
   return (

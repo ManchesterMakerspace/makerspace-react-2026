@@ -1,9 +1,9 @@
 import * as React from "react";
-import Divider from "@material-ui/core/Divider";
-import Typography from "@material-ui/core/Typography";
-import Box from "@material-ui/core/Box";
-import Grid from '@material-ui/core/Grid';
-import Hidden from "@material-ui/core/Hidden";
+import Divider from "@mui/material/Divider";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import Grid from '@mui/material/Grid';
+import Hidden from "@mui/material/Hidden";
 
 import { FormContextConsumer, FormContextProvider } from "components/Form/FormContext";
 import { useSetSearchQuery } from "hooks/useSearchQuery";
@@ -23,9 +23,9 @@ export const PaymentStep: React.FC = ({ children }) => {
           validator={validatePaymentMethods(validateCC)}
           onSubmit={handleSubmit(setSearch, submitCC)}
         >
-          <Grid container spacing={2} justify="center">
+          <Grid container spacing={2} justifyContent="center">
             <Grid item xs={11} md={8}>
-              <Grid container spacing={2} justify="center">
+              <Grid container spacing={2} justifyContent="center">
                 <Grid item xs={12} >
                   <Box>
                     <FormContextConsumer>

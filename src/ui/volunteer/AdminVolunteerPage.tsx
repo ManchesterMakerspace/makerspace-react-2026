@@ -1,27 +1,27 @@
 import * as React from 'react';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Tabs from '@material-ui/core/Tabs';
-import Tab from '@material-ui/core/Tab';
-import Button from '@material-ui/core/Button';
-import TextField from '@material-ui/core/TextField';
-import Select from '@material-ui/core/Select';
-import MenuItem from '@material-ui/core/MenuItem';
-import FormLabel from '@material-ui/core/FormLabel';
-import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
-import IconButton from '@material-ui/core/IconButton';
-import CheckIcon from '@material-ui/icons/Check';
-import CloseIcon from '@material-ui/icons/Close';
-import AddIcon from '@material-ui/icons/Add';
-import DeleteIcon from '@material-ui/icons/Delete';
-import EditIcon from '@material-ui/icons/Edit';
-import PersonAddIcon from '@material-ui/icons/PersonAdd';
-import PeopleIcon from '@material-ui/icons/People';
-import UndoIcon from '@material-ui/icons/Undo';
-import RemoveCircleIcon from '@material-ui/icons/RemoveCircle';
+import Grid from '@mui/material/Grid';
+import Typography from '@mui/material/Typography';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import FormLabel from '@mui/material/FormLabel';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
+import IconButton from '@mui/material/IconButton';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import AddIcon from '@mui/icons-material/Add';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import PeopleIcon from '@mui/icons-material/People';
+import UndoIcon from '@mui/icons-material/Undo';
+import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 
 import FormModal from 'ui/common/FormModal';
 import ErrorMessage from 'ui/common/ErrorMessage';
@@ -243,7 +243,7 @@ const CreditsTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justify='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
+            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
               {selectedCredit?.status === 'pending' && (
                 <>
                   <Grid item>
@@ -482,7 +482,7 @@ const TasksTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justify='flex-end' alignItems='flex-end'>
+            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
               <Grid item>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
@@ -803,7 +803,7 @@ const EventsTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justify='flex-end' alignItems='flex-end'>
+            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
               <Grid item>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
@@ -899,7 +899,7 @@ const AdminVolunteerPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<TabKey>('credits');
 
   return (
-    <Grid container spacing={3} justify='center'>
+    <Grid container spacing={3} justifyContent='center'>
       <Grid item md={10} xs={12}>
         <Typography variant='h5' gutterBottom>Volunteer</Typography>
         <Typography variant='body2' color='textSecondary'>

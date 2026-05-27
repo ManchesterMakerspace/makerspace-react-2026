@@ -1,7 +1,7 @@
 import * as React from  "react";
-import FilterList from "@material-ui/icons/FilterList";
-import Button from "@material-ui/core/Button";
-import Drawer from "@material-ui/core/Drawer";
+import FilterList from "@mui/icons-material/FilterList";
+import Button from "@mui/material/Button";
+import Drawer from "@mui/material/Drawer";
 import useModal from "../hooks/useModal";
 
 const FilterButton: React.FC<{ label?: string, children(close: () => void): React.ReactChild }> = ({ children, label = "Filters" }) => {

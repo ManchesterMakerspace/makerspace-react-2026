@@ -1,7 +1,7 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import Tooltip from "@material-ui/core/Tooltip";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import { Rental, adminListRentals } from "makerspace-ts-api-client";
@@ -108,7 +108,7 @@ const AdminCurrentRentalsInner: React.FC = () => {
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Grid container justify="flex-end" alignItems="center">
+        <Grid container justifyContent="flex-end" alignItems="center">
           <Grid item>
             <CreateRentalAdmin onCreate={onAction} />
             <EditRental rental={selectedRental} onUpdate={onAction} />

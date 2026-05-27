@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import Grid from '@material-ui/core/Grid';
-import Button from "@material-ui/core/Button";
-import Typography from '@material-ui/core/Typography';
-import Box from '@material-ui/core/Box';
+import Grid from '@mui/material/Grid';
+import Button from "@mui/material/Button";
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
 import { InvoiceOption } from 'makerspace-ts-api-client';
 
 import { useGoToSignUp } from '../useGoToSignUp';
@@ -25,7 +25,7 @@ export const MembershipOptionCard: React.FC<Props> = ({ option, signUpButton, ch
 
   return (
     <Card>
-      <Grid container spacing={3} justify="center">
+      <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12}>
           <Typography variant="h5">
             {option.name}

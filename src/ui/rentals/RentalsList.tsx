@@ -1,8 +1,8 @@
 import * as React from "react";
 import moment from "moment";
 import { Link } from 'react-router-dom';
-import Grid from "@material-ui/core/Grid";
-import Tooltip from "@material-ui/core/Tooltip";
+import Grid from "@mui/material/Grid";
+import Tooltip from "@mui/material/Tooltip";
 import { Rental, listRentals, adminListRentals, Member } from "makerspace-ts-api-client";
 
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -113,7 +113,7 @@ const RentalsList: React.FC<{ member?: Member }> = ({ member }) => {
   const selectedRental = rentals.find(rental => rental.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item md={member ? 12 : 10} xs={12}>
         {canManage && (
           <Grid>

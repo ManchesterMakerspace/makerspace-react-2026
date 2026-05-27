@@ -1,7 +1,7 @@
 import * as React from "react";
 import moment from "moment";
 import { Link } from 'react-router-dom';
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import { SortDirection } from "ui/common/table/constants";
 import { Column } from "ui/common/table/Table";
@@ -131,7 +131,7 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
   const selectedTransaction = transactions.find(transaction => transaction.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item xs={12}>
         <Grid>
           <RefundTransactionModal
