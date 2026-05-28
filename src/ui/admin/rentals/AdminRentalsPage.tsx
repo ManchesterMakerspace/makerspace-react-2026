@@ -31,7 +31,7 @@ const AdminRentalsPage: React.FC = () => {
   };
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item md={10} xs={12}>
         <Typography variant="h6" gutterBottom>Rental Management</Typography>
       </Grid>

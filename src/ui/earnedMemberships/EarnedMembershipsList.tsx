@@ -251,7 +251,7 @@ class EarnedMembershipList extends React.Component<Props, State> {
     } = this.state;
 
     return (
-      <Grid container spacing={3} justify="center">
+      <Grid container spacing={3} justifyContent="center">
         <Grid item md={10} xs={12}>
           <Grid style={{paddingTop: 20}}>
             {this.getActionButtons()}

@@ -29,8 +29,8 @@ test.describe('Shop fee lifecycle', () => {
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    await page.getByRole('textbox', { name: 'Custom item name' }).fill(FEE_ITEM_NAME);
-    await page.getByRole('textbox', { name: 'Detail shown on invoice' }).fill(FEE_DESCRIPTION);
+    await page.getByRole('textbox', { name: 'Item Name' }).fill(FEE_ITEM_NAME);
+    await page.getByRole('textbox', { name: 'Description (optional)' }).fill(FEE_DESCRIPTION);
     await page.getByRole('spinbutton').first().fill(FEE_AMOUNT);
 
     await page.getByRole('button', { name: 'Generate Invoice' }).click();

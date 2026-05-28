@@ -127,7 +127,7 @@ class PasswordReset extends React.Component<Props, State> {
     const strength = scorePassword(password);
 
     return (
-      <Grid container spacing={3} justify="center">
+      <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12} md={6}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
               <Form

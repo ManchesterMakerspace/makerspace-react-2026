@@ -22,7 +22,7 @@ const UnsubscribeEmails: React.FC = () => {
   }, [setSuccess, error, call]);
 
   return (
-    <Grid container justify="center">
+    <Grid container justifyContent="center">
       <Grid item xs={12} sm={8} md={6}>
         <Form
           id="unregister"

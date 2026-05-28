@@ -79,7 +79,7 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
   const selectedReport = reports.find(report => selectedId === report.id);
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item md={memberId ? 12 : 10} xs={12}>
         {isOwnMembership && <CreateReport onCreate={onCreate} />}
         <StatefulTable

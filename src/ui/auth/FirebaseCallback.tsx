@@ -48,7 +48,7 @@ class FirebaseCallback extends React.Component<Props, State> {
   render() {
     const { error } = this.state;
     return (
-      <Grid container justify='center' alignItems='center' style={{ minHeight: '60vh' }}>
+      <Grid container justifyContent='center' alignItems='center' style={{ minHeight: '60vh' }}>
         <Grid item style={{ textAlign: 'center' }}>
           {error ? (
             <>

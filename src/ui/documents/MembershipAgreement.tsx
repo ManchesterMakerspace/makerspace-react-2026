@@ -18,6 +18,7 @@ import { FormField } from "components/Form/FormField";
 interface Props {
   onSuccess?(): void;
   hideFooter?: boolean;
+  children?: React.ReactNode;
 }
 
 const { 

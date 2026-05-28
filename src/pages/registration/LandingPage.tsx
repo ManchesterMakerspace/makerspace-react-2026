@@ -36,7 +36,7 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
  
   return (
     <>
-      <Grid container spacing={3} justify="center">
+      <Grid container spacing={3} justifyContent="center">
         <Hidden smDown>
           <Grid item lg={6}>
             <Logo style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
@@ -45,7 +45,7 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
 
         <Grid item xs={12} md={6}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
-            <Grid container spacing={3} justify="center">
+            <Grid container spacing={3} justifyContent="center">
               <Grid item xs={12}>
                 <Typography variant="subtitle1">
                   Manchester Makerspace is a non-profit collaborative organization of members who maintain a shared
@@ -67,7 +67,7 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
         </Grid>
       </Grid>
       {/** Below the fold */}
-      <Grid container spacing={3} justify="center">
+      <Grid container spacing={3} justifyContent="center">
         <Grid item xs={12} style={{ marginTop: "2rem" }}>
           <Typography align="center" variant="h4">Our Membership Options</Typography>
         </Grid>

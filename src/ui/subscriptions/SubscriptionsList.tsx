@@ -89,7 +89,7 @@ const SubscriptionsTable: React.FC = () => {
   const selectedSubscription = subscriptions.find(sub => sub.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       <Grid item xs={12}>
         <Grid>
           <CancelSubscriptionModal

@@ -82,7 +82,7 @@ const AdminRentalRequests: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center" style={{ marginBottom: 8 }}>
+        <Grid container justifyContent="space-between" alignItems="center" style={{ marginBottom: 8 }}>
           <Typography variant="h6">Pending Rental Requests</Typography>
           <div style={{ display: "flex", gap: 8 }}>
             {selectedRental && (

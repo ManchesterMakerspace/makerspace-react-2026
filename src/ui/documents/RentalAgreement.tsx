@@ -87,7 +87,7 @@ const RentalAgreement: React.FC<{ rentalId: string }> = ({ rentalId }) => {
   return (
     <Paper>
       {/* I Do Not Agree button — prominent at top */}
-      <Grid container justify="flex-end" style={{ padding: "16px 16px 0" }}>
+      <Grid container justifyContent="flex-end" style={{ padding: "16px 16px 0" }}>
         <Button
           id="rental-agreement-decline"
           variant="outlined"

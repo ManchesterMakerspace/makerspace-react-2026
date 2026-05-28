@@ -8,6 +8,7 @@ import { Typography } from "@mui/material";
 
 interface Props {
   reportError(error: string): void;
+  children?: React.ReactNode;
 }
 
 class ErrorBoundaryInternal extends React.Component<Props, { hasError: boolean }> {
@@ -34,7 +35,7 @@ class ErrorBoundaryInternal extends React.Component<Props, { hasError: boolean }
         <Grid
           container
           direction="row"
-          justify="center"
+          justifyContent="center"
           alignItems="center"
         >
           <ErrorIcon fontSize="large" color="error"/>
@@ -48,7 +49,7 @@ class ErrorBoundaryInternal extends React.Component<Props, { hasError: boolean }
   }
 }
 
-const ErrorBoundary: React.FC = ({ children }) => {
+const ErrorBoundary: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { call } = useWriteTransaction(message);
 
   const reportError = React.useCallback((err: string) => {

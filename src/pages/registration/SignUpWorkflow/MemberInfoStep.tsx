@@ -44,7 +44,7 @@ const ConfirmEmailField: React.FC = () => {
   );
 };
 
-export const MemberInfoStep: React.FC = ({ children }) => {
+export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { isOpen: emailNoteOpen, openModal: openEmailNote, closeModal: closeEmailNote } = useModal();
   const dispatch = useDispatch();
   const navigate = useNavigate();

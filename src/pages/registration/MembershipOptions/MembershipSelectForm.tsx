@@ -16,7 +16,8 @@ import { CartPreview } from "../SignUpWorkflow/CartPreview";
 
 interface Props {
   onSubmit(invoiceOption: InvoiceOption, discountId?: string): void;
-  showNoneOption?: boolean
+  showNoneOption?: boolean;
+  children?: React.ReactNode;
 }
 
 export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption, children }) => {

@@ -127,7 +127,7 @@ const MembersList: React.FC = () => {
   const selectedMember = members.find(member => member.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify='center'>
+    <Grid container spacing={3} justifyContent='center'>
       <Grid item md={10} xs={12}>
         {caps.canCreateMembers && (
           <Grid>

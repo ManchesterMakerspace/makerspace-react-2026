@@ -274,7 +274,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
     <Grid container spacing={3}>
       {!preselectedMember && (
         <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center">
             <div>
               <Typography variant="h6">Tool Checkout Roster</Typography>
               <Typography variant="body2" color="textSecondary">
@@ -301,7 +301,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
 
       {preselectedMember && canManage && (
         <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center">
             <div />
             <div style={{ display: "flex", gap: 8 }}>
               {selectedCheckout?.active && (

@@ -22,13 +22,13 @@ const LoginPage: React.FC = () => {
       </Hidden>
 
       <Grid item md={6} sm={12}>
-        <Grid container justify="center" spacing={3}>
+        <Grid container justifyContent="center" spacing={3}>
           <Grid item xs={12}>
             <Paper style={{ minWidth: 275, padding: "1rem" }}>
                 <LoginForm />
             </Paper>
           </Grid>
-          <Grid item container xs={12} justify="center" alignItems="center">
+          <Grid item container xs={12} justifyContent="center" alignItems="center">
             <Button id="auth-toggle" variant="outlined" color="secondary" fullWidth onClick={goToRegister}>
               Register
               </Button>
