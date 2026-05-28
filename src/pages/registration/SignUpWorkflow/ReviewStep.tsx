@@ -39,7 +39,7 @@ const checkboxField = {
 
 type TransactionResponse = SuccessTransactionState<Parameters<typeof createTransaction>[0], Transaction>;
 
-export const ReviewStep: React.FC<Props> = ({ children }) => {
+export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
   const { setActiveStep } = useSignUpContext();
@@ -69,7 +69,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
     });
 
     navigate(url);
-  }, [create, history, currentUser.id, isNewMember]);
+  }, [create, currentUser.id, isNewMember, navigate]);
 
   const { call, isRequesting: submitting, error: paymentError, } = useWriteTransaction(createTransaction, onSuccess);
 
@@ -112,7 +112,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
   const paymentMethod = !isApiErrorResponse(response) && response?.data;
 
   return (
-    <Grid container spacing={5} justify="center">
+    <Grid container spacing={5} justifyContent="center">
       <Grid item xs={12}>
         <Form
           onSubmit={onSubmit}
@@ -121,11 +121,11 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
           hideFooter={true}
           id="review-checkout"
         >
-          <Grid container spacing={5} justify="center">
+          <Grid container spacing={5} justifyContent="center">
             <Grid item xs={12}>
               <Paper>
                 <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
+                  <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={11}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
@@ -136,7 +136,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                   </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justify="center">
+                <Grid container spacing={2} justifyContent="center">
                   <Grid item xs={11}>
                     <Typography variant="body1">
                       <strong>Name:</strong> {currentUser.firstname} {currentUser.lastname}
@@ -173,7 +173,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
             <Grid item xs={12}>
               <Paper>
                 <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
+                  <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={11}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
@@ -186,9 +186,9 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                     </Grid>
                   </Grid>
                 </Grid>
-                <Grid container spacing={2} justify="center">
+                <Grid container spacing={2} justifyContent="center">
                   <Grid item xs={11}>
-                    <Grid container spacing={2} justify="center">
+                    <Grid container spacing={2} justifyContent="center">
                       <MembershipPreview readOnly={true} />
                     </Grid>
                   </Grid>
@@ -199,7 +199,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
             <Grid item xs={12}>
               <Paper>
                 <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
+                  <Grid container spacing={2} justifyContent="center">
                     <Grid item xs={11}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
@@ -213,7 +213,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                   </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justify="center">
+                <Grid container spacing={2} justifyContent="center">
                   <Grid item xs={11} style={{ marginBottom: "1rem" }}>
                     {isRequesting ?  <LoadingOverlay contained={true} /> :
                         error ? <ErrorMessage error={error} /> : paymentMethod ? (
@@ -230,7 +230,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
 
             <Grid item xs={12}>
               <Paper>
-                <Grid container spacing={2} justify="center">
+                <Grid container spacing={2} justifyContent="center">
                   <Grid item xs={11}>
                     <Typography variant="body1">
                       I, {currentUser.firstname} {currentUser.lastname}, authorize Manchester Makerspace to charge {total}{" "}

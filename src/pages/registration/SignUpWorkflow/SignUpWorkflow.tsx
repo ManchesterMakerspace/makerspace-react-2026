@@ -167,7 +167,7 @@ export const SignUpWorkflow: React.FC = () => {
   return (
     <SignUpContextProvider setActiveStep={setActiveStep}>
         {({ allowLeave, nextDisabled, prevDisabled }) => (
-          <Grid container justify="center" spacing={2}>
+          <Grid container justifyContent="center" spacing={2}>
             <Grid item sm={10} xs={12}>
               {isSmallMedia ? (
                 <MobileStepper

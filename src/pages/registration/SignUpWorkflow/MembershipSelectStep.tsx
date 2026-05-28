@@ -14,7 +14,7 @@ import DuplicateMembershipModal from "ui/membership/DuplicateMembershipModal";
 
 interface Props {}
 
-export const MembershipSelectStep: React.FC<Props> = ({ children }) => {
+export const MembershipSelectStep: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate();
   const { currentUser } = useAuthState();
   const { create } = useToastContext();

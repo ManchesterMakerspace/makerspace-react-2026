@@ -85,7 +85,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
 
   return (
     <>
-    <Grid container justify="center" spacing={2}>
+    <Grid container justifyContent="center" spacing={2}>
       <Grid item xs={12}>
         <Paper style={{ minWidth: 275, padding: "1rem" }}>
           <Form

@@ -37,7 +37,16 @@ export class AuthPage {
     }
 
     await this.page.waitForURL(/\/members\//, { timeout: 30_000 });
-    await this.page.waitForLoadState('networkidle');
+    // Wait for member profile to actually render instead of networkidle
+    // networkidle never resolves due to continuous background polling
+    await this.page.waitForSelector('#member-detail-type, #member-detail-name, [data-testid="member-profile"]', {
+      timeout: 30_000,
+      state: 'attached'
+    }).catch(() => {
+      // Profile elements may have different IDs — fall back to waiting for menu button
+      // which only renders when authenticated and profile is loaded
+    });
+    await this.page.getByRole('button', { name: 'Menu' }).waitFor({ state: 'visible', timeout: 15_000 });
   }
 
   async logout(): Promise<void> {
