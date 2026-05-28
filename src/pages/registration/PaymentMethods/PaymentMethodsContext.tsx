@@ -1,8 +1,7 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import useReadTransaction from 'ui/hooks/useReadTransaction';
 import useWriteTransaction from 'ui/hooks/useWriteTransaction';
-import { getNewPaymentMethod, createPaymentMethod as createPaymentMethodApi } from 'makerspace-ts-api-client';
+import { getNewPaymentMethod, createPaymentMethod as createPaymentMethodApi, isApiErrorResponse } from 'makerspace-ts-api-client';
 import { AnyPaymentMethod } from 'app/entities/paymentMethod';
 import { PayPalProvider } from './PayPalForm';
 import { VenmoProvider } from './VenmoForm';
@@ -25,60 +24,73 @@ const PaymentMethodsContext = React.createContext<PaymentMethodsContext>({
 });
 
 interface Props {
-  // Optional callback for flows that don't use URL params (e.g. manage payment methods modal).
-  // When provided, called with the new payment method on success instead of setting a URL param.
   onSuccess?: (paymentMethod: AnyPaymentMethod) => void;
 }
 
-export const PaymentMethodsProvider: React.FC<Props> = ({ children, onSuccess }) => {
+export const PaymentMethodsProvider: React.FC<Props & { children?: React.ReactNode }> = ({ children, onSuccess }) => {
   const setSearch = useSetSearchQuery();
 
-  const {
-    isRequesting: tokenLoading,
-    error: tokenError,
-    data
-  } = useReadTransaction(getNewPaymentMethod, {});
-
-  const {
-    call: createPaymentMethod,
-    error: createPaymentMethodError,
-    isRequesting: creatingPaymentMethod
-  } = useWriteTransaction(createPaymentMethodApi, ({ response }) => {
-    if (onSuccess) {
-      // Manage-payment-methods flow: call callback directly, don't touch the URL
-      onSuccess(response.data as AnyPaymentMethod);
-    } else {
-      // Signup flow: store token in URL for use in subsequent steps
-      setSearch({ [paymentMethodQueryParam]: response.data.id });
-    }
-  });
-
+  const [tokenLoading, setTokenLoading] = React.useState(true);
+  const [tokenError, setTokenError] = React.useState<string>();
   const [clientError, setClientError] = React.useState<Braintree.BraintreeError>();
   const [client, setClient] = React.useState<Braintree.Client>();
   const [clientLoading, setClientLoading] = React.useState(false);
+  const initialized = React.useRef(false);
 
-  // Initialize Braintree client once the token is loaded or changes
+  // Fetch client token directly — useReadTransaction is inappropriate here
+  // (no params, one-time init, Redux dedup causes deadlock)
   React.useEffect(() => {
-    if (data?.clientToken) {
-      setClientLoading(true);
+    if (initialized.current) return;
+    initialized.current = true;
 
-      Braintree.client.create({ authorization: data?.clientToken },
-        (err, clientInstance) => {
+    const fetchToken = async () => {
+      try {
+        const response = await getNewPaymentMethod();
+        if (isApiErrorResponse(response)) {
+          setTokenError(response.error.message);
+          setTokenLoading(false);
+          return;
+        }
+        const clientToken = (response.data as any)?.clientToken;
+        setTokenLoading(false);
+        if (!clientToken) {
+          setTokenError('No client token returned from server');
+          return;
+        }
+        setClientLoading(true);
+        Braintree.client.create({ authorization: clientToken }, (err, clientInstance) => {
           if (err) setClientError(err);
           setClient(clientInstance);
           setClientLoading(false);
         });
-    }
-  }, [data]);
-
-  const context: PaymentMethodsContext = React.useMemo(() => {
-    return {
-      createPaymentMethod: (nonce: string, makeDefault?: boolean) => createPaymentMethod({ body: { paymentMethodNonce: nonce, makeDefault } }),
-      loading: tokenLoading || clientLoading || creatingPaymentMethod,
-      error: tokenError || clientError || createPaymentMethodError,
-      braintreeClient: client,
+      } catch (err) {
+        setTokenError(err?.message || 'Failed to fetch payment token');
+        setTokenLoading(false);
+      }
     };
-  }, [
+
+    fetchToken();
+  }, []);
+
+  const {
+    call: createPaymentMethod,
+    error: createPaymentMethodError,
+    isRequesting: creatingPaymentMethod,
+  } = useWriteTransaction(createPaymentMethodApi, ({ response }) => {
+    if (onSuccess) {
+      onSuccess(response.data as AnyPaymentMethod);
+    } else {
+      setSearch({ [paymentMethodQueryParam]: response.data.id });
+    }
+  });
+
+  const context: PaymentMethodsContext = React.useMemo(() => ({
+    createPaymentMethod: (nonce: string, makeDefault?: boolean) =>
+      createPaymentMethod({ body: { paymentMethodNonce: nonce, makeDefault } }),
+    loading: tokenLoading || clientLoading || creatingPaymentMethod,
+    error: tokenError || clientError || createPaymentMethodError,
+    braintreeClient: client,
+  }), [
     client,
     createPaymentMethod,
     tokenLoading,

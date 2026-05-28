@@ -11,7 +11,7 @@ const FilterButton: React.FC<{ label?: string, children(close: () => void): Reac
     <>
       <Button
         variant="contained"
-        color="inherit"
+        color="primary"
         onClick={openModal}
       >
         {label}

@@ -44,7 +44,8 @@ const AccordionSummary = styled(MuiAccordionSummary)({
 export const PaymentMethods: React.FC<Props> = () => {
   const { loading } = usePaymentMethodsContext();
   const { values, setValue } = useFormContext();
-  const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, {});
+  const emptyParams = React.useMemo(() => ({}), []);
+  const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, emptyParams);
   const paymentMethods = !isApiErrorResponse(response) && response?.data || [];
 
   const { priorPaymentMethod } = useSearchQuery({ priorPaymentMethod: paymentMethodQueryParam });

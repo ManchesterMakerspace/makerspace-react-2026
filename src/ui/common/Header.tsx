@@ -220,7 +220,7 @@ class Header extends React.Component<Props, State> {
   public render(): JSX.Element {
     const { currentUser, authRequesting, totpEnrollmentRequired } = this.props;
     return (
-      <AppBar style={{ marginBottom: "1em" }} position="static"  title="Manchester Makerspace">
+      <AppBar color="default" style={{ marginBottom: "1em" }} position="static" title="Manchester Makerspace">
         <Toolbar>
           <Typography variant="h6" color="inherit" className="flex">
             <Logo alt="Manchester Makerspace" viewBox="0 0 960 580" preserveAspectRatio="xMinYMin" />

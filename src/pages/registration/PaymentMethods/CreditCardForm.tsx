@@ -34,7 +34,7 @@ export const CreditCardConsumer = CreditCardContext.Consumer;
 
 interface Props {}
 
-export const CreditCardProvider: React.FC<Props> = ({ children }) => {
+export const CreditCardProvider: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const { braintreeClient, createPaymentMethod } = usePaymentMethodsContext();
   const { setError } = useFormContext();
 
@@ -185,7 +185,7 @@ export const CreditCardForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justify='center'>
+    <Grid container spacing={8} justifyContent='center'>
       <Grid item xs={12}>
         <form id='cc-form' className={`scale-down ${cardType?.type}`}>
           <div className='cardinfo-card-number'>

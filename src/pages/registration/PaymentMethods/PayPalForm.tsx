@@ -26,7 +26,7 @@ export const PayPalConsumer = PayPalContext.Consumer;
 
 interface Props {}
 
-export const PayPalProvider: React.FC<Props> = ({ children }) => {
+export const PayPalProvider: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const { braintreeClient, createPaymentMethod } = usePaymentMethodsContext();
   const { setError } = useFormContext();
 
@@ -133,7 +133,7 @@ export const PayPalForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justify='center'>
+    <Grid container spacing={8} justifyContent='center'>
       <Grid item xs={12}>
         <div id='paypal-button' />
         <FormField fieldName={paypalValidation} />
