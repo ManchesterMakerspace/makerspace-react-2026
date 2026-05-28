@@ -34,7 +34,7 @@ class ErrorBoundaryInternal extends React.Component<Props, { hasError: boolean }
         <Grid
           container
           direction="row"
-          justifyContent="center"
+          justify="center"
           alignItems="center"
         >
           <ErrorIcon fontSize="large" color="error"/>

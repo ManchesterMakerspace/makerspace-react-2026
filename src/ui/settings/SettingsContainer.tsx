@@ -1,5 +1,4 @@
 import * as React from "react";
-import { useParams } from 'react-router-dom';
 
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";

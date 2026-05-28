@@ -83,7 +83,7 @@ const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);
 
 // Wrap with router to get history prop
-const FirebaseCallbackWithRouter: React.SFC<{}> = () => {
+const FirebaseCallbackWithRouter: React.FC<{}> = () => {
   const navigate = useNavigate();
   return <ConnectedFirebaseCallback history={history} />;
 };

@@ -32,7 +32,7 @@ export const SignatureBlock: React.FC<Props> = ({ takeSignature }) => {
       </Grid>
       <Grid item xs={12} style={{ border: "1px solid black", borderRadius: "4px" }}>
         <SignatureCanvas ref={ref => setSignatureRef(ref)} canvasProps={{ height: "250", width: "1000" }} />
-        <Grid container justifyContent="flex-end">
+        <Grid container justify="flex-end">
           <Grid item xs={12}>
             <Button variant="contained" color="secondary" onClick={clearSignature}>Reset Signature</Button>
           </Grid>

@@ -127,6 +127,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
                   value={rentalFields.contractOnFile.name}
                   checked={this.state.contractOnFile}
                   onChange={this.toggleContract}
+                  
                 />
               }
               label={rentalFields.contractOnFile.label}

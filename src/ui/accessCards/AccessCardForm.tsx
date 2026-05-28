@@ -138,6 +138,7 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
                   value="id-verified"
                   checked={idVerified}
                   onChange={toggleVerified}
+                  
                 />
               }
               label="Verified member's name and address with valid identification"

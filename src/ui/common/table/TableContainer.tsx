@@ -109,7 +109,7 @@ class TableContainer<T> extends React.Component<Props<T>, {}> {
             nextIconButtonProps={{
               'aria-label': 'Next Page',
             }}
-            onPageChange={this.onPageChange}
+            onChangePage={this.onPageChange}
           />}
         </div>
       </div>

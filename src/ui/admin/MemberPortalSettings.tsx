@@ -723,7 +723,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <Grid container justifyContent='center' style={{ padding: 48 }}>
+      <Grid container justify='center' style={{ padding: 48 }}>
         <CircularProgress />
       </Grid>
     );
@@ -731,7 +731,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (error || !config) {
     return (
-      <Grid container justifyContent='center' style={{ padding: 48 }}>
+      <Grid container justify='center' style={{ padding: 48 }}>
         <Typography color='error'>{error || 'Unable to load settings.'}</Typography>
       </Grid>
     );

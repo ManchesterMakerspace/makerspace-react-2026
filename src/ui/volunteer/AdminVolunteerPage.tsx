@@ -243,7 +243,7 @@ const CreditsTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
+            <Grid container spacing={1} justify='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
               {selectedCredit?.status === 'pending' && (
                 <>
                   <Grid item>
@@ -482,7 +482,7 @@ const TasksTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
+            <Grid container spacing={1} justify='flex-end' alignItems='flex-end'>
               <Grid item>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
@@ -803,7 +803,7 @@ const EventsTabInner: React.FC = () => {
             </Select>
           </Grid>
           <Grid item xs={12} sm={9}>
-            <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
+            <Grid container spacing={1} justify='flex-end' alignItems='flex-end'>
               <Grid item>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
@@ -899,7 +899,7 @@ const AdminVolunteerPage: React.FC = () => {
   const [activeTab, setActiveTab] = React.useState<TabKey>('credits');
 
   return (
-    <Grid container spacing={3} justifyContent='center'>
+    <Grid container spacing={3} justify='center'>
       <Grid item md={10} xs={12}>
         <Typography variant='h5' gutterBottom>Volunteer</Typography>
         <Typography variant='body2' color='textSecondary'>

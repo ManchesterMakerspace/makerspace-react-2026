@@ -1,15 +1,17 @@
+/**
+ * Main injection point for application. Webpacker compiles everything in this folder by default.
+ */
 import 'react-app-polyfill/ie11';
 import 'react-app-polyfill/stable';
 import 'assets/application';
-
+import { composeWithDevTools } from 'redux-devtools-extension';
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { composeWithDevTools } from 'redux-devtools-extension';
 import { applyMiddleware, createStore, Store } from 'redux';
 import reduxThunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { Theme, ThemeProvider, createTheme } from '@mui/material';
 
 import App from 'app/App';
 import { State as ReduxState, getRootReducer } from 'ui/reducer';
@@ -24,7 +26,7 @@ const store: Store<ReduxState> = createStore(
 
 export const getStore = () => store;
 
-const theme = createTheme({
+const theme: Theme = createTheme({
   palette: {
     secondary: {
       light: '#9E3321',

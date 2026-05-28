@@ -55,7 +55,7 @@ const FormContent = <V extends unknown>({
       <DialogContent style={{ overflow: 'visible' }}>
         {children}
 
-        <Grid container spacing={2} justifyContent="center">
+        <Grid container spacing={2} justify="center">
           <Grid item xs={12}>
             {form.isDirty && !loading && error && <ErrorMessage error={error} id={`${id}-error`}/>}
           </Grid>

@@ -1,34 +1,53 @@
-import * as React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import * as React from "react";
+import { useNavigate } from 'react-router-dom';
+import { connect } from "react-redux";
+import { RouteComponentProps } from "react-router-dom";
 
-import TextField from '@mui/material/TextField';
-import Grid from '@mui/material/Grid';
-import InputAdornment from '@mui/material/InputAdornment';
-import LinearProgress from '@mui/material/LinearProgress';
-import Paper from '@mui/material/Paper';
-import RemoveRedEye from '@mui/icons-material/RemoveRedEye';
-import Typography from '@mui/material/Typography';
+import TextField from "@mui/material/TextField";
+import Grid from "@mui/material/Grid";
+import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
+import Paper from "@mui/material/Paper";
+import RemoveRedEye from "@mui/icons-material/RemoveRedEye";
+import Typography from "@mui/material/Typography";
 
-import { Routing } from 'app/constants';
-import Form, { FormFields } from 'ui/common/Form';
-import ErrorMessage from 'ui/common/ErrorMessage';
-import { ScopedThunkDispatch } from 'ui/reducer';
-import { loginUserAction } from 'ui/auth/actions';
-import { resetPassword, isApiErrorResponse, message } from 'makerspace-ts-api-client';
+import { Routing } from "app/constants";
+import Form, { FormFields } from "ui/common/Form";
+import ErrorMessage from "ui/common/ErrorMessage";
+import { ScopedThunkDispatch } from "ui/reducer";
+import { loginUserAction } from "ui/auth/actions";
+import { resetPassword, isApiErrorResponse, message } from "makerspace-ts-api-client";
 
-const passwordId = 'password-reset';
+interface DispatchProps {
+  attemptLogin: () => void;
+  goToRoot: () => void;
+}
+interface StateProps {}
+interface OwnProps extends RouteComponentProps<{ token: string }> {}
+interface Props extends OwnProps, StateProps, DispatchProps {}
+
+interface State {
+  passwordMask: boolean;
+  passwordRequesting: boolean;
+  passwordError: string;
+  password: string;
+}
+
+const passwordId = "password-reset";
 const passwordFields: FormFields = {
   password: {
-    label: 'Enter New Password',
+    label: "Enter New Password",
     name: `${passwordId}-input`,
-    placeholder: 'Enter New Password',
-    error: 'Invalid password',
+    placeholder: "Enter New Password",
+    error: "Invalid password",
     validate: (val: string) => !!val
   }
-};
-interface PasswordForm { password: string; }
+}
+interface PasswordForm {
+  password: string;
+}
 
+// Strength scorer: 0-4
 const scorePassword = (pw: string): number => {
   if (!pw) return 0;
   let score = 0;
@@ -39,113 +58,144 @@ const scorePassword = (pw: string): number => {
   if (/[^A-Za-z0-9]/.test(pw)) score++;
   return Math.min(score, 4);
 };
-const strengthLabel = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'];
-const strengthColor = ['#f44336', '#ff9800', '#ffeb3b', '#8bc34a', '#4caf50'];
 
-const PasswordReset: React.FC = () => {
-  const { token: passwordToken } = useParams<{ token: string }>();
-  const navigate = useNavigate();
-  const dispatch = useDispatch<ScopedThunkDispatch>();
+const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
+const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
-  const formRef = React.useRef<Form>(null);
-  const [passwordMask, setPasswordMask] = React.useState(true);
-  const [passwordError, setPasswordError] = React.useState<string>();
-  const [passwordRequesting, setPasswordRequesting] = React.useState(false);
-  const [password, setPassword] = React.useState('');
+class PasswordReset extends React.Component<Props, State> {
+  public formRef: Form;
+  private setFormRef = (ref: Form) => this.formRef = ref;
 
-  React.useEffect(() => {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      passwordMask: true,
+      passwordError: undefined,
+      passwordRequesting: false,
+      password: "",
+    };
+  }
+
+  public componentDidMount() {
+    const { goToRoot } = this.props;
+    const { token: passwordToken } = this.props.match.params;
     if (!passwordToken) {
-      navigate(Routing.Root);
+      goToRoot();
     }
-  }, []);
+  }
 
-  const togglePasswordMask = () => setPasswordMask(m => !m);
+  private togglePasswordMask = () => {
+    this.setState((state) => ({ passwordMask: !state.passwordMask }));
+  }
 
-  const submit = async (form: Form) => {
-    const { password: pw } = await formRef.current?.simpleValidate<PasswordForm>(passwordFields) || {};
+  private handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ password: event.target.value });
+  }
+
+  private submit = async (form: Form) => {
+    const { password } = await this.formRef.simpleValidate<PasswordForm>(passwordFields);
+    const { token: passwordToken } = this.props.match.params;
+
     if (!form.isValid()) return;
-    const strength = scorePassword(password);
+
+    const strength = scorePassword(this.state.password);
     if (strength < 2) {
-      setPasswordError('Password is too weak. Try mixing uppercase, numbers, or symbols.');
+      this.setState({ passwordError: "Password is too weak. Try mixing uppercase, numbers, or symbols." });
       return;
     }
-    setPasswordRequesting(true);
+
+    this.setState({ passwordRequesting: true });
     try {
-      const passwordReset = await resetPassword({ body: { member: { resetPasswordToken: passwordToken, password: pw } } });
+      const passwordReset = await resetPassword({ body: { member: { resetPasswordToken: passwordToken, password } } });
       if (isApiErrorResponse(passwordReset)) {
         const error = passwordReset.error.message;
         const deviseErrors = (passwordReset.error as any).errors;
-        const pwError = error || (deviseErrors && Object.entries(deviseErrors).map(([f, e]) => `${f} ${e}`).join('. '));
-        setPasswordRequesting(false);
-        setPasswordError(pwError);
+        const passwordError = error || (deviseErrors && Object.entries(deviseErrors).map(([field, error]) => `${field} ${error}`).join(". "))
+        this.setState({ passwordRequesting: false, passwordError });
       } else {
-        await dispatch(await loginUserAction());
-        setPasswordRequesting(false);
+        await this.props.attemptLogin();
+        this.setState({ passwordRequesting: false });
       }
     } catch (e) {
-      message({ body: { message: JSON.stringify(e) } });
+      message({ body: { message: JSON.stringify(e) }})
+      console.error("ERR", e);
     }
-  };
+  }
 
-  const strength = scorePassword(password);
+  public render(): JSX.Element {
+    const { passwordMask, passwordError, passwordRequesting, password } = this.state;
+    const strength = scorePassword(password);
 
-  return (
-    <Grid container spacing={3} justifyContent="center">
-      <Grid item xs={12} md={6}>
-        <Paper style={{ minWidth: 275, padding: '1rem' }}>
-          <Form
-            ref={formRef}
-            id={passwordId}
-            title="Reset Password"
-            onSubmit={submit}
-            loading={passwordRequesting}
-            submitText="Save"
-          >
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="body1">Please enter your new password.</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth required
-                  autoComplete="new-password"
-                  label={passwordFields.password.label}
-                  name={passwordFields.password.name}
-                  id={passwordFields.password.name}
-                  placeholder={passwordFields.password.placeholder}
-                  type={passwordMask ? 'password' : 'text'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <RemoveRedEye style={{ cursor: 'pointer' }} onClick={togglePasswordMask} />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-                {password && (
-                  <>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(strength / 4) * 100}
-                      style={{ marginTop: 8, backgroundColor: '#e0e0e0' }}
+    return (
+      <Grid container spacing={3} justify="center">
+        <Grid item xs={12} md={6}>
+          <Paper style={{ minWidth: 275, padding: "1rem" }}>
+              <Form
+                ref={this.setFormRef}
+                id={passwordId}
+                title="Reset Password"
+                onSubmit={this.submit}
+                loading={passwordRequesting}
+                submitText="Save"
+              >
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="body1">Please enter your new password.</Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      required
+                      autoComplete="new-password"
+                      label={passwordFields.password.label}
+                      name={passwordFields.password.name}
+                      id={passwordFields.password.name}
+                      placeholder={passwordFields.password.placeholder}
+                      type={passwordMask ? "password" : "text"}
+                      value={password}
+                      onChange={this.handlePasswordChange}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <RemoveRedEye style={{ cursor: "pointer" }} onClick={this.togglePasswordMask} />
+                          </InputAdornment>
+                        )
+                      }}
                     />
-                    <span style={{ color: strengthColor[strength], marginTop: 4, display: 'block', fontSize: '0.75rem' }}>
-                      {strengthLabel[strength]}
-                    </span>
-                  </>
+                    {password && (
+                      <>
+                        <LinearProgress
+                          variant="determinate"
+                          value={(strength / 4) * 100}
+                          style={{ marginTop: 8, backgroundColor: "#e0e0e0" }}
+                          // @ts-ignore
+                          color="inherit"
+                        />
+                        <span style={{ color: strengthColor[strength], marginTop: 4, display: "block", fontSize: "0.75rem" }}>
+                          {strengthLabel[strength]}
+                        </span>
+                      </>
+                    )}
+                  </Grid>
+                </Grid>
+                {!passwordRequesting && passwordError && (
+                  <ErrorMessage id={"password-reset-error"} error={passwordError} />
                 )}
-              </Grid>
-            </Grid>
-            {!passwordRequesting && passwordError && (
-              <ErrorMessage id="password-reset-error" error={passwordError} />
-            )}
-          </Form>
-        </Paper>
+              </Form>
+          </Paper>
+        </Grid>
       </Grid>
-    </Grid>
-  );
-};
+    );
+  }
+}
 
-export default PasswordReset;
+const mapDispatchToProps = (
+  dispatch: ScopedThunkDispatch
+): DispatchProps => {
+  return {
+    attemptLogin: async () => dispatch(await loginUserAction()),
+    goToRoot: () => navigate(Routing.Root)
+  };
+}
+
+export default connect(null, mapDispatchToProps)(PasswordReset);

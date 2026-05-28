@@ -25,7 +25,7 @@ export const MembershipOptionCard: React.FC<Props> = ({ option, signUpButton, ch
 
   return (
     <Card>
-      <Grid container spacing={3} justifyContent="center">
+      <Grid container spacing={3} justify="center">
         <Grid item xs={12}>
           <Typography variant="h5">
             {option.name}

@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
@@ -12,7 +13,6 @@ import ErrorMessage from 'ui/common/ErrorMessage';
 import ChangePasswordForm from 'ui/member/ChangePasswordForm';
 import { useAuthState } from 'ui/reducer/hooks';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { Action as AuthAction } from 'ui/auth/constants';
 
 type EnrollStep = 'idle' | 'qr' | 'verify' | 'done';

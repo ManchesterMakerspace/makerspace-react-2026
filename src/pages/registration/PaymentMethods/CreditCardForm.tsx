@@ -185,7 +185,7 @@ export const CreditCardForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justifyContent='center'>
+    <Grid container spacing={8} justify='center'>
       <Grid item xs={12}>
         <form id='cc-form' className={`scale-down ${cardType?.type}`}>
           <div className='cardinfo-card-number'>

@@ -25,27 +25,18 @@ interface Props {
   closeHandler: () => void;
 }
 
-const AccordionSummary = styled(MuiAccordionSummary)(({
-  theme,
-}) => ({
-
-  root: {
-    backgroundColor: 'rgba(0, 0, 0, .03)',
-    borderBottom: '1px solid rgba(0, 0, 0, .125)',
-    marginBottom: -1,
+const AccordionSummary = styled(MuiAccordionSummary)({
+  backgroundColor: 'rgba(0, 0, 0, .03)',
+  borderBottom: '1px solid rgba(0, 0, 0, .125)',
+  marginBottom: -1,
+  minHeight: 56,
+  '&.Mui-expanded': {
     minHeight: 56,
-    '&$expanded': {
-      minHeight: 56,
-    },
   },
-  content: {
-    '&$expanded': {
-      margin: '12px 0',
-    },
+  '& .MuiAccordionSummary-content.Mui-expanded': {
+    margin: '12px 0',
   },
-  expanded: {},
-}
-));
+});
 
 // Separate component so useCreditCardContext() is inside the CreditCardProvider tree
 const CreditCardAccordionContent: React.FC = () => {

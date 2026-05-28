@@ -10,7 +10,6 @@ export const useSearchQuery = (params: SearchParams): SearchParams => {
 
   return React.useMemo(() => {
     const searchParams = new URLSearchParams(search);
-
     return Object.entries(params).reduce((values, [key, param]) => ({
       ...values,
       [key]: searchParams.get(param)
@@ -24,11 +23,9 @@ export const useSetSearchQuery = (pushLocationOverloads?: { pathname?: string; h
 
   return React.useCallback((params: SearchParams) => {
     const searchParams = new URLSearchParams(search);
-
     Object.entries(params).forEach(([key, value]) => {
       value ? searchParams.set(key, value) : searchParams.delete(key);
     })
-
     navigate({ search: searchParams.toString(), ...pushLocationOverloads });
   }, [navigate, search, pushLocationOverloads]);
 }

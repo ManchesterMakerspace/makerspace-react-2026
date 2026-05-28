@@ -1,6 +1,6 @@
 import * as React from "react";
-import { useSelector, useDispatch } from 'react-redux';
-import Grid from '@mui/material/Grid';
+import { connect } from "react-redux";
+import Grid from "@mui/material/Grid";
 
 import { InvoiceOption, InvoiceableResource } from "makerspace-ts-api-client";
 import { InvoiceOperation, InvoiceOptionQueryParams } from "app/entities/invoice";
@@ -307,24 +307,47 @@ class OptionsList extends React.Component<Props, State> {
   }
 }
 
-const OptionsListContainer: React.FC<{}> = () => {
-  const dispatch = useDispatch<ScopedThunkDispatch>();
+const mapStateToProps = (
+  state: ReduxState,
+  _ownProps: OwnProps
+): StateProps => {
+  const {
+    entities: options,
+    read: {
+      totalItems,
+      isRequesting: loading,
+      error
+    },
+    create: {
+      isRequesting: isCreating,
+      error: createError
+    },
+    update: {
+      isRequesting: isUpdating,
+      error: updateError,
+    },
+    delete: {
+      isRequesting: isDeleting,
+      error: deleteError,
+    }
+  } = state.billing;
 
-  const { entities: options, read, create, update, delete: del } = useSelector(
-    (state: any) => state.billing
-  );
-
-  const props = {
+  return {
     options,
-    totalItems: read.totalItems,
-    loading: read.isRequesting,
-    error: read.error,
-    isWriting: create.isRequesting || update.isRequesting || del.isRequesting,
-    writeError: create.error || update.error || del.error,
-    getOptions: (queryParams?: any) => dispatch(readOptionsAction(queryParams)),
-  };
+    totalItems,
+    loading,
+    error,
+    isWriting: isCreating || isUpdating || isDeleting,
+    writeError: createError || updateError || deleteError,
+  }
+}
 
-  return <OptionsList {...props} />;
-};
+const mapDispatchToProps = (
+  dispatch: ScopedThunkDispatch
+): DispatchProps => {
+  return {
+    getOptions: (queryParams) => dispatch(readOptionsAction(queryParams)),
+  }
+}
 
-export default OptionsListContainer;
+export default connect(mapStateToProps, mapDispatchToProps)(OptionsList);

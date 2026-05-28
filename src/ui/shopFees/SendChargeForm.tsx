@@ -417,6 +417,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                                 size="small"
                                 checked={line.updateCatalogPrice}
                                 onChange={e => updateLine(index, { updateCatalogPrice: e.target.checked })}
+                                
                               />
                             }
                             label={
@@ -440,6 +441,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                               size="small"
                               checked={line.saveToCatalog}
                               onChange={e => updateLine(index, { saveToCatalog: e.target.checked })}
+                              
                             />
                           }
                           label={

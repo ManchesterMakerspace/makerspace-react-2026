@@ -1,15 +1,15 @@
-import { combineReducers, Action, AnyAction } from 'redux';
-import { ThunkDispatch, ThunkAction } from 'redux-thunk';
+import { combineReducers, Action, AnyAction } from "redux";
+import { ThunkDispatch, ThunkAction } from "redux-thunk";
 
-import { AuthState } from 'ui/auth/interfaces';
-import { authReducer } from 'ui/auth/actions';
-import { BillingState } from 'ui/billing/interfaces';
-import { billingReducer } from 'ui/billing/actions';
-import { EarnedMembershipsState } from 'ui/earnedMemberships/interfaces';
-import { earnedMembershipsReducer } from 'ui/earnedMemberships/actions';
-import { RequestStatus } from 'app/interfaces';
-import { ApiErrorResponse, ApiDataResponse } from 'makerspace-ts-api-client';
-import { cartReducer, CartState } from './checkout/cart';
+import { AuthState } from "ui/auth/interfaces";
+import { authReducer } from "ui/auth/actions";
+import { BillingState } from "ui/billing/interfaces";
+import { billingReducer } from "ui/billing/actions";
+import { EarnedMembershipsState } from "ui/earnedMemberships/interfaces";
+import { earnedMembershipsReducer } from "ui/earnedMemberships/actions";
+import { RequestStatus } from "app/interfaces";
+import { ApiErrorResponse, ApiDataResponse } from "makerspace-ts-api-client";
+import { cartReducer, CartState } from "./checkout/cart";
 
 export type ScopedThunkDispatch = ThunkDispatch<State, {}, Action>
 export type ScopedThunkAction<T> = ThunkAction<T, State, {}, AnyAction>;
@@ -43,10 +43,10 @@ export interface ReducerAction<T> {
 }
 
 export enum TransactionAction {
-  Start = 'start',
-  Success = 'success',
-  Failure = 'failure',
-  Reset = 'reset'
+  Start = "start",
+  Success = "success",
+  Failure = "failure",
+  Reset = "reset"
 }
 
 const baseReducer = <T>(state: { [key: string]: Transaction<T> } = {}, action: AnyAction) => {
@@ -90,4 +90,4 @@ const baseReducer = <T>(state: { [key: string]: Transaction<T> } = {}, action: A
     default:
       return state;
   }
-};
+}

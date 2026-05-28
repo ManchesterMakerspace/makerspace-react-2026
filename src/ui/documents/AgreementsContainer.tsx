@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useParams} from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthState } from "../reducer/hooks";
 import { buildProfileRouting } from "../member/utils";
 import { MembershipAgreement } from "./MembershipAgreement";

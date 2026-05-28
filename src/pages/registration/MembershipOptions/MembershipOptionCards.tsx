@@ -61,7 +61,7 @@ export const NoneOption: React.FC<Omit<Props, "showNoneOption">> = ({ onSelect }
 
   return (
     <Card>
-      <Grid container spacing={3} justifyContent="center">
+      <Grid container spacing={3} justify="center">
         <Grid item xs={12}>
           <Typography variant="subtitle1">
             {noneInvoiceOption.description}

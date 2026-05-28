@@ -31,6 +31,7 @@ export const CheckboxInput = ({
               value={fieldName}
               checked={!!value}
               onChange={onChange}
+              
             />
           }
           label={label}

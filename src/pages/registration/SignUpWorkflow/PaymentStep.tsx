@@ -23,9 +23,9 @@ export const PaymentStep: React.FC = ({ children }) => {
           validator={validatePaymentMethods(validateCC)}
           onSubmit={handleSubmit(setSearch, submitCC)}
         >
-          <Grid container spacing={2} justifyContent="center">
+          <Grid container spacing={2} justify="center">
             <Grid item xs={11} md={8}>
-              <Grid container spacing={2} justifyContent="center">
+              <Grid container spacing={2} justify="center">
                 <Grid item xs={12} >
                   <Box>
                     <FormContextConsumer>

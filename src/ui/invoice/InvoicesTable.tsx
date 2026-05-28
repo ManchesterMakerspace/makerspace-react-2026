@@ -43,7 +43,7 @@ const forceCancelInvoice = ({ id }: { id: string }) =>
 
 
 const InvoicesTable: React.FC<{ stageInvoice(invoice: Invoice): void }> = ({ stageInvoice }) => {
-  const { memberId } = useParams<{ memberId: string }>();
+  const { memberId } = useParams();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageInvoices: isAdmin } = useCapabilities();
   const viewingOwnInvoices = memberId === currentUserId;

@@ -151,7 +151,7 @@ export const VenmoForm: React.FC = () => {
   }, [initialize]);
 
   return (
-    <Grid container spacing={8} justifyContent='center'>
+    <Grid container spacing={8} justify='center'>
       <Grid item xs={12}>
         {supported ? (
           <Button

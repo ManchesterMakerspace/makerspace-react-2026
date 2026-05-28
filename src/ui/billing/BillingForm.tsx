@@ -302,6 +302,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
                   checked={disableOption}
                   onChange={this.toggleDisableOption}
                   disabled={isRequesting}
+                  
                 />
               }
               label={fields.disabled.label}

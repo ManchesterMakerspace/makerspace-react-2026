@@ -40,7 +40,7 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
   const { isOpen, openModal, closeModal } = useModal();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageEarnedMemberships } = useCapabilities();
-  const { memberId } = useParams<{ memberId: string }>();
+  const { memberId } = useParams();
   const isOwnMembership = currentUserId === memberId;
   const asAdmin = canManageEarnedMemberships && !isOwnMembership
 

@@ -259,6 +259,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
                     onChange={this.updateStrict(index)}
                     name={`${fieldName}-${requirementFields.strict.name}`}
                     id={`${fieldName}-${requirementFields.strict.name}`}
+                    
                   />
                 }
                 label={requirementFields.strict.label}

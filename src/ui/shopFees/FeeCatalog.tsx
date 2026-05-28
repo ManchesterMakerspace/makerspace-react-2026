@@ -211,7 +211,7 @@ const FeeCatalog: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justify="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Fee Catalog</Typography>
             <Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>

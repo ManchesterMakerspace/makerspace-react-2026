@@ -107,7 +107,7 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
         submitText="Delete"
         error={error}
       >
-        <Grid container justifyContent="center" spacing={2}>
+        <Grid container justify="center" spacing={2}>
           <Grid item xs={12}>
             <Typography gutterBottom>
               Are you sure you want to delete this payment method? 
@@ -202,14 +202,14 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
 
     return (
       <>
-        <Grid container justifyContent="center" spacing={2}>
+        <Grid container justify="center" spacing={2}>
           <Grid item xs={12}>
             <Typography variant="h6" color="inherit">
               {title ? title : "Please Select a Payment Method"}
             </Typography>
           </Grid>
         </Grid>
-        <Grid container justifyContent="flex-start" spacing={2}>
+        <Grid container justify="flex-start" spacing={2}>
           {(isRequesting && <LoadingOverlay id="get-payment-methods" contained={true} />) ||
             (Array.isArray(paymentMethods) && paymentMethods.length && (
               <Grid item xs={12}>

@@ -108,7 +108,7 @@ const AdminCurrentRentalsInner: React.FC = () => {
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
-        <Grid container justifyContent="flex-end" alignItems="center">
+        <Grid container justify="flex-end" alignItems="center">
           <Grid item>
             <CreateRentalAdmin onCreate={onAction} />
             <EditRental rental={selectedRental} onUpdate={onAction} />

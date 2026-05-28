@@ -131,7 +131,7 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
   const selectedTransaction = transactions.find(transaction => transaction.id === selectedId);
 
   return (
-    <Grid container spacing={3} justifyContent="center">
+    <Grid container spacing={3} justify="center">
       <Grid item xs={12}>
         <Grid>
           <RefundTransactionModal

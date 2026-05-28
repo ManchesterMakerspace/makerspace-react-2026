@@ -20,7 +20,7 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
   const { defaultOption } = useMembershipOptions();
 
   return (
-    <Grid container spacing={3} justifyContent="center">
+    <Grid container spacing={3} justify="center">
       {shortForm ? (
         <Grid item xs={12}>
           {defaultOption && (

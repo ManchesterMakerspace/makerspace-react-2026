@@ -30,7 +30,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const visibleTabs = tabs.filter(t => !t.adminOnly || caps.canManageCheckoutApprovers);
 
   return (
-    <Grid container spacing={3} justifyContent="center">
+    <Grid container spacing={3} justify="center">
       <Grid item md={10} xs={12}>
         <Typography variant="h5" gutterBottom>Tool Checkouts</Typography>
         <Typography variant="body2" color="textSecondary">
