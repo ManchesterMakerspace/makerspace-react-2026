@@ -6,6 +6,9 @@ import Accordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Grid from '@mui/material/Grid';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import { listPaymentMethods, isApiErrorResponse } from 'makerspace-ts-api-client';
 
@@ -46,7 +49,11 @@ export const PaymentMethods: React.FC<Props> = () => {
   const { values, setValue } = useFormContext();
   const emptyParams = React.useMemo(() => ({}), []);
   const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, emptyParams);
-  const paymentMethods = !isApiErrorResponse(response) && response?.data || [];
+  // Deduplicate by id — guards against stale Redux state producing repeated entries
+  const rawPaymentMethods = !isApiErrorResponse(response) && response?.data || [];
+  const paymentMethods = rawPaymentMethods.filter(
+    (pm, i, arr) => arr.findIndex(p => p.id === pm.id) === i
+  );
 
   const { priorPaymentMethod } = useSearchQuery({ priorPaymentMethod: paymentMethodQueryParam });
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = React.useState<string>(priorPaymentMethod);
@@ -102,7 +109,18 @@ export const PaymentMethods: React.FC<Props> = () => {
                           value={PaymentType.Existing}
                           label='Saved Payment Methods'
                           control={<Radio color='primary' />}
+                          style={{ flexGrow: 1 }}
                         />
+                        <Tooltip title='Refresh payment methods'>
+                          <IconButton
+                            size='small'
+                            onClick={e => { e.stopPropagation(); refresh(); }}
+                            aria-label='refresh payment methods'
+                            disabled={isRequesting}
+                          >
+                            <RefreshIcon fontSize='small' />
+                          </IconButton>
+                        </Tooltip>
                       </AccordionSummary>
                       <AccordionDetails>
                         <Grid container>

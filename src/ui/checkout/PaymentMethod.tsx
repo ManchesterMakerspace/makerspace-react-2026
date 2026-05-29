@@ -15,8 +15,10 @@ const PaymentMethodComponent: React.FC<Props> = ({ cardType, last4, imageUrl, em
     description = `${cardType} ending in ${last4}`;
   } else if (username) {
     description = `Venmo account @${username}`;
-  } else {
+  } else if (email) {
     description = `PayPal account ${email}`;
+  } else {
+    description = 'PayPal account (no email on file)';
   }
 
   return (
