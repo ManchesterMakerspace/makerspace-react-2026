@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useDispatch } from "react-redux";
 import { getSubscription, Invoice, Subscription } from "makerspace-ts-api-client";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import KeyValueItem from "ui/common/KeyValueItem";
 import useReadTransaction from "../hooks/useReadTransaction";
@@ -24,7 +24,7 @@ export const SubscriptionDetailsInner: React.FC<{ subscription: Subscription, in
   
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <KeyValueItem label="Amount">
           <span id="subscription-amount">{numberAsCurrency(subscription.amount)}</span>
         </KeyValueItem>
@@ -77,7 +77,7 @@ const SubscriptionDetails: React.FC<Props> = ({ subscriptionId, onLoad }) => {
       <SubscriptionDetailsInner subscription={subscription} />
       <ErrorMessage error={subError} />
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ChangePaymentMethodModal
             subscription={subscription}
             onSuccess={onChange}

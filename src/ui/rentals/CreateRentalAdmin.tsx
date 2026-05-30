@@ -1,10 +1,10 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import TextField from "@material-ui/core/TextField";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Checkbox from "@material-ui/core/Checkbox";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import { Member } from "makerspace-ts-api-client";
 import axios from "axios";
 
@@ -111,7 +111,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
       >
         <Grid container spacing={2}>
           {/* Member */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             {member ? (
               <Typography variant="body2">
                 <strong>Member:</strong> {member.firstname} {member.lastname}
@@ -126,7 +126,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
           </Grid>
 
           {/* Spot selector */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               select fullWidth required
               label="Select a Rental Spot"
@@ -156,7 +156,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
 
           {/* Spot details */}
           {selectedSpot && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <div style={{ padding: "8px 12px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
                 <Typography variant="body2"><strong>Number:</strong> {selectedSpot.number}</Typography>
                 <Typography variant="body2"><strong>Location:</strong> {selectedSpot.location}</Typography>
@@ -174,7 +174,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
           )}
 
           {/* Notes */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth multiline rows={2}
               label="Notes (optional)"
@@ -186,7 +186,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
           </Grid>
 
           {/* Agreement signed */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox

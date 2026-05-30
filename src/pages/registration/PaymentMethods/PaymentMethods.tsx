@@ -1,11 +1,14 @@
 import * as React from 'react';
-import withStyles from '@material-ui/core/styles/withStyles';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Radio from '@material-ui/core/Radio';
-import Accordion from '@material-ui/core/Accordion';
-import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import Grid from '@material-ui/core/Grid';
+import { styled } from '@mui/material/styles';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Accordion from '@mui/material/Accordion';
+import MuiAccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Grid from "@mui/material/Grid";
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import { listPaymentMethods, isApiErrorResponse } from 'makerspace-ts-api-client';
 
@@ -28,29 +31,29 @@ import {
 
 interface Props {}
 
-const AccordionSummary = withStyles({
-  root: {
-    backgroundColor: 'rgba(0, 0, 0, .03)',
-    borderBottom: '1px solid rgba(0, 0, 0, .125)',
-    marginBottom: -1,
+const AccordionSummary = styled(MuiAccordionSummary)({
+  backgroundColor: 'rgba(0, 0, 0, .03)',
+  borderBottom: '1px solid rgba(0, 0, 0, .125)',
+  marginBottom: -1,
+  minHeight: 56,
+  '&.Mui-expanded': {
     minHeight: 56,
-    '&$expanded': {
-      minHeight: 56,
-    },
   },
-  content: {
-    '&$expanded': {
-      margin: '12px 0',
-    },
+  '& .MuiAccordionSummary-content.Mui-expanded': {
+    margin: '12px 0',
   },
-  expanded: {},
-})(MuiAccordionSummary);
+});
 
 export const PaymentMethods: React.FC<Props> = () => {
   const { loading } = usePaymentMethodsContext();
   const { values, setValue } = useFormContext();
-  const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, {});
-  const paymentMethods = !isApiErrorResponse(response) && response?.data || [];
+  const emptyParams = React.useMemo(() => ({}), []);
+  const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, emptyParams);
+  // Deduplicate by id — guards against stale Redux state producing repeated entries
+  const rawPaymentMethods = !isApiErrorResponse(response) && response?.data || [];
+  const paymentMethods = rawPaymentMethods.filter(
+    (pm, i, arr) => arr.findIndex(p => p.id === pm.id) === i
+  );
 
   const { priorPaymentMethod } = useSearchQuery({ priorPaymentMethod: paymentMethodQueryParam });
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = React.useState<string>(priorPaymentMethod);
@@ -106,11 +109,22 @@ export const PaymentMethods: React.FC<Props> = () => {
                           value={PaymentType.Existing}
                           label='Saved Payment Methods'
                           control={<Radio color='primary' />}
+                          style={{ flexGrow: 1 }}
                         />
+                        <Tooltip title='Refresh payment methods'>
+                          <IconButton
+                            size='small'
+                            onClick={e => { e.stopPropagation(); refresh(); }}
+                            aria-label='refresh payment methods'
+                            disabled={isRequesting}
+                          >
+                            <RefreshIcon fontSize='small' />
+                          </IconButton>
+                        </Tooltip>
                       </AccordionSummary>
                       <AccordionDetails>
                         <Grid container>
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             {!!paymentMethods.length ? (
                               <RadioGroup
                                 aria-label='Payment Method'

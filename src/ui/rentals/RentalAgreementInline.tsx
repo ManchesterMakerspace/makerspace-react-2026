@@ -1,8 +1,8 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Checkbox from "@material-ui/core/Checkbox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 /**
  * Inline rental agreement for use within the claim flow.
@@ -21,7 +21,7 @@ interface Props {
 const RentalAgreementInline: React.FC<Props> = ({ onSigned, signed }) => {
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <div style={{
           border: "1px solid #ddd", borderRadius: "4px",
           padding: "16px", maxHeight: "300px", overflowY: "auto",
@@ -57,7 +57,7 @@ const RentalAgreementInline: React.FC<Props> = ({ onSigned, signed }) => {
           </Typography>
         </div>
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <FormControlLabel
           control={
             <Checkbox

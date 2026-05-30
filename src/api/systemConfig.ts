@@ -7,12 +7,12 @@ const getCsrfToken = () => {
 
 const api = axios.create({ withCredentials: true });
 api.interceptors.request.use(config => {
-  config.headers['X-XSRF-TOKEN'] = getCsrfToken();
-  config.headers['Content-Type'] = 'application/json';
+  config.headers.set('X-XSRF-TOKEN', getCsrfToken());
+  config.headers.set('Content-Type', 'application/json');
   return config;
 });
 
-const wrapHeaders = (axiosHeaders: Record<string, any>) => ({
+const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
   has: (key: string) => key.toLowerCase() in axiosHeaders,
 });

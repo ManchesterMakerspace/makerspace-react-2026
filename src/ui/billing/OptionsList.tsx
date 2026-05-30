@@ -1,6 +1,6 @@
 import * as React from "react";
 import { connect } from "react-redux";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import { InvoiceOption, InvoiceableResource } from "makerspace-ts-api-client";
 import { InvoiceOperation, InvoiceOptionQueryParams } from "app/entities/invoice";

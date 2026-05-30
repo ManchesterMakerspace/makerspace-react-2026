@@ -1,10 +1,10 @@
 import * as React from "react";
+import { useNavigate } from 'react-router-dom';
 import { connect } from "react-redux";
-import { push } from "connected-react-router";
 
-import TextField from "@material-ui/core/TextField";
-import Typography from "@material-ui/core/Typography";
-import Grid from "@material-ui/core/Grid";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid";
 
 import { Routing } from "app/constants";
 import { emailValid } from "app/utils";
@@ -195,10 +195,10 @@ class LoginForm extends React.Component<Props, State> {
           <Typography>Instructions to reset your password have been sent to {email}</Typography>
           ) : (
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1">Please enter the email address associated with your account to receive an email with instructions to reset your password.</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   required
@@ -247,7 +247,7 @@ class LoginForm extends React.Component<Props, State> {
           submitText="Sign In"
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 required
@@ -267,7 +267,7 @@ class LoginForm extends React.Component<Props, State> {
                 type="password"
               />
             </Grid>
-            <Grid item xs={12} style={{textAlign: "center"}}>
+            <Grid size={{ xs: 12 }} style={{textAlign: "center"}}>
               <a id="forgot-password" href="#" onClick={this.openPasswordReset}>Forgot your password?</a>
             </Grid>
           </Grid>
@@ -310,7 +310,7 @@ const mapDispatchToProps = (
     loginUser: (authForm) => dispatch(loginUserAction(authForm)),
     firebaseLogin: (idToken) => dispatch(firebaseLoginAction(idToken)),
     totpLoginSuccess: (member) => dispatch(totpLoginSuccessAction(member)),
-    pushLocation: (location) => dispatch(push(location)),
+    pushLocation: (location) => navigate(location),
     clearTotpRequired: () => dispatch({ type: AuthAction.ClearTotpRequired }),
   };
 }

@@ -18,8 +18,10 @@ export class AdminToolCheckoutsPage {
 
   async addShop(name: string, slackChannel: string): Promise<void> {
     await this.page.getByRole('button', { name: 'Add Shop' }).click();
-    await this.page.getByRole('textbox', { name: 'e.g. Woodshop' }).fill(name);
-    await this.page.getByRole('textbox', { name: 'e.g. shop-woodworking' }).fill(slackChannel);
+    await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+    // MUI v5: accessible name is the label, not the placeholder
+    await this.page.getByRole('textbox', { name: 'Shop Name' }).fill(name);
+    await this.page.getByRole('textbox', { name: 'Slack Channel' }).fill(slackChannel);
     await this.page.getByRole('button', { name: 'Add Shop' }).click();
     await this.page.waitForTimeout(500);
   }
@@ -38,8 +40,9 @@ export class AdminToolCheckoutsPage {
     const dialog = this.page.locator('[role="dialog"]');
     await dialog.locator('select').first().selectOption({ label: shopName });
 
-    await this.page.getByRole('textbox', { name: 'e.g. Bandsaw' }).fill(toolName);
-    await this.page.getByRole('textbox', { name: 'Optional details' }).fill(description);
+    // MUI v5: accessible name is the label, not the placeholder
+    await this.page.getByRole('textbox', { name: 'Tool Name' }).fill(toolName);
+    await this.page.getByRole('textbox', { name: 'Description' }).fill(description);
 
     // Select prerequisite chip if provided
     if (prerequisiteName) {
@@ -60,9 +63,11 @@ export class AdminToolCheckoutsPage {
     await this.page.getByRole('button', { name: 'Add Approver' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Search by email — unique and unambiguous
-    await this.page.locator('input[id^="react-select"]').last().fill(memberEmail);
-    await this.page.waitForTimeout(1000);
+    // Click the react-select input directly to focus it, then type to trigger search
+    const searchInput = this.page.locator('input[id^="react-select"]').last();
+    await searchInput.click();
+    await searchInput.type(memberEmail, { delay: 50 });
+    await this.page.waitForSelector('[role="option"]', { timeout: 10_000 });
     await this.page.getByRole('option').first().click();
 
     // Select shop chip
@@ -78,10 +83,13 @@ export class AdminToolCheckoutsPage {
     await this.page.getByRole('button', { name: 'Check Out Member' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Member search — type slowly to trigger debounce correctly
-    await this.page.locator('div').filter({ hasText: /^Search by name or email$/ }).nth(1).click();
-    await this.page.locator('input[id^="react-select"]').last().type(memberName, { delay: 50 });
-    await this.page.waitForTimeout(1500);
+    // Click the react-select input directly to establish focus, then type slowly
+    // to trigger the debounced member search API call
+    const memberInput = this.page.locator('input[id^="react-select"]').last();
+    await memberInput.click();
+    await memberInput.type(memberName, { delay: 50 });
+    // Wait for dropdown options to appear after API responds
+    await this.page.waitForSelector('[role="option"]', { timeout: 10_000 });
     await this.page.getByRole('option', { name: new RegExp(memberName, 'i') }).first().click();
 
     // Scope to dialog — page also has comboboxes behind the modal

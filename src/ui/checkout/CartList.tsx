@@ -1,12 +1,12 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 import { useDispatch } from "react-redux";
 
-import Grid from "@material-ui/core/Grid";
-import Card from "@material-ui/core/Card";
-import Button from "@material-ui/core/Button";
-import CardContent from "@material-ui/core/CardContent";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import Button from "@mui/material/Button";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
 
 import TableContainer from "ui/common/table/TableContainer";
 import Table from "ui/common/table/Table";
@@ -41,7 +41,7 @@ interface Props {
 }
 const CartList: React.FC<Props> = ({ paymentMethod }) => {
   const { item } = useCartState();
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const {
@@ -55,7 +55,7 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
     dispatch(sessionLoginUserAction());
 
     if (invoiceId) {
-      history.push(`${Routing.Receipt.replace(Routing.PathPlaceholder.InvoiceId, invoiceId)}`)
+      navigate(`${Routing.Receipt.replace(Routing.PathPlaceholder.InvoiceId, invoiceId)}`)
     }
   }, [history, dispatch]);
   const { call, isRequesting, error, reset } = useWriteTransaction(createTransaction, onSuccess);
@@ -135,7 +135,7 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
       <Card style={{ height: "100%" }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TableContainer
                 id="checkout-invoices-table"
                 title="Review Items Before Purchase"
@@ -144,15 +144,15 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
                 rowId={getCartId}
               />
             </Grid>
-            <Grid item xs={12} style={{ textAlign: "right" }}>
+            <Grid size={{ xs: 12 }} style={{ textAlign: "right" }}>
               <Typography id="total" variant="h6" color="inherit">
                 Total {renderAmount(item)}
               </Typography>
             </Grid>
-            <Grid item xs={12} style={{ marginBottom: "1rem" }}>
+            <Grid size={{ xs: 12 }} style={{ marginBottom: "1rem" }}>
               <PaymentMethodComponent {...paymentMethod} />
             </Grid>
-            <Grid item xs={12} style={{ textAlign: "left" }}>
+            <Grid size={{ xs: 12 }} style={{ textAlign: "left" }}>
               <Button
                 id="submit-payment-button"
                 variant="contained"
@@ -176,12 +176,12 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
           submitText="Okay"
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="body1">
                 There was an error processing one or more transactions. Please review these errors and try again
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Table
                 id="payment-invoices-table"
                 data={item ? [item] : []}

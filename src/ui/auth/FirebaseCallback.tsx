@@ -1,9 +1,9 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { connect } from 'react-redux';
-import useReactRouter from 'use-react-router';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
+import CircularProgress from '@mui/material/CircularProgress';
+import Typography from '@mui/material/Typography';
+import Grid from "@mui/material/Grid";
 import { completeProviderSignIn } from 'ui/auth/firebase';
 import { firebaseLoginAction } from 'ui/auth/actions';
 import { Routing } from 'app/constants';
@@ -38,7 +38,7 @@ class FirebaseCallback extends React.Component<Props, State> {
     try {
       const idToken = await completeProviderSignIn();
       await this.props.firebaseLogin(idToken);
-      this.props.history.replace(Routing.Members);
+      this.props.navigate(Routing.Members);
     } catch (err) {
       const message = (err && (err as any).message) || 'Sign in failed. Please try again.';
       this.setState({ error: message });
@@ -48,8 +48,8 @@ class FirebaseCallback extends React.Component<Props, State> {
   render() {
     const { error } = this.state;
     return (
-      <Grid container justify='center' alignItems='center' style={{ minHeight: '60vh' }}>
-        <Grid item style={{ textAlign: 'center' }}>
+      <Grid container justifyContent='center' alignItems='center' style={{ minHeight: '60vh' }}>
+        <Grid style={{ textAlign: 'center' }}>
           {error ? (
             <>
               <Typography variant='h6' color='error' gutterBottom>
@@ -83,8 +83,8 @@ const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);
 
 // Wrap with router to get history prop
-const FirebaseCallbackWithRouter: React.SFC<{}> = () => {
-  const { history } = useReactRouter();
+const FirebaseCallbackWithRouter: React.FC<{}> = () => {
+  const navigate = useNavigate();
   return <ConnectedFirebaseCallback history={history} />;
 };
 

@@ -83,7 +83,6 @@ test.describe('Self-registration from home page', () => {
   });
 
   test('FOB modal displays correct member address', async ({ page }) => {
-    if (!memberProfileUrl) { test.skip(true, 'Requires full registration test to have completed'); return; }
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
@@ -100,7 +99,6 @@ test.describe('Self-registration from home page', () => {
   });
 
   test('Admin registers FOB and membership becomes active', async ({ page }) => {
-    if (!memberProfileUrl) { test.skip(true, 'Requires full registration test to have completed'); return; }
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
@@ -242,7 +240,6 @@ test.describe('Admin creates member with complimentary membership', () => {
   });
 
   test('FOB modal shows correct member address', async ({ page }) => {
-    if (!memberProfileUrl) { test.skip(true, 'Requires previous test to have completed'); return; }
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
@@ -259,7 +256,6 @@ test.describe('Admin creates member with complimentary membership', () => {
   });
 
   test('Admin registers FOB and membership becomes active', async ({ page }) => {
-    if (!memberProfileUrl) { test.skip(true, 'Requires previous test to have completed'); return; }
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 

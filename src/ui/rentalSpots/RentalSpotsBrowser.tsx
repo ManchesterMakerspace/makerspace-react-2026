@@ -1,17 +1,17 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import MenuItem from "@material-ui/core/MenuItem";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Divider from "@material-ui/core/Divider";
-import Dialog from "@material-ui/core/Dialog";
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import CircularProgress from "@mui/material/CircularProgress";
+import Divider from "@mui/material/Divider";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import { Member } from "makerspace-ts-api-client";
-import useReactRouter from "use-react-router";
 
 import { RentalSpot } from "app/entities/rentalSpot";
 import { Routing } from "app/constants";
@@ -39,7 +39,7 @@ const warningBoxStyle: React.CSSProperties = {
 };
 
 const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const [selectedRentalId, setSelectedRentalId] = React.useState<string>("");
   const [requestNotes,     setRequestNotes]      = React.useState<string>("");
   const [confirmOpen,      setConfirmOpen]        = React.useState(false);
@@ -60,7 +60,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
 
     // Redirect to agreement page if we have a rental ID
     if (rentalId) {
-      history.push(
+      navigate(
         Routing.Documents
           .replace(Routing.PathPlaceholder.Resource, "rental")
           .replace(Routing.PathPlaceholder.ResourceId, rentalId)
@@ -91,14 +91,14 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant="h6" gutterBottom>Request a New Rental</Typography>
         <Divider style={{ marginBottom: "16px" }} />
       </Grid>
 
       {/* Eligibility warnings */}
       {!eligibility.loading && !eligibility.eligible && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           {eligibility.reasons.map((reason, i) => (
             <Typography key={i} variant="body2" style={warningBoxStyle}>⚠ {reason}</Typography>
           ))}
@@ -106,14 +106,14 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
       )}
 
       {rentalsLoading && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <CircularProgress size={24} />
           <Typography variant="body2" display="inline" style={{ marginLeft: 8 }}>Loading available rentals...</Typography>
         </Grid>
       )}
 
       {!rentalsLoading && rentals.length === 0 && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography color="textSecondary">No rentals are currently available.</Typography>
         </Grid>
       )}
@@ -121,7 +121,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
       {!rentalsLoading && rentals.length > 0 && (
         <>
           {/* Rental selector dropdown */}
-          <Grid item xs={12} sm={8} md={6}>
+          <Grid size={{ xs: 12, sm: 8, md: 6 }}>
             <TextField
               select fullWidth
               id="member-rental-spot-select"
@@ -151,10 +151,10 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
 
           {/* Details panel */}
           {selectedRental && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <div style={{ padding: "12px 16px", border: "1px solid #ddd", borderRadius: "4px", marginTop: "4px" }}>
                 <Grid container spacing={1}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     <Typography variant="body2"><strong>Rental:</strong> {selectedRental.number}</Typography>
                     <Typography variant="body2"><strong>Location:</strong> {selectedRental.location}</Typography>
                     <Typography variant="body2"><strong>Type:</strong> {selectedRental.rentalTypeDisplayName}</Typography>
@@ -165,7 +165,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                       <Typography variant="body2"><strong>Cost:</strong> ${selectedRental.invoiceOptionAmount}/mo</Typography>
                     )}
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
                     {selectedRental.requiresApproval ? (
                       <Typography variant="body2" style={infoBoxStyle}>
                         ⏳ This rental requires admin approval. No charge until approved and agreement is signed.
@@ -177,7 +177,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                     )}
                   </Grid>
                   {selectedRental.requiresApproval && (
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <TextField
                         fullWidth multiline rows={2}
                         label="Notes for admin (optional)"
@@ -194,7 +194,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
 
           {/* Confirm button */}
           {selectedRental && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Button
                 id="member-rental-continue"
                 variant="contained" color="primary"
@@ -216,7 +216,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
           </DialogTitle>
           <DialogContent>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1" gutterBottom>
                   <strong>{selectedRental.number}</strong> — {selectedRental.location}
                 </Typography>
@@ -231,7 +231,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                   </Typography>
                 )}
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {selectedRental.requiresApproval ? (
                   <Typography variant="body2" style={infoBoxStyle}>
                     Your request will be sent to an admin for approval. You will be notified by email and Slack once reviewed.

@@ -19,13 +19,13 @@ import {
   Select,
   MenuItem,
   FormControl,
-} from '@material-ui/core';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import ErrorIcon from '@material-ui/icons/Error';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import EditIcon from '@material-ui/icons/Edit';
-import SaveIcon from '@material-ui/icons/Save';
-import CancelIcon from '@material-ui/icons/Cancel';
+} from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import EditIcon from '@mui/icons-material/Edit';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 
 import {
   getSystemConfigs,
@@ -100,13 +100,13 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
 
   return (
     <Grid container alignItems='center' spacing={1} style={{ marginBottom: 12 }}>
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <Typography variant='body1'>{label}</Typography>
         {description && (
           <Typography variant='caption' color='textSecondary'>{description}</Typography>
         )}
       </Grid>
-      <Grid item xs={12} sm={8}>
+      <Grid size={{ xs: 12, sm: 8 }}>
         {editing ? (
           <TextField
             value={draft}
@@ -130,12 +130,12 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
           />
         ) : (
           <Grid container alignItems='center' spacing={1}>
-            <Grid item>
+            <Grid>
               <Typography variant='body2' style={{ fontFamily: 'monospace' }}>
                 {value || <span style={{ color: '#999' }}>not set</span>}
               </Typography>
             </Grid>
-            <Grid item>
+            <Grid>
               <IconButton size='small' onClick={() => setEditing(true)}>
                 <EditIcon fontSize='small' />
               </IconButton>
@@ -192,13 +192,13 @@ const DiscountSelectRow: React.FC<DiscountSelectRowProps> = ({
 
   return (
     <Grid container alignItems='center' spacing={1} style={{ marginBottom: 12 }}>
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <Typography variant='body1'>{label}</Typography>
         {description && (
           <Typography variant='caption' color='textSecondary'>{description}</Typography>
         )}
       </Grid>
-      <Grid item xs={12} sm={8}>
+      <Grid size={{ xs: 12, sm: 8 }}>
         {loadingDiscounts ? (
           <CircularProgress size={20} />
         ) : fetchError ? (
@@ -252,7 +252,7 @@ const SlackTab: React.FC<SlackTabProps> = ({
   return (
     <Grid container spacing={3}>
       {/* Channel names */}
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Card>
           <CardHeader title='Slack Channels' subheader='Channel names (without #) used for notifications.' />
           <Divider />
@@ -306,7 +306,7 @@ const SlackTab: React.FC<SlackTabProps> = ({
       </Grid>
 
       {/* Slack sync */}
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Card>
           <CardHeader title='Slack User Sync' subheader='Sync Slack workspace users to member records.' />
           <Divider />
@@ -331,12 +331,12 @@ const SlackTab: React.FC<SlackTabProps> = ({
             />
             {slackSyncJob && (
               <Grid container alignItems='center' spacing={2} style={{ marginTop: 12 }}>
-                <Grid item>
+                <Grid>
                   <Typography variant='caption' color='textSecondary'>
                     Last run: {formatDate(slackSyncJob.last_run_at)}
                   </Typography>
                 </Grid>
-                <Grid item>
+                <Grid>
                   {slackSyncJob.last_run_status === 'success' && (
                     <Chip icon={<CheckCircleIcon />} label='Success' size='small' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }} />
                   )}
@@ -344,7 +344,7 @@ const SlackTab: React.FC<SlackTabProps> = ({
                     <Chip icon={<ErrorIcon />} label='Failed' size='small' style={{ backgroundColor: '#ffebee', color: '#c62828' }} />
                   )}
                 </Grid>
-                <Grid item>
+                <Grid>
                   <Button
                     variant='outlined'
                     size='small'
@@ -384,7 +384,7 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
   config, onFlagToggle, onSettingSave, togglingFlag, savingKey
 }) => (
   <Grid container spacing={3}>
-    <Grid item xs={12}>
+    <Grid size={{ xs: 12 }}>
       <Card>
         <CardHeader
           title='Credit Thresholds'
@@ -426,7 +426,7 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
       </Card>
     </Grid>
 
-    <Grid item xs={12}>
+    <Grid size={{ xs: 12 }}>
       <Card>
         <CardHeader title='Bounty Tasks' />
         <Divider />
@@ -443,7 +443,7 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
       </Card>
     </Grid>
 
-    <Grid item xs={12}>
+    <Grid size={{ xs: 12 }}>
       <Card>
         <CardHeader title='Public Bounty Board' subheader='Token protection for the public bounty display page.' />
         <Divider />
@@ -493,21 +493,21 @@ interface JobsTabProps {
 const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMessage }) => (
   <Grid container spacing={2}>
     {config.jobs.filter(j => j.key !== 'slack_sync').map((job: JobStatus) => (
-      <Grid item xs={12} key={job.key}>
+      <Grid size={{ xs: 12 }} key={job.key}>
         <Card variant='outlined'>
           <CardContent>
             <Grid container alignItems='center' spacing={2}>
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Typography variant='body1'>{JOB_LABELS[job.key] || job.key}</Typography>
                 <Typography variant='caption' color='textSecondary'>
                   {JOB_DESCRIPTIONS[job.key] || job.task}
                 </Typography>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid size={{ xs: 12, sm: 3 }}>
                 <Typography variant='caption' color='textSecondary'>Last run</Typography>
                 <Typography variant='body2'>{formatDate(job.last_run_at)}</Typography>
               </Grid>
-              <Grid item xs={6} sm={2}>
+              <Grid size={{ xs: 6, sm: 2 }}>
                 {job.last_run_status === 'success' && (
                   <Chip icon={<CheckCircleIcon />} label='Success' size='small' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }} />
                 )}
@@ -516,7 +516,7 @@ const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMess
                 )}
                 {!job.last_run_status && <Chip label='No data' size='small' />}
               </Grid>
-              <Grid item xs={6} sm={3}>
+              <Grid size={{ xs: 6, sm: 3 }}>
                 <Button
                   variant='outlined'
                   size='small'
@@ -553,7 +553,7 @@ interface TotpToggleProps {
 }
 
 const TotpToggle: React.FC<TotpToggleProps> = ({ label, description, flagKey, value, onToggle, saving }) => (
-  <Grid item xs={12}>
+  <Grid size={{ xs: 12 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0' }}>
       <div style={{ flex: 1, paddingRight: 16 }}>
         <Typography variant='body1'><strong>{label}</strong></Typography>
@@ -621,7 +621,7 @@ const SecurityTab: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant='h6' gutterBottom>Two-Factor Authentication Enforcement</Typography>
         <Typography variant='body2' color='textSecondary' style={{ marginBottom: 16 }}>
           When required, privileged members who have not enrolled in 2FA will be redirected
@@ -629,7 +629,7 @@ const SecurityTab: React.FC = () => {
           All members can optionally enable 2FA from their Account Settings → Security tab.
         </Typography>
       </Grid>
-      {error && <Grid item xs={12}><Typography color='error'>{error}</Typography></Grid>}
+      {error && <Grid size={{ xs: 12 }}><Typography color='error'>{error}</Typography></Grid>}
       <TotpToggle
         label='Require 2FA for Admins'
         description='Admin accounts must have two-factor authentication enabled.'
@@ -723,7 +723,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (loading) {
     return (
-      <Grid container justify='center' style={{ padding: 48 }}>
+      <Grid container justifyContent='center' style={{ padding: 48 }}>
         <CircularProgress />
       </Grid>
     );
@@ -731,7 +731,7 @@ const MemberPortalSettings: React.FC = () => {
 
   if (error || !config) {
     return (
-      <Grid container justify='center' style={{ padding: 48 }}>
+      <Grid container justifyContent='center' style={{ padding: 48 }}>
         <Typography color='error'>{error || 'Unable to load settings.'}</Typography>
       </Grid>
     );
@@ -739,14 +739,14 @@ const MemberPortalSettings: React.FC = () => {
 
   return (
     <Grid container spacing={3} style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant='h5' gutterBottom>Member Portal Settings</Typography>
         <Typography variant='body2' color='textSecondary'>
           Manage portal configuration. Changes take effect immediately.
         </Typography>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val as TabKey)}
@@ -761,7 +761,7 @@ const MemberPortalSettings: React.FC = () => {
         </Tabs>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         {activeTab === 'slack' && (
           <SlackTab
             config={config}

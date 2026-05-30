@@ -1,7 +1,7 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Typography from "@material-ui/core/Typography";
-import Link from "@material-ui/core/Link";
+import { useNavigate } from 'react-router-dom';
+import Typography from "@mui/material/Typography";
+import Link from "@mui/material/Link";
 
 import { InvoiceOption } from "makerspace-ts-api-client";
 import { buildNewMemberProfileRoute } from "ui/member/utils";
@@ -14,8 +14,8 @@ import DuplicateMembershipModal from "ui/membership/DuplicateMembershipModal";
 
 interface Props {}
 
-export const MembershipSelectStep: React.FC<Props> = ({ children }) => {
-  const { history } = useReactRouter();
+export const MembershipSelectStep: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
+  const navigate = useNavigate();
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
 
@@ -37,7 +37,7 @@ export const MembershipSelectStep: React.FC<Props> = ({ children }) => {
         )
       });
 
-      history.push(buildNewMemberProfileRoute(currentUser.id));
+      navigate(buildNewMemberProfileRoute(currentUser.id));
       return;
     };
     return true;

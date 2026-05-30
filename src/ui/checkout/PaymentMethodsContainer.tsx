@@ -1,11 +1,11 @@
 import * as React from "react";
 
-import Grid from "@material-ui/core/Grid";
-import FormControl from "@material-ui/core/FormControl";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import Radio from "@material-ui/core/Radio";
-import Typography from "@material-ui/core/Typography";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
+import Grid from "@mui/material/Grid";
+import FormControl from "@mui/material/FormControl";
+import RadioGroup from "@mui/material/RadioGroup";
+import Radio from "@mui/material/Radio";
+import Typography from "@mui/material/Typography";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import PaymentMethodForm from "ui/checkout/PaymentMethodForm";
 import LoadingOverlay from "ui/common/LoadingOverlay";
@@ -107,15 +107,15 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
         submitText="Delete"
         error={error}
       >
-        <Grid container justify="center" spacing={2}>
-          <Grid item xs={12}>
+        <Grid container justifyContent="center" spacing={2}>
+          <Grid size={{ xs: 12 }}>
             <Typography gutterBottom>
               Are you sure you want to delete this payment method? 
               <strong> If a membership or rental is attached to this payment method, it will be automatically canceled when the payment method is deleted. </strong>
               This cannot be undone.
             </Typography>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             {this.renderPaymentMethod(selectedPaymentMethod)}
           </Grid>
         </Grid>
@@ -202,17 +202,17 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
 
     return (
       <>
-        <Grid container justify="center" spacing={2}>
-          <Grid item xs={12}>
+        <Grid container justifyContent="center" spacing={2}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" color="inherit">
               {title ? title : "Please Select a Payment Method"}
             </Typography>
           </Grid>
         </Grid>
-        <Grid container justify="flex-start" spacing={2}>
+        <Grid container justifyContent="flex-start" spacing={2}>
           {(isRequesting && <LoadingOverlay id="get-payment-methods" contained={true} />) ||
             (Array.isArray(paymentMethods) && paymentMethods.length && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormControl component="fieldset" fullWidth={true}>
                   <RadioGroup
                     aria-label="Payment Method"
@@ -227,14 +227,14 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
                 </FormControl>
               </Grid>
             )) || (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1" color="inherit" id="none-found">
                   No payment methods found. Click "Add New Payment Method" to add one.
                 </Typography>
               </Grid>
             )}
           <ErrorMessage id={`get-payment-methods-error`} error={!isRequesting && error} />
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <ButtonRow actionButtons={this.getActionButtons()} />
           </Grid>
         </Grid>

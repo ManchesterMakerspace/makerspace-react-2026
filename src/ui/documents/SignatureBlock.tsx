@@ -1,8 +1,8 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 import { FormField } from "components/Form/FormField";
 
 interface Props {
@@ -27,13 +27,13 @@ export const SignatureBlock: React.FC<Props> = ({ takeSignature }) => {
   
   return (
     <>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant="subtitle1" align="left">Please sign below</Typography>
       </Grid>
-      <Grid item xs={12} style={{ border: "1px solid black", borderRadius: "4px" }}>
+      <Grid size={{ xs: 12 }} style={{ border: "1px solid black", borderRadius: "4px" }}>
         <SignatureCanvas ref={ref => setSignatureRef(ref)} canvasProps={{ height: "250", width: "1000" }} />
-        <Grid container justify="flex-end">
-          <Grid item xs={12}>
+        <Grid container justifyContent="flex-end">
+          <Grid size={{ xs: 12 }}>
             <Button variant="contained" color="secondary" onClick={clearSignature}>Reset Signature</Button>
           </Grid>
         </Grid>

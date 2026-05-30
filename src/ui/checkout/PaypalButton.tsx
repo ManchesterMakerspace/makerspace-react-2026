@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
+import Grid from "@mui/material/Grid";
+import Typography from '@mui/material/Typography';
 
 import ErrorMessage from 'ui/common/ErrorMessage';
 import LoadingOverlay from 'ui/common/LoadingOverlay';
@@ -90,7 +90,7 @@ const PaypalButton: React.FC<Props> = ({ braintreeInstance, paymentMethodCallbac
 
   return (
     <Grid container spacing={2} style={{ position: 'relative', overflow: 'hidden' }}>
-      <Grid item xs={12} style={{ textAlign: 'center' }}>
+      <Grid size={{ xs: 12 }} style={{ textAlign: 'center' }}>
         <div id='paypal-button-checkout' />
         {loading && <Typography variant='body1'>Contacting PayPal</Typography>}
         {error && <ErrorMessage error={error} id='paypal-error' />}

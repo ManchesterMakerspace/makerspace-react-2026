@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useReactRouter from "use-react-router";
+import { useNavigate, useLocation} from 'react-router-dom';
 import { useDispatch } from "react-redux";
 
 import { sessionLoginUserAction } from "ui/auth/actions";
@@ -17,7 +17,9 @@ import { setupGlobalAuthInterceptor, setGlobalDispatch } from 'ui/common/globalA
 const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset];
 
 const App: React.FC = () => {
-  const { location: { pathname, search, hash }, history } = useReactRouter();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { pathname, search, hash } = location;
   const dispatch = useDispatch();
 
   // Register global 401 interceptor once on mount
@@ -47,7 +49,7 @@ const App: React.FC = () => {
   // Redirect to security settings immediately if TOTP enrollment is required
   React.useEffect(() => {
     if (totpEnrollmentRequired && currentUserId) {
-      history.push(`/members/${currentUserId}/settings/security`);
+      navigate(`/members/${currentUserId}/settings/security`);
     }
   }, [totpEnrollmentRequired, currentUserId]);
 
@@ -61,11 +63,11 @@ const App: React.FC = () => {
             initialPath !== Routing.Root && // Don't nav to initial if initial is root
             !publicPaths.some(path => initialPath.startsWith(path)) // or initial is a public path
           ) {
-          history.push(initialPath + initialSearch + initialHash);
+          navigate(initialPath + initialSearch + initialHash);
 
           // Don't redirect after a user signs up
         } else if (!pathname.startsWith(Routing.SignUp)) {
-          history.push(buildProfileRouting(currentUserId));      
+          navigate(buildProfileRouting(currentUserId));      
         }
         setAuthSettled(true);
       }

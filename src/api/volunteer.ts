@@ -2,7 +2,7 @@ import axios from 'axios';
 import { ApiDataResponse, ApiErrorResponse } from 'makerspace-ts-api-client';
 import { VolunteerCredit, VolunteerTask, VolunteerEvent, VolunteerSummary } from 'app/entities/volunteer';
 
-const wrapHeaders = (axiosHeaders: Record<string, any>) => ({
+const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
   has: (key: string) => key.toLowerCase() in axiosHeaders,
 });
@@ -31,8 +31,8 @@ const getCsrfToken = () => {
 
 const api = axios.create({ withCredentials: true });
 api.interceptors.request.use(config => {
-  config.headers['X-XSRF-TOKEN'] = getCsrfToken();
-  config.headers['Content-Type'] = 'application/json';
+  config.headers.set('X-XSRF-TOKEN', getCsrfToken());
+  config.headers.set('Content-Type', 'application/json');
   return config;
 });
 

@@ -1,7 +1,7 @@
 import * as React from "react";
 import isString from "lodash-es/isString";
 
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 //@ts-ignore
 import * as Braintree from "braintree-web";
@@ -177,7 +177,7 @@ class CreditCardForm extends React.Component<Props, State> {
           title="Enter your credit or debit card information"
         >
           <Grid container spacing={8}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <HostedInput
                 label={CreditCardFields.number.label}
                 id={CreditCardFields.number.name}
@@ -188,7 +188,7 @@ class CreditCardForm extends React.Component<Props, State> {
             </Grid>
           </Grid>
           <Grid container spacing={8}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <HostedInput
                 label={CreditCardFields.expirationDate.label}
                 id={CreditCardFields.expirationDate.name}
@@ -197,7 +197,7 @@ class CreditCardForm extends React.Component<Props, State> {
                 <ErrorMessage error={inputErrors["expirationDate"]}/>
               }
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <HostedInput
                 label={CreditCardFields.cvv.label}
                 id={CreditCardFields.cvv.name}
@@ -208,7 +208,7 @@ class CreditCardForm extends React.Component<Props, State> {
             </Grid>
           </Grid>
           <Grid container spacing={8}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <HostedInput
                 label={CreditCardFields.postalCode.label}
                 id={CreditCardFields.postalCode.name}
@@ -219,7 +219,7 @@ class CreditCardForm extends React.Component<Props, State> {
             </Grid>
           </Grid>
           <Grid container spacing={8}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <HostedInput
                 label={CreditCardFields.cardholderName.label}
                 id={CreditCardFields.cardholderName.name}

@@ -1,6 +1,6 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Divider from "@material-ui/core/Divider";
+import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 import { Member } from "makerspace-ts-api-client";
 
 import MemberRentalsList from "ui/rentals/MemberRentalsList";
@@ -30,22 +30,22 @@ const MemberRentalsTab: React.FC<Props> = ({ member, onUpdate }) => {
     <Grid container spacing={4}>
       {/* Admin/RM create rental button when viewing another member's profile */}
       {canManage && !isOwnProfile && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <CreateRentalAdmin member={member} onCreate={handleRentalCreated} />
         </Grid>
       )}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <MemberRentalsList member={member} onUpdate={onUpdate} />
       </Grid>
 
       {/* Member's own rental browser */}
       {isOwnProfile && (
         <>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Divider />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <RentalSpotsBrowser
               key={browserKey}
               member={member}

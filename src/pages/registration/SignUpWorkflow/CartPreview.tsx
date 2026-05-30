@@ -1,8 +1,8 @@
 import * as React from 'react';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
-import Paper from '@material-ui/core/Paper';
-import Divider from '@material-ui/core/Divider';
+import Typography from '@mui/material/Typography';
+import Grid from "@mui/material/Grid";
+import Paper from '@mui/material/Paper';
+import Divider from '@mui/material/Divider';
 
 import { discountParam, invoiceOptionParam, noneInvoiceOption, ssmDiscount } from '../MembershipOptions';
 import { useSearchQuery, useSetSearchQuery } from 'hooks/useSearchQuery';
@@ -72,19 +72,19 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
   return !!invoiceOption && (
     <div id='cart-preview'>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='subtitle1'>
             <strong>Name:</strong> {invoiceOption.name}
           </Typography>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='subtitle1'>
             <strong>Description:</strong> {invoiceOption.description || '-'}
           </Typography>
         </Grid>
         {!isNoneOption && (
           <>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography id='subtotal' variant='subtitle1'>
                 <strong>Subtotal:</strong> {
                 `${numberAsCurrency(invoiceOption.amount)}${!invoiceOption.planId ? '' :
@@ -94,12 +94,12 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
               </Typography>
             </Grid>
             {renderDiscountSection && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Divider />
               </Grid>
             )}
             {renderDiscountSection && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {readOnly ? <KeyValueItem id='discountId' label={fields.discountId.label}>{discountId}</KeyValueItem> : (
                   <>
                     <Typography variant='subtitle1'>
@@ -139,11 +139,11 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                 )}
               </Grid>
             )}
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Divider />
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant='h6' paragraph={true} id='total'>
                 <strong>Total Due: </strong>
                 {total}
@@ -166,18 +166,18 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
   return (
     <Paper style={{ position: 'fixed', padding: '1em' }}>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='h4'>
             Selection
           </Typography>
         </Grid>
 
         {invoiceOptionIdParam ? (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <MembershipPreview readOnly={readOnly} />
           </Grid>
         ) : (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='h5'>
               Select a membership option
             </Typography>
@@ -185,7 +185,7 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
         )}
 
         {!readOnly && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormField
               fieldName={fields.invoiceOption.name}
               validate={fields.invoiceOption.validate}

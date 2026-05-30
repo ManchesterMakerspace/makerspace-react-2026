@@ -1,7 +1,7 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useParams } from 'react-router-dom';
 import { Link } from "react-router-dom";
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
 
 import { adminListInvoices, listInvoices, getMember, Invoice } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
@@ -43,7 +43,7 @@ const forceCancelInvoice = ({ id }: { id: string }) =>
 
 
 const InvoicesTable: React.FC<{ stageInvoice(invoice: Invoice): void }> = ({ stageInvoice }) => {
-  const { match: { params: { memberId } } } =  useReactRouter<{ memberId: string }>();
+  const { memberId } = useParams();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageInvoices: isAdmin } = useCapabilities();
   const viewingOwnInvoices = memberId === currentUserId;

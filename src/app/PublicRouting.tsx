@@ -1,27 +1,25 @@
 import * as React from 'react';
-import { Switch, Route, Redirect } from "react-router-dom";
+import { Routes, Route, Navigate } from 'react-router-dom';
 
-import { Routing } from "app/constants";
+import { Routing } from 'app/constants';
 import LandingPage from 'pages/registration/LandingPage';
 import { SignUpWorkflow } from 'pages/registration/SignUpWorkflow/SignUpWorkflow';
 import PasswordReset from 'ui/auth/PasswordReset';
 import LoginPage from 'ui/auth/LoginPage';
-import UnsubscribeEmails from "ui/member/UnsubscribeEmails";
+import UnsubscribeEmails from 'ui/member/UnsubscribeEmails';
 import FirebaseCallback from 'ui/auth/FirebaseCallback';
 
-
-const PublicRouting: React.SFC<{ }> = () => {
-  // Redirect to root if not authed and somewhere else
+const PublicRouting: React.FC<{}> = () => {
   return (
-    <Switch >
-      <Route exact path={`${Routing.PasswordReset}/:token`} component={PasswordReset} />
-      <Route exact path={Routing.Login} component={LoginPage}/>
-      <Route exact path={Routing.SignUp} component={SignUpWorkflow}/>
-      <Route exact path={Routing.Root} component={LandingPage} />
-      <Route exact path={Routing.Unsubscribe} component={UnsubscribeEmails} />
-      <Route exact path='/auth/callback' component={FirebaseCallback} />
-      <Redirect to="/"/>
-    </Switch>
+    <Routes>
+      <Route path={`${Routing.PasswordReset}/:token`} element={<PasswordReset />} />
+      <Route path={Routing.Login} element={<LoginPage />} />
+      <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
+      <Route path={Routing.Root} element={<LandingPage />} />
+      <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
+      <Route path='/auth/callback' element={<FirebaseCallback />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 };
 

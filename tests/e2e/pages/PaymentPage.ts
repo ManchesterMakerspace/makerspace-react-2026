@@ -13,26 +13,37 @@ export class PaymentPage {
   constructor(private page: Page) {}
 
   // ── Subscription creation flow ────────────────────────────────────────────
-  // Used in createSubscription helper: clicks "Debit or Credit Card" accordion
 
   async openCreditCardAccordion(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Debit or Credit Card' }).click();
-    await this.page.waitForTimeout(1500);
+    // Wait for the payment methods list to finish loading before interacting.
+    await this.page.waitForSelector('#payment-method-form', { state: 'hidden', timeout: 30_000 })
+      .catch(() => {});
+    await this.page.waitForSelector('#get-payment-methods', { state: 'hidden', timeout: 30_000 })
+      .catch(() => {});
+    // Click the radio directly — clicking the accordion button triggers MUI's
+    // accordion toggle but doesn't reliably fire the RadioGroup onChange.
+    // Clicking the radio fires RadioGroup onChange → paymentType = CreditCard
+    // → accordion expands → Braintree hosted fields initialize.
+    await this.page.getByRole('radio', { name: 'Debit or Credit Card' }).click();
+    await this.page.waitForTimeout(3000);
+  }
+
+  async openAddNewPaymentMethod(): Promise<void> {
+    await this.page.waitForSelector('#get-payment-methods', { state: 'hidden', timeout: 30_000 })
+      .catch(() => {});
+    await this.page.getByRole('button', { name: 'Add New Payment Method' }).click();
+    await this.page.waitForTimeout(3000);
   }
 
   async waitForCreditCardForm(): Promise<void> {
+    // Wait for the 'get-payment-methods' overlay to clear (checkout flow only).
+    await this.page.waitForSelector('#get-payment-methods', { state: 'hidden', timeout: 30_000 })
+      .catch(() => {}); // not present in all flows (e.g. signup)
+    // Braintree hosted field iframes initialize asynchronously — 90s for sandbox.
     await this.page.waitForSelector(
       `iframe[name="${FRAMES.number}"]`,
-      { state: 'visible', timeout: 60_000 }
+      { state: 'visible', timeout: 90_000 }
     );
-  }
-
-  // ── Change payment method flow ────────────────────────────────────────────
-  // Used in changePaymentMethod: clicks "Add New Payment Method" inside the modal
-
-  async openAddNewPaymentMethod(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Add New Payment Method' }).click();
-    await this.page.waitForTimeout(1500);
   }
 
   async saveCard(): Promise<void> {

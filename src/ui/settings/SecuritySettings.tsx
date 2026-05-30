@@ -1,18 +1,18 @@
 import * as React from 'react';
-import Typography from '@material-ui/core/Typography';
-import Grid from '@material-ui/core/Grid';
-import Button from '@material-ui/core/Button';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Divider from '@material-ui/core/Divider';
-import TextField from '@material-ui/core/TextField';
-import Chip from '@material-ui/core/Chip';
-import CheckCircleIcon from '@material-ui/icons/CheckCircle';
-import LockIcon from '@material-ui/icons/Lock';
+import { useNavigate } from 'react-router-dom';
+import Typography from '@mui/material/Typography';
+import Grid from "@mui/material/Grid";
+import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
+import Chip from '@mui/material/Chip';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import LockIcon from '@mui/icons-material/Lock';
 import ErrorMessage from 'ui/common/ErrorMessage';
 import ChangePasswordForm from 'ui/member/ChangePasswordForm';
 import { useAuthState } from 'ui/reducer/hooks';
 import { useDispatch } from 'react-redux';
-import { push } from 'connected-react-router';
 import { Action as AuthAction } from 'ui/auth/constants';
 
 type EnrollStep = 'idle' | 'qr' | 'verify' | 'done';
@@ -103,7 +103,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <LockIcon color='primary' />
           <Typography variant='h6'>Two-Factor Authentication (TOTP)</Typography>
@@ -123,14 +123,14 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
       </Grid>
 
       {error && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage id='totp-error' error={error} />
         </Grid>
       )}
 
       {/* Idle — not enrolled */}
       {!enabled && step === 'idle' && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Button
             id='totp-setup-start'
             variant='contained'
@@ -147,7 +147,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
       {/* Step 1 — show QR code */}
       {step === 'qr' && (
         <>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='body1' gutterBottom>
               <strong>Step 1:</strong> Scan this QR code with your authenticator app.
             </Typography>
@@ -156,7 +156,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
               style={{ display: 'inline-block', border: '1px solid #ddd', padding: 8, borderRadius: 4 }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='body2' color='textSecondary' gutterBottom>
               Can't scan? Enter this key manually:
             </Typography>
@@ -167,7 +167,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
               {secret}
             </Typography>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant='body1' gutterBottom>
               <strong>Step 2:</strong> Enter the 6-digit code shown in your app to confirm.
             </Typography>
@@ -200,7 +200,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
 
       {/* Done — successfully enrolled */}
       {step === 'done' && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='body1' style={{ color: '#2e7d32' }}>
             ✓ Two-factor authentication has been enabled on your account.
           </Typography>
@@ -209,7 +209,7 @@ const TotpSection: React.FC<{ memberId: string; initialEnabled: boolean; onEnrol
 
       {/* Already enabled — offer disable */}
       {enabled && step !== 'done' && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='body2' color='textSecondary' style={{ marginBottom: 8 }}>
             Two-factor authentication is active on your account. You will be prompted for a code each time you log in.
           </Typography>
@@ -241,12 +241,12 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
   const onEnrollmentComplete = React.useCallback(() => {
     dispatch({ type: AuthAction.ClearEnrollmentRequired });
     // Redirect to their profile now that enrollment is done
-    dispatch(push(`/members/${memberId}`));
+    navigate(`/members/${memberId}`);
   }, [dispatch, memberId]);
 
   return (
     <Grid container spacing={4}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         {totpEnrollmentRequired && (
           <div style={{ padding: '12px 16px', marginBottom: 16, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800', borderRadius: 4 }}>
             <Typography variant='body2' style={{ color: '#e65100' }}>
@@ -256,10 +256,10 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
         )}
         <TotpSection memberId={memberId} initialEnabled={totpEnabled} onEnrollmentComplete={onEnrollmentComplete} />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Divider />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <ChangePasswordForm memberId={memberId} memberEmail={memberEmail} />
       </Grid>
     </Grid>

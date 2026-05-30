@@ -1,17 +1,17 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 
-import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
-import Link from "@material-ui/core/Link";
-import Paper from "@material-ui/core/Paper";
-import Grid from "@material-ui/core/Grid";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import Grid from "@mui/material/Grid";
 import { paymentMethodQueryParam } from "../PaymentMethods";
 import { discountParam, invoiceOptionParam, ssmDiscount } from "../MembershipOptions";
 import { useSearchQuery } from "hooks/useSearchQuery";
 import { useAuthState } from "ui/reducer/hooks";
 import { useMembershipOptions } from "hooks/useMembershipOptions";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 import { buildProfileRouting, buildNewMemberProfileRoute } from "ui/member/utils";
 import { MembershipPreview } from "./CartPreview";
 import { CheckboxInput } from "components/Form/inputs/CheckboxInput";
@@ -39,11 +39,11 @@ const checkboxField = {
 
 type TransactionResponse = SuccessTransactionState<Parameters<typeof createTransaction>[0], Transaction>;
 
-export const ReviewStep: React.FC<Props> = ({ children }) => {
+export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
   const { setActiveStep } = useSignUpContext();
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile);
 
   const onSuccess = React.useCallback(({ response: { data: transaction } }: TransactionResponse) => {
@@ -68,8 +68,8 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
       )
     });
 
-    history.push(url);
-  }, [create, history, currentUser.id, isNewMember]);
+    navigate(url);
+  }, [create, currentUser.id, isNewMember, navigate]);
 
   const { call, isRequesting: submitting, error: paymentError, } = useWriteTransaction(createTransaction, onSuccess);
 
@@ -112,8 +112,8 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
   const paymentMethod = !isApiErrorResponse(response) && response?.data;
 
   return (
-    <Grid container spacing={5} justify="center">
-      <Grid item xs={12}>
+    <Grid container spacing={5} justifyContent="center">
+      <Grid size={{ xs: 12 }}>
         <Form
           onSubmit={onSubmit}
           loading={submitting}
@@ -121,12 +121,12 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
           hideFooter={true}
           id="review-checkout"
         >
-          <Grid container spacing={5} justify="center">
-            <Grid item xs={12}>
+          <Grid container spacing={5} justifyContent="center">
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
-                    <Grid item xs={11}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                  <Grid container spacing={2} justifyContent="center">
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Member Info
@@ -136,20 +136,20 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                   </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justify="center">
-                  <Grid item xs={11}>
+                <Grid container spacing={2} justifyContent="center">
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Name:</strong> {currentUser.firstname} {currentUser.lastname}
                     </Typography>
                   </Grid>
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Email / Username:</strong> {currentUser.email}
                     </Typography>
                   </Grid>
 
                   {currentUser.address && (
-                    <Grid item xs={11}>
+                    <Grid size={{ xs: 11 }}>
                       <Typography variant="body1">
                         <strong>Address:</strong> {
                         `
@@ -161,7 +161,7 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                     </Grid>
                   )}
 
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Phone Number:</strong> {currentUser.phone || "Not provided"}
                     </Typography>
@@ -170,11 +170,11 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
-                    <Grid item xs={11}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                  <Grid container spacing={2} justifyContent="center">
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Selected Membership
@@ -186,9 +186,9 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                     </Grid>
                   </Grid>
                 </Grid>
-                <Grid container spacing={2} justify="center">
-                  <Grid item xs={11}>
-                    <Grid container spacing={2} justify="center">
+                <Grid container spacing={2} justifyContent="center">
+                  <Grid size={{ xs: 11 }}>
+                    <Grid container spacing={2} justifyContent="center">
                       <MembershipPreview readOnly={true} />
                     </Grid>
                   </Grid>
@@ -196,11 +196,11 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
-                  <Grid container spacing={2} justify="center">
-                    <Grid item xs={11}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                  <Grid container spacing={2} justifyContent="center">
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Payment Method
@@ -213,8 +213,8 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
                   </Grid>
                 </Grid>
 
-                <Grid container spacing={2} justify="center">
-                  <Grid item xs={11} style={{ marginBottom: "1rem" }}>
+                <Grid container spacing={2} justifyContent="center">
+                  <Grid size={{ xs: 11 }} style={{ marginBottom: "1rem" }}>
                     {isRequesting ?  <LoadingOverlay contained={true} /> :
                         error ? <ErrorMessage error={error} /> : paymentMethod ? (
                           <PaymentMethodComponent
@@ -228,10 +228,10 @@ export const ReviewStep: React.FC<Props> = ({ children }) => {
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid container spacing={2} justify="center">
-                  <Grid item xs={11}>
+                <Grid container spacing={2} justifyContent="center">
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       I, {currentUser.firstname} {currentUser.lastname}, authorize Manchester Makerspace to charge {total}{" "}
                       to the payment method I have selected every {selectedOpt?.quantity} month(s). I understand that this authorization

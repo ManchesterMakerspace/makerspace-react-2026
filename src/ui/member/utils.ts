@@ -3,7 +3,7 @@ import { RenewalEntity } from "ui/common/RenewalForm";
 import { Properties } from "app/entities/member";
 import { timeToDate } from "ui/utils/timeToDate";
 import { Routing } from "app/constants";
-import { isObject } from "util";
+import isObject from "ui/utils/isObject";
 
 export const memberToRenewal = (member: Member | MemberSummary): RenewalEntity => {
   return {

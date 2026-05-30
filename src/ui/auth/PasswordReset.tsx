@@ -1,15 +1,15 @@
 import * as React from "react";
+import { useNavigate } from 'react-router-dom';
 import { connect } from "react-redux";
-import { push } from "connected-react-router";
 import { RouteComponentProps } from "react-router-dom";
 
-import TextField from "@material-ui/core/TextField";
-import Grid from "@material-ui/core/Grid";
-import InputAdornment from "@material-ui/core/InputAdornment";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import Paper from "@material-ui/core/Paper";
-import RemoveRedEye from "@material-ui/icons/RemoveRedEye";
-import Typography from "@material-ui/core/Typography";
+import TextField from "@mui/material/TextField";
+import Grid from "@mui/material/Grid";
+import InputAdornment from "@mui/material/InputAdornment";
+import LinearProgress from "@mui/material/LinearProgress";
+import Paper from "@mui/material/Paper";
+import RemoveRedEye from "@mui/icons-material/RemoveRedEye";
+import Typography from "@mui/material/Typography";
 
 import { Routing } from "app/constants";
 import Form, { FormFields } from "ui/common/Form";
@@ -127,8 +127,8 @@ class PasswordReset extends React.Component<Props, State> {
     const strength = scorePassword(password);
 
     return (
-      <Grid container spacing={3} justify="center">
-        <Grid item xs={12} md={6}>
+      <Grid container spacing={3} justifyContent="center">
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
               <Form
                 ref={this.setFormRef}
@@ -139,10 +139,10 @@ class PasswordReset extends React.Component<Props, State> {
                 submitText="Save"
               >
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="body1">Please enter your new password.</Typography>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       required
@@ -194,7 +194,7 @@ const mapDispatchToProps = (
 ): DispatchProps => {
   return {
     attemptLogin: async () => dispatch(await loginUserAction()),
-    goToRoot: () => dispatch(push(Routing.Root))
+    goToRoot: () => navigate(Routing.Root)
   };
 }
 

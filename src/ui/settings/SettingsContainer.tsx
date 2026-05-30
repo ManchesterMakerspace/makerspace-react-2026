@@ -1,12 +1,12 @@
 import * as React from "react";
+import { useParams } from 'react-router-dom';
 
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import List from "@material-ui/core/List";
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
 
 import PaymentMethodsContainer from "ui/checkout/PaymentMethodsContainer";
 import { Whitelists } from "app/constants";
@@ -29,8 +29,7 @@ export enum SubRoutes {
 const SettingsContainer: React.FC = () => {
   const { currentUser: { id: currentUserId }, permissions } = useAuthState();
   const billingEnabled = !!permissions[Whitelists.billing];
-  const { match: { params: { memberId: routeMemberId, resource }} } = useReactRouter<{ memberId: string, resource: string }>();
-  // Use the route memberId (supports admin viewing another member's settings)
+  const { memberId: routeMemberId, resource } = useParams<{ memberId: string, resource: string }>();
   const targetMemberId = routeMemberId || currentUserId;
 
   const [selectedIndex, setIndex] = React.useState(0);
@@ -62,31 +61,31 @@ const SettingsContainer: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item md={4} sm={5} xs={12}>
+      <Grid size={{ xs: 12, sm: 5, md: 4 }}>
         <List component="nav">
-          <ListItem button selected={selectedIndex === 0} onClick={onSelectItem(0, "profile")}>
+          <ListItemButton selected={selectedIndex === 0} onClick={onSelectItem(0, "profile")}>
             <ListItemText id="settings-profile" primary="Personal Information" />
-          </ListItem>
+          </ListItemButton>
           {billingEnabled && (
             <>
-              <ListItem button selected={selectedIndex === 1} onClick={onSelectItem(1, "subscriptions")}>
+              <ListItemButton selected={selectedIndex === 1} onClick={onSelectItem(1, "subscriptions")}>
                 <ListItemText id="settings-membership" primary="Subscriptions" />
-              </ListItem>
-              <ListItem button selected={selectedIndex === 2} onClick={onSelectItem(2, "payment-methods")}>
+              </ListItemButton>
+              <ListItemButton selected={selectedIndex === 2} onClick={onSelectItem(2, "payment-methods")}>
                 <ListItemText id="settings-payment-methods" primary="Payment Methods" />
-              </ListItem>
+              </ListItemButton>
             </>
           )}
-          <ListItem button selected={selectedIndex === 3} onClick={onSelectItem(3, "security")}>
+          <ListItemButton selected={selectedIndex === 3} onClick={onSelectItem(3, "security")}>
             <ListItemText id="settings-security" primary="Security" />
-          </ListItem>
+          </ListItemButton>
         </List>
       </Grid>
-      <Grid item md={8} sm={7} xs={12}>
+      <Grid size={{ xs: 12, sm: 7, md: 8 }}>
         <Card>
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {selectedIndex === 0 && (
                   <>
                     {loadingMember && <LoadingOverlay id="settings-loading" />}
@@ -95,7 +94,7 @@ const SettingsContainer: React.FC = () => {
                 )}
                 {selectedIndex === 1 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <SubscriptionSettings />
                     </Grid>
                   </Grid>

@@ -1,14 +1,14 @@
 import * as React from "react";
 
-import TextField from "@material-ui/core/TextField";
-import FormControl from "@material-ui/core/FormControl";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormLabel from "@material-ui/core/FormLabel";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import Radio from "@material-ui/core/Radio";
-import Grid from "@material-ui/core/Grid";
-import Select from "@material-ui/core/Select";
-import Checkbox from "@material-ui/core/Checkbox";
+import TextField from "@mui/material/TextField";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormLabel from "@mui/material/FormLabel";
+import RadioGroup from "@mui/material/RadioGroup";
+import Radio from "@mui/material/Radio";
+import Grid from "@mui/material/Grid";
+import Select from "@mui/material/Select";
+import Checkbox from "@mui/material/Checkbox";
 
 import FormModal from "ui/common/FormModal";
 import Form from "ui/common/Form";
@@ -208,7 +208,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
         error={error}
       >
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControl component="fieldset">
               <FormLabel component="legend">{fields.resourceClass.label}</FormLabel>
               <RadioGroup
@@ -222,7 +222,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               </RadioGroup>
             </FormControl>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.planId.label}</FormLabel>
             <Select
               name={fields.planId.name}
@@ -236,7 +236,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               {this.renderPlanOptions()}
             </Select>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.discountId.label}</FormLabel>
             <Select
               name={fields.discountId.name}
@@ -249,7 +249,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               {this.renderDiscountOptions()}
             </Select>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               required
@@ -260,7 +260,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               placeholder={fields.name.placeholder}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               required
@@ -271,7 +271,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               placeholder={fields.description.placeholder}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               required
@@ -282,7 +282,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               placeholder={fields.amount.placeholder}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               required
@@ -293,7 +293,7 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
               placeholder={fields.quantity.placeholder}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox
@@ -302,13 +302,13 @@ export class BillingFormComponent extends React.Component<OwnProps, State>{
                   checked={disableOption}
                   onChange={this.toggleDisableOption}
                   disabled={isRequesting}
-                  color="default"
+                  
                 />
               }
               label={fields.disabled.label}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               fullWidth
               value={option && toDatePicker(option.promotionEndDate)}

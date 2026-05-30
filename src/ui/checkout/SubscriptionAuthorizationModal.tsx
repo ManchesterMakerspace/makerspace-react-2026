@@ -1,9 +1,9 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Checkbox from "@material-ui/core/Checkbox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import FormModal from "ui/common/FormModal";
 import { useAuthState } from "ui/reducer/hooks";
@@ -20,7 +20,7 @@ const checkboxField = {
 };
 const SubscriptionAuthorizationModal: React.FC<{ onConfirm(): void, item: CartItem }> = ({ onConfirm, item }) => {
   const { currentUser } = useAuthState();
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
 
   const onSubmit = React.useCallback(async (form: Form) => {
     await form.simpleValidate({ [checkboxField.id]: checkboxField });
@@ -32,7 +32,7 @@ const SubscriptionAuthorizationModal: React.FC<{ onConfirm(): void, item: CartIt
   }, [])
 
   const redirect = React.useCallback(() => {
-    history.push(buildProfileRouting(currentUser.id));
+    navigate(buildProfileRouting(currentUser.id));
   }, [history, currentUser]);
 
   return (
@@ -46,7 +46,7 @@ const SubscriptionAuthorizationModal: React.FC<{ onConfirm(): void, item: CartIt
       submitText="Confirm"
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="body1">
             <strong>How recurring payments work:</strong>
           </Typography>

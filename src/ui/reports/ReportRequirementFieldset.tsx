@@ -1,9 +1,9 @@
 import * as React from "react";
 import range from "lodash-es/range";
-import Grid from "@material-ui/core/Grid";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormLabel from "@material-ui/core/FormLabel";
-import Select from "@material-ui/core/Select";
+import Grid from "@mui/material/Grid";
+import MenuItem from "@mui/material/MenuItem";
+import FormLabel from "@mui/material/FormLabel";
+import Select from "@mui/material/Select";
 
 import Form from "ui/common/Form";
 import { reportRequirementFields, formPrefix } from "ui/reports/constants";
@@ -163,7 +163,7 @@ class ReportRequirementFieldset extends React.Component<OwnProps, State> {
 
     const value = reportRequirement && reportRequirement.memberIds && reportRequirement.memberIds[index];
     return (
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <FormLabel component="legend">{fields.memberId.label}</FormLabel>
         <MemberSearchInput
           disabled={disabled}
@@ -193,7 +193,7 @@ class ReportRequirementFieldset extends React.Component<OwnProps, State> {
             id={requirementFormId}
           >
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <FormLabel>{fields.reportedCount.label}</FormLabel>
                 <Select
                   fullWidth
@@ -207,17 +207,17 @@ class ReportRequirementFieldset extends React.Component<OwnProps, State> {
                   {range(0, 12).map(i => <MenuItem key={i} value={String(i)}>{String(i)}</MenuItem>)}
                 </Select>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {range(0, this.state.memberCount).map(index =>
                   <Grid key={`member-${index}`} container spacing={3}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       {this.renderMemberRow(index, currentUser.id)}
                     </Grid>
                   </Grid >
                 )}
               </Grid >
               {!disabled && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <ButtonRow
                     actionButtons={[
                       {

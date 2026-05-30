@@ -1,13 +1,13 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import TextField from "@material-ui/core/TextField";
-import Select from "@material-ui/core/Select";
-import FormLabel from "@material-ui/core/FormLabel";
-import Chip from "@material-ui/core/Chip";
-import Button from "@material-ui/core/Button";
-import BlockIcon from "@material-ui/icons/Block";
-import AddIcon from "@material-ui/icons/Add";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import FormLabel from "@mui/material/FormLabel";
+import Chip from "@mui/material/Chip";
+import Button from "@mui/material/Button";
+import BlockIcon from "@mui/icons-material/Block";
+import AddIcon from "@mui/icons-material/Add";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -51,7 +51,7 @@ const RevokeModal: React.FC<RevokeModalProps> = ({ target, onClose, onRevoke, lo
     >
       {target && (
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography>
               Revoke <strong>{target.memberName}</strong>'s checkout for{" "}
               <strong>{target.toolName}</strong> in <strong>{target.shopName}</strong>?
@@ -60,7 +60,7 @@ const RevokeModal: React.FC<RevokeModalProps> = ({ target, onClose, onRevoke, lo
               The member will be notified via Slack DM. The reason is internal only.
             </Typography>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField fullWidth required label="Reason for revocation (internal)"
               placeholder="e.g. Failed to follow safety protocols"
               multiline rows={2} value={reason}
@@ -106,13 +106,13 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
     >
       <Grid container spacing={2}>
         {unmetPrerequisites && unmetPrerequisites.length > 0 && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="body2" style={{ color: "#e65100", padding: "8px", backgroundColor: "#fff8e1", borderRadius: 4 }}>
               ⚠ Prerequisite not met: {unmetPrerequisites.join(", ")}. You may proceed but the member should complete prerequisites first.
             </Typography>
           </Grid>
         )}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <FormLabel style={{ marginBottom: 6, display: "block" }}>Member *</FormLabel>
           {preselectedMember ? (
             <Typography><strong>{preselectedMember.name}</strong></Typography>
@@ -125,7 +125,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             />
           )}
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
           <Select native fullWidth value={shopId}
             onChange={e => { setShopId((e.target as HTMLSelectElement).value); setToolId(""); }}>
@@ -133,7 +133,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
             {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Tool *</FormLabel>
           <Select native fullWidth value={toolId} disabled={!shopId}
             onChange={e => setToolId((e.target as HTMLSelectElement).value)}>
@@ -142,7 +142,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </Select>
         </Grid>
         {selectedTool?.prerequisiteNames?.length > 0 && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="caption" color="textSecondary">
               Prerequisites for {selectedTool.name}: {selectedTool.prerequisiteNames.join(", ")}
             </Typography>
@@ -273,8 +273,8 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
   return (
     <Grid container spacing={3}>
       {!preselectedMember && (
-        <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+        <Grid size={{ xs: 12 }}>
+          <Grid container justifyContent="space-between" alignItems="center">
             <div>
               <Typography variant="h6">Tool Checkout Roster</Typography>
               <Typography variant="body2" color="textSecondary">
@@ -300,8 +300,8 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
       )}
 
       {preselectedMember && canManage && (
-        <Grid item xs={12}>
-          <Grid container justify="space-between" alignItems="center">
+        <Grid size={{ xs: 12 }}>
+          <Grid container justifyContent="space-between" alignItems="center">
             <div />
             <div style={{ display: "flex", gap: 8 }}>
               {selectedCheckout?.active && (
@@ -320,7 +320,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
       )}
 
       {/* Filters */}
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Filter by Shop</FormLabel>
         <Select native fullWidth value={shopFilter}
           onChange={e => setShopFilter((e.target as HTMLSelectElement).value)}>
@@ -328,7 +328,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
           {(shops as Shop[]).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
       </Grid>
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Status</FormLabel>
         <Select native fullWidth value={activeFilter}
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
@@ -338,9 +338,9 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
         </Select>
       </Grid>
 
-      {loadError && <Grid item xs={12}><ErrorMessage error={loadError} /></Grid>}
+      {loadError && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError} /></Grid>}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="checkout-roster-table"
           title={preselectedMember ? "Tool Checkouts" : "All Checkouts"}

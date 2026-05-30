@@ -1,6 +1,6 @@
 import * as React from "react";
+import { useNavigate, useParams } from 'react-router-dom';
 import { Link } from "react-router-dom";
-import useReactRouter from "use-react-router";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
 import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
@@ -84,7 +84,8 @@ const Reset2FAButton: React.FC<{ memberId: string; onReset: () => void }> = ({ m
 };
 
 const MemberProfile: React.FC = () => {
-  const { match: { params: { memberId, resource } }, history } = useReactRouter<{ memberId: string, resource: string }>();
+  const { memberId, resource } = useParams();
+  const navigate = useNavigate();
   const { currentUser: { id: currentUserId, isAdmin }, permissions } = useAuthState();
   const {
     canEditMembers,
@@ -110,7 +111,7 @@ const MemberProfile: React.FC = () => {
   const canChargeMember = canManageShopFees && !isOwnProfile;
 
   const goToSettings = React.useCallback(() => {
-    history.push(Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUserId));
+    navigate(Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUserId));
   }, [currentUserId]);
 
   const {
@@ -155,7 +156,7 @@ const MemberProfile: React.FC = () => {
       case Notification.SignRental:
         const missingAgreement = rentals.find(rental => !rental.contractOnFile && !["agreement_denied", "cancelled", "denied", "pending"].includes((rental as any).status));
         if (missingAgreement) {
-          history.push(
+          navigate(
             Routing.Documents
               .replace(Routing.PathPlaceholder.Resource, "rental")
               .replace(Routing.PathPlaceholder.ResourceId, missingAgreement.id)
@@ -163,7 +164,7 @@ const MemberProfile: React.FC = () => {
           break;
         }
       case Notification.WelcomeNeedContract:
-        history.push(
+        navigate(
           Routing.Documents
             .replace(Routing.PathPlaceholder.Resource, "membership")
             .replace(Routing.PathPlaceholder.ResourceId, "")
@@ -180,7 +181,7 @@ const MemberProfile: React.FC = () => {
 
   React.useEffect(() => {
     if (memberError && !member.id) {
-      history.push(Routing.Members);
+      navigate(Routing.Members);
     }
   }, [memberError]);
 
@@ -327,7 +328,7 @@ const MemberProfile: React.FC = () => {
             displayName: "Volunteer",
             content: <MemberVolunteerTab member={member} />
           }] : [],
-          ...canManageCheckoutApprovers ? [{
+          ...(isOwnProfile || canManageCheckoutApprovers) ? [{
             name: "checkin-activity",
             displayName: "Check-In Activity",
             content: <MemberCheckInActivity />

@@ -1,11 +1,10 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import Grid from '@material-ui/core/Grid';
-import Box from "@material-ui/core/Box";
-import Divider from "@material-ui/core/Divider";
-import Hidden from "@material-ui/core/Hidden";
-import useTheme from "@material-ui/core/styles/useTheme";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 
 import { InvoiceOption } from "makerspace-ts-api-client";
 import { discountParam, invoiceOptionParam, MembershipOptions } from '../MembershipOptions';
@@ -16,7 +15,8 @@ import { CartPreview } from "../SignUpWorkflow/CartPreview";
 
 interface Props {
   onSubmit(invoiceOption: InvoiceOption, discountId?: string): void;
-  showNoneOption?: boolean
+  showNoneOption?: boolean;
+  children?: React.ReactNode;
 }
 
 export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption, children }) => {
@@ -56,7 +56,7 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
       hideFooter={true}
     >
       <Grid container spacing={2} direction={isXsmMedia ? "row-reverse" : "row"}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Box>
             <Typography variant="body1">
               {invoiceOption ? "Confirm" : "Select"} your membership selection. If you have a discount code, please enter it now.
@@ -64,8 +64,8 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
           </Box>
           <MembershipOptions onSelect={updateInvoiceOption} showNoneOption={showNoneOption} />
         </Grid>
-          <Hidden smDown><Divider orientation="vertical" flexItem /></Hidden>
-          <Grid item xs={12} md={3}>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}><Divider orientation="vertical" flexItem /></Box>
+          <Grid size={{ xs: 12, md: 3 }}>
             <CartPreview />
           </Grid>
       </Grid>

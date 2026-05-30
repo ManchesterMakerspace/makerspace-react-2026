@@ -1,6 +1,6 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
+import { useLocation } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
 import { Link } from "react-router-dom";
 
 import { Subscription, adminListSubscriptions } from "makerspace-ts-api-client";
@@ -45,7 +45,7 @@ const fields: Column<Subscription>[] = [
 const rowId = (sub: Subscription) => sub.id;
 
 const SubscriptionsTable: React.FC = () => {
-  const { location: { search } } = useReactRouter();
+  const { search } = useLocation();
   const [selectedId, setSelectedId] = React.useState<string>();
   const searchTerms = new URLSearchParams(search);
 
@@ -89,8 +89,8 @@ const SubscriptionsTable: React.FC = () => {
   const selectedSubscription = subscriptions.find(sub => sub.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify="center">
-      <Grid item xs={12}>
+    <Grid container spacing={3} justifyContent="center">
+      <Grid size={{ xs: 12 }}>
         <Grid>
           <CancelSubscriptionModal
             subscription={selectedSubscription || {} as Subscription}

@@ -1,10 +1,10 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 
 import { useDispatch } from "react-redux";
-import useReactRouter from "use-react-router";
 
 import { Routing } from "app/constants";
 import { SignUpFields, EmailExistsError, signUpPrefix, Action } from "ui/auth/constants";
@@ -44,11 +44,11 @@ const ConfirmEmailField: React.FC = () => {
   );
 };
 
-export const MemberInfoStep: React.FC = ({ children }) => {
+export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const { isOpen: emailNoteOpen, openModal: openEmailNote, closeModal: closeEmailNote } = useModal();
   const dispatch = useDispatch();
-  const { history } = useReactRouter();
-  const goToLogin = React.useCallback(() => history.push(Routing.Login), [history]);
+  const navigate = useNavigate();
+  const goToLogin = React.useCallback(() => navigate(Routing.Login), [history]);
   
   const { isRequesting, error } = useAuthState();
 
@@ -85,8 +85,8 @@ export const MemberInfoStep: React.FC = ({ children }) => {
 
   return (
     <>
-    <Grid container justify="center" spacing={2}>
-      <Grid item xs={12}>
+    <Grid container justifyContent="center" spacing={2}>
+      <Grid size={{ xs: 12 }}>
         <Paper style={{ minWidth: 275, padding: "1rem" }}>
           <Form
             id={signUpPrefix}
@@ -97,7 +97,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
             hideFooter={true}
           >
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1">
                   To create an account, first enter your email address and select a password for your Makerspace account. 
                   All members are required to provide their mailing address, which will be verified upon receipt of their 24/7 access key. 
@@ -106,7 +106,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
               </Grid>
 
               {/* Name */}
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextInput
                   required={true}
                   label={SignUpFields.firstname.label}
@@ -114,7 +114,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   placeholder={SignUpFields.firstname.placeholder}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextInput
                   required={true}
                   label={SignUpFields.lastname.label}
@@ -124,7 +124,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
               </Grid>
 
               {/* Address */}
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextInput
                   required={true}
                   label={SignUpFields.street.label}
@@ -132,14 +132,14 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   placeholder={SignUpFields.street.placeholder}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextInput
                   label={SignUpFields.unit.label}
                   fieldName={SignUpFields.unit.name}
                   placeholder={SignUpFields.unit.placeholder}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <TextInput
                   required={true}
                   label={SignUpFields.city.label}
@@ -147,7 +147,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   placeholder={SignUpFields.city.placeholder}
                 />
               </Grid>
-              <Grid item xs={4} sm={2}>
+              <Grid size={{ xs: 4, sm: 2 }}>
                 <SelectInput
                   required={true}
                   fieldName={SignUpFields.state.name}
@@ -167,7 +167,7 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   ]}
                 />
               </Grid>
-              <Grid item xs={8} sm={4}>
+              <Grid size={{ xs: 8, sm: 4 }}>
                 <TextInput
                   required={true}
                   label={SignUpFields.postalCode.label}
@@ -177,14 +177,14 @@ export const MemberInfoStep: React.FC = ({ children }) => {
               </Grid>
 
               {/* Phone */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <PhoneInput
                   label={SignUpFields.phone.label}
                   fieldName={SignUpFields.phone.name}
                   placeholder={SignUpFields.phone.placeholder}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <EmailInput
                   required={true}
                   label={SignUpFields.email.label}
@@ -192,12 +192,12 @@ export const MemberInfoStep: React.FC = ({ children }) => {
                   placeholder={SignUpFields.email.placeholder}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <ConfirmEmailField />
               </Grid>
 
               {/* Password */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <PasswordInput 
                   label={SignUpFields.password.label}
                   placeholder={SignUpFields.password.placeholder}

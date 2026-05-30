@@ -1,15 +1,15 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
-import Chip from "@material-ui/core/Chip";
-import EditIcon from "@material-ui/icons/Edit";
-import DeleteIcon from "@material-ui/icons/Delete";
-import AddIcon from "@material-ui/icons/Add";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import Chip from "@mui/material/Chip";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -130,8 +130,8 @@ const AdminRentalSpots: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center">
+      <Grid size={{ xs: 12 }}>
+        <Grid container justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Rental Spots</Typography>
           <div style={{ display: "flex", gap: 8 }}>
             {selectedSpot && (
@@ -153,7 +153,7 @@ const AdminRentalSpots: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="admin-rental-spots-table" title="Rental Spots"
           loading={isRequesting} data={Object.values(spots)} error={error}
@@ -173,21 +173,21 @@ const AdminRentalSpots: React.FC = () => {
           loading={isSaving} error={createError || updateError}
         >
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth required label="Spot Number"
                 placeholder="e.g. Shelf-1a, LR-Tote-1"
                 value={editTarget.number || ""}
                 onChange={e => setField("number", e.target.value)}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth required label="Location"
                 placeholder="e.g. Back Shop, Locker Room"
                 value={editTarget.location || ""}
                 onChange={e => setField("location", e.target.value)}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField select fullWidth required label="Rental Type"
                 value={editTarget.rentalTypeId || ""}
                 onChange={e => setField("rentalTypeId", e.target.value)}
@@ -198,7 +198,7 @@ const AdminRentalSpots: React.FC = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <TextField fullWidth label="Parent Spot Number"
                 placeholder="Leave blank if not a sub-spot"
                 value={editTarget.parentNumber || ""}
@@ -206,27 +206,27 @@ const AdminRentalSpots: React.FC = () => {
                 helperText="e.g. Shelf-1 for Shelf-1a or Shelf-1b"
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField fullWidth label="Description"
                 placeholder="e.g. Full shelf, bottom row"
                 value={editTarget.description || ""}
                 onChange={e => setField("description", e.target.value)}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField fullWidth multiline rows={2} label="Notes"
                 value={editTarget.notes || ""}
                 onChange={e => setField("notes", e.target.value || null)}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={<Switch checked={!!editTarget.requiresApproval} color="primary"
                   onChange={e => setField("requiresApproval", e.target.checked)} />}
                 label="Requires Admin Approval"
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={<Switch checked={editTarget.active !== false} color="primary"
                   onChange={e => setField("active", e.target.checked)} />}

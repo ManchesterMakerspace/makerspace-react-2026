@@ -1,5 +1,5 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
+import Typography from "@mui/material/Typography";
 
 import { Transaction, TransactionStatusEnum, deleteTransaction, adminDeleteTransaction } from "makerspace-ts-api-client";
 import FormModal from "ui/common/FormModal";

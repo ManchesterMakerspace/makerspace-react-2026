@@ -9,17 +9,18 @@
 // On submit success, redirect to member profile page with dialog saying what the page is and add a toast w/ a link to the receipt.
 
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Stepper from "@material-ui/core/Stepper";
-import Step from "@material-ui/core/Step";
-import Button from "@material-ui/core/Button";
-import StepLabel from "@material-ui/core/StepLabel";
-import Typography from "@material-ui/core/Typography";
-import KeyboardArrowLeft from "@material-ui/icons/KeyboardArrowLeft";
-import KeyboardArrowRight from "@material-ui/icons/KeyboardArrowRight";
-import useMediaQuery from "@material-ui/core/useMediaQuery";
-import MobileStepper from "@material-ui/core/MobileStepper";
-import useTheme from "@material-ui/core/styles/useTheme";
+import { useNavigate } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Stepper from "@mui/material/Stepper";
+import Step from "@mui/material/Step";
+import Button from "@mui/material/Button";
+import StepLabel from "@mui/material/StepLabel";
+import Typography from "@mui/material/Typography";
+import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
+import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import MobileStepper from "@mui/material/MobileStepper";
+import { useTheme } from "@mui/material/styles";
 
 import { isApiErrorResponse, Member, message } from "makerspace-ts-api-client";
 import { AgreementStep } from "./AgreementStep";
@@ -35,8 +36,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import { ToastStatus, useToastContext } from "components/Toast/Toast";
 import { Routing } from "app/constants";
 import { buildNewMemberProfileRoute, buildProfileRouting } from "ui/member/utils";
-import Link from "@material-ui/core/Link";
-import useReactRouter from "use-react-router";
+import Link from "@mui/material/Link";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { invoiceOptionParam, noneInvoiceOption } from "../MembershipOptions/constants";
 
@@ -104,11 +104,11 @@ export const SignUpWorkflow: React.FC = () => {
 
   React.useEffect(() => {
     if (activeStep < 0 || activeStep > stepOrder.length - 1) {
-      history.push(buildNewMemberProfileRoute(currentUser?.id));
+      navigate(buildNewMemberProfileRoute(currentUser?.id));
     }
   }, [activeStep]);
 
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { create } = useToastContext();
   React.useEffect(() => {
     if (authLoadingOnMount && currentUser?.id) {
@@ -130,7 +130,7 @@ export const SignUpWorkflow: React.FC = () => {
             </>
           )
         })
-        history.push(url);
+        navigate(url);
       } else {
         // Move past member info step if started workflow and already auth'd
         setActiveStep(determineStartStep());
@@ -167,8 +167,8 @@ export const SignUpWorkflow: React.FC = () => {
   return (
     <SignUpContextProvider setActiveStep={setActiveStep}>
         {({ allowLeave, nextDisabled, prevDisabled }) => (
-          <Grid container justify="center" spacing={2}>
-            <Grid item sm={10} xs={12}>
+          <Grid container justifyContent="center" spacing={2}>
+            <Grid size={{ xs: 12, sm: 10 }}>
               {isSmallMedia ? (
                 <MobileStepper
                 variant="dots"
@@ -210,12 +210,12 @@ export const SignUpWorkflow: React.FC = () => {
 
             </Grid>
 
-            <Grid item xs={12} md={10}>
+            <Grid size={{ xs: 12, md: 10 }}>
               <Component><NestedLeave/></Component>
             </Grid>
 
 
-            {!isSmallMedia && <Grid item sm={10} xs={12}>
+            {!isSmallMedia && <Grid size={{ xs: 12, sm: 10 }}>
               {isSignUpEditable && (
                 <Button
                   disabled={prevDisabled ?? disableBack}

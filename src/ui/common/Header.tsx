@@ -1,17 +1,19 @@
 import * as React from "react";
 import { Link } from "react-router-dom";
-import { withRouter, RouteComponentProps } from "react-router-dom";
+import { RouteComponentProps } from "react-router-dom";
+import { withRouter } from 'ui/utils/withRouter';
 import { connect } from "react-redux";
 
-import AppBar from "@material-ui/core/AppBar";
-import Toolbar from "@material-ui/core/Toolbar";
-import IconButton from "@material-ui/core/IconButton";
-import Typography from "@material-ui/core/Typography";
-import Menu from "@material-ui/core/Menu";
-import MenuItem from "@material-ui/core/MenuItem";
-import Divider from "@material-ui/core/Divider";
-import Chip from "@material-ui/core/Chip";
-import MenuIcon from "@material-ui/icons/Menu";
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import IconButton from "@mui/material/IconButton";
+import Typography from "@mui/material/Typography";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import Divider from "@mui/material/Divider";
+import Chip from "@mui/material/Chip";
+import MenuIcon from "@mui/icons-material/Menu";
 
 import Logo from "../../assets/FilledLaserableLogo.svg";
 
@@ -101,7 +103,7 @@ class Header extends React.Component<Props, State> {
     const match = this.props.location && this.props.location.pathname === path;
     return (
       <Link key={id} id={id} to={path} style={{ outline: "none", textDecoration: "none", color: "unset" }} onClick={this.detachMenu}>
-        <MenuItem selected={match}>{label}</MenuItem>
+        <ListItemButton selected={match} sx={{ py: 0.75, px: 2 }}>{label}</ListItemButton>
       </Link>
     );
   }
@@ -109,9 +111,9 @@ class Header extends React.Component<Props, State> {
   private renderLoginLink = () => {
     return (
       <Link to={Routing.Login} style={{ outline: "none", textDecoration: "none", color: "unset" }}>
-        <MenuItem component={Typography as any}>
+        <ListItemButton sx={{ py: 0.75, px: 2 }}>
           Already a member? Login
-        </MenuItem>
+        </ListItemButton>
       </Link>
     );
   }
@@ -219,7 +221,7 @@ class Header extends React.Component<Props, State> {
   public render(): JSX.Element {
     const { currentUser, authRequesting, totpEnrollmentRequired } = this.props;
     return (
-      <AppBar style={{ marginBottom: "1em" }} position="static" color="default" title="Manchester Makerspace">
+      <AppBar color="default" style={{ marginBottom: "1em" }} position="static" title="Manchester Makerspace">
         <Toolbar>
           <Typography variant="h6" color="inherit" className="flex">
             <Logo alt="Manchester Makerspace" viewBox="0 0 960 580" preserveAspectRatio="xMinYMin" />

@@ -1,9 +1,8 @@
 import * as React from "react";
-import Divider from "@material-ui/core/Divider";
-import Typography from "@material-ui/core/Typography";
-import Box from "@material-ui/core/Box";
-import Grid from '@material-ui/core/Grid';
-import Hidden from "@material-ui/core/Hidden";
+import Divider from "@mui/material/Divider";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+import Grid from "@mui/material/Grid";
 
 import { FormContextConsumer, FormContextProvider } from "components/Form/FormContext";
 import { useSetSearchQuery } from "hooks/useSearchQuery";
@@ -12,7 +11,7 @@ import { PaymentMethods, handleSubmit, selectedFieldName, validatePaymentMethods
 import { PaymentMethodsProvider } from "../PaymentMethods/PaymentMethodsContext";
 import { CartPreview } from "./CartPreview";
 
-export const PaymentStep: React.FC = ({ children }) => {
+export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const setSearch = useSetSearchQuery();
 
   return (
@@ -23,10 +22,10 @@ export const PaymentStep: React.FC = ({ children }) => {
           validator={validatePaymentMethods(validateCC)}
           onSubmit={handleSubmit(setSearch, submitCC)}
         >
-          <Grid container spacing={2} justify="center">
-            <Grid item xs={11} md={8}>
-              <Grid container spacing={2} justify="center">
-                <Grid item xs={12} >
+          <Grid container spacing={2} justifyContent="center">
+            <Grid size={{ xs: 11, md: 8 }}>
+              <Grid container spacing={2} justifyContent="center">
+                <Grid size={{ xs: 12 }}>
                   <Box>
                     <FormContextConsumer>
                       {({ values }) => (
@@ -38,15 +37,15 @@ export const PaymentStep: React.FC = ({ children }) => {
                     </FormContextConsumer>
                   </Box>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <PaymentMethods />
                 </Grid>
 
-                <Hidden mdUp>
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                   {children}
-                </Hidden>
+                </Box>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <div>
                     <Typography variant="body1">
                       <strong>How recurring payments work:</strong>
@@ -63,13 +62,13 @@ export const PaymentStep: React.FC = ({ children }) => {
                 </Grid>
               </Grid>
             </Grid>
-            <Hidden smDown>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
               <Divider orientation="vertical" flexItem />
-              <Grid item md={3}>
+              <Grid size={{ md: 3 }}>
                 <CartPreview readOnly={true} />
                 {children}
               </Grid>
-            </Hidden>
+            </Box>
           </Grid>
         </FormContextProvider>
       )}

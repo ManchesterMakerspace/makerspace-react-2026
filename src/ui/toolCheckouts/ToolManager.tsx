@@ -1,18 +1,18 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import IconButton from "@material-ui/core/IconButton";
-import Tooltip from "@material-ui/core/Tooltip";
-import Select from "@material-ui/core/Select";
-import FormLabel from "@material-ui/core/FormLabel";
-import Chip from "@material-ui/core/Chip";
-import AddIcon from "@material-ui/icons/Add";
-import EditIcon from "@material-ui/icons/Edit";
-import DeleteIcon from "@material-ui/icons/Delete";
-import SaveIcon from "@material-ui/icons/Save";
-import CancelIcon from "@material-ui/icons/Cancel";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import Select from "@mui/material/Select";
+import FormLabel from "@mui/material/FormLabel";
+import Chip from "@mui/material/Chip";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -61,7 +61,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
       submitText="Add Tool" loading={loading} error={error}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
           <Select native fullWidth value={shopId}
             onChange={e => { setShopId((e.target as HTMLSelectElement).value); setPrerequisiteIds([]); }}>
@@ -69,16 +69,16 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
             {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Tool Name" placeholder="e.g. Bandsaw"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
             value={description} onChange={e => setDescription(e.target.value)} />
         </Grid>
         {availablePrereqs.length > 0 && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
               Prerequisites (warning shown if not met — not a hard block)
             </FormLabel>
@@ -222,8 +222,8 @@ const ToolManager: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center">
+      <Grid size={{ xs: 12 }}>
+        <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Tools</Typography>
             <Typography variant="body2" color="textSecondary">
@@ -251,7 +251,7 @@ const ToolManager: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12} md={4}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Filter by Shop</FormLabel>
         <Select native fullWidth value={shopFilter}
           onChange={e => setShopFilter((e.target as HTMLSelectElement).value)}>
@@ -260,9 +260,9 @@ const ToolManager: React.FC = () => {
         </Select>
       </Grid>
 
-      {(loadError || updateError) && <Grid item xs={12}><ErrorMessage error={loadError || updateError} /></Grid>}
+      {(loadError || updateError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError} /></Grid>}
 
-      <Grid item xs={12} style={{ position: "relative" }}>
+      <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
           id="tools-table" title="Tools" loading={isRequesting}
           data={tools as Tool[]} error={loadError} columns={columns}

@@ -1,6 +1,6 @@
 import * as React from "react";
-import Button from "@material-ui/core/Button";
-import Grid from "@material-ui/core/Grid";
+import Button from "@mui/material/Button";
+import Grid from "@mui/material/Grid";
 
 interface FieldRow {
   name: string;
@@ -80,10 +80,10 @@ class FieldList extends React.Component<Props, State> {
 
     return (
       <div key={index}>
-        <Grid item xs={10}>
+        <Grid size={{ xs: 10 }}>
           {field.element}
         </Grid>
-        <Grid item xs={2}>
+        <Grid size={{ xs: 2 }}>
           <Button
             color="primary"
             variant="contained"

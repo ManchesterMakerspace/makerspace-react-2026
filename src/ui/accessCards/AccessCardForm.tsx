@@ -1,10 +1,10 @@
 
 import * as React from "react";
-import Button from "@material-ui/core/Button";
-import Grid from "@material-ui/core/Grid";
-import Checkbox from "@material-ui/core/Checkbox";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Typography from "@material-ui/core/Typography";
+import Button from "@mui/material/Button";
+import Grid from "@mui/material/Grid";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Typography from "@mui/material/Typography";
 import { adminGetNewCard, adminCreateCard, getMember, Member } from "makerspace-ts-api-client";
 
 import FormModal from "ui/common/FormModal";
@@ -129,7 +129,7 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
           </ul>
         </ol>
 
-         <Grid item xs={12}>
+         <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox
@@ -138,7 +138,7 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
                   value="id-verified"
                   checked={idVerified}
                   onChange={toggleVerified}
-                  color="default"
+                  
                 />
               }
               label="Verified member's name and address with valid identification"

@@ -1,13 +1,12 @@
 import * as React from 'react';
-import useReactRouter from 'use-react-router';
-import { Link } from 'react-router-dom';
-import Grid from '@material-ui/core/Grid';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Checkbox from '@material-ui/core/Checkbox';
-import Tooltip from '@material-ui/core/Tooltip';
-import IconButton from '@material-ui/core/IconButton';
-import InfoOutlined from '@material-ui/icons/InfoOutlined';
-import Typography from '@material-ui/core/Typography';
+import { Link, useNavigate} from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Checkbox from '@mui/material/Checkbox';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import Typography from '@mui/material/Typography';
 
 import { displayMemberExpiration, buildProfileRouting } from 'ui/member/utils';
 import { SortDirection } from 'ui/common/table/constants';
@@ -107,7 +106,7 @@ const rowId = (member: MemberSummary) => member.id;
 
 const MembersList: React.FC = () => {
   const [selectedId, setSelectedId] = React.useState<string>();
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { params, setParam } = useQueryContext({ currentMembers: true });
   useAuthState(); // required for auth context
   const caps = useCapabilities();
@@ -123,13 +122,13 @@ const MembersList: React.FC = () => {
   );
 
   const onRenew = React.useCallback(() => { refresh(); }, [refresh]);
-  const onCreate = React.useCallback((id: string) => { history.push(buildProfileRouting(id)); }, [history]);
+  const onCreate = React.useCallback((id: string) => { navigate(buildProfileRouting(id)); }, [history]);
 
   const selectedMember = members.find(member => member.id === selectedId);
 
   return (
-    <Grid container spacing={3} justify='center'>
-      <Grid item md={10} xs={12}>
+    <Grid container spacing={3} justifyContent='center'>
+      <Grid size={{ xs: 12, md: 10 }}>
         {caps.canCreateMembers && (
           <Grid>
             <CreateMember onCreate={onCreate} />

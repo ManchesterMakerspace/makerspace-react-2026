@@ -1,7 +1,7 @@
 import * as React from "react";
-import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Hidden from "@material-ui/core/Hidden";
+import Grid from "@mui/material/Grid";
+import Typography from '@mui/material/Typography';
+import Box from "@mui/material/Box";
 import { InvoiceOption } from "makerspace-ts-api-client";
 import { PromotionCards } from './PromotionCards';
 import { MembershipOptionCards, NoneOption } from './MembershipOptionCards';
@@ -20,9 +20,9 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
   const { defaultOption } = useMembershipOptions();
 
   return (
-    <Grid container spacing={3} justify="center">
+    <Grid container spacing={3} justifyContent="center">
       {shortForm ? (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           {defaultOption && (
             <MembershipOptionCard 
               key={defaultOption.id}
@@ -39,23 +39,23 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
         </Grid>
       ) : (
         <>
-          <Hidden mdUp>
-            <Grid item xs={12}>
+          <Box sx={{ display: { xs: 'block', md: 'none' } }}>
+            <Grid size={{ xs: 12 }}>
               <PromotionCards onSelect={onSelect} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <MembershipOptionCards showNoneOption={showNoneOption} onSelect={onSelect} />
             </Grid>
-          </Hidden>
+          </Box>
 
-          <Hidden smDown>
-            <Grid item xs={12}>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Grid size={{ xs: 12 }}>
               <PromotionsTable onSelect={onSelect} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <MembershipOptionsTable showNoneOption={showNoneOption} onSelect={onSelect} />
             </Grid>
-          </Hidden>
+          </Box>
         </>
       )}
     </Grid>

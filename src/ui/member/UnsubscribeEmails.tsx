@@ -1,15 +1,16 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate, useParams } from 'react-router-dom';
 import { updateMember } from "makerspace-ts-api-client";
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import Form from "ui/common/Form";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { buildProfileRouting } from "./utils";
 
 const UnsubscribeEmails: React.FC = () => {
-  const { history, match: { params: { memberId } } } = useReactRouter<{ memberId: string }>();
-  const goToProfile = React.useCallback(() => history.push(buildProfileRouting(memberId)), [memberId]);
+  const { memberId } = useParams();
+  const navigate = useNavigate();
+  const goToProfile = React.useCallback(() => navigate(buildProfileRouting(memberId)), [memberId]);
   const { isRequesting, error, call } = useWriteTransaction(updateMember);
   const [success, setSuccess] = React.useState(false);
 
@@ -21,8 +22,8 @@ const UnsubscribeEmails: React.FC = () => {
   }, [setSuccess, error, call]);
 
   return (
-    <Grid container justify="center">
-      <Grid item xs={12} sm={8} md={6}>
+    <Grid container justifyContent="center">
+      <Grid size={{ xs: 12, sm: 8, md: 6 }}>
         <Form
           id="unregister"
           onSubmit={success ? goToProfile : submitRequest}

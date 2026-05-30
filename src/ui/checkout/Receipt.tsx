@@ -1,8 +1,8 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate, useParams } from 'react-router-dom';
 
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import { buildProfileRouting } from "ui/member/utils";
 import { useAuthState } from "../reducer/hooks";
@@ -14,8 +14,9 @@ const receiptContainerId = "receipt-container";
 
 const Receipt: React.FC = () => {
   const { currentUser: { id: userId } } = useAuthState();
-  const { history, match: { params: { invoiceId } } } = useReactRouter<{ invoiceId: string }>();
-  const goToProfile = React.useCallback(() => history.push(buildProfileRouting(userId)), [history, userId]);
+  const { invoiceId } = useParams();
+  const navigate = useNavigate();
+  const goToProfile = React.useCallback(() => navigate(buildProfileRouting(userId)), [history, userId]);
   const printReceipt = React.useCallback(() => {
     window.frames[receiptContainerId].focus();
     window.frames[receiptContainerId].print();
@@ -24,11 +25,11 @@ const Receipt: React.FC = () => {
   return (
     <>
       <Grid container spacing={2}>
-        <Grid item sm={6} xs={12}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Typography variant="h4">Thank you for your purchase!</Typography>
           <Typography variant="subtitle1">Details regarding your purchase can be found below.</Typography>
         </Grid>
-        <Grid item sm={6} xs={12}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <ActionButton
             id="return-to-profile"
             variant="outlined"

@@ -1,8 +1,8 @@
 import * as React from "react";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
 
 import AdminCurrentRentals  from "ui/admin/rentals/AdminCurrentRentals";
 import AdminRentalRequests  from "ui/admin/rentals/AdminRentalRequests";
@@ -31,11 +31,11 @@ const AdminRentalsPage: React.FC = () => {
   };
 
   return (
-    <Grid container spacing={3} justify="center">
-      <Grid item md={10} xs={12}>
+    <Grid container spacing={3} justifyContent="center">
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant="h6" gutterBottom>Rental Management</Typography>
       </Grid>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val as TabKey)}
@@ -47,7 +47,7 @@ const AdminRentalsPage: React.FC = () => {
           {TABS.map(t => <Tab key={t.key} id={"admin-rentals-tab-" + t.key} value={t.key} label={t.label} />)}
         </Tabs>
       </Grid>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         {renderTab()}
       </Grid>
     </Grid>

@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-import Grid from '@material-ui/core/Grid';
-import Button from "@material-ui/core/Button";
-import Typography from '@material-ui/core/Typography';
-import Box from '@material-ui/core/Box';
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
 import { InvoiceOption } from 'makerspace-ts-api-client';
 
 import { useMembershipOptions } from 'hooks/useMembershipOptions';
@@ -61,14 +61,14 @@ export const NoneOption: React.FC<Omit<Props, "showNoneOption">> = ({ onSelect }
 
   return (
     <Card>
-      <Grid container spacing={3} justify="center">
-        <Grid item xs={12}>
+      <Grid container spacing={3} justifyContent="center">
+        <Grid size={{ xs: 12 }}>
           <Typography variant="subtitle1">
             {noneInvoiceOption.description}
           </Typography>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box textAlign="right">
             <Button 
               color="primary"

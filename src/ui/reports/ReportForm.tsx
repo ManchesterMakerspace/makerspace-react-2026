@@ -1,8 +1,8 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import Typography from "@material-ui/core/Typography";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
 
 import {
   Member,
@@ -101,7 +101,7 @@ export class ReportForm extends React.Component<OwnProps> {
     return (
       <Card>
         <CardContent>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <KeyValueItem label="Name">{baseReq.name}</KeyValueItem>
           </Grid>
           {
@@ -116,7 +116,7 @@ export class ReportForm extends React.Component<OwnProps> {
             </>)
             : (
               <>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <KeyValueItem label="Reporting Term">
                       <span id={`${formPrefix}-termStart`}>
                         {timeToDate(requirement.termStartDate)}
@@ -128,7 +128,7 @@ export class ReportForm extends React.Component<OwnProps> {
                   </Grid>
                   {report ?
                     <>
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <KeyValueItem label="Report Date">
                           <span id={`${formPrefix}-date`}>
                             {timeToDate(report.date)}
@@ -137,14 +137,14 @@ export class ReportForm extends React.Component<OwnProps> {
                       </Grid>
                     </>
                     : <>
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <KeyValueItem label={`Number of ${baseReq.name}(s) required per term`}>
                           <span id={`${formPrefix}-targetCount`}>
                             {String(baseReq.targetCount)}
                           </span>
                         </KeyValueItem>
                       </Grid>
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <KeyValueItem label="Number completed this term">
                           <span id={`${formPrefix}-targetCount`}>
                             {String(requirement.currentCount)}
@@ -190,7 +190,7 @@ export class ReportForm extends React.Component<OwnProps> {
     return (requirements as ReportRequirement[]).map((requirement, index) =>
       <div key={requirement.id}>
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             {this.renderRequirementForm(requirement, index)}
           </Grid>
         </Grid>

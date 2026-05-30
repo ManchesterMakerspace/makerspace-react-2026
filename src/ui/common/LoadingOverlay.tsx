@@ -1,12 +1,12 @@
 import * as React from "react";
-import CircularProgress from "@material-ui/core/CircularProgress";
+import CircularProgress from "@mui/material/CircularProgress";
 
 interface LoadingProps {
   id?: string;
   contained?: boolean;
 }
 // TODO: This is weird that it mutates an 'id' prop
-const LoadingOverlay: React.SFC<LoadingProps> = (props) => {
+const LoadingOverlay: React.FC<LoadingProps> = (props) => {
   const id = `${props.id}-loading`
   return (
     <div id={id} className="loading-overlay" style={props.contained && {position: "relative"}}>

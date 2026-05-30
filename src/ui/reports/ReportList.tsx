@@ -1,7 +1,7 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Button from "@material-ui/core/Button";
-import useReactRouter from "use-react-router";
+import { useParams } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Button from "@mui/material/Button";
 
 import { Report, listEarnedMembershipReports, getMember, getEarnedMembership, adminGetEarnedMembership, adminListEarnedMembershipReports } from "makerspace-ts-api-client";
 
@@ -40,7 +40,7 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
   const { isOpen, openModal, closeModal } = useModal();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageEarnedMemberships } = useCapabilities();
-  const { match: { params: { memberId } } } =  useReactRouter<{ memberId: string }>();
+  const { memberId } = useParams();
   const isOwnMembership = currentUserId === memberId;
   const asAdmin = canManageEarnedMemberships && !isOwnMembership
 
@@ -79,8 +79,8 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
   const selectedReport = reports.find(report => selectedId === report.id);
 
   return (
-    <Grid container spacing={3} justify="center">
-      <Grid item md={memberId ? 12 : 10} xs={12}>
+    <Grid container spacing={3} justifyContent="center">
+      <Grid size={{ xs: 12 }} md={memberId ? 12 : 10}>
         {isOwnMembership && <CreateReport onCreate={onCreate} />}
         <StatefulTable
           id="membership-reports-table"

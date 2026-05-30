@@ -1,15 +1,15 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import IconButton from "@material-ui/core/IconButton";
-import Tooltip from "@material-ui/core/Tooltip";
-import EditIcon from "@material-ui/icons/Edit";
-import DeleteIcon from "@material-ui/icons/Delete";
-import SaveIcon from "@material-ui/icons/Save";
-import CancelIcon from "@material-ui/icons/Cancel";
-import AddIcon from "@material-ui/icons/Add";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
+import AddIcon from "@mui/icons-material/Add";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -57,17 +57,17 @@ const AddFeeItemModal: React.FC<AddFeeItemModalProps> = ({ onClose, onSave, load
       submitText="Add Item" loading={loading} error={error}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Item Name"
             placeholder="e.g. Router Bit Replacement, Steel Stock 1ft"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description"
             placeholder="Optional — shown on the invoice"
             value={description} onChange={e => setDescription(e.target.value)} />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Unit Price ($)" placeholder="0.00"
             type="number" inputProps={{ min: "0.01", step: "0.01" }}
             value={amount} onChange={e => setAmount(e.target.value)} />
@@ -210,8 +210,8 @@ const FeeCatalog: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center">
+      <Grid size={{ xs: 12 }}>
+        <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Fee Catalog</Typography>
             <Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
@@ -240,10 +240,10 @@ const FeeCatalog: React.FC = () => {
         </Grid>
       </Grid>
 
-      {loadError  && <Grid item xs={12}><ErrorMessage error={loadError}  /></Grid>}
-      {updateError && <Grid item xs={12}><ErrorMessage error={updateError} /></Grid>}
+      {loadError  && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError}  /></Grid>}
+      {updateError && <Grid size={{ xs: 12 }}><ErrorMessage error={updateError} /></Grid>}
 
-      <Grid item xs={12} style={{ position: "relative" }}>
+      <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
           id="shop-fee-catalog-table" title="Catalog Items"
           loading={isRequesting} data={items as ShopFeeItem[]} error={loadError}

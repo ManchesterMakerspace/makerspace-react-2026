@@ -5,10 +5,10 @@ import omit from "lodash-es/omit";
 import merge from "lodash-es/merge";
 import isUndefined from "lodash-es/isUndefined";
 
-import DialogTitle from "@material-ui/core/DialogTitle";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogActions from "@material-ui/core/DialogActions";
-import Button from "@material-ui/core/Button";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
 
 import { CollectionOf } from "app/interfaces";
 

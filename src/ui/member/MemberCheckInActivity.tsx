@@ -1,16 +1,16 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import FormLabel from "@material-ui/core/FormLabel";
-import Table from "@material-ui/core/Table";
-import TableHead from "@material-ui/core/TableHead";
-import TableBody from "@material-ui/core/TableBody";
-import TableRow from "@material-ui/core/TableRow";
-import TableCell from "@material-ui/core/TableCell";
-import Paper from "@material-ui/core/Paper";
+import { useParams } from 'react-router-dom';
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
+import FormLabel from "@mui/material/FormLabel";
+import Table from "@mui/material/Table";
+import TableHead from "@mui/material/TableHead";
+import TableBody from "@mui/material/TableBody";
+import TableRow from "@mui/material/TableRow";
+import TableCell from "@mui/material/TableCell";
+import Paper from "@mui/material/Paper";
 
 import { Member, getMember } from "makerspace-ts-api-client";
 import { memberIsAdmin, memberIsBoardMember, memberIsResourceManager } from "ui/member/utils";
@@ -30,7 +30,7 @@ interface CheckInRecord {
 }
 
 const MemberCheckInActivity: React.FC = () => {
-  const { match: { params: { memberId } } } = useReactRouter<{ memberId: string }>();
+  const { memberId } = useParams();
   const { currentUser: { id: currentUserId, isAdmin } } = useAuthState();
   const [weekRange, setWeekRange] = React.useState(1);
   const [records, setRecords] = React.useState<CheckInRecord[]>([]);
@@ -197,13 +197,13 @@ const MemberCheckInActivity: React.FC = () => {
 
   return (
     <Grid container spacing={2} style={{ padding: "16px" }}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant="h6">
           Check-In Activity for {member.firstname} {member.lastname}
         </Typography>
       </Grid>
 
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormLabel style={{ display: "block", marginBottom: "8px" }}>
           Time Period (Weeks)
         </FormLabel>
@@ -221,25 +221,25 @@ const MemberCheckInActivity: React.FC = () => {
       </Grid>
 
       {loadError && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage error={loadError} />
         </Grid>
       )}
 
       {isLoading && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <LoadingOverlay />
         </Grid>
       )}
 
       {!isLoading && records.length === 0 && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography>No check-in activity found for the selected time period.</Typography>
         </Grid>
       )}
 
       {!isLoading && records.length > 0 && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper style={{ overflowX: "auto" }}>
             <Table>
               <TableHead>

@@ -4,13 +4,13 @@
  */
 
  import * as React from 'react';
- import useReactRouter from "use-react-router";
- 
- import Grid from '@material-ui/core/Grid';
- import Paper from '@material-ui/core/Paper';
- import Button from "@material-ui/core/Button";
- import Typography from '@material-ui/core/Typography';
- import Hidden from "@material-ui/core/Hidden";
+import { useNavigate } from 'react-router-dom';
+  
+ import Grid from "@mui/material/Grid";
+ import Paper from '@mui/material/Paper';
+ import Button from "@mui/material/Button";
+ import Typography from '@mui/material/Typography';
+import Box from "@mui/material/Box";
  
  import Logo from "../../assets/FilledLaserableLogo.svg";
  
@@ -21,8 +21,8 @@ import { useMembershipOptions } from 'hooks/useMembershipOptions';
 import { AppLoading } from 'components/AppLoading/AppLoading';
  
  const LandingPage: React.FC = () => {
-   const { history } = useReactRouter();
-   const goToSignIn = () => history.push({ pathname: Routing.Login });
+   const navigate = useNavigate();
+   const goToSignIn = () => navigate({ pathname: Routing.Login });
    const goToSignUp = useGoToSignUp();
 
   const { loading } = useMembershipOptions();
@@ -36,17 +36,17 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
  
   return (
     <>
-      <Grid container spacing={3} justify="center">
-        <Hidden smDown>
-          <Grid item lg={6}>
+      <Grid container spacing={3} justifyContent="center">
+        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+          <Grid size={{ lg: 6 }}>
             <Logo style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
           </Grid>
-        </Hidden>
+        </Box>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
-            <Grid container spacing={3} justify="center">
-              <Grid item xs={12}>
+            <Grid container spacing={3} justifyContent="center">
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle1">
                   Manchester Makerspace is a non-profit collaborative organization of members who maintain a shared
                   workspace, tooling, and skills in the Manchester, NH community. We provide access to shared
@@ -55,11 +55,11 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
                 </Typography>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button color="primary" size="large" variant="contained" onClick={() => goToSignUp()}>Sign Up</Button>
               </Grid> 
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button color="primary" variant="outlined" onClick={goToSignIn}>Sign In</Button>
               </Grid>
             </Grid>
@@ -67,11 +67,11 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
         </Grid>
       </Grid>
       {/** Below the fold */}
-      <Grid container spacing={3} justify="center">
-        <Grid item xs={12} style={{ marginTop: "2rem" }}>
+      <Grid container spacing={3} justifyContent="center">
+        <Grid size={{ xs: 12 }} style={{ marginTop: "2rem" }}>
           <Typography align="center" variant="h4">Our Membership Options</Typography>
         </Grid>
-        <Grid item md={10} xs={12}>
+        <Grid size={{ xs: 12, md: 10 }}>
           <MembershipOptions onSelect={goToSignUp} shortForm={false} />
         </Grid>
       </Grid>

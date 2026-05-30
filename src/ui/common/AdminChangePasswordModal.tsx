@@ -1,15 +1,15 @@
 import * as React from "react";
-import TextField from "@material-ui/core/TextField";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import LinearProgress from "@material-ui/core/LinearProgress";
-import InputAdornment from "@material-ui/core/InputAdornment";
-import RemoveRedEye from "@material-ui/icons/RemoveRedEye";
-import Radio from "@material-ui/core/Radio";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import FormControl from "@material-ui/core/FormControl";
-import FormLabel from "@material-ui/core/FormLabel";
+import TextField from "@mui/material/TextField";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import LinearProgress from "@mui/material/LinearProgress";
+import InputAdornment from "@mui/material/InputAdornment";
+import RemoveRedEye from "@mui/icons-material/RemoveRedEye";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import FormLabel from "@mui/material/FormLabel";
 
 import { Member } from "makerspace-ts-api-client";
 import { ActionButton } from "ui/common/ButtonRow";
@@ -138,7 +138,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
           error={error}
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl component="fieldset">
                 <FormLabel component="legend">Password Reset Method</FormLabel>
                 <RadioGroup
@@ -165,7 +165,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
             </Grid>
 
             {adminMode === "reset" && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="textSecondary">
                   A password reset email will be sent to <strong>{member.email}</strong>. 
                   They will receive a link to set their own new password.
@@ -175,12 +175,12 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
 
             {adminMode === "set" && (
               <>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="body2" color="textSecondary">
                     The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead.
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     id="admin-password-input"
                     fullWidth
@@ -202,7 +202,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     id="admin-password-confirm"
                     fullWidth
@@ -214,7 +214,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
                   />
                 </Grid>
                 {password.length > 0 && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <LinearProgress
                       variant="determinate"
                       value={(strength / 4) * 100}
@@ -232,7 +232,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
             )}
 
             {success && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography id="admin-password-success" style={{ color: "#4caf50" }}>
                   {success}
                 </Typography>

@@ -1,17 +1,15 @@
-import { LocationDescriptorObject } from "history";
-import * as React from "react";
-import useReactRouter from "use-react-router";
+import * as React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 type SearchParams = {
   [key: string]: string;
 }
 
 export const useSearchQuery = (params: SearchParams): SearchParams => {
-  const { location: { search } } = useReactRouter();
+  const { search } = useLocation();
 
-  return React.useMemo(() =>  {
+  return React.useMemo(() => {
     const searchParams = new URLSearchParams(search);
-
     return Object.entries(params).reduce((values, [key, param]) => ({
       ...values,
       [key]: searchParams.get(param)
@@ -19,17 +17,15 @@ export const useSearchQuery = (params: SearchParams): SearchParams => {
   }, [params, search]);
 }
 
-export const useSetSearchQuery = (pushLocationOverloads?: LocationDescriptorObject<any>): ((params: SearchParams) => void) => {
-  const { history, location: { search } } = useReactRouter();
+export const useSetSearchQuery = (pushLocationOverloads?: { pathname?: string; hash?: string }): ((params: SearchParams) => void) => {
+  const navigate = useNavigate();
+  const { search } = useLocation();
 
   return React.useCallback((params: SearchParams) => {
     const searchParams = new URLSearchParams(search);
-
     Object.entries(params).forEach(([key, value]) => {
       value ? searchParams.set(key, value) : searchParams.delete(key);
     })
-
-    history.push({ search: searchParams.toString(), ...pushLocationOverloads });
-  }, [history, search, pushLocationOverloads]);
+    navigate({ search: searchParams.toString(), ...pushLocationOverloads });
+  }, [navigate, search, pushLocationOverloads]);
 }
-

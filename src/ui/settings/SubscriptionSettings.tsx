@@ -1,7 +1,7 @@
 import * as React from "react";
-import Typography from "@material-ui/core/Typography";
-import Grid from "@material-ui/core/Grid";
-import Divider from "@material-ui/core/Divider";
+import Typography from "@mui/material/Typography";
+import Grid from "@mui/material/Grid";
+import Divider from "@mui/material/Divider";
 import { listRentals, Rental } from "makerspace-ts-api-client";
 
 import LoadingOverlay from "ui/common/LoadingOverlay";
@@ -52,7 +52,7 @@ const SubscriptionSettings: React.FC = () => {
       {isLoading && <LoadingOverlay id="subscription-settings" contained={true} />}
       <Grid container spacing={8} style={{ ...isLoading && { display: "none" } }}>
         {/* Membership subscription */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h4" gutterBottom>Membership</Typography>
           <SubscriptionDetails onLoad={reportLoad(subscriptionId)} subscriptionId={subscriptionId} />
         </Grid>
@@ -60,10 +60,10 @@ const SubscriptionSettings: React.FC = () => {
         {/* Rental subscriptions — one section per rental with spot label */}
         {!!subRentals.length && (
           <>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Divider />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="h4" gutterBottom>Rentals</Typography>
               <Typography variant="body2" color="textSecondary" style={{ marginBottom: "16px" }}>
                 Each rental subscription is listed separately below. To cancel a rental, go to your profile Rentals tab.
@@ -73,7 +73,7 @@ const SubscriptionSettings: React.FC = () => {
         )}
 
         {subRentals.map(rental => (
-          <Grid key={rental.subscriptionId} item xs={12}>
+          <Grid size={{ xs: 12 }} key={rental.subscriptionId}>
             {/* Spot identifier header */}
             <div style={{
               padding: "8px 12px", backgroundColor: "#f0f4f8",

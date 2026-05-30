@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import Grid from "@material-ui/core/Grid";
+import Grid from "@mui/material/Grid";
 
 import LoadingOverlay from "../common/LoadingOverlay";
 import { FormField } from "../common/Form";
@@ -53,7 +53,7 @@ export const documents: { [K in Documents]: DocDetails} = {
 const DocumentFrame: React.FC<Props> = (props) => {
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <DocumentInternalFrame {...props} />
       </Grid>
     </Grid>

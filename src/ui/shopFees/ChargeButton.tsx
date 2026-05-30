@@ -1,5 +1,5 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 import { Member } from "makerspace-ts-api-client";
 import { ActionButton } from "ui/common/ButtonRow";
 import { Routing } from "app/constants";
@@ -9,14 +9,14 @@ interface Props {
 }
 
 const ChargeButton: React.FC<Props> = ({ member }) => {
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
 
   const handleClick = React.useCallback(() => {
     const params = new URLSearchParams({
       memberId: member.id,
       memberName: `${member.firstname} ${member.lastname}`,
     });
-    history.push(`${Routing.ShopFees}?${params.toString()}`);
+    navigate(`${Routing.ShopFees}?${params.toString()}`);
   }, [member, history]);
 
   return (

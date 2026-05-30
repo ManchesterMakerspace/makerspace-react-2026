@@ -1,15 +1,15 @@
 import * as React from "react";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import Select from "@material-ui/core/Select";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Switch from "@material-ui/core/Switch";
-import FormLabel from "@material-ui/core/FormLabel";
-import EditIcon from "@material-ui/icons/Edit";
-import DeleteIcon from "@material-ui/icons/Delete";
-import AddIcon from "@material-ui/icons/Add";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Select from "@mui/material/Select";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import FormLabel from "@mui/material/FormLabel";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
 import { Link } from "react-router-dom";
 import { InvoiceOption, listInvoiceOptions, InvoiceableResource } from "makerspace-ts-api-client";
 
@@ -117,8 +117,8 @@ const AdminRentalTypes: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Grid container justify="space-between" alignItems="center">
+      <Grid size={{ xs: 12 }}>
+        <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Rental Types</Typography>
             <Typography variant="body2" color="textSecondary" style={{ marginTop: "8px" }}>
@@ -147,7 +147,7 @@ const AdminRentalTypes: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="admin-rental-types-table" title="Rental Types"
           loading={isRequesting} data={Object.values(rentalTypes)} error={error}
@@ -167,14 +167,14 @@ const AdminRentalTypes: React.FC = () => {
           loading={isSaving} error={createError || updateError}
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField fullWidth required label="Display Name"
                 placeholder="e.g. Storage Tote, Full Shelf, Parking Space"
                 value={editTarget.displayName || ""}
                 onChange={e => setField("displayName", e.target.value)}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel component="legend" style={{ marginBottom: "8px" }}>
                 Billing Plan (Invoice Option)
               </FormLabel>
@@ -201,7 +201,7 @@ const AdminRentalTypes: React.FC = () => {
                 <Link to={billingPath}>Create it in Billing Options →</Link>
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={<Switch checked={editTarget.active !== false} color="primary"
                   onChange={e => setField("active", e.target.checked)} />}

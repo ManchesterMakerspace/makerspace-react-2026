@@ -1,12 +1,12 @@
 import * as React from 'react';
-import withStyles from '@material-ui/core/styles/withStyles';
-import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Radio from '@material-ui/core/Radio';
-import Accordion from '@material-ui/core/Accordion';
-import MuiAccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import Button from '@material-ui/core/Button';
-import Grid from '@material-ui/core/Grid';
+import { styled } from '@mui/material/styles';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Radio from '@mui/material/Radio';
+import Accordion from '@mui/material/Accordion';
+import MuiAccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Button from '@mui/material/Button';
+import Grid from "@mui/material/Grid";
 
 import { AnyPaymentMethod } from 'app/entities/paymentMethod';
 import FormModal from 'ui/common/FormModal';
@@ -25,23 +25,18 @@ interface Props {
   closeHandler: () => void;
 }
 
-const AccordionSummary = withStyles({
-  root: {
-    backgroundColor: 'rgba(0, 0, 0, .03)',
-    borderBottom: '1px solid rgba(0, 0, 0, .125)',
-    marginBottom: -1,
+const AccordionSummary = styled(MuiAccordionSummary)({
+  backgroundColor: 'rgba(0, 0, 0, .03)',
+  borderBottom: '1px solid rgba(0, 0, 0, .125)',
+  marginBottom: -1,
+  minHeight: 56,
+  '&.Mui-expanded': {
     minHeight: 56,
-    '&$expanded': {
-      minHeight: 56,
-    },
   },
-  content: {
-    '&$expanded': {
-      margin: '12px 0',
-    },
+  '& .MuiAccordionSummary-content.Mui-expanded': {
+    margin: '12px 0',
   },
-  expanded: {},
-})(MuiAccordionSummary);
+});
 
 // Separate component so useCreditCardContext() is inside the CreditCardProvider tree
 const CreditCardAccordionContent: React.FC = () => {
@@ -56,10 +51,10 @@ const CreditCardAccordionContent: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <CreditCardForm />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Button
           id='save-card-button'
           variant='contained'

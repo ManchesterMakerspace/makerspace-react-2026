@@ -1,10 +1,10 @@
 import * as React from "react";
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import capitalize from "lodash-es/capitalize";
-import useReactRouter from "use-react-router";
-import Grid from "@material-ui/core/Grid";
-import Typography from "@material-ui/core/Typography";
-import Tabs from "@material-ui/core/Tabs";
-import Tab from "@material-ui/core/Tab";
+import Grid from "@mui/material/Grid";
+import Typography from "@mui/material/Typography";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 
 interface Resource {
@@ -36,7 +36,9 @@ const DetailView: React.FC<OwnProps> = ({
 }) => {
   const resourcesExist = Array.isArray(resources) && !!resources.length;
   const [activeResource, setActiveResource] = React.useState<Resource>(resourcesExist ? resources[0] : undefined);
-  const { match: { params: { resource }}, history, location: { pathname } } = useReactRouter();
+  const { resource } = useParams();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   React.useEffect(() => {
     resource && changeResource(resource);
@@ -51,7 +53,7 @@ const DetailView: React.FC<OwnProps> = ({
         if (resource !== newResource.name) {
           const hasSubpath = resources.some(resource => pathname.endsWith(`/${resource.name}`));
           const newPath = hasSubpath ? pathname.replace(/\/[^\/]*$/, `/${newResource.name}`) : `${pathname}/${newResource.name}`;
-          history.push(newPath);
+          navigate(newPath);
         }        
       }
     }
@@ -62,16 +64,16 @@ const DetailView: React.FC<OwnProps> = ({
   }, [changeResource]);
 
   return (
-    <Grid container spacing={3} justify="center">
-      <Grid item md={10} xs={12}>
+    <Grid container spacing={3} justifyContent="center">
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography id="detail-view-title" gutterBottom variant="h6">{title}</Typography>
         {actionButtons}
       </Grid>
-      <Grid item md={10} xs={12} style={sectionBorderStyle}>
+      <Grid size={{ xs: 12, md: 10 }} style={sectionBorderStyle}>
         {information}
       </Grid>
       {resourcesExist && (
-        <Grid item md={10} xs={12} style={{ ...sectionBorderStyle, marginTop: "0.5em"}}>
+        <Grid size={{ xs: 12, md: 10 }} style={{ ...sectionBorderStyle, marginTop: "0.5em"}}>
         {activeResource && (
           <>
             {resources.length > 1 && (<Tabs

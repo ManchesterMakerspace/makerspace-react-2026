@@ -1,7 +1,9 @@
 import * as React from "react";
-import AsyncSelect, { Props as AsyncProps } from "react-select/lib/Async";
-import Createable, { Props as CreateableProps } from "react-select/lib/Creatable";
-import AsyncCreatable from "react-select/lib/AsyncCreatable";
+import AsyncSelect from "react-select/async";
+import Creatable from "react-select/creatable";
+import AsyncCreatable from "react-select/async-creatable";
+import { AsyncProps } from "react-select/async";
+import { CreatableProps } from "react-select/creatable";
 
 import { formDialogClass } from "ui/common/FormModal";
 import { FormField } from "../FormField";
@@ -11,24 +13,21 @@ interface Props extends Omit<InputProps<any>, "label"> {
   createable?: boolean;
 }
 
-export type AsyncSelectProps<OptionType> = AsyncProps<OptionType> & Props;
-export type CreateableSelectProps<OptionType> = CreateableProps<OptionType> & Props;
+export type AsyncSelectProps<OptionType> = AsyncProps<OptionType, false> & Props;
+export type CreateableSelectProps<OptionType> = CreatableProps<OptionType, false> & Props;
 export type AsyncCreateableSelectProps<OptionType> = AsyncSelectProps<OptionType> & CreateableSelectProps<OptionType>;
 
-function ModifiedSelect<
-  OptionType,
-  T extends Props & Pick<AsyncCreateableSelectProps<OptionType>, "onChange"> & { element: React.ComponentClass }
->(props: T) {
-  const { fieldName, validate, defaultValue, required } = props;
+function ModifiedSelect<OptionType>(props: any) {
+  const { element: Element, fieldName, validate, defaultValue, required, ...rest } = props;
+
   const formDialog = document.getElementsByClassName(formDialogClass)[0];
   const modifiedProps = {
-    ...props,
-    ...formDialog && {
-      menuPortalTarget: formDialog as HTMLElement
-    },
+    ...rest,
     name: fieldName,
     id: fieldName,
-  }
+    ...(formDialog && { menuPortalTarget: formDialog as HTMLElement }),
+  };
+
   return (
     <FormField
       fieldName={fieldName}
@@ -37,22 +36,22 @@ function ModifiedSelect<
       required={!!required}
     >
       {(value, onChange, error) => (
-        <props.element error={error} {...modifiedProps } onChange={onChange} value={value} />
+        <Element error={error} {...modifiedProps} onChange={onChange} value={value} />
       )}
     </FormField>
   );
 }
 
-export function AsyncCreatableSelect<OptionType>(props: AsyncCreateableSelectProps<OptionType>): React.ReactElement<AsyncCreateableSelectProps<OptionType>> {
+export function AsyncCreatableSelect<OptionType>(props: AsyncCreateableSelectProps<OptionType>): React.ReactElement {
   return <ModifiedSelect {...props} element={AsyncCreatable} />;
 }
 
-export function AsyncSelectFixed<OptionType>(props: AsyncSelectProps<OptionType>): React.ReactElement<AsyncSelectProps<OptionType>> {
+export function AsyncSelectFixed<OptionType>(props: AsyncSelectProps<OptionType>): React.ReactElement {
   return <ModifiedSelect {...props} element={AsyncSelect} />;
 }
 
-export function CreateableSelect<OptionType>(props: CreateableSelectProps<OptionType>): React.ReactElement<CreateableSelectProps<OptionType>> {
-  return <ModifiedSelect {...props} element={Createable} />;
+export function CreateableSelect<OptionType>(props: CreateableSelectProps<OptionType>): React.ReactElement {
+  return <ModifiedSelect {...props} element={Creatable} />;
 }
 
 export default AsyncSelectFixed;

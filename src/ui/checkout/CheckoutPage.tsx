@@ -1,13 +1,13 @@
 import * as React from "react";
-import useReactRouter from "use-react-router";
+import { useNavigate } from 'react-router-dom';
 
-import Grid from "@material-ui/core/Grid";
-import Card from "@material-ui/core/Card";
-import CardContent from "@material-ui/core/CardContent";
-import Stepper from "@material-ui/core/Stepper";
-import Step from "@material-ui/core/Step";
-import Button from "@material-ui/core/Button";
-import StepLabel from "@material-ui/core/StepLabel";
+import Grid from "@mui/material/Grid";
+import Card from "@mui/material/Card";
+import CardContent from "@mui/material/CardContent";
+import Stepper from "@mui/material/Stepper";
+import Step from "@mui/material/Step";
+import Button from "@mui/material/Button";
+import StepLabel from "@mui/material/StepLabel";
 
 import PaymentMethodsContainer from "ui/checkout/PaymentMethodsContainer";
 import CartList from "./CartList";
@@ -25,12 +25,12 @@ const steps = [
 const CheckoutPage: React.FC = () => {
   const { item } = useCartState();
   const emptyCart = useEmptyCart()
-  const { history } = useReactRouter();
+  const navigate = useNavigate();
   const { currentUser: { id: currentUserId } } = useAuthState();
 
   // Redirect to profile if theres nothing in the cart
   React.useEffect(() => {
-    !item && history.push(buildProfileRouting(currentUserId))
+    !item && navigate(buildProfileRouting(currentUserId))
     return emptyCart;
   }, []);
 
@@ -56,8 +56,8 @@ const CheckoutPage: React.FC = () => {
   }, []);
 
   return (
-    <Grid container justify="center" spacing={2}>
-      <Grid item sm={10} xs={12}>
+    <Grid container justifyContent="center" spacing={2}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         <Stepper activeStep={activeStep} alternativeLabel>
           {steps.map((label, index) => (
             <Step key={label} onClick={() => setActiveStep(index)}>
@@ -66,7 +66,7 @@ const CheckoutPage: React.FC = () => {
           ))}
         </Stepper>
       </Grid>
-      <Grid item sm={10} xs={12}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         {activeStep === 0 && (
           <Card>
             <CardContent>
@@ -86,7 +86,7 @@ const CheckoutPage: React.FC = () => {
         {activeStep === 1 && <CartList paymentMethod={paymentMethod} />}
       </Grid>
 
-      <Grid item sm={10} xs={12}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         {activeStep === 1 && (
           <Button variant="contained" onClick={onBack} id="checkout-page-back">
             Back

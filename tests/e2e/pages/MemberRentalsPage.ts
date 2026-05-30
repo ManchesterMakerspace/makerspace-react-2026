@@ -4,12 +4,13 @@ export class MemberRentalsPage {
   constructor(private page: Page) {}
 
   async waitForRentalsTab(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Select an Available Rental' })
+    // MUI v5: the rental selector renders as a combobox (MUI Select), not a button
+    await this.page.getByRole('combobox', { name: 'Select an Available Rental' })
       .waitFor({ timeout: 15_000 });
   }
 
   async selectSpot(spotNumber: string): Promise<void> {
-    await this.page.getByRole('button', { name: 'Select an Available Rental' }).click();
+    await this.page.getByRole('combobox', { name: 'Select an Available Rental' }).click();
     await this.page.waitForSelector('[role="listbox"]', { timeout: 10_000 });
     await this.page.getByRole('option', { name: new RegExp(spotNumber) }).click();
     await this.page.waitForTimeout(500);
