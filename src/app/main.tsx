@@ -6,7 +6,7 @@ import { composeWithDevTools } from '@redux-devtools/extension';
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { applyMiddleware, createStore, Store } from 'redux';
-import reduxThunk from 'redux-thunk';
+import { thunk as reduxThunk } from 'redux-thunk';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import { Theme, ThemeProvider, createTheme } from '@mui/material';
