@@ -81,12 +81,7 @@
       "html"
     ],
     "transform": {
-      "^.+\\.(j|t)sx?$": [
-        "ts-jest",
-        {
-          "tsconfig": "tsconfig.test.json"
-        }
-      ]
+      "^.+\\.(j|t)sx?$": "ts-jest"
     },
     "testRegex": "/tests/unit/.*\\.spec\\.(j|t)sx?$",
     "moduleNameMapper": {
@@ -98,6 +93,11 @@
       "tsx"
     ],
     "testEnvironment": "jsdom",
-    "testEnvironmentOptions": {}
+    "testEnvironmentOptions": {},
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.test.json"
+      }
+    }
   }
 }
