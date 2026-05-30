@@ -6,7 +6,6 @@ import MembersList from 'ui/member/MembersList';
 import RentalsList from 'ui/rentals/RentalsList';
 import EarnedMembershipsList from 'ui/earnedMemberships/EarnedMembershipsList';
 import MemberDetail from 'ui/member/MemberDetail';
-import MemberCheckInActivity from 'ui/member/MemberCheckInActivity';
 import CheckoutPage from 'ui/checkout/CheckoutPage';
 import BillingContainer from 'ui/billing/BillingContainer';
 import SettingsContainer from 'ui/settings/SettingsContainer';
@@ -70,7 +69,6 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={`${Routing.Documents}`} element={<AgreementContainer />} />
       <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
       <Route path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<SettingsContainer />} />
-      <Route path={Routing.CheckInActivity} element={<MemberCheckInActivity />} />
       <Route path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<MemberDetail />} />
       <Route path={Routing.Rentals} element={<RentalsList />} />
       {caps.canManageRentals && <Route path={Routing.AdminRentals} element={<AdminRentalsPage />} />}

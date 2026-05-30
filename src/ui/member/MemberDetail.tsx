@@ -328,7 +328,7 @@ const MemberProfile: React.FC = () => {
             displayName: "Volunteer",
             content: <MemberVolunteerTab member={member} />
           }] : [],
-          ...canManageCheckoutApprovers ? [{
+          ...(isOwnProfile || canManageCheckoutApprovers) ? [{
             name: "checkin-activity",
             displayName: "Check-In Activity",
             content: <MemberCheckInActivity />
