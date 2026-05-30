@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Typography from '@mui/material/Typography';
 
 import { useMembershipOptions } from 'hooks/useMembershipOptions';
@@ -40,7 +40,7 @@ export const PromotionCards: React.FC<Props> = ({ onSelect }) => {
               variant 
             }}
           >
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption">
                 Promotion ends {dateToMidnight(option.promotionEndDate)}
               </Typography>

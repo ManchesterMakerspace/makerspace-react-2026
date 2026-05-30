@@ -1,6 +1,6 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 
 import { CreditCard, PayPalAccount } from 'makerspace-ts-api-client';
 import { VenmoAccount } from 'app/entities/paymentMethod';
@@ -23,7 +23,7 @@ const PaymentMethodComponent: React.FC<Props> = ({ cardType, last4, imageUrl, em
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12} style={{ border: '1px solid black', borderColor: '#9E3321', borderRadius: '4px', textAlign: 'center' }}>
+      <Grid size={{ xs: 12 }} style={{ border: '1px solid black', borderColor: '#9E3321', borderRadius: '4px', textAlign: 'center' }}>
         <img style={{ float: 'left', marginRight: '2em' }} src={image} alt={cardType || (username ? 'Venmo' : 'PayPal')} />
         <Typography style={{ lineHeight: '2.5em' }} variant='subtitle1' id={id}>{description}</Typography>
       </Grid>

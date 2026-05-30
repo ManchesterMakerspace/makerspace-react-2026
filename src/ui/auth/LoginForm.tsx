@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { Routing } from "app/constants";
 import { emailValid } from "app/utils";
@@ -195,10 +195,10 @@ class LoginForm extends React.Component<Props, State> {
           <Typography>Instructions to reset your password have been sent to {email}</Typography>
           ) : (
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1">Please enter the email address associated with your account to receive an email with instructions to reset your password.</Typography>
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   required
@@ -247,7 +247,7 @@ class LoginForm extends React.Component<Props, State> {
           submitText="Sign In"
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 required
@@ -267,7 +267,7 @@ class LoginForm extends React.Component<Props, State> {
                 type="password"
               />
             </Grid>
-            <Grid item xs={12} style={{textAlign: "center"}}>
+            <Grid size={{ xs: 12 }} style={{textAlign: "center"}}>
               <a id="forgot-password" href="#" onClick={this.openPasswordReset}>Forgot your password?</a>
             </Grid>
           </Grid>

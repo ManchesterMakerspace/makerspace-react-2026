@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
@@ -197,13 +197,13 @@ const MemberCheckInActivity: React.FC = () => {
 
   return (
     <Grid container spacing={2} style={{ padding: "16px" }}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant="h6">
           Check-In Activity for {member.firstname} {member.lastname}
         </Typography>
       </Grid>
 
-      <Grid item xs={12} sm={6}>
+      <Grid size={{ xs: 12, sm: 6 }}>
         <FormLabel style={{ display: "block", marginBottom: "8px" }}>
           Time Period (Weeks)
         </FormLabel>
@@ -221,25 +221,25 @@ const MemberCheckInActivity: React.FC = () => {
       </Grid>
 
       {loadError && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage error={loadError} />
         </Grid>
       )}
 
       {isLoading && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <LoadingOverlay />
         </Grid>
       )}
 
       {!isLoading && records.length === 0 && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography>No check-in activity found for the selected time period.</Typography>
         </Grid>
       )}
 
       {!isLoading && records.length > 0 && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper style={{ overflowX: "auto" }}>
             <Table>
               <TableHead>

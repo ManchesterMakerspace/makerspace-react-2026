@@ -2,7 +2,7 @@ import * as React from "react";
 import { useLocation } from 'react-router-dom';
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 
 import SendChargeForm from "./SendChargeForm";
@@ -36,7 +36,7 @@ const ShopFeesPage: React.FC = () => {
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant="h5" gutterBottom>
           Shop Fees
         </Typography>
@@ -46,7 +46,7 @@ const ShopFeesPage: React.FC = () => {
         </Typography>
       </Grid>
 
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val as TabKey)}
@@ -66,7 +66,7 @@ const ShopFeesPage: React.FC = () => {
         </Tabs>
       </Grid>
 
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === "send" && (
           <SendChargeForm preselectedMember={preselectedMember} />
         )}

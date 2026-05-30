@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -117,7 +117,7 @@ const AdminRentalTypes: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Rental Types</Typography>
@@ -147,7 +147,7 @@ const AdminRentalTypes: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="admin-rental-types-table" title="Rental Types"
           loading={isRequesting} data={Object.values(rentalTypes)} error={error}
@@ -167,14 +167,14 @@ const AdminRentalTypes: React.FC = () => {
           loading={isSaving} error={createError || updateError}
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField fullWidth required label="Display Name"
                 placeholder="e.g. Storage Tote, Full Shelf, Parking Space"
                 value={editTarget.displayName || ""}
                 onChange={e => setField("displayName", e.target.value)}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel component="legend" style={{ marginBottom: "8px" }}>
                 Billing Plan (Invoice Option)
               </FormLabel>
@@ -201,7 +201,7 @@ const AdminRentalTypes: React.FC = () => {
                 <Link to={billingPath}>Create it in Billing Options →</Link>
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={<Switch checked={editTarget.active !== false} color="primary"
                   onChange={e => setField("active", e.target.checked)} />}

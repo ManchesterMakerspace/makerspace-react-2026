@@ -2,7 +2,7 @@ import * as React from "react";
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from "react-redux";
 
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import Button from "@mui/material/Button";
 import CardContent from "@mui/material/CardContent";
@@ -135,7 +135,7 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
       <Card style={{ height: "100%" }}>
         <CardContent>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TableContainer
                 id="checkout-invoices-table"
                 title="Review Items Before Purchase"
@@ -144,15 +144,15 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
                 rowId={getCartId}
               />
             </Grid>
-            <Grid item xs={12} style={{ textAlign: "right" }}>
+            <Grid size={{ xs: 12 }} style={{ textAlign: "right" }}>
               <Typography id="total" variant="h6" color="inherit">
                 Total {renderAmount(item)}
               </Typography>
             </Grid>
-            <Grid item xs={12} style={{ marginBottom: "1rem" }}>
+            <Grid size={{ xs: 12 }} style={{ marginBottom: "1rem" }}>
               <PaymentMethodComponent {...paymentMethod} />
             </Grid>
-            <Grid item xs={12} style={{ textAlign: "left" }}>
+            <Grid size={{ xs: 12 }} style={{ textAlign: "left" }}>
               <Button
                 id="submit-payment-button"
                 variant="contained"
@@ -176,12 +176,12 @@ const CartList: React.FC<Props> = ({ paymentMethod }) => {
           submitText="Okay"
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="body1">
                 There was an error processing one or more transactions. Please review these errors and try again
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Table
                 id="payment-invoices-table"
                 data={item ? [item] : []}

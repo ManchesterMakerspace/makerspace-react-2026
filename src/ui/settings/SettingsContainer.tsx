@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useParams } from 'react-router-dom';
 
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import List from "@mui/material/List";
@@ -61,7 +61,7 @@ const SettingsContainer: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item md={4} sm={5} xs={12}>
+      <Grid size={{ xs: 12, sm: 5, md: 4 }}>
         <List component="nav">
           <ListItemButton selected={selectedIndex === 0} onClick={onSelectItem(0, "profile")}>
             <ListItemText id="settings-profile" primary="Personal Information" />
@@ -81,11 +81,11 @@ const SettingsContainer: React.FC = () => {
           </ListItemButton>
         </List>
       </Grid>
-      <Grid item md={8} sm={7} xs={12}>
+      <Grid size={{ xs: 12, sm: 7, md: 8 }}>
         <Card>
           <CardContent>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {selectedIndex === 0 && (
                   <>
                     {loadingMember && <LoadingOverlay id="settings-loading" />}
@@ -94,7 +94,7 @@ const SettingsContainer: React.FC = () => {
                 )}
                 {selectedIndex === 1 && (
                   <Grid container spacing={2}>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <SubscriptionSettings />
                     </Grid>
                   </Grid>

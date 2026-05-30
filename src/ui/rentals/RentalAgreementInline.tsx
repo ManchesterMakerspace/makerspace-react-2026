@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -21,7 +21,7 @@ interface Props {
 const RentalAgreementInline: React.FC<Props> = ({ onSigned, signed }) => {
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <div style={{
           border: "1px solid #ddd", borderRadius: "4px",
           padding: "16px", maxHeight: "300px", overflowY: "auto",
@@ -57,7 +57,7 @@ const RentalAgreementInline: React.FC<Props> = ({ onSigned, signed }) => {
           </Typography>
         </div>
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <FormControlLabel
           control={
             <Checkbox

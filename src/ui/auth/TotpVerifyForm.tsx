@@ -2,7 +2,7 @@ import * as React from 'react';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import CircularProgress from '@mui/material/CircularProgress';
 import ErrorMessage from 'ui/common/ErrorMessage';
 
@@ -32,7 +32,7 @@ const TotpVerifyForm: React.FC<Props> = ({ onSubmit, onCancel, isRequesting, err
   return (
     <form onSubmit={handleSubmit}>
       <Grid container spacing={2}>
-        <Grid item xs={12} style={{ textAlign: 'center' }}>
+        <Grid size={{ xs: 12 }} style={{ textAlign: 'center' }}>
           <Typography variant='h6' gutterBottom>
             Two-Factor Authentication
           </Typography>
@@ -41,7 +41,7 @@ const TotpVerifyForm: React.FC<Props> = ({ onSubmit, onCancel, isRequesting, err
           </Typography>
         </Grid>
 
-        <Grid item xs={12} style={{ display: 'flex', justifyContent: 'center' }}>
+        <Grid size={{ xs: 12 }} style={{ display: 'flex', justifyContent: 'center' }}>
           <TextField
             id='totp-code-input'
             label='Authentication Code'
@@ -60,12 +60,12 @@ const TotpVerifyForm: React.FC<Props> = ({ onSubmit, onCancel, isRequesting, err
         </Grid>
 
         {error && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <ErrorMessage id='totp-error' error={error} />
           </Grid>
         )}
 
-        <Grid item xs={12} style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Grid size={{ xs: 12 }} style={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
             id='totp-cancel'
             variant='outlined'

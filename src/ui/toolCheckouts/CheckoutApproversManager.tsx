@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -74,7 +74,7 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, existing, onClose,
     >
       <Grid container spacing={2}>
         {!isEditing && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel style={{ marginBottom: 6, display: "block" }}>Member *</FormLabel>
             <MemberSearchInput
               name="approver-member-search"
@@ -84,7 +84,7 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, existing, onClose,
             />
           </Grid>
         )}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
             Shops this member can approve checkouts for *
           </FormLabel>
@@ -197,7 +197,7 @@ const CheckoutApproversManager: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Checkout Approvers</Typography>
@@ -234,9 +234,9 @@ const CheckoutApproversManager: React.FC = () => {
         </Grid>
       </Grid>
 
-      {loadError && <Grid item xs={12}><ErrorMessage error={loadError} /></Grid>}
+      {loadError && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError} /></Grid>}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="approvers-table"
           title="Checkout Approvers"

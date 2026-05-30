@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Button from "@mui/material/Button";
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -62,13 +62,13 @@ export const NoneOption: React.FC<Omit<Props, "showNoneOption">> = ({ onSelect }
   return (
     <Card>
       <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="subtitle1">
             {noneInvoiceOption.description}
           </Typography>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Box textAlign="right">
             <Button 
               color="primary"

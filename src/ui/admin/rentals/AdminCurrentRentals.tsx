@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import { Link } from "react-router-dom";
@@ -107,9 +107,9 @@ const AdminCurrentRentalsInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="flex-end" alignItems="center">
-          <Grid item>
+          <Grid>
             <CreateRentalAdmin onCreate={onAction} />
             <EditRental rental={selectedRental} onUpdate={onAction} />
             <RenewRental rental={selectedRental} onRenew={onAction} />
@@ -130,7 +130,7 @@ const AdminCurrentRentalsInner: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="rentals-table"
           title="Rentals"

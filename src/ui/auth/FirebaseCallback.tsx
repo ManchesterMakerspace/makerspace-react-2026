@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { connect } from 'react-redux';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import { completeProviderSignIn } from 'ui/auth/firebase';
 import { firebaseLoginAction } from 'ui/auth/actions';
 import { Routing } from 'app/constants';
@@ -14,7 +14,7 @@ interface DispatchProps {
 }
 
 interface OwnProps {
-  navigate: (path: string) => void;
+  history: any;
 }
 
 interface Props extends DispatchProps, OwnProps {}
@@ -49,7 +49,7 @@ class FirebaseCallback extends React.Component<Props, State> {
     const { error } = this.state;
     return (
       <Grid container justifyContent='center' alignItems='center' style={{ minHeight: '60vh' }}>
-        <Grid item style={{ textAlign: 'center' }}>
+        <Grid style={{ textAlign: 'center' }}>
           {error ? (
             <>
               <Typography variant='h6' color='error' gutterBottom>
@@ -82,10 +82,10 @@ const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
 
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);
 
-// Wrap with router to inject navigate into class component
+// Wrap with router to get history prop
 const FirebaseCallbackWithRouter: React.FC<{}> = () => {
   const navigate = useNavigate();
-  return <ConnectedFirebaseCallback navigate={navigate} />;
+  return <ConnectedFirebaseCallback history={history} />;
 };
 
 export default FirebaseCallbackWithRouter;

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { listInvoices, Invoice, message } from "makerspace-ts-api-client";
 
@@ -51,7 +51,7 @@ const DuplicateMembershipModal: React.FC = () => {
       isOpen={true}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           Our system shows you have already purchased a recurring membership.
           Your account, {email}, can only manage one membership at a time.
           <br />
@@ -84,16 +84,16 @@ const DuplicateMembershipModal: React.FC = () => {
           Any time left on your current membership will remain after cancellation.
           Purchasing a new membership afterwards will simply extend your current membership based on the new membership term.
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           If you just signed up, your membership will activate once you receive your key.
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           If you would like to purchase a membership for someone else, you must create a separate account.
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           Would you like to view your pending membership dues?
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           If you're having trouble with your dues, please don't hesitate to <a href="mailto:contact@manchestermakerspace.org">contact us</a>.
         </Grid>
       </Grid>

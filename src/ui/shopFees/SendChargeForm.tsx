@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -203,7 +203,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant="h6">Send Shop Charge</Typography>
         <Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
           Build a one-off invoice from catalog items or custom charges. The member
@@ -212,7 +212,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
       </Grid>
 
       {successMessage && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper style={{ padding: 16, backgroundColor: "#e8f5e9", border: "1px solid #a5d6a7" }}>
             <Typography style={{ color: "#2e7d32" }}>{successMessage}</Typography>
             <Button size="small" style={{ marginTop: 8 }} onClick={() => setSuccessMessage("")}>
@@ -225,7 +225,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
       {!successMessage && (
         <>
           {/* Member selection */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormLabel component="legend" style={{ marginBottom: 6 }}>
               Member *
             </FormLabel>
@@ -253,7 +253,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
 
           {/* Invoice label — only shown when multiple line items */}
           {isMultiLine && (
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <FormLabel component="legend" style={{ marginBottom: 6 }}>
                 Invoice Label *
               </FormLabel>
@@ -285,7 +285,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
           )}
 
           {/* Line items */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="subtitle2" gutterBottom>
               Line Items
             </Typography>
@@ -303,7 +303,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                   <Grid container spacing={2} alignItems="flex-start">
 
                     {/* Catalog picker */}
-                    <Grid item xs={12} sm={5}>
+                    <Grid size={{ xs: 12, sm: 5 }}>
                       <FormLabel component="legend" style={{ marginBottom: 6, fontSize: 12 }}>
                         Select from catalog
                       </FormLabel>
@@ -323,7 +323,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Item name */}
-                    <Grid item xs={10} sm={5}>
+                    <Grid size={{ xs: 10, sm: 5 }}>
                       <TextField
                         fullWidth
                         required
@@ -340,7 +340,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Remove button */}
-                    <Grid item xs={2} style={{ textAlign: "right", paddingTop: 24 }}>
+                    <Grid size={{ xs: 2 }} style={{ textAlign: "right", paddingTop: 24 }}>
                       {lineItems.length > 1 && (
                         <Tooltip title="Remove line">
                           <IconButton size="small" onClick={() => removeLine(index)}>
@@ -351,7 +351,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Description */}
-                    <Grid item xs={12} sm={6}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
                       <TextField
                         fullWidth
                         size="small"
@@ -363,7 +363,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Unit price */}
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -377,7 +377,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Quantity */}
-                    <Grid item xs={6} sm={3}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <TextField
                         fullWidth
                         required
@@ -393,7 +393,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     </Grid>
 
                     {/* Line total */}
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="body2" color="textSecondary" align="right">
                         Line total:{" "}
                         <strong>{numberAsCurrency(line.unitPrice * line.quantity)}</strong>
@@ -402,7 +402,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
 
                     {/* Price changed — offer to update catalog */}
                     {priceChanged && (
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <Paper
                           style={{
                             padding: "6px 12px",
@@ -434,7 +434,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
 
                     {/* Custom item — offer to save to catalog */}
                     {line.isCustom && line.name && (
-                      <Grid item xs={12}>
+                      <Grid size={{ xs: 12 }}>
                         <FormControlLabel
                           control={
                             <Checkbox
@@ -468,7 +468,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
           </Grid>
 
           {/* Total + send button */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Divider style={{ marginBottom: 16 }} />
             <Grid container justifyContent="space-between" alignItems="center">
               <div>
@@ -526,12 +526,12 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
           error={sendError}
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="body1" gutterBottom>
                 Send the following invoice to <strong>{selectedMember?.label}</strong>?
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper variant="outlined" style={{ padding: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>{invoiceName}</Typography>
                 {lineItems.map((l, i) => (
@@ -549,14 +549,14 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                 </Grid>
               </Paper>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption" color="textSecondary">
                 The member will receive an email notification and can pay from their
                 Invoices tab using their card on file.
               </Typography>
             </Grid>
             {lineItems.some(l => l.updateCatalogPrice) && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="caption" style={{ color: "#e65100" }}>
                   ⚠ Catalog prices will be updated for:{" "}
                   {lineItems.filter(l => l.updateCatalogPrice).map(l => l.name).join(", ")}
@@ -564,7 +564,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
               </Grid>
             )}
             {lineItems.some(l => l.saveToCatalog) && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="caption" style={{ color: "#1565c0" }}>
                   ✓ New catalog items will be saved:{" "}
                   {lineItems.filter(l => l.saveToCatalog).map(l => l.name).join(", ")}

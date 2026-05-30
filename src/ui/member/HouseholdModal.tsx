@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
@@ -233,7 +233,7 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
           {/* No household yet — create one */}
           {!isInHousehold && !household && (
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body1">
                   Create a household with <strong>{member.firstname} {member.lastname}</strong> as the primary member.
                 </Typography>
@@ -242,11 +242,11 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                 </Typography>
               </Grid>
               {error && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <ErrorMessage id="household-create-error" error={error} />
                 </Grid>
               )}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button
                   id="create-household-button"
                   variant="contained"
@@ -265,7 +265,7 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
             <Grid container spacing={2}>
 
               {/* Primary member */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>Primary Member</Typography>
                 <List dense>
                   <ListItem>
@@ -277,10 +277,10 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                 </List>
               </Grid>
 
-              <Grid item xs={12}><Divider /></Grid>
+              <Grid size={{ xs: 12 }}><Divider /></Grid>
 
               {/* Secondary members */}
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle2" gutterBottom>Secondary Member(s)</Typography>
                 {household.secondaryMembers.length === 0 ? (
                   <Typography variant="body2" color="textSecondary">
@@ -315,8 +315,8 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
               {/* Add secondary member — only primary can do this */}
               {isPrimary && (
                 <>
-                  <Grid item xs={12}><Divider /></Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}><Divider /></Grid>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" gutterBottom>Add Secondary Member</Typography>
                     <Typography variant="body2" color="textSecondary" style={{ marginBottom: 8 }}>
                       The secondary member must have the same street address and postal code as the primary member.
@@ -328,7 +328,7 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                       onChange={(selection) => setSelectedMember(selection)}
                     />
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Button
                       id="add-household-member-button"
                       variant="contained"
@@ -340,10 +340,10 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                     </Button>
                   </Grid>
 
-                  <Grid item xs={12}><Divider /></Grid>
+                  <Grid size={{ xs: 12 }}><Divider /></Grid>
 
                   {/* Dissolve household */}
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Button
                       id="dissolve-household-button"
                       variant="outlined"
@@ -361,7 +361,7 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
               )}
 
               {error && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <ErrorMessage id="household-error" error={error} />
                 </Grid>
               )}

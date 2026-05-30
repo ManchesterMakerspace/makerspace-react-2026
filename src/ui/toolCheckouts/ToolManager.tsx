@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -61,7 +61,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
       submitText="Add Tool" loading={loading} error={error}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
           <Select native fullWidth value={shopId}
             onChange={e => { setShopId((e.target as HTMLSelectElement).value); setPrerequisiteIds([]); }}>
@@ -69,16 +69,16 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
             {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Tool Name" placeholder="e.g. Bandsaw"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
             value={description} onChange={e => setDescription(e.target.value)} />
         </Grid>
         {availablePrereqs.length > 0 && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
               Prerequisites (warning shown if not met — not a hard block)
             </FormLabel>
@@ -222,7 +222,7 @@ const ToolManager: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Tools</Typography>
@@ -251,7 +251,7 @@ const ToolManager: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Grid item xs={12} md={4}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Filter by Shop</FormLabel>
         <Select native fullWidth value={shopFilter}
           onChange={e => setShopFilter((e.target as HTMLSelectElement).value)}>
@@ -260,9 +260,9 @@ const ToolManager: React.FC = () => {
         </Select>
       </Grid>
 
-      {(loadError || updateError) && <Grid item xs={12}><ErrorMessage error={loadError || updateError} /></Grid>}
+      {(loadError || updateError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError} /></Grid>}
 
-      <Grid item xs={12} style={{ position: "relative" }}>
+      <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
           id="tools-table" title="Tools" loading={isRequesting}
           data={tools as Tool[]} error={loadError} columns={columns}

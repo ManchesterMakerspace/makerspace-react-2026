@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Link, useNavigate} from 'react-router-dom';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Tooltip from '@mui/material/Tooltip';
@@ -128,7 +128,7 @@ const MembersList: React.FC = () => {
 
   return (
     <Grid container spacing={3} justifyContent='center'>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         {caps.canCreateMembers && (
           <Grid>
             <CreateMember onCreate={onCreate} />

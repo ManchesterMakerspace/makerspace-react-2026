@@ -2,7 +2,7 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { withRouter } from 'ui/utils/withRouter';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { QueryParams, CollectionOf } from "app/interfaces";
 
@@ -252,7 +252,7 @@ class EarnedMembershipList extends React.Component<Props, State> {
 
     return (
       <Grid container spacing={3} justifyContent="center">
-        <Grid item md={10} xs={12}>
+        <Grid size={{ xs: 12, md: 10 }}>
           <Grid style={{paddingTop: 20}}>
             {this.getActionButtons()}
           </Grid>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 
 import { usePaymentMethodsContext } from './PaymentMethodsContext';
 import { FormContextProvider, useFormContext } from 'components/Form/FormContext';
@@ -134,7 +134,7 @@ export const PayPalForm: React.FC = () => {
 
   return (
     <Grid container spacing={8} justifyContent='center'>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <div id='paypal-button' />
         <FormField fieldName={paypalValidation} />
         {error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}

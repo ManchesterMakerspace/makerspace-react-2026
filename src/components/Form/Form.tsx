@@ -4,7 +4,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { CollectionOf } from "app/interfaces";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -56,7 +56,7 @@ const FormContent = <V extends unknown>({
         {children}
 
         <Grid container spacing={2} justifyContent="center">
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             {form.isDirty && !loading && error && <ErrorMessage error={error} id={`${id}-error`}/>}
           </Grid>
         </Grid>

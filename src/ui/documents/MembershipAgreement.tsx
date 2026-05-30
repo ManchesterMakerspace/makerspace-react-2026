@@ -1,7 +1,7 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
 import { updateMember } from "makerspace-ts-api-client";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -80,7 +80,7 @@ export const MembershipAgreement: React.FC<Props> = ({ onSuccess, hideFooter, ch
       </Accordion>
 
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <CheckboxInput
             fieldName={codeOfConduct.name}
             required={true}
@@ -88,7 +88,7 @@ export const MembershipAgreement: React.FC<Props> = ({ onSuccess, hideFooter, ch
           />
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <CheckboxInput
             fieldName={memberContract.name}
             required={true}

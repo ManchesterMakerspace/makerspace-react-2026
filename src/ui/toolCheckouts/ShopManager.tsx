@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -47,11 +47,11 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ onClose, onSave, loading, e
       submitText="Add Shop" loading={loading} error={error}
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Shop Name" placeholder="e.g. Woodshop"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
             value={slackChannel} onChange={e => setSlackChannel(e.target.value)}
             helperText="Used to route /checkout slash commands to this shop" />
@@ -177,7 +177,7 @@ const ShopManager: React.FC = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <div>
             <Typography variant="h6">Shops</Typography>
@@ -206,9 +206,9 @@ const ShopManager: React.FC = () => {
         </Grid>
       </Grid>
 
-      {(loadError || updateError) && <Grid item xs={12}><ErrorMessage error={loadError || updateError} /></Grid>}
+      {(loadError || updateError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError} /></Grid>}
 
-      <Grid item xs={12} style={{ position: "relative" }}>
+      <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
           id="shops-table" title="Shops" loading={isRequesting}
           data={shops as Shop[]} error={loadError} columns={columns}

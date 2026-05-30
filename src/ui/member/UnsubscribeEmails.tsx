@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { updateMember } from "makerspace-ts-api-client";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import Form from "ui/common/Form";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
@@ -23,7 +23,7 @@ const UnsubscribeEmails: React.FC = () => {
 
   return (
     <Grid container justifyContent="center">
-      <Grid item xs={12} sm={8} md={6}>
+      <Grid size={{ xs: 12, sm: 8, md: 6 }}>
         <Form
           id="unregister"
           onSubmit={success ? goToProfile : submitRequest}

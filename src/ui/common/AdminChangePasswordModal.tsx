@@ -1,6 +1,6 @@
 import * as React from "react";
 import TextField from "@mui/material/TextField";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import LinearProgress from "@mui/material/LinearProgress";
 import InputAdornment from "@mui/material/InputAdornment";
@@ -138,7 +138,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
           error={error}
         >
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl component="fieldset">
                 <FormLabel component="legend">Password Reset Method</FormLabel>
                 <RadioGroup
@@ -165,7 +165,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
             </Grid>
 
             {adminMode === "reset" && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="body2" color="textSecondary">
                   A password reset email will be sent to <strong>{member.email}</strong>. 
                   They will receive a link to set their own new password.
@@ -175,12 +175,12 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
 
             {adminMode === "set" && (
               <>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="body2" color="textSecondary">
                     The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead.
                   </Typography>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     id="admin-password-input"
                     fullWidth
@@ -202,7 +202,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
                     }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     id="admin-password-confirm"
                     fullWidth
@@ -214,7 +214,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
                   />
                 </Grid>
                 {password.length > 0 && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <LinearProgress
                       variant="determinate"
                       value={(strength / 4) * 100}
@@ -232,7 +232,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
             )}
 
             {success && (
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography id="admin-password-success" style={{ color: "#4caf50" }}>
                   {success}
                 </Typography>

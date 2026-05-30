@@ -2,7 +2,7 @@ import * as React from "react";
 import { AnyAction } from "redux";
 import { ThunkAction } from "redux-thunk";
 import { connect } from "react-redux";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { QueryParams, RequestStatus } from "app/interfaces";
 
@@ -116,7 +116,7 @@ export class ListContainer<T> extends React.Component<Props<T>, State> {
     return (
       <>
         {actionButtons && <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <ButtonRow actionButtons={actionButtons} />
           </Grid>
         </Grid>}

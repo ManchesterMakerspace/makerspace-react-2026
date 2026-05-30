@@ -6,7 +6,7 @@ import Accordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Button from '@mui/material/Button';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 
 import { AnyPaymentMethod } from 'app/entities/paymentMethod';
 import FormModal from 'ui/common/FormModal';
@@ -51,10 +51,10 @@ const CreditCardAccordionContent: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <CreditCardForm />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Button
           id='save-card-button'
           variant='contained'

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
 
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Stepper from "@mui/material/Stepper";
@@ -57,7 +57,7 @@ const CheckoutPage: React.FC = () => {
 
   return (
     <Grid container justifyContent="center" spacing={2}>
-      <Grid item sm={10} xs={12}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         <Stepper activeStep={activeStep} alternativeLabel>
           {steps.map((label, index) => (
             <Step key={label} onClick={() => setActiveStep(index)}>
@@ -66,7 +66,7 @@ const CheckoutPage: React.FC = () => {
           ))}
         </Stepper>
       </Grid>
-      <Grid item sm={10} xs={12}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         {activeStep === 0 && (
           <Card>
             <CardContent>
@@ -86,7 +86,7 @@ const CheckoutPage: React.FC = () => {
         {activeStep === 1 && <CartList paymentMethod={paymentMethod} />}
       </Grid>
 
-      <Grid item sm={10} xs={12}>
+      <Grid size={{ xs: 12, sm: 10 }}>
         {activeStep === 1 && (
           <Button variant="contained" onClick={onBack} id="checkout-page-back">
             Back

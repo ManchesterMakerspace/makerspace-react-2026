@@ -1,7 +1,7 @@
 import * as React from "react";
 import moment from "moment";
 import { Link } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Tooltip from "@mui/material/Tooltip";
 import { Rental, listRentals, adminListRentals, Member } from "makerspace-ts-api-client";
 
@@ -114,7 +114,7 @@ const RentalsList: React.FC<{ member?: Member }> = ({ member }) => {
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item md={member ? 12 : 10} xs={12}>
+      <Grid size={{ xs: 12 }} md={member ? 12 : 10}>
         {canManage && (
           <Grid>
             <CreateRentalAdmin onCreate={onRenew} member={member} />

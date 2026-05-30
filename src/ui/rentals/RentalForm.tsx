@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import FormLabel from "@mui/material/FormLabel";
 import Checkbox from "@mui/material/Checkbox";
@@ -62,7 +62,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
         error={error}
       >
         <Grid container spacing={3}>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <TextField
               fullWidth
               required
@@ -73,7 +73,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
               placeholder={rentalFields.number.placeholder}
             />
           </Grid>
-          <Grid item xs={6}>
+          <Grid size={{ xs: 6 }}>
             <TextField
               fullWidth
               value={rental.description}
@@ -84,7 +84,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
             />
           </Grid>
           {rental && rental.id && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 value={toDatePicker(rental.expiration)}
@@ -98,7 +98,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
               />
             </Grid>
           )}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{rentalFields.memberId.label}</FormLabel>
             <MemberSearchInput
               name={rentalFields.memberId.name}
@@ -108,7 +108,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
               initialSelection={rental && { value: rental.memberId, label: rental.memberName, id: rental.memberId }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{rentalFields.notes.label}</FormLabel>
             <TextField
               name={rentalFields.notes.name}
@@ -117,7 +117,7 @@ class RentalForm extends React.Component<OwnProps, { contractOnFile: boolean }> 
               multiline
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox

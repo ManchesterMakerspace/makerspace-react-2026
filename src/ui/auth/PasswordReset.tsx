@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { RouteComponentProps } from "react-router-dom";
 
 import TextField from "@mui/material/TextField";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
@@ -128,7 +128,7 @@ class PasswordReset extends React.Component<Props, State> {
 
     return (
       <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
               <Form
                 ref={this.setFormRef}
@@ -139,10 +139,10 @@ class PasswordReset extends React.Component<Props, State> {
                 submitText="Save"
               >
                 <Grid container spacing={2}>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="body1">Please enter your new password.</Typography>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <TextField
                       fullWidth
                       required

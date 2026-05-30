@@ -1,7 +1,7 @@
 import * as React from "react";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 
 import CheckoutRoster from "./CheckoutRoster";
@@ -31,14 +31,14 @@ const ToolCheckoutsPage: React.FC = () => {
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant="h5" gutterBottom>Tool Checkouts</Typography>
         <Typography variant="body2" color="textSecondary">
           Manage member tool checkouts, shops, tools, and checkout approvers.
           Members can be checked out via the portal or via Slack slash command in the shop channel.
         </Typography>
       </Grid>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val as TabKey)}
@@ -52,7 +52,7 @@ const ToolCheckoutsPage: React.FC = () => {
           ))}
         </Tabs>
       </Grid>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === "roster" && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={isRM} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}

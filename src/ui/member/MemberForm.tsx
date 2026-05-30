@@ -1,6 +1,6 @@
 import * as React from "react";
 import kebabCase from "lodash-es/kebabCase";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import Select from "@mui/material/Select";
 import FormLabel from "@mui/material/FormLabel";
@@ -103,7 +103,7 @@ class MemberForm extends React.Component<OwnProps, State> {
     const fields = memberFormField(isAdmin, member);
 
     return (<Grid container spacing={3}>
-      <Grid item xs={6}>
+      <Grid size={{ xs: 6 }}>
         <TextField
           fullWidth
           required
@@ -114,7 +114,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           placeholder={fields.firstname.placeholder}
         />
       </Grid>
-      <Grid item xs={6}>
+      <Grid size={{ xs: 6 }}>
         <TextField
           fullWidth
           required
@@ -125,7 +125,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           placeholder={fields.lastname.placeholder}
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <TextField
           fullWidth
           required
@@ -137,7 +137,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           type="email"
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <TextField
           fullWidth
           value={member.phone}
@@ -148,7 +148,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           type="phone"
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <TextField
           fullWidth
           required={!isAdmin}
@@ -159,7 +159,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           placeholder={fields.street.placeholder}
         />
       </Grid>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <TextField
           fullWidth
           value={member.address && member.address.unit}
@@ -169,7 +169,7 @@ class MemberForm extends React.Component<OwnProps, State> {
           placeholder={fields.unit.placeholder}
         />
       </Grid>
-      <Grid item sm={12} md={5}>
+      <Grid size={{ sm: 12, md: 5 }}>
         <TextField
           fullWidth
           required={!isAdmin}
@@ -181,7 +181,7 @@ class MemberForm extends React.Component<OwnProps, State> {
         />
       </Grid>
 
-      <Grid item sm={6} md={4}>
+      <Grid size={{ sm: 6, md: 4 }}>
       <FormLabel component="legend">{fields.state.label}</FormLabel>
         <Select
           name={fields.state.name}
@@ -196,7 +196,7 @@ class MemberForm extends React.Component<OwnProps, State> {
         </Select>
       </Grid>
 
-        <Grid item sm={6} md={3}>
+        <Grid size={{ sm: 6, md: 3 }}>
         <TextField
           fullWidth
           required={!isAdmin}
@@ -208,7 +208,7 @@ class MemberForm extends React.Component<OwnProps, State> {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <FormControlLabel
           control={
             <Checkbox
@@ -226,7 +226,7 @@ class MemberForm extends React.Component<OwnProps, State> {
       {isAdmin && (
         <>
           {fields.expirationTime && ( // Dont display expiration for creation
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <TextField
                 fullWidth
                 value={toDatePicker(member.expirationTime)}
@@ -240,7 +240,7 @@ class MemberForm extends React.Component<OwnProps, State> {
               />
             </Grid>
           )}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.status.label}</FormLabel>
             <Select
               name={fields.status.name}
@@ -254,7 +254,7 @@ class MemberForm extends React.Component<OwnProps, State> {
                 ([key, value]) => <option id={`${fields.status.name}-option-${kebabCase(key)}`} key={kebabCase(key)} value={key}>{value}</option>)}
             </Select>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.role.label}</FormLabel>
             <Select
               name={fields.role.name}
@@ -268,7 +268,7 @@ class MemberForm extends React.Component<OwnProps, State> {
                 ([key, value]) => <option id={`${fields.role.name}-option-${kebabCase(key)}`} key={kebabCase(key)} value={key}>{value}</option>)}
             </Select>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.notes.label}</FormLabel>
             <TextField
               name={fields.notes.name}
@@ -277,7 +277,7 @@ class MemberForm extends React.Component<OwnProps, State> {
               multiline
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox
@@ -294,7 +294,7 @@ class MemberForm extends React.Component<OwnProps, State> {
             />
           </Grid>
           {member && (
-             <Grid item xs={12}>
+             <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Checkbox

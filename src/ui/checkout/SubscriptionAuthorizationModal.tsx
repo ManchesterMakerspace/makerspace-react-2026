@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -46,7 +46,7 @@ const SubscriptionAuthorizationModal: React.FC<{ onConfirm(): void, item: CartIt
       submitText="Confirm"
     >
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="body1">
             <strong>How recurring payments work:</strong>
           </Typography>

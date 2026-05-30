@@ -7,7 +7,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import RadioGroup from "@mui/material/RadioGroup";
 import Radio from "@mui/material/Radio";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { 
   adminListRentals, 
@@ -140,7 +140,7 @@ export class InvoiceForm extends React.Component<Props, State> {
         error={error}
       >
         <Grid container spacing={3}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControl component="fieldset">
               <FormLabel component="legend">{fields.resourceClass.label}</FormLabel>
               <RadioGroup
@@ -154,7 +154,7 @@ export class InvoiceForm extends React.Component<Props, State> {
               </RadioGroup>
             </FormControl>
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.memberId.label}</FormLabel>
             <MemberSearchInput
               name={fields.memberId.name}
@@ -165,7 +165,7 @@ export class InvoiceForm extends React.Component<Props, State> {
             />
           </Grid>
           {this.state.invoiceType === InvoiceableResource.Rental && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel component="legend">{fields.rentalId.label}</FormLabel>
               <OptionsList
                 getFormRef={() => this.formRef}
@@ -182,7 +182,7 @@ export class InvoiceForm extends React.Component<Props, State> {
               />
             </Grid>
           )}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.id.label}</FormLabel>
             <OptionsList
               getFormRef={() => this.formRef}
@@ -203,7 +203,7 @@ export class InvoiceForm extends React.Component<Props, State> {
         Else, display sub form to create the resource */}
           {allowCustomBilling && (
             <>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   required
@@ -213,7 +213,7 @@ export class InvoiceForm extends React.Component<Props, State> {
                   placeholder={fields.description.placeholder}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   required
@@ -223,7 +223,7 @@ export class InvoiceForm extends React.Component<Props, State> {
                   placeholder={fields.amount.placeholder}
                 />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TextField
                   fullWidth
                   required
@@ -240,7 +240,7 @@ export class InvoiceForm extends React.Component<Props, State> {
             </>
           )}
           {this.state.invoiceType === InvoiceableResource.Member && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControlLabel
                 control={
                   <Checkbox

@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import Button from "@mui/material/Button";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
@@ -129,7 +129,7 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
           </ul>
         </ol>
 
-         <Grid item xs={12}>
+         <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
                 <Checkbox

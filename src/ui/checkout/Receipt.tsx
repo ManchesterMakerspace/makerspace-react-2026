@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 
 import { buildProfileRouting } from "ui/member/utils";
@@ -25,11 +25,11 @@ const Receipt: React.FC = () => {
   return (
     <>
       <Grid container spacing={2}>
-        <Grid item sm={6} xs={12}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <Typography variant="h4">Thank you for your purchase!</Typography>
           <Typography variant="subtitle1">Details regarding your purchase can be found below.</Typography>
         </Grid>
-        <Grid item sm={6} xs={12}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <ActionButton
             id="return-to-profile"
             variant="outlined"

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Button from "@mui/material/Button";
 
 import { Report, listEarnedMembershipReports, getMember, getEarnedMembership, adminGetEarnedMembership, adminListEarnedMembershipReports } from "makerspace-ts-api-client";
@@ -80,7 +80,7 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item md={memberId ? 12 : 10} xs={12}>
+      <Grid size={{ xs: 12 }} md={memberId ? 12 : 10}>
         {isOwnMembership && <CreateReport onCreate={onCreate} />}
         <StatefulTable
           id="membership-reports-table"

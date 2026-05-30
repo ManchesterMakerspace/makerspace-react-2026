@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useLocation } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import { Link } from "react-router-dom";
 
 import { Subscription, adminListSubscriptions } from "makerspace-ts-api-client";
@@ -90,7 +90,7 @@ const SubscriptionsTable: React.FC = () => {
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid>
           <CancelSubscriptionModal
             subscription={selectedSubscription || {} as Subscription}

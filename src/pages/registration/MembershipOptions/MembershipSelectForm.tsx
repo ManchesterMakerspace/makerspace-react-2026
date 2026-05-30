@@ -1,10 +1,10 @@
 import * as React from "react";
 import Typography from "@mui/material/Typography";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
 import Hidden from "@mui/material/Hidden";
-import useTheme from "@mui/material/styles/useTheme";
+import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
 import { InvoiceOption } from "makerspace-ts-api-client";
@@ -57,7 +57,7 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
       hideFooter={true}
     >
       <Grid container spacing={2} direction={isXsmMedia ? "row-reverse" : "row"}>
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Box>
             <Typography variant="body1">
               {invoiceOption ? "Confirm" : "Select"} your membership selection. If you have a discount code, please enter it now.
@@ -66,7 +66,7 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
           <MembershipOptions onSelect={updateInvoiceOption} showNoneOption={showNoneOption} />
         </Grid>
           <Hidden smDown><Divider orientation="vertical" flexItem /></Hidden>
-          <Grid item xs={12} md={3}>
+          <Grid size={{ xs: 12, md: 3 }}>
             <CartPreview />
           </Grid>
       </Grid>

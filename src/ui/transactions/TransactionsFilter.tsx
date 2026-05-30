@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import FormLabel from "@mui/material/FormLabel";
@@ -133,7 +133,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
   return (
     <>
       <Typography variant="subtitle1" gutterBottom>Transaction Filters</Typography>
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Transaction Type</FormLabel>
           <RadioGroup name="settled" value={params.type} onChange={setType}>
@@ -143,7 +143,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
           </RadioGroup>
         </FormControl>
       </Grid>
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Refunded</FormLabel>
           <RadioGroup name="settled" value={paramToVal(params.refund)} onChange={toggleRefunded}>
@@ -153,7 +153,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
           </RadioGroup>
         </FormControl>
       </Grid>
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Transaction Start Due</FormLabel>
           <TextField
@@ -165,7 +165,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
             />
         </FormControl>
       </Grid>
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Transaction End Due</FormLabel>
           <TextField
@@ -177,7 +177,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
             />
         </FormControl>
       </Grid>
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Transaction status</FormLabel>
             <FormGroup>
@@ -192,7 +192,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
         </FormControl>
       </Grid>
 
-      <Grid item xs={12} style={{ marginBottom: "1em" }}>
+      <Grid size={{ xs: 12 }} style={{ marginBottom: "1em" }}>
         <FormControl component="fieldset">
           <FormLabel component="legend">Discount</FormLabel>
             <FormGroup>

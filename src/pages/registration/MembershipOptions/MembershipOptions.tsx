@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Typography from '@mui/material/Typography';
 import Hidden from "@mui/material/Hidden";
 import { InvoiceOption } from "makerspace-ts-api-client";
@@ -22,7 +22,7 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
   return (
     <Grid container spacing={3} justifyContent="center">
       {shortForm ? (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           {defaultOption && (
             <MembershipOptionCard 
               key={defaultOption.id}
@@ -40,19 +40,19 @@ export const MembershipOptions: React.FC<Props> = ({ onSelect, shortForm, showNo
       ) : (
         <>
           <Hidden mdUp>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <PromotionCards onSelect={onSelect} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <MembershipOptionCards showNoneOption={showNoneOption} onSelect={onSelect} />
             </Grid>
           </Hidden>
 
           <Hidden smDown>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <PromotionsTable onSelect={onSelect} />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <MembershipOptionsTable showNoneOption={showNoneOption} onSelect={onSelect} />
             </Grid>
           </Hidden>

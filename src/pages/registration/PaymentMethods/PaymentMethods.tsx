@@ -5,7 +5,7 @@ import Radio from '@mui/material/Radio';
 import Accordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import RefreshIcon from '@mui/icons-material/Refresh';
@@ -124,7 +124,7 @@ export const PaymentMethods: React.FC<Props> = () => {
                       </AccordionSummary>
                       <AccordionDetails>
                         <Grid container>
-                          <Grid item xs={12}>
+                          <Grid size={{ xs: 12 }}>
                             {!!paymentMethods.length ? (
                               <RadioGroup
                                 aria-label='Payment Method'

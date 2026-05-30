@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Button from "@mui/material/Button";
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -26,12 +26,12 @@ export const MembershipOptionCard: React.FC<Props> = ({ option, signUpButton, ch
   return (
     <Card>
       <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="h5">
             {option.name}
           </Typography>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant="subtitle2">
             {option.description}
           </Typography>
@@ -39,14 +39,14 @@ export const MembershipOptionCard: React.FC<Props> = ({ option, signUpButton, ch
 
         {children}
 
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <Box textAlign="left">
             {option.amount && <Typography variant="body1">
               {numberAsCurrency(option.amount)} {!!option.quantity && <>/ {option.quantity === 1 ? "month" : `${option.quantity} months`}</>}
             </Typography>}
           </Box>
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <Box textAlign="right">
             <Button 
               variant={signUpButton.variant} 

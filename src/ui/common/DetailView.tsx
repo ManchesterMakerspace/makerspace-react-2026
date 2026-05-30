@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import capitalize from "lodash-es/capitalize";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Typography from "@mui/material/Typography";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
@@ -65,15 +65,15 @@ const DetailView: React.FC<OwnProps> = ({
 
   return (
     <Grid container spacing={3} justifyContent="center">
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography id="detail-view-title" gutterBottom variant="h6">{title}</Typography>
         {actionButtons}
       </Grid>
-      <Grid item md={10} xs={12} style={sectionBorderStyle}>
+      <Grid size={{ xs: 12, md: 10 }} style={sectionBorderStyle}>
         {information}
       </Grid>
       {resourcesExist && (
-        <Grid item md={10} xs={12} style={{ ...sectionBorderStyle, marginTop: "0.5em"}}>
+        <Grid size={{ xs: 12, md: 10 }} style={{ ...sectionBorderStyle, marginTop: "0.5em"}}>
         {activeResource && (
           <>
             {resources.length > 1 && (<Tabs

@@ -6,7 +6,7 @@
  import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
   
- import Grid from '@mui/material/Grid';
+ import Grid from "@mui/material/Grid2";
  import Paper from '@mui/material/Paper';
  import Button from "@mui/material/Button";
  import Typography from '@mui/material/Typography';
@@ -38,15 +38,15 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
     <>
       <Grid container spacing={3} justifyContent="center">
         <Hidden smDown>
-          <Grid item lg={6}>
+          <Grid size={{ lg: 6 }}>
             <Logo style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
           </Grid>
         </Hidden>
 
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>
             <Grid container spacing={3} justifyContent="center">
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle1">
                   Manchester Makerspace is a non-profit collaborative organization of members who maintain a shared
                   workspace, tooling, and skills in the Manchester, NH community. We provide access to shared
@@ -55,11 +55,11 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
                 </Typography>
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button color="primary" size="large" variant="contained" onClick={() => goToSignUp()}>Sign Up</Button>
               </Grid> 
 
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Button color="primary" variant="outlined" onClick={goToSignIn}>Sign In</Button>
               </Grid>
             </Grid>
@@ -68,10 +68,10 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
       </Grid>
       {/** Below the fold */}
       <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12} style={{ marginTop: "2rem" }}>
+        <Grid size={{ xs: 12 }} style={{ marginTop: "2rem" }}>
           <Typography align="center" variant="h4">Our Membership Options</Typography>
         </Grid>
-        <Grid item md={10} xs={12}>
+        <Grid size={{ xs: 12, md: 10 }}>
           <MembershipOptions onSelect={goToSignUp} shortForm={false} />
         </Grid>
       </Grid>

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as Braintree from 'braintree-web';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
@@ -152,7 +152,7 @@ export const VenmoForm: React.FC = () => {
 
   return (
     <Grid container spacing={8} justifyContent='center'>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         {supported ? (
           <Button
             id='venmo-button'

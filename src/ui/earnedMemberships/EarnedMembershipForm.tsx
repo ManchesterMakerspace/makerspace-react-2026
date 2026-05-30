@@ -1,6 +1,6 @@
 import * as React from "react";
 import range from "lodash-es/range";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import Select from "@mui/material/Select";
 import Checkbox from "@mui/material/Checkbox";
@@ -164,7 +164,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
       <Card>
         <CardContent>
           <Grid container spacing={3}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel>{requirementFields.name.label}</FormLabel>
               <Select
                 fullWidth
@@ -190,7 +190,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
                 placeholder={requirementFields.name.placeholder}
               />}
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption">
                 {`${requirementFields.rolloverLimit.label}: ${requirementFields.rolloverLimit.hint}`}
               </Typography>
@@ -203,7 +203,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
                 placeholder={requirementFields.rolloverLimit.placeholder}
               />
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel component="legend">{requirementFields.termLength.label}</FormLabel>
               <Select
                 name={`${fieldName}-${requirementFields.termLength.name}`}
@@ -225,7 +225,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
                 ))}
               </Select>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormLabel component="legend">{requirementFields.targetCount.label}</FormLabel>
               <Select
                 name={`${fieldName}-${requirementFields.targetCount.name}`}
@@ -247,7 +247,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
                 ))}
               </Select>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption">
                 {`${requirementFields.strict.label}: ${requirementFields.strict.hint}`}
               </Typography>
@@ -279,7 +279,7 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
 
       return (
       <Grid container spacing={3}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <FormLabel component="legend">{earnedMembershipFields.memberId.label}</FormLabel>
           <MemberSearchInput
             name={earnedMembershipFields.memberId.name}
@@ -289,16 +289,16 @@ export class EarnedMembershipForm extends React.Component<OwnProps, State> {
             disabled={membership && !!membership.id}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
         {range(0, this.state.requirementCount).map(index =>
             <Grid key={`requirement-${index}`} container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 {this.renderRequirementRow(index)}
               </Grid>
             </Grid >
           )}
         </Grid >
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ButtonRow
             actionButtons={[
               {

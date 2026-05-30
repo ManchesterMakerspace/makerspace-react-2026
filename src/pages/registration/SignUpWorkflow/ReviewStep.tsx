@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import { paymentMethodQueryParam } from "../PaymentMethods";
 import { discountParam, invoiceOptionParam, ssmDiscount } from "../MembershipOptions";
 import { useSearchQuery } from "hooks/useSearchQuery";
@@ -113,7 +113,7 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
 
   return (
     <Grid container spacing={5} justifyContent="center">
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Form
           onSubmit={onSubmit}
           loading={submitting}
@@ -122,11 +122,11 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
           id="review-checkout"
         >
           <Grid container spacing={5} justifyContent="center">
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
                   <Grid container spacing={2} justifyContent="center">
-                    <Grid item xs={11}>
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Member Info
@@ -137,19 +137,19 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
                 </Grid>
 
                 <Grid container spacing={2} justifyContent="center">
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Name:</strong> {currentUser.firstname} {currentUser.lastname}
                     </Typography>
                   </Grid>
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Email / Username:</strong> {currentUser.email}
                     </Typography>
                   </Grid>
 
                   {currentUser.address && (
-                    <Grid item xs={11}>
+                    <Grid size={{ xs: 11 }}>
                       <Typography variant="body1">
                         <strong>Address:</strong> {
                         `
@@ -161,7 +161,7 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
                     </Grid>
                   )}
 
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       <strong>Phone Number:</strong> {currentUser.phone || "Not provided"}
                     </Typography>
@@ -170,11 +170,11 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
                   <Grid container spacing={2} justifyContent="center">
-                    <Grid item xs={11}>
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Selected Membership
@@ -187,7 +187,7 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
                   </Grid>
                 </Grid>
                 <Grid container spacing={2} justifyContent="center">
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Grid container spacing={2} justifyContent="center">
                       <MembershipPreview readOnly={true} />
                     </Grid>
@@ -196,11 +196,11 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
-                <Grid item xs={12} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
+                <Grid size={{ xs: 12 }} style={{ backgroundColor: "#F6F6F6", marginBottom: "1rem" }}>
                   <Grid container spacing={2} justifyContent="center">
-                    <Grid item xs={11}>
+                    <Grid size={{ xs: 11 }}>
                       <Box display="flex">
                         <Typography style={{ flexGrow: 1 }} variant="h4">
                           Payment Method
@@ -214,7 +214,7 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
                 </Grid>
 
                 <Grid container spacing={2} justifyContent="center">
-                  <Grid item xs={11} style={{ marginBottom: "1rem" }}>
+                  <Grid size={{ xs: 11 }} style={{ marginBottom: "1rem" }}>
                     {isRequesting ?  <LoadingOverlay contained={true} /> :
                         error ? <ErrorMessage error={error} /> : paymentMethod ? (
                           <PaymentMethodComponent
@@ -228,10 +228,10 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
               </Paper>
             </Grid>
 
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Paper>
                 <Grid container spacing={2} justifyContent="center">
-                  <Grid item xs={11}>
+                  <Grid size={{ xs: 11 }}>
                     <Typography variant="body1">
                       I, {currentUser.firstname} {currentUser.lastname}, authorize Manchester Makerspace to charge {total}{" "}
                       to the payment method I have selected every {selectedOpt?.quantity} month(s). I understand that this authorization

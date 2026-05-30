@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Typography from '@mui/material/Typography';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -226,9 +226,9 @@ const CreditsTabInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
-          <Grid item xs={12} sm={3}>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select
               value={statusFilter}
@@ -242,18 +242,18 @@ const CreditsTabInner: React.FC = () => {
               <MenuItem value='reversal'>Reversals</MenuItem>
             </Select>
           </Grid>
-          <Grid item xs={12} sm={9}>
+          <Grid size={{ xs: 12, sm: 9 }}>
             <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
               {selectedCredit?.status === 'pending' && (
                 <>
-                  <Grid item>
+                  <Grid>
                     <Button variant='contained' color='primary' size='small'
                       disabled={approving} startIcon={<CheckIcon />}
                       onClick={() => approveCredit({ id: selectedCredit.id })}>
                       Approve
                     </Button>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Button variant='outlined' color='secondary' size='small'
                       disabled={rejecting} startIcon={<CloseIcon />}
                       onClick={() => rejectCredit({ id: selectedCredit.id })}>
@@ -263,7 +263,7 @@ const CreditsTabInner: React.FC = () => {
                 </>
               )}
               {isAdmin && selectedCredit?.status === 'approved' && !selectedCredit.reversed && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small'
                     startIcon={<UndoIcon />}
                     onClick={() => setReverseTarget(selectedCredit.id)}>
@@ -272,7 +272,7 @@ const CreditsTabInner: React.FC = () => {
                 </Grid>
               )}
               {isAdmin && selectedIds.length > 0 && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small'
                     disabled={deleting} startIcon={<DeleteIcon />}
                     onClick={() => selectedIds.forEach(id => deleteCredit({ id }))}>
@@ -286,12 +286,12 @@ const CreditsTabInner: React.FC = () => {
       </Grid>
 
       {(approveError || rejectError || deleteError) && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage error={approveError || rejectError || deleteError} />
         </Grid>
       )}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='volunteer-credits-table'
           title='Volunteer Credits'
@@ -345,10 +345,10 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, lo
       onSubmit={() => task && title && onSave(task.id, { title, description })}
       loading={loading} error={error}>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Title' value={title} onChange={e => setTitle(e.target.value)} fullWidth required autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={3} />
         </Grid>
@@ -375,14 +375,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSa
       onSubmit={() => title && description && onSave({ title, description, creditValue: parseFloat(creditValue) || 1 })}
       loading={loading} error={error}>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Title' value={title} onChange={e => setTitle(e.target.value)} fullWidth required autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={3} required />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Credit Value' value={creditValue} onChange={e => setCreditValue(e.target.value)}
             type='number' inputProps={{ min: 0.5, max: 2, step: 0.5 }} fullWidth required helperText='Max 2 credits' />
         </Grid>
@@ -467,9 +467,9 @@ const TasksTabInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
-          <Grid item xs={12} sm={3}>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
               fullWidth displayEmpty>
@@ -481,16 +481,16 @@ const TasksTabInner: React.FC = () => {
               <MenuItem value='cancelled'>Cancelled</MenuItem>
             </Select>
           </Grid>
-          <Grid item xs={12} sm={9}>
+          <Grid size={{ xs: 12, sm: 9 }}>
             <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
-              <Grid item>
+              <Grid>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
                   Create Task
                 </Button>
               </Grid>
               {selectedTask && ['available', 'claimed'].includes(selectedTask.status) && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' size='small' startIcon={<EditIcon />}
                     onClick={() => setEditTarget(selectedTask)}>
                     Edit
@@ -499,14 +499,14 @@ const TasksTabInner: React.FC = () => {
               )}
               {selectedTask?.status === 'pending' && (
                 <>
-                  <Grid item>
+                  <Grid>
                     <Button variant='contained' color='primary' size='small' startIcon={<CheckIcon />}
                       disabled={completing}
                       onClick={() => completeTask({ id: selectedTask.id })}>
                       Verify
                     </Button>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Button variant='outlined' color='secondary' size='small' startIcon={<CloseIcon />}
                       onClick={() => setReject(selectedTask.id)}>
                       Reject
@@ -515,7 +515,7 @@ const TasksTabInner: React.FC = () => {
                 </>
               )}
               {selectedTask?.status === 'claimed' && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small'
                     onClick={() => setRelease(selectedTask.id)}>
                     Release
@@ -523,7 +523,7 @@ const TasksTabInner: React.FC = () => {
                 </Grid>
               )}
               {selectedTask?.status === 'available' && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<CloseIcon />}
                     onClick={() => cancelTask({ id: selectedTask.id })}>
                     Cancel
@@ -533,7 +533,7 @@ const TasksTabInner: React.FC = () => {
               {isAdmin && selectedIds.length > 0 &&
                 (tasks as VolunteerTask[]).filter(t => selectedIds.includes(t.id))
                   .every(t => ['completed', 'cancelled'].includes(t.status)) && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
                     onClick={() => selectedIds.forEach(id => deleteTask({ id }))}>
                     Delete ({selectedIds.length})
@@ -546,12 +546,12 @@ const TasksTabInner: React.FC = () => {
       </Grid>
 
       {(completeError || releaseError || rejectError) && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage error={completeError || releaseError || rejectError} />
         </Grid>
       )}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='volunteer-tasks-table'
           title='Bounty Tasks'
@@ -611,18 +611,18 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, on
       onSubmit={() => title && onSave({ title, description, creditValue: parseFloat(creditValue) || 1, eventDate })}
       loading={loading} error={error}>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Title' value={title} onChange={e => setTitle(e.target.value)} fullWidth required autoFocus />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={2} />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <TextField label='Credit Value' value={creditValue} onChange={e => setCreditValue(e.target.value)}
             type='number' inputProps={{ min: 0.5, step: 0.5 }} fullWidth required />
         </Grid>
-        <Grid item xs={6}>
+        <Grid size={{ xs: 6 }}>
           <TextField label='Event Date' value={eventDate} onChange={e => setEventDate(e.target.value)}
             type='date' fullWidth InputLabelProps={{ shrink: true }} />
         </Grid>
@@ -791,9 +791,9 @@ const EventsTabInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
-          <Grid item xs={12} sm={3}>
+          <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
               fullWidth displayEmpty>
@@ -802,16 +802,16 @@ const EventsTabInner: React.FC = () => {
               <MenuItem value='closed'>Closed</MenuItem>
             </Select>
           </Grid>
-          <Grid item xs={12} sm={9}>
+          <Grid size={{ xs: 12, sm: 9 }}>
             <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
-              <Grid item>
+              <Grid>
                 <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
                   onClick={() => setCreateOpen(true)}>
                   Create Event
                 </Button>
               </Grid>
               {selectedEvent && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' size='small' startIcon={<PeopleIcon />}
                     onClick={() => setManageAttendees(selectedEvent)}>
                     Manage Attendees
@@ -820,13 +820,13 @@ const EventsTabInner: React.FC = () => {
               )}
               {selectedEvent?.status === 'open' && (
                 <>
-                  <Grid item>
+                  <Grid>
                     <Button variant='outlined' size='small' startIcon={<PersonAddIcon />}
                       onClick={() => setAddAttendee(selectedEvent.id)}>
                       Add Attendee
                     </Button>
                   </Grid>
-                  <Grid item>
+                  <Grid>
                     <Button variant='contained' color='primary' size='small' startIcon={<CheckIcon />}
                       disabled={closing}
                       onClick={() => closeEvent({ id: selectedEvent.id })}>
@@ -838,7 +838,7 @@ const EventsTabInner: React.FC = () => {
               {isAdmin && selectedIds.length > 0 &&
                 (events as VolunteerEvent[]).filter(e => selectedIds.includes(e.id))
                   .every(e => e.status === 'closed') && (
-                <Grid item>
+                <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
                     onClick={() => selectedIds.forEach(id => deleteEvent({ id }))}>
                     Delete ({selectedIds.length})
@@ -851,12 +851,12 @@ const EventsTabInner: React.FC = () => {
       </Grid>
 
       {(closeError || addAttendeeError) && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <ErrorMessage error={closeError || addAttendeeError} />
         </Grid>
       )}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='volunteer-events-table'
           title='Volunteer Events'
@@ -900,14 +900,14 @@ const AdminVolunteerPage: React.FC = () => {
 
   return (
     <Grid container spacing={3} justifyContent='center'>
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant='h5' gutterBottom>Volunteer</Typography>
         <Typography variant='body2' color='textSecondary'>
           Manage volunteer credits, bounty tasks, and events.
         </Typography>
       </Grid>
 
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val as TabKey)}
           indicatorColor='primary' textColor='primary' variant='scrollable' scrollButtons='auto'>
           {TABS.map(t => (
@@ -916,7 +916,7 @@ const AdminVolunteerPage: React.FC = () => {
         </Tabs>
       </Grid>
 
-      <Grid item md={10} xs={12}>
+      <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === 'credits' && <CreditsTab />}
         {activeTab === 'tasks'   && <TasksTab />}
         {activeTab === 'events'  && <EventsTab />}

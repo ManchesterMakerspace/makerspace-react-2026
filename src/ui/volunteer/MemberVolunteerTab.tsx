@@ -1,5 +1,5 @@
 import * as React from 'react';
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -217,7 +217,7 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
   return (
     <Grid container spacing={2}>
       {selectedTask?.status === 'available' && !myActiveTask && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Button variant='contained' color='primary' size='small'
             disabled={claiming} startIcon={<AssignmentIcon />}
             onClick={() => claimTask({ id: selectedTask.id })}>
@@ -227,7 +227,7 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
         </Grid>
       )}
       {selectedTask?.claimedById === member.id && selectedTask?.status === 'claimed' && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Button variant='contained' color='primary' size='small'
             disabled={completing} startIcon={<CheckIcon />}
             onClick={() => markComplete({ id: selectedTask.id })}>
@@ -237,11 +237,11 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
         </Grid>
       )}
       {selectedTask?.claimedById === member.id && selectedTask?.status === 'pending' && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='body2' color='textSecondary'>Awaiting admin verification</Typography>
         </Grid>
       )}
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='member-volunteer-tasks-table'
           title='Bounty Tasks'
@@ -348,7 +348,7 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
   return (
     <Grid container spacing={2}>
       {selectedEvent && !alreadyCheckedIn && !eventDatePassed && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Button variant='contained' color='primary' size='small'
             disabled={checkingIn} startIcon={<EventIcon />}
             onClick={() => checkin({ id: selectedEvent.id })}>
@@ -358,19 +358,19 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
         </Grid>
       )}
       {selectedEvent && !alreadyCheckedIn && eventDatePassed && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='body2' color='textSecondary'>
             Check-in is no longer available — this event's date has passed.
           </Typography>
         </Grid>
       )}
       {selectedEvent && alreadyCheckedIn && !eventDatePassed && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Grid container spacing={2} alignItems='center'>
-            <Grid item>
+            <Grid>
               <Typography variant='body2' color='textSecondary'>✅ You're checked in to this event</Typography>
             </Grid>
-            <Grid item>
+            <Grid>
               <Button variant='outlined' color='secondary' size='small'
                 disabled={removingCheckin} startIcon={<CancelIcon />}
                 onClick={() => removeCheckin({ id: selectedEvent.id })}>
@@ -382,11 +382,11 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
         </Grid>
       )}
       {selectedEvent && alreadyCheckedIn && eventDatePassed && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography variant='body2' color='textSecondary'>✅ You're checked in to this event</Typography>
         </Grid>
       )}
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='member-volunteer-events-table'
           title='Open Events'
@@ -410,24 +410,24 @@ const EventsTable = withQueryContext(EventsTableInner);
 
 const SummaryBanner: React.FC<{ summary: VolunteerSummary }> = ({ summary }) => (
   <Grid container spacing={2} style={{ marginBottom: 8 }}>
-    <Grid item xs={12} sm={4}>
+    <Grid size={{ xs: 12, sm: 4 }}>
       <Typography variant='h6' color='primary'>{summary.year_count}</Typography>
       <Typography variant='body2' color='textSecondary'>Credits this year</Typography>
     </Grid>
     {summary.discount_active && (
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <Typography variant='h6'>{summary.discounts_used} / {summary.max_discounts}</Typography>
         <Typography variant='body2' color='textSecondary'>Discounts applied</Typography>
       </Grid>
     )}
     {summary.pending_count > 0 && (
-      <Grid item xs={12} sm={4}>
+      <Grid size={{ xs: 12, sm: 4 }}>
         <Typography variant='h6'>{summary.pending_count}</Typography>
         <Typography variant='body2' color='textSecondary'>Pending approval</Typography>
       </Grid>
     )}
     {summary.discount_active && summary.message && (
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <Typography variant='body2' color='primary'>{summary.message}</Typography>
       </Grid>
     )}
@@ -446,21 +446,21 @@ const MemberVolunteerTab: React.FC<Props> = ({ member }) => {
   return (
     <Grid container spacing={3}>
       {s && (
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <SummaryBanner summary={s} />
           <Divider />
         </Grid>
       )}
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <EventsTable member={member} onRefresh={triggerRefresh} />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <TasksTable member={member} onRefresh={triggerRefresh} />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12 }}>
         <CreditHistory />
       </Grid>
     </Grid>

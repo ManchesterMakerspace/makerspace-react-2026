@@ -2,7 +2,7 @@ import * as React from "react";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import Grid from '@mui/material/Grid';
+import Grid from "@mui/material/Grid2";
 import Hidden from "@mui/material/Hidden";
 
 import { FormContextConsumer, FormContextProvider } from "components/Form/FormContext";
@@ -24,9 +24,9 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
           onSubmit={handleSubmit(setSearch, submitCC)}
         >
           <Grid container spacing={2} justifyContent="center">
-            <Grid item xs={11} md={8}>
+            <Grid size={{ xs: 11, md: 8 }}>
               <Grid container spacing={2} justifyContent="center">
-                <Grid item xs={12} >
+                <Grid size={{ xs: 12 }}>
                   <Box>
                     <FormContextConsumer>
                       {({ values }) => (
@@ -38,7 +38,7 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
                     </FormContextConsumer>
                   </Box>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <PaymentMethods />
                 </Grid>
 
@@ -46,7 +46,7 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
                   {children}
                 </Hidden>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <div>
                     <Typography variant="body1">
                       <strong>How recurring payments work:</strong>
@@ -65,7 +65,7 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
             </Grid>
             <Hidden smDown>
               <Divider orientation="vertical" flexItem />
-              <Grid item md={3}>
+              <Grid size={{ md: 3 }}>
                 <CartPreview readOnly={true} />
                 {children}
               </Grid>

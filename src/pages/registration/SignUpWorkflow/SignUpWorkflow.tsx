@@ -10,7 +10,7 @@
 
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import Button from "@mui/material/Button";
@@ -20,7 +20,7 @@ import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import MobileStepper from "@mui/material/MobileStepper";
-import useTheme from "@mui/material/styles/useTheme";
+import { useTheme } from "@mui/material/styles";
 
 import { isApiErrorResponse, Member, message } from "makerspace-ts-api-client";
 import { AgreementStep } from "./AgreementStep";
@@ -168,7 +168,7 @@ export const SignUpWorkflow: React.FC = () => {
     <SignUpContextProvider setActiveStep={setActiveStep}>
         {({ allowLeave, nextDisabled, prevDisabled }) => (
           <Grid container justifyContent="center" spacing={2}>
-            <Grid item sm={10} xs={12}>
+            <Grid size={{ xs: 12, sm: 10 }}>
               {isSmallMedia ? (
                 <MobileStepper
                 variant="dots"
@@ -210,12 +210,12 @@ export const SignUpWorkflow: React.FC = () => {
 
             </Grid>
 
-            <Grid item xs={12} md={10}>
+            <Grid size={{ xs: 12, md: 10 }}>
               <Component><NestedLeave/></Component>
             </Grid>
 
 
-            {!isSmallMedia && <Grid item sm={10} xs={12}>
+            {!isSmallMedia && <Grid size={{ xs: 12, sm: 10 }}>
               {isSignUpEditable && (
                 <Button
                   disabled={prevDisabled ?? disableBack}

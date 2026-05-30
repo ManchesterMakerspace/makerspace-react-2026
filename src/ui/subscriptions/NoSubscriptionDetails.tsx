@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 
@@ -25,7 +25,7 @@ const NoSubscriptionDetails: React.FC<Props> = ({ member }) => {
   return (
     <>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <KeyValueItem label="Membership Expiration">
             <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
           </KeyValueItem>
@@ -36,10 +36,10 @@ const NoSubscriptionDetails: React.FC<Props> = ({ member }) => {
             <span id="member-detail-type">{details.type}</span>
           </KeyValueItem>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Typography>{details.description}</Typography>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Button
             id="settings-create-membership-button"
             variant="contained"

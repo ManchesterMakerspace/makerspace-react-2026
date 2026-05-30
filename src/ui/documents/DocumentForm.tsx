@@ -1,7 +1,7 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
 
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 
 import { Form } from "components/Form/Form";
 import DocumentFrame, { DocDetails } from "./Document";
@@ -35,7 +35,7 @@ const DocumentForm: React.FC<Props> = ({ error, loading, onAccept, doc, requestS
       style={{ maxWidth: "900px", margin: "auto" }}
     >
       <DocumentFrame id={id} src={src} />
-      <Grid item xs={12} style={{ marginTop: "1rem" }}>
+      <Grid size={{ xs: 12 }} style={{ marginTop: "1rem" }}>
         <CheckboxInput label={label} fieldName={name} required={true} />
       </Grid>
 
