@@ -2,8 +2,8 @@ import * as React from "react";
 import Divider from "@mui/material/Divider";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid2";
-import Hidden from "@mui/material/Hidden";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
 
 import { FormContextConsumer, FormContextProvider } from "components/Form/FormContext";
 import { useSetSearchQuery } from "hooks/useSearchQuery";
@@ -42,9 +42,9 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
                   <PaymentMethods />
                 </Grid>
 
-                <Hidden mdUp>
+                <Box sx={{ display: { xs: 'block', md: 'none' } }}>
                   {children}
-                </Hidden>
+                </Box>
 
                 <Grid size={{ xs: 12 }}>
                   <div>
@@ -63,13 +63,13 @@ export const PaymentStep: React.FC<{ children?: React.ReactNode }> = ({ children
                 </Grid>
               </Grid>
             </Grid>
-            <Hidden smDown>
+            <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
               <Divider orientation="vertical" flexItem />
               <Grid size={{ md: 3 }}>
                 <CartPreview readOnly={true} />
                 {children}
               </Grid>
-            </Hidden>
+            </Box>
           </Grid>
         </FormContextProvider>
       )}

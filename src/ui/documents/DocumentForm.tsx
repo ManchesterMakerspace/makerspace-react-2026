@@ -1,7 +1,7 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
 
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import { Form } from "components/Form/Form";
 import DocumentFrame, { DocDetails } from "./Document";

@@ -1,9 +1,9 @@
 import * as React from "react";
 import Typography from "@mui/material/Typography";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import Divider from "@mui/material/Divider";
-import Hidden from "@mui/material/Hidden";
+import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 
@@ -65,7 +65,7 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
           </Box>
           <MembershipOptions onSelect={updateInvoiceOption} showNoneOption={showNoneOption} />
         </Grid>
-          <Hidden smDown><Divider orientation="vertical" flexItem /></Hidden>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}><Divider orientation="vertical" flexItem /></Box>
           <Grid size={{ xs: 12, md: 3 }}>
             <CartPreview />
           </Grid>

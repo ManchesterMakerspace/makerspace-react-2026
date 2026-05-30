@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import FormControl from "@mui/material/FormControl";
 import RadioGroup from "@mui/material/RadioGroup";
 import Radio from "@mui/material/Radio";

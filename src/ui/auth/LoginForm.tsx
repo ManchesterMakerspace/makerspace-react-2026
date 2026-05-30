@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import { Routing } from "app/constants";
 import { emailValid } from "app/utils";

@@ -6,7 +6,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import FormLabel from "@mui/material/FormLabel";
 import RadioGroup from "@mui/material/RadioGroup";
 import Radio from "@mui/material/Radio";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Select from "@mui/material/Select";
 import Checkbox from "@mui/material/Checkbox";
 

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 

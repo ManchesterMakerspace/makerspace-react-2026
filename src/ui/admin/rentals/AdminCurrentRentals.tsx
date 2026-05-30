@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import { Link } from "react-router-dom";

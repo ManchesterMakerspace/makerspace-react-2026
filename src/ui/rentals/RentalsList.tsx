@@ -1,7 +1,7 @@
 import * as React from "react";
 import moment from "moment";
 import { Link } from 'react-router-dom';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Tooltip from "@mui/material/Tooltip";
 import { Rental, listRentals, adminListRentals, Member } from "makerspace-ts-api-client";
 

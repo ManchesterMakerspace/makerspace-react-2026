@@ -6,11 +6,11 @@
  import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
   
- import Grid from "@mui/material/Grid2";
+ import Grid from "@mui/material/Grid";
  import Paper from '@mui/material/Paper';
  import Button from "@mui/material/Button";
  import Typography from '@mui/material/Typography';
- import Hidden from "@mui/material/Hidden";
+import Box from "@mui/material/Box";
  
  import Logo from "../../assets/FilledLaserableLogo.svg";
  
@@ -37,11 +37,11 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
   return (
     <>
       <Grid container spacing={3} justifyContent="center">
-        <Hidden smDown>
+        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
           <Grid size={{ lg: 6 }}>
             <Logo style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
           </Grid>
-        </Hidden>
+        </Box>
 
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper style={{ minWidth: 275, padding: "1rem" }}>

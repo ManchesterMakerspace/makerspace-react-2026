@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
-import Hidden from '@mui/material/Hidden';
+import Box from '@mui/material/Box';
 
 import LoginForm from "ui/auth/LoginForm";
 import { Routing } from 'app/constants';
@@ -15,11 +15,11 @@ const LoginPage: React.FC = () => {
   const goToRegister = React.useCallback(() => navigate(Routing.Root), []);
   return (
     <Grid container spacing={3}>
-      <Hidden smDown>
+      <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
         <Grid size={{ sm: 12, md: 6 }} id="landing-page-graphic">
           <Logo style={{ width: '100%', height: '200px' }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
         </Grid>
-      </Hidden>
+      </Box>
 
       <Grid size={{ sm: 12, md: 6 }}>
         <Grid container justifyContent="center" spacing={3}>

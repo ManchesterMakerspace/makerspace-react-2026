@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { connect } from 'react-redux';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { completeProviderSignIn } from 'ui/auth/firebase';
 import { firebaseLoginAction } from 'ui/auth/actions';
 import { Routing } from 'app/constants';

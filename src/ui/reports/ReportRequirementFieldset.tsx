@@ -1,6 +1,6 @@
 import * as React from "react";
 import range from "lodash-es/range";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import MenuItem from "@mui/material/MenuItem";
 import FormLabel from "@mui/material/FormLabel";
 import Select from "@mui/material/Select";

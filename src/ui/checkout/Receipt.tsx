@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 
 import { buildProfileRouting } from "ui/member/utils";

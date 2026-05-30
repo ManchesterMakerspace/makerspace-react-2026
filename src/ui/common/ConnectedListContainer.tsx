@@ -2,7 +2,7 @@ import * as React from "react";
 import { AnyAction } from "redux";
 import { ThunkAction } from "redux-thunk";
 import { connect } from "react-redux";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import { QueryParams, RequestStatus } from "app/interfaces";
 

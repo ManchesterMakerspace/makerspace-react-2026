@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Link from "@mui/material/Link";
 import Paper from "@mui/material/Paper";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { paymentMethodQueryParam } from "../PaymentMethods";
 import { discountParam, invoiceOptionParam, ssmDiscount } from "../MembershipOptions";
 import { useSearchQuery } from "hooks/useSearchQuery";

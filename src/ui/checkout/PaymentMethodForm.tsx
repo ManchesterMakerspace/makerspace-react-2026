@@ -6,7 +6,7 @@ import Accordion from '@mui/material/Accordion';
 import MuiAccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import Button from '@mui/material/Button';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import { AnyPaymentMethod } from 'app/entities/paymentMethod';
 import FormModal from 'ui/common/FormModal';

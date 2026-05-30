@@ -1,6 +1,6 @@
 import * as React from "react";
 import range from "lodash-es/range";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import Select from "@mui/material/Select";
 import Checkbox from "@mui/material/Checkbox";

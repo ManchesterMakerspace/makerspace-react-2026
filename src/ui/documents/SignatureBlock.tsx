@@ -1,6 +1,6 @@
 import * as React from "react";
 import SignatureCanvas from "react-signature-canvas";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { FormField } from "components/Form/FormField";

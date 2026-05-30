@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { updateMember } from "makerspace-ts-api-client";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import Form from "ui/common/Form";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";

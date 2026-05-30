@@ -4,7 +4,7 @@ import { connect } from "react-redux";
 import { RouteComponentProps } from "react-router-dom";
 
 import TextField from "@mui/material/TextField";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";

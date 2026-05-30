@@ -2,7 +2,7 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { Link, RouteComponentProps } from 'react-router-dom';
 import { withRouter } from 'ui/utils/withRouter';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import { QueryParams, CollectionOf } from "app/interfaces";
 

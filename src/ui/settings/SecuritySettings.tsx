@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Divider from '@mui/material/Divider';

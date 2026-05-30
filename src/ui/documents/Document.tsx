@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import LoadingOverlay from "../common/LoadingOverlay";
 import { FormField } from "../common/Form";

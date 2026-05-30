@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import capitalize from "lodash-es/capitalize";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";

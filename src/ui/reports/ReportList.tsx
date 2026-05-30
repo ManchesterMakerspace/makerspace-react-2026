@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams } from 'react-router-dom';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 
 import { Report, listEarnedMembershipReports, getMember, getEarnedMembership, adminGetEarnedMembership, adminListEarnedMembershipReports } from "makerspace-ts-api-client";

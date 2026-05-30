@@ -1,5 +1,5 @@
 import * as React from "react";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Divider from "@mui/material/Divider";
 import { Member } from "makerspace-ts-api-client";
 

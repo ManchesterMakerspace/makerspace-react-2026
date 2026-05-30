@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useParams } from 'react-router-dom';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";

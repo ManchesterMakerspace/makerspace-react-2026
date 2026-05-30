@@ -2,7 +2,7 @@ import * as React from "react";
 import { useLocation } from 'react-router-dom';
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 
 import SendChargeForm from "./SendChargeForm";

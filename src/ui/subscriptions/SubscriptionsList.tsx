@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useLocation } from 'react-router-dom';
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import { Link } from "react-router-dom";
 
 import { Subscription, adminListSubscriptions } from "makerspace-ts-api-client";

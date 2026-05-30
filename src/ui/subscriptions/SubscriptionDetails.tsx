@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useDispatch } from "react-redux";
 import { getSubscription, Invoice, Subscription } from "makerspace-ts-api-client";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 
 import KeyValueItem from "ui/common/KeyValueItem";
 import useReadTransaction from "../hooks/useReadTransaction";
