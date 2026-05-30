@@ -14,7 +14,7 @@ interface DispatchProps {
 }
 
 interface OwnProps {
-  history: any;
+  navigate: (path: string) => void;
 }
 
 interface Props extends DispatchProps, OwnProps {}
@@ -82,10 +82,10 @@ const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
 
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);
 
-// Wrap with router to get history prop
+// Wrap with router to inject navigate into class component
 const FirebaseCallbackWithRouter: React.FC<{}> = () => {
   const navigate = useNavigate();
-  return <ConnectedFirebaseCallback history={history} />;
+  return <ConnectedFirebaseCallback navigate={navigate} />;
 };
 
 export default FirebaseCallbackWithRouter;
