@@ -15,7 +15,6 @@
     "braintree-web": "^3.96.0",
     "lodash-es": "^4.17.21",
     "makerspace-ts-api-client": "2.9.0",
-    "moment": "^2.29.4",
     "moment-timezone": "^0.5.35",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
