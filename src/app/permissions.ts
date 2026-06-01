@@ -41,6 +41,9 @@ export interface UserCapabilities {
 
   // System — Portal Settings is admin ONLY
   canViewPortalSettings:       boolean; // admin ONLY
+
+  // Audit log — privileged (admin + board)
+  canViewAuditLog:             boolean; // admin, board
 }
 
 export const computeCapabilities = (user: AuthMember): UserCapabilities => {
@@ -75,6 +78,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
     canDeleteVolunteerRecords:   privileged,
 
     canViewPortalSettings:       admin, // admin ONLY
+    canViewAuditLog:             privileged,
   };
 };
 

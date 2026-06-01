@@ -21,12 +21,13 @@ import ShopFeesPage from 'ui/shopFees/ShopFeesPage';
 import ToolCheckoutsPage from 'ui/toolCheckouts/ToolCheckoutsPage';
 import MemberPortalSettings from 'ui/admin/MemberPortalSettings';
 import AdminVolunteerPage from 'ui/volunteer/AdminVolunteerPage';
+import AuditLogPage from 'ui/auditLog/AuditLogPage';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
 
 interface Props {
-  currentUserId: string,
-  permissions: CollectionOf<Permission>,
+  currentUserId: string;
+  permissions: CollectionOf<Permission>;
 }
 
 /**
@@ -58,7 +59,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
           path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`}
           element={<SettingsContainer />}
         />
-        <Route path="*" element={<Navigate to={`/members/${currentUserId}/settings/security`} replace />} />
+        <Route path='*' element={<Navigate to={`/members/${currentUserId}/settings/security`} replace />} />
       </Routes>
     );
   }
@@ -71,18 +72,19 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<SettingsContainer />} />
       <Route path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<MemberDetail />} />
       <Route path={Routing.Rentals} element={<RentalsList />} />
-      {caps.canManageRentals && <Route path={Routing.AdminRentals} element={<AdminRentalsPage />} />}
-      {caps.canManageShopFees && <Route path={Routing.ShopFees} element={<ShopFeesPage />} />}
-      {caps.canManageCheckouts && <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />}
-      {caps.canManageVolunteer && <Route path={Routing.Volunteer} element={<AdminVolunteerPage />} />}
-      {caps.canViewPortalSettings && <Route path={Routing.SystemSettings} element={<MemberPortalSettings />} />}
+      {caps.canManageRentals     && <Route path={Routing.AdminRentals}    element={<AdminRentalsPage />} />}
+      {caps.canManageShopFees    && <Route path={Routing.ShopFees}         element={<ShopFeesPage />} />}
+      {caps.canManageCheckouts   && <Route path={Routing.ToolCheckouts}    element={<ToolCheckoutsPage />} />}
+      {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
+      {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}
+      {caps.canViewAuditLog      && <Route path={Routing.AuditLog}         element={<AuditLogPage />} />}
       {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
       {billingEnabled && <Route path={Routing.Receipt} element={<Receipt />} />}
       {billingEnabled && <Route path={Routing.Checkout} element={<CheckoutPage />} />}
       <Route path={Routing.SendRegistration} element={<SendRegistrationComponent />} />
       {earnedMembershipEnabled && <Route path={Routing.EarnedMemberships} element={<EarnedMembershipsList />} />}
       <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
-      <Route path="*" element={<RedirectHome currentUserId={currentUserId} />} />
+      <Route path='*' element={<RedirectHome currentUserId={currentUserId} />} />
     </Routes>
   );
 };
