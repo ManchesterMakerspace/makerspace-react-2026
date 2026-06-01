@@ -11,7 +11,7 @@ module.exports = env => ({
   entry: ["./src/app/main.tsx"],
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "makerspace-react.js",
+    filename: "[name].js",
     chunkFilename: "[name].js",
     publicPath: "/"
   },
@@ -90,7 +90,16 @@ module.exports = env => ({
   devServer: {
     hot: true,
     allowedHosts: "all",
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: "/index.html"
+    },
+    static: {
+      directory: path.resolve(__dirname, "dist"),
+      publicPath: "/"
+    },
+    devMiddleware: {
+      publicPath: "/"
+    },
     proxy: [{
       context: ["/api"],
       target: "http://localhost:3002"
