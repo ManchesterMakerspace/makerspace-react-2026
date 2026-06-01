@@ -3,7 +3,7 @@ import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import { Link } from "react-router-dom";
-import moment from "moment-timezone";
+import moment from "ui/utils/moment";
 import { Rental, adminListRentals } from "makerspace-ts-api-client";
 
 import StatefulTable from "ui/common/table/StatefulTable";

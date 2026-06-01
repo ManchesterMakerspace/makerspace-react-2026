@@ -50,6 +50,9 @@ module.exports = env => ({
   },
   resolve: {
     plugins: [new TsconfigPathsPlugin()],
+    alias: {
+      "moment-timezone$": "moment-timezone/moment-timezone"
+    },
     extensions: [
       ".ts", ".tsx", ".js", ".jsx",
       ".scss", ".sass", ".less",

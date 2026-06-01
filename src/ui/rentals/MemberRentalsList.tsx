@@ -1,5 +1,5 @@
 import * as React from "react";
-import moment from "moment-timezone";
+import moment from "ui/utils/moment";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
