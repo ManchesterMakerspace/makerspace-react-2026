@@ -1,7 +1,18 @@
 {
   "presets": [
     ["@babel/preset-env", {
-      "targets": { "browsers": [">0.25%", "not dead"] },
+      "bugfixes": true,
+      "targets": {
+        "browsers": [
+          "last 2 Chrome versions",
+          "last 2 Edge versions",
+          "last 2 Firefox versions",
+          "last 2 Safari major versions",
+          "last 2 iOS major versions",
+          "not IE 11",
+          "not op_mini all"
+        ]
+      },
       "useBuiltIns": false
     }],
     "@babel/preset-typescript",
