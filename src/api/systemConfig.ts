@@ -63,6 +63,7 @@ export interface TotpSettings {
 export interface SystemConfigData {
   flags: {
     slack_sync_enabled: boolean;
+    slack_profile_sync_enabled: boolean;
     volunteer_bounty_token_enabled: boolean;
     require_totp_admin: boolean;
     require_totp_board: boolean;

@@ -49,6 +49,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 const JOB_LABELS: Record<string, string> = {
   slack_sync:      'Slack User Sync',
+  slack_profile_sync: 'Slack Profile Sync',
   member_review:   'Member Review',
   invoice_review:  'Invoice Review',
   garbage_collect: 'Garbage Collector',
@@ -57,6 +58,7 @@ const JOB_LABELS: Record<string, string> = {
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
   slack_sync:      'Bulk syncs Slack workspace users to member records by matching email. Use Run Now after onboarding a batch of new members.',
+  slack_profile_sync: 'Updates the Slack profile status field for members whose memberships expired since the last sync.',
   member_review:   'Reviews membership statuses and sends a weekly summary report to Slack.',
   invoice_review:  'Reviews invoice statuses, flags past due accounts, and reports to the treasurer channel.',
   garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month.',
@@ -325,6 +327,25 @@ const SlackTab: React.FC<SlackTabProps> = ({
                   <Typography variant='body1' component='span'>Enable Scheduled Sync</Typography>
                   <Typography variant='body2' color='textSecondary' component='p'>
                     When enabled, syncs run on demand. Use Run Now below for a full workspace sync.
+                  </Typography>
+                </span>
+              }
+            />
+            <Divider style={{ margin: '12px 0' }} />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={config.flags.slack_profile_sync_enabled}
+                  onChange={() => onFlagToggle('slack_profile_sync_enabled', config.flags.slack_profile_sync_enabled)}
+                  disabled={togglingFlag === 'slack_profile_sync_enabled'}
+                  color='primary'
+                />
+              }
+              label={
+                <span>
+                  <Typography variant='body1' component='span'>Enable Scheduled Profile Sync</Typography>
+                  <Typography variant='body2' color='textSecondary' component='p'>
+                    When enabled, expired member Slack profile status updates run automatically at 7:00 AM.
                   </Typography>
                 </span>
               }
