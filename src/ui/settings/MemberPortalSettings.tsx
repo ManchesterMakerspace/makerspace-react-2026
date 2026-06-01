@@ -428,6 +428,35 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
 
     <Grid size={{ xs: 12 }}>
       <Card>
+        <CardHeader
+          title='Credit Counters'
+          subheader='Controls for the rolling and leaderboard credit displays.'
+        />
+        <Divider />
+        <CardContent>
+          <SettingRow
+            label='Rolling Days Counter'
+            description='Number of days used for the rolling credit window displayed on member profiles'
+            settingKey='volunteer_rolling_days'
+            value={config.volunteer.volunteer_rolling_days}
+            onSave={onSettingSave}
+            saving={savingKey === 'volunteer_rolling_days'}
+          />
+          <Divider style={{ margin: '8px 0' }} />
+          <SettingRow
+            label='Leaderboard Top N'
+            description='Number of top earners shown on the public volunteer leaderboard'
+            settingKey='volunteer_leaderboard_top'
+            value={config.volunteer.volunteer_leaderboard_top}
+            onSave={onSettingSave}
+            saving={savingKey === 'volunteer_leaderboard_top'}
+          />
+        </CardContent>
+      </Card>
+    </Grid>
+
+    <Grid size={{ xs: 12 }}>
+      <Card>
         <CardHeader title='Bounty Tasks' />
         <Divider />
         <CardContent>

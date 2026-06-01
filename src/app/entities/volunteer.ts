@@ -74,6 +74,9 @@ export interface VolunteerEvent {
 
 export interface VolunteerSummary {
   year_count: number;
+  lifetime_count: number;
+  rolling_count: number;
+  rolling_days: number;
   discounts_used: number | null;
   max_discounts: number | null;
   credits_per_discount: number | null;
