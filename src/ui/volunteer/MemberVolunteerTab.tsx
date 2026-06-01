@@ -421,16 +421,14 @@ const SummaryBanner: React.FC<{ summary: VolunteerSummary }> = ({ summary }) => 
     <Grid size={{ xs: 12, sm: 3 }}>
       <Typography variant='h6' color='primary'>{summary.year_count}</Typography>
       <Typography variant='body2' color='textSecondary'>Credits this year</Typography>
+      {summary.message && (
+        <Typography variant='body2' color='primary' style={{ marginTop: 4 }}>{summary.message}</Typography>
+      )}
     </Grid>
     <Grid size={{ xs: 12, sm: 3 }}>
       <Typography variant='h6'>{summary.discounts_used} / {summary.max_discounts}</Typography>
       <Typography variant='body2' color='textSecondary'>Discounts applied</Typography>
     </Grid>
-    {summary.message && (
-      <Grid size={{ xs: 12 }}>
-        <Typography variant='body2' color='primary'>{summary.message}</Typography>
-      </Grid>
-    )}
     {summary.pending_count > 0 && (
       <Grid size={{ xs: 12 }}>
         <Typography variant='h6'>{summary.pending_count}</Typography>

@@ -50,6 +50,8 @@ export interface VolunteerSettings {
   volunteer_discount_id: string;
   volunteer_task_max_credit: string;
   volunteer_bounty_token: string;
+  volunteer_rolling_days: string;
+  volunteer_leaderboard_top: string;
 }
 
 export interface TotpSettings {
