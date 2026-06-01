@@ -10,14 +10,31 @@ module.exports = env => ({
   entry: ["./src/app/main.tsx"],
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "makerspace-react.js",
-    publicPath: "/"
+    filename: "[name].[contenthash].js",
+    chunkFilename: "[name].[contenthash].js",
+    publicPath: "/",
+    clean: true
+  },
+  optimization: {
+    runtimeChunk: "single",
+    splitChunks: {
+      chunks: "all"
+    }
   },
   module: {
     rules: [
       {
         test: /\.(png|jpg)$/,
-        type: "asset/inline"
+        type: "asset",
+        parser: {
+          dataUrlCondition: {
+            maxSize: 4096
+          }
+        }
+      },
+      {
+        test: /\.svg$/,
+        type: "asset/resource"
       },
       {
         test: /\.(html)$/,
@@ -50,6 +67,9 @@ module.exports = env => ({
   },
   resolve: {
     plugins: [new TsconfigPathsPlugin()],
+    alias: {
+      "moment-timezone$": "moment-timezone/moment-timezone"
+    },
     extensions: [
       ".ts", ".tsx", ".js", ".jsx",
       ".scss", ".sass", ".less",
@@ -64,9 +84,19 @@ module.exports = env => ({
     maxAssetSize: 3000000,
     maxEntrypointSize: 3000000
   },
+  devtool: false,
   context: __dirname,
   target: "web",
   plugins: [
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^\.\/locale$/,
+      contextRegExp: /moment$/
+    }),
+    new webpack.SourceMapDevToolPlugin({
+      filename: 'assets/[file].map',
+      publicPath: '/',
+      noSources: true
+    }),
     new MiniCssExtractPlugin({
       filename: `makerspace-react.css`
     }),
