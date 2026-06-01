@@ -1,12 +1,4 @@
-import moment from 'moment-timezone';
-import tzData from 'moment-timezone/data/packed/latest.json';
-
-// Only load America/New_York — strips ~480KB of unused timezone data from bundle
-moment.tz.load({
-  version: tzData.version,
-  zones: tzData.zones.filter((z: string) => z.startsWith('America/New_York')),
-  links: tzData.links.filter((l: string) => l.includes('America/New_York')),
-});
+import moment from './moment';
 
 // User's timezone
 const defaultTZ = 'America/New_York';
