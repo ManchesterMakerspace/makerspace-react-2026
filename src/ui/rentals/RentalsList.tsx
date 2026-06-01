@@ -1,5 +1,5 @@
 import * as React from "react";
-import moment from "moment-timezone";
+import moment from "ui/utils/moment";
 import { Link } from 'react-router-dom';
 import Grid from "@mui/material/Grid";
 import Tooltip from "@mui/material/Tooltip";
