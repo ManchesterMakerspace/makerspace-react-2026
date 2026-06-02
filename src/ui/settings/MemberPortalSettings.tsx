@@ -49,6 +49,7 @@ const TABS: { key: TabKey; label: string }[] = [
 
 const JOB_LABELS: Record<string, string> = {
   slack_sync:      'Slack User Sync',
+  slack_profile_sync: 'Slack Profile Sync',
   member_review:   'Member Review',
   invoice_review:  'Invoice Review',
   garbage_collect: 'Garbage Collector',
@@ -57,6 +58,7 @@ const JOB_LABELS: Record<string, string> = {
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
   slack_sync:      'Bulk syncs Slack workspace users to member records by matching email. Use Run Now after onboarding a batch of new members.',
+  slack_profile_sync: 'Updates the Slack profile status field for members whose memberships expired since the last sync.',
   member_review:   'Reviews membership statuses and sends a weekly summary report to Slack.',
   invoice_review:  'Reviews invoice statuses, flags past due accounts, and reports to the treasurer channel.',
   garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month.',
@@ -329,6 +331,25 @@ const SlackTab: React.FC<SlackTabProps> = ({
                 </span>
               }
             />
+            <Divider style={{ margin: '12px 0' }} />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={config.flags.slack_profile_sync_enabled}
+                  onChange={() => onFlagToggle('slack_profile_sync_enabled', config.flags.slack_profile_sync_enabled)}
+                  disabled={togglingFlag === 'slack_profile_sync_enabled'}
+                  color='primary'
+                />
+              }
+              label={
+                <span>
+                  <Typography variant='body1' component='span'>Enable Scheduled Profile Sync</Typography>
+                  <Typography variant='body2' color='textSecondary' component='p'>
+                    When enabled, expired member Slack profile status updates run automatically at 7:00 AM.
+                  </Typography>
+                </span>
+              }
+            />
             {slackSyncJob && (
               <Grid container alignItems='center' spacing={2} style={{ marginTop: 12 }}>
                 <Grid>
@@ -421,6 +442,35 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
             currentId={config.volunteer.volunteer_discount_id}
             onSave={onSettingSave}
             saving={savingKey === 'volunteer_discount_id'}
+          />
+        </CardContent>
+      </Card>
+    </Grid>
+
+    <Grid size={{ xs: 12 }}>
+      <Card>
+        <CardHeader
+          title='Credit Counters'
+          subheader='Controls for the rolling and leaderboard credit displays.'
+        />
+        <Divider />
+        <CardContent>
+          <SettingRow
+            label='Rolling Days Counter'
+            description='Number of days used for the rolling credit window displayed on member profiles'
+            settingKey='volunteer_rolling_days'
+            value={config.volunteer.volunteer_rolling_days}
+            onSave={onSettingSave}
+            saving={savingKey === 'volunteer_rolling_days'}
+          />
+          <Divider style={{ margin: '8px 0' }} />
+          <SettingRow
+            label='Leaderboard Top N'
+            description='Number of top earners shown on the public volunteer leaderboard'
+            settingKey='volunteer_leaderboard_top'
+            value={config.volunteer.volunteer_leaderboard_top}
+            onSave={onSettingSave}
+            saving={savingKey === 'volunteer_leaderboard_top'}
           />
         </CardContent>
       </Card>
