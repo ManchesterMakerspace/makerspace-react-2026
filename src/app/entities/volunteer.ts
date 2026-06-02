@@ -29,6 +29,17 @@ export interface AttendeeRemoval {
   removedAt: string;
 }
 
+export type VolunteerTaskStatus =
+  | 'available'
+  | 'claimed'
+  | 'pending'
+  | 'completed'
+  | 'cancelled'
+  | 'denied'
+  | 'reusable'
+  | 'repeatable'
+  | 'recurring';
+
 export interface VolunteerTask {
   id: string;
   taskNumber: number;
@@ -37,7 +48,13 @@ export interface VolunteerTask {
   creditValue: number;
   shopId: string | null;
   shopName: string | null;
-  status: 'available' | 'claimed' | 'pending' | 'completed' | 'cancelled';
+  status: VolunteerTaskStatus;
+  // Multi-use / recurrence fields
+  days: number | null;          // Recurring tasks only — recurrence interval in days
+  nextAvailable: string | null; // Recurring tasks — ISO date string; null when not cooling down
+  parentTaskId: string | null;  // Present on child task documents (spawned by multi-use claims)
+  isChildTask: boolean;
+  isCoolingDown: boolean;
   createdById: string;
   createdByName: string;
   claimedById: string | null;

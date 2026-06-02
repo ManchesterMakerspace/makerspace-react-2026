@@ -47,6 +47,14 @@ export const getVolunteerSummary = (_params?: any) =>
 export const getMemberVolunteerTasks = (_params?: any) =>
   buildResponse<VolunteerTask[]>(api.get('/api/volunteer/tasks'));
 
+/**
+ * Returns the current member's active claims — both standard tasks they have
+ * directly claimed and child task documents spawned from multi-use
+ * (reusable/repeatable/recurring) parents. Status is 'claimed' or 'pending'.
+ */
+export const getMyVolunteerClaims = (_params?: any) =>
+  buildResponse<VolunteerTask[]>(api.get('/api/volunteer/tasks/my_claims'));
+
 export const getMemberVolunteerEvents = (_params?: any) =>
   buildResponse<VolunteerEvent[]>(api.get('/api/volunteer/events'));
 
@@ -59,7 +67,6 @@ export const completeVolunteerTask = ({ id }: { id: string }) =>
 export const checkinVolunteerEvent = ({ id }: { id: string }) =>
   buildResponse<VolunteerEvent>(api.post(`/api/volunteer/events/${id}/checkin`));
 
-/** Member removes their own check-in. Blocked once event is closed. */
 export const removeCheckinVolunteerEvent = ({ id }: { id: string }) =>
   buildResponse<VolunteerEvent>(api.delete(`/api/volunteer/events/${id}/checkin`));
 
@@ -80,30 +87,45 @@ export const adminApproveVolunteerCredit = ({ id }: { id: string }) =>
 export const adminRejectVolunteerCredit = ({ id }: { id: string }) =>
   buildResponse<VolunteerCredit>(api.post(`/api/admin/volunteer_credits/${id}/reject`));
 
-/** Reverse an approved credit. Admin/board only. Creates a negative offsetting record. */
 export const adminReverseVolunteerCredit = ({ id, reason }: { id: string; reason: string }) =>
   buildResponse<VolunteerCredit>(api.post(`/api/admin/volunteer_credits/${id}/reverse`, { reason }));
 
 export const adminDeleteVolunteerCredit = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/volunteer_credits/${id}`));
 
-export const adminListVolunteerTasks = (params?: { status?: string }) =>
-  buildResponse<VolunteerTask[]>(api.get('/api/admin/volunteer_tasks', { params }));
+export const adminListVolunteerTasks = (params?: {
+  status?: string;
+  parentTaskId?: string;
+  childrenOnly?: boolean;
+  parentsOnly?: boolean;
+}) =>
+  buildResponse<VolunteerTask[]>(api.get('/api/admin/volunteer_tasks', {
+    params: {
+      status:          params?.status,
+      parent_task_id:  params?.parentTaskId,
+      children_only:   params?.childrenOnly ? 'true' : undefined,
+      parents_only:    params?.parentsOnly  ? 'true' : undefined,
+    },
+  }));
 
-export const adminCreateVolunteerTask = ({ body }: { body: Partial<VolunteerTask> }) =>
+export const adminCreateVolunteerTask = ({ body }: { body: Partial<VolunteerTask> & { days?: number | null } }) =>
   buildResponse<VolunteerTask>(api.post('/api/admin/volunteer_tasks', {
     title:        body.title,
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    status:       body.status || 'available',
+    days:         body.days ?? null,
   }));
 
-export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Partial<VolunteerTask> }) =>
+export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Partial<VolunteerTask> & { days?: number | null } }) =>
   buildResponse<VolunteerTask>(api.put(`/api/admin/volunteer_tasks/${id}`, {
     title:        body.title,
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    status:       body.status,
+    days:         body.days ?? null,
   }));
 
 export const adminCompleteVolunteerTask = ({ id }: { id: string }) =>
@@ -117,6 +139,10 @@ export const adminReleaseVolunteerTask = ({ id, reason }: { id: string; reason: 
 
 export const adminRejectPendingVolunteerTask = ({ id, reason }: { id: string; reason: string }) =>
   buildResponse<VolunteerTask>(api.post(`/api/admin/volunteer_tasks/${id}/reject_pending`, { reason }));
+
+/** Clear next_available on a recurring task so it becomes immediately claimable. */
+export const adminResetTaskCooldown = ({ id }: { id: string }) =>
+  buildResponse<VolunteerTask>(api.post(`/api/admin/volunteer_tasks/${id}/reset_cooldown`));
 
 export const adminDeleteVolunteerTask = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/volunteer_tasks/${id}`));
@@ -142,7 +168,6 @@ export const adminAddEventAttendee = ({ id, memberId }: { id: string; memberId: 
     member_id: memberId,
   }));
 
-/** Admin removes a member's check-in from an open event. DMs the member. */
 export const adminRemoveEventAttendee = ({ id, memberId }: { id: string; memberId: string }) =>
   buildResponse<VolunteerEvent>(api.delete(`/api/admin/volunteer_events/${id}/remove_attendee`, {
     data: { member_id: memberId },

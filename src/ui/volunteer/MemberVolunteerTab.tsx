@@ -4,10 +4,12 @@ import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
+import Alert from '@mui/material/Alert';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import CheckIcon from '@mui/icons-material/Check';
 import EventIcon from '@mui/icons-material/Event';
 import CancelIcon from '@mui/icons-material/Cancel';
+import RepeatIcon from '@mui/icons-material/Repeat';
 import { Member } from 'makerspace-ts-api-client';
 
 import StatefulTable from 'ui/common/table/StatefulTable';
@@ -26,6 +28,7 @@ import {
   getMemberVolunteerCredits,
   getVolunteerSummary,
   getMemberVolunteerTasks,
+  getMyVolunteerClaims,
   getMemberVolunteerEvents,
   claimVolunteerTask,
   completeVolunteerTask,
@@ -49,12 +52,15 @@ const creditStatusLabel = (status: string): { label: string; color: Status } => 
 
 const taskStatusLabel = (status: string): { label: string; color: Status } => {
   switch (status) {
-    case 'available': return { label: 'Available',            color: Status.Success };
-    case 'claimed':   return { label: 'Claimed',              color: Status.Info };
-    case 'pending':   return { label: 'Pending Verification', color: Status.Warn };
-    case 'completed': return { label: 'Completed',            color: Status.Primary };
-    case 'cancelled': return { label: 'Cancelled',            color: Status.Danger };
-    default:          return { label: status,                 color: Status.Default };
+    case 'available':  return { label: 'Available',            color: Status.Success };
+    case 'claimed':    return { label: 'Claimed',              color: Status.Info };
+    case 'pending':    return { label: 'Pending Verification', color: Status.Warn };
+    case 'completed':  return { label: 'Completed',            color: Status.Primary };
+    case 'cancelled':  return { label: 'Cancelled',            color: Status.Danger };
+    case 'reusable':   return { label: 'Reusable',             color: Status.Success };
+    case 'repeatable': return { label: 'Repeatable',           color: Status.Success };
+    case 'recurring':  return { label: 'Recurring',            color: Status.Success };
+    default:           return { label: status,                 color: Status.Default };
   }
 };
 
@@ -71,10 +77,7 @@ const CreditHistoryInner: React.FC = () => {
       defaultSortDirection: SortDirection.Asc,
       cell: (row: VolunteerCredit) => (
         <div>
-          <Typography
-            variant='body2'
-            style={{ color: row.status === 'reversal' ? '#c62828' : undefined }}
-          >
+          <Typography variant='body2' style={{ color: row.status === 'reversal' ? '#c62828' : undefined }}>
             {row.description}
           </Typography>
           {row.taskTitle && (
@@ -97,10 +100,7 @@ const CreditHistoryInner: React.FC = () => {
       id: 'creditValue',
       label: 'Credits',
       cell: (row: VolunteerCredit) => (
-        <Typography
-          variant='body2'
-          style={{ color: row.creditValue < 0 ? '#c62828' : undefined }}
-        >
+        <Typography variant='body2' style={{ color: row.creditValue < 0 ? '#c62828' : undefined }}>
           {row.creditValue > 0 ? `+${row.creditValue}` : row.creditValue}
         </Typography>
       ),
@@ -149,18 +149,20 @@ const CreditHistoryInner: React.FC = () => {
 
 const CreditHistory = withQueryContext(CreditHistoryInner);
 
-// ── Tasks Table ───────────────────────────────────────────────────────────────
+// ── My Active Claims ──────────────────────────────────────────────────────────
+// Shows claimed/pending task documents the member owns, including child docs
+// spawned from reusable/repeatable/recurring parent tasks.
 
-interface TasksTableProps {
+interface MyClaimsProps {
   member: Member;
   onRefresh: () => void;
 }
 
-const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
+const MyClaimsInner: React.FC<MyClaimsProps> = ({ member, onRefresh }) => {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
 
-  const { isRequesting, data: tasks = [], response, error, refresh } =
-    useReadTransaction(getMemberVolunteerTasks, {}, undefined, 'member-volunteer-tasks');
+  const { isRequesting, data: claims = [], response, error, refresh } =
+    useReadTransaction(getMyVolunteerClaims, {}, undefined, 'member-volunteer-my-claims');
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -171,15 +173,15 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
     onRefresh();
   }, [onRefresh]);
 
-  const { call: claimTask,    isRequesting: claiming,    error: claimError }    = useWriteTransaction(claimVolunteerTask, onSuccess);
-  const { call: markComplete, isRequesting: completing,  error: completeError } = useWriteTransaction(completeVolunteerTask, onSuccess);
+  const { call: markComplete, isRequesting: completing, error: completeError } =
+    useWriteTransaction(completeVolunteerTask, onSuccess);
 
-  const myActiveTask = (tasks as VolunteerTask[]).find(
-    t => t.claimedById === member.id && ['claimed', 'pending'].includes(t.status)
-  );
+  const claimList = claims as VolunteerTask[];
 
-  const selectedTask = selectedIds.length === 1
-    ? (tasks as VolunteerTask[]).find(t => t.id === selectedIds[0])
+  if (claimList.length === 0 && !isRequesting) return null;
+
+  const selectedClaim = selectedIds.length === 1
+    ? claimList.find(t => t.id === selectedIds[0])
     : null;
 
   const columns: Column<VolunteerTask>[] = [
@@ -190,11 +192,19 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
       cell: (row: VolunteerTask) => (
         <div>
           <Typography variant='body2'>
-            <strong>#{row.taskNumber} — {row.title}</strong>
+            <strong>{row.title}</strong>
+            {row.isChildTask && (
+              <Typography component='span' variant='caption' color='textSecondary'> (multi-use)</Typography>
+            )}
           </Typography>
           <Typography variant='caption' color='textSecondary'>{row.description}</Typography>
           {row.shopName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{row.shopName}</Typography>
+          )}
+          {row.claimedAt && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Claimed {new Date(row.claimedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </Typography>
           )}
         </div>
       ),
@@ -216,7 +226,170 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
 
   return (
     <Grid container spacing={2}>
-      {selectedTask?.status === 'available' && !myActiveTask && (
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h6'>My Active Claims</Typography>
+        <Typography variant='body2' color='textSecondary'>
+          Tasks you have claimed that are awaiting completion or verification.
+        </Typography>
+      </Grid>
+
+      {selectedClaim?.status === 'claimed' && selectedClaim.claimedById === member.id && (
+        <Grid size={{ xs: 12 }}>
+          <Button variant='contained' color='primary' size='small'
+            disabled={completing} startIcon={<CheckIcon />}
+            onClick={() => markComplete({ id: selectedClaim.id })}>
+            Mark Complete
+          </Button>
+          {completeError && <ErrorMessage error={completeError} />}
+        </Grid>
+      )}
+
+      {selectedClaim?.status === 'pending' && (
+        <Grid size={{ xs: 12 }}>
+          <Typography variant='body2' color='textSecondary'>
+            Awaiting admin verification — you'll be notified via Slack when reviewed.
+          </Typography>
+        </Grid>
+      )}
+
+      <Grid size={{ xs: 12 }}>
+        <StatefulTable
+          id='member-my-claims-table'
+          title='Active Claims'
+          loading={isRequesting}
+          data={claimList}
+          error={error}
+          columns={columns}
+          rowId={(t: VolunteerTask) => t.id}
+          totalItems={extractTotalItems(response)}
+          selectedIds={selectedIds}
+          setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])}
+        />
+      </Grid>
+    </Grid>
+  );
+};
+
+const MyClaims = withQueryContext(MyClaimsInner);
+
+// ── Tasks Table ───────────────────────────────────────────────────────────────
+// Shows claimable parent tasks. Members interact with these to initiate claims.
+// Their in-progress claims appear in MyClaims above.
+
+interface TasksTableProps {
+  member: Member;
+  onRefresh: () => void;
+}
+
+const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+
+  const { isRequesting, data: tasks = [], response, error, refresh } =
+    useReadTransaction(getMemberVolunteerTasks, {}, undefined, 'member-volunteer-tasks');
+
+  const refreshRef = React.useRef(refresh);
+  React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+
+  const onSuccess = React.useCallback(() => {
+    setSelectedIds([]);
+    refreshRef.current();
+    onRefresh();
+  }, [onRefresh]);
+
+  const { call: claimTask, isRequesting: claiming, error: claimError } =
+    useWriteTransaction(claimVolunteerTask, onSuccess);
+
+  const taskList = tasks as VolunteerTask[];
+
+  const selectedTask = selectedIds.length === 1
+    ? taskList.find(t => t.id === selectedIds[0])
+    : null;
+
+  // Standard tasks only block claiming if the member already holds one.
+  // Multi-use tasks (reusable/repeatable/recurring) don't block standard claims
+  // and the server enforces their own rules (reusable-once, cooldown).
+  const myStandardActiveTask = taskList.find(
+    t => t.claimedById === member.id && ['claimed', 'pending'].includes(t.status) && !t.isChildTask
+  );
+
+  const canClaimSelected = (() => {
+    if (!selectedTask) return false;
+    const { status } = selectedTask;
+    if (status === 'available') return !myStandardActiveTask;
+    if (['reusable', 'repeatable', 'recurring'].includes(status)) return true;
+    return false;
+  })();
+
+  const columns: Column<VolunteerTask>[] = [
+    {
+      id: 'title',
+      label: 'Task',
+      defaultSortDirection: SortDirection.Asc,
+      cell: (row: VolunteerTask) => (
+        <div>
+          <Typography variant='body2'>
+            <strong>#{row.taskNumber} — {row.title}</strong>
+          </Typography>
+          <Typography variant='caption' color='textSecondary'>{row.description}</Typography>
+          {row.shopName && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{row.shopName}</Typography>
+          )}
+          {row.status === 'recurring' && row.days != null && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              <RepeatIcon style={{ fontSize: 12, verticalAlign: 'middle', marginRight: 2 }} />
+              Resets every {row.days} day{row.days !== 1 ? 's' : ''}
+            </Typography>
+          )}
+          {row.status === 'reusable' && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Each member may claim this once
+            </Typography>
+          )}
+          {row.status === 'repeatable' && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Can be claimed multiple times
+            </Typography>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'creditValue',
+      label: 'Credits',
+      cell: (row: VolunteerTask) => <Typography variant='body2'>{row.creditValue}</Typography>,
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      cell: (row: VolunteerTask) => {
+        const s = taskStatusLabel(row.status);
+        return <StatusLabel label={s.label} color={s.color} />;
+      },
+    },
+  ];
+
+  return (
+    <Grid container spacing={2}>
+      {selectedTask?.status === 'available' && (
+        <Grid size={{ xs: 12 }}>
+          {canClaimSelected ? (
+            <>
+              <Button variant='contained' color='primary' size='small'
+                disabled={claiming} startIcon={<AssignmentIcon />}
+                onClick={() => claimTask({ id: selectedTask.id })}>
+                Claim Task
+              </Button>
+              {claimError && <ErrorMessage error={claimError} />}
+            </>
+          ) : (
+            <Alert severity='info' style={{ padding: '4px 12px' }}>
+              Complete or release your current task before claiming another standard task.
+            </Alert>
+          )}
+        </Grid>
+      )}
+
+      {selectedTask && ['reusable', 'repeatable', 'recurring'].includes(selectedTask.status) && (
         <Grid size={{ xs: 12 }}>
           <Button variant='contained' color='primary' size='small'
             disabled={claiming} startIcon={<AssignmentIcon />}
@@ -226,27 +399,13 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
           {claimError && <ErrorMessage error={claimError} />}
         </Grid>
       )}
-      {selectedTask?.claimedById === member.id && selectedTask?.status === 'claimed' && (
-        <Grid size={{ xs: 12 }}>
-          <Button variant='contained' color='primary' size='small'
-            disabled={completing} startIcon={<CheckIcon />}
-            onClick={() => markComplete({ id: selectedTask.id })}>
-            Mark Complete
-          </Button>
-          {completeError && <ErrorMessage error={completeError} />}
-        </Grid>
-      )}
-      {selectedTask?.claimedById === member.id && selectedTask?.status === 'pending' && (
-        <Grid size={{ xs: 12 }}>
-          <Typography variant='body2' color='textSecondary'>Awaiting admin verification</Typography>
-        </Grid>
-      )}
+
       <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='member-volunteer-tasks-table'
-          title='Bounty Tasks'
+          title='Available Bounty Tasks'
           loading={isRequesting}
-          data={tasks as VolunteerTask[]}
+          data={taskList}
           error={error}
           columns={columns}
           rowId={(t: VolunteerTask) => t.id}
@@ -283,18 +442,15 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
     onRefresh();
   }, [onRefresh]);
 
-  const { call: checkin,        isRequesting: checkingIn,   error: checkinError }  = useWriteTransaction(checkinVolunteerEvent, onSuccess);
-  const { call: removeCheckin,  isRequesting: removingCheckin, error: removeError } = useWriteTransaction(removeCheckinVolunteerEvent, onSuccess);
+  const { call: checkin,       isRequesting: checkingIn,    error: checkinError } = useWriteTransaction(checkinVolunteerEvent, onSuccess);
+  const { call: removeCheckin, isRequesting: removingCheckin, error: removeError } = useWriteTransaction(removeCheckinVolunteerEvent, onSuccess);
 
   const selectedEvent = selectedIds.length === 1
     ? (events as VolunteerEvent[]).find(e => e.id === selectedIds[0])
     : null;
 
-  const alreadyCheckedIn = selectedEvent
-    ? selectedEvent.attendeeIds.includes(member.id)
-    : false;
-
-  const eventDatePassed = selectedEvent && selectedEvent.eventDate
+  const alreadyCheckedIn = selectedEvent?.attendeeIds.includes(member.id) ?? false;
+  const eventDatePassed  = selectedEvent?.eventDate
     ? new Date(selectedEvent.eventDate) < new Date(new Date().toDateString())
     : false;
 
@@ -305,12 +461,8 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
       defaultSortDirection: SortDirection.Asc,
       cell: (row: VolunteerEvent) => (
         <div>
-          <Typography variant='body2'>
-            <strong>E{row.eventNumber} — {row.title}</strong>
-          </Typography>
-          {row.description && (
-            <Typography variant='caption' color='textSecondary'>{row.description}</Typography>
-          )}
+          <Typography variant='body2'><strong>E{row.eventNumber} — {row.title}</strong></Typography>
+          {row.description && <Typography variant='caption' color='textSecondary'>{row.description}</Typography>}
           {row.eventDate && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               {new Date(row.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -328,10 +480,7 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
       id: 'checkedIn',
       label: 'Checked In',
       cell: (row: VolunteerEvent) => (
-        <Tooltip
-          title={row.attendeeIds.includes(member.id) ? 'Member self checked into the event' : ''}
-          placement='top'
-        >
+        <Tooltip title={row.attendeeIds.includes(member.id) ? 'You are checked in to this event' : ''} placement='top'>
           <span>
             <StatusLabel
               label={row.attendeeIds.includes(member.id) ? 'Yes' : 'No'}
@@ -388,15 +537,10 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
       )}
       <Grid size={{ xs: 12 }}>
         <StatefulTable
-          id='member-volunteer-events-table'
-          title='Open Events'
-          loading={isRequesting}
-          data={events as VolunteerEvent[]}
-          error={error}
-          columns={columns}
-          rowId={(e: VolunteerEvent) => e.id}
-          totalItems={extractTotalItems(response)}
-          selectedIds={selectedIds}
+          id='member-volunteer-events-table' title='Open Events'
+          loading={isRequesting} data={events as VolunteerEvent[]} error={error}
+          columns={columns} rowId={(e: VolunteerEvent) => e.id}
+          totalItems={extractTotalItems(response)} selectedIds={selectedIds}
           setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])}
         />
       </Grid>
@@ -458,6 +602,11 @@ const MemberVolunteerTab: React.FC<Props> = ({ member }) => {
 
       <Grid size={{ xs: 12 }}>
         <EventsTable member={member} onRefresh={triggerRefresh} />
+      </Grid>
+
+      {/* Active claims section — only renders if the member has claimed/pending tasks */}
+      <Grid size={{ xs: 12 }}>
+        <MyClaims member={member} onRefresh={triggerRefresh} />
       </Grid>
 
       <Grid size={{ xs: 12 }}>

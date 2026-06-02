@@ -7,21 +7,29 @@ import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
+import InputLabel from '@mui/material/InputLabel';
+import Chip from '@mui/material/Chip';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemSecondaryAction from '@mui/material/ListItemSecondaryAction';
 import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import CheckIcon from '@mui/icons-material/Check';
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PeopleIcon from '@mui/icons-material/People';
 import UndoIcon from '@mui/icons-material/Undo';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
+import RepeatIcon from '@mui/icons-material/Repeat';
+import RestoreIcon from '@mui/icons-material/Restore';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 
 import FormModal from 'ui/common/FormModal';
 import ErrorMessage from 'ui/common/ErrorMessage';
@@ -36,10 +44,9 @@ import { SelectOption } from 'ui/common/AsyncSelect';
 import useReadTransaction from 'ui/hooks/useReadTransaction';
 import useWriteTransaction from 'ui/hooks/useWriteTransaction';
 import extractTotalItems from 'ui/utils/extractTotalItems';
-import { useAuthState } from 'ui/reducer/hooks';
 import { useCapabilities } from 'app/permissions';
 
-import { VolunteerCredit, VolunteerTask, VolunteerEvent } from 'app/entities/volunteer';
+import { VolunteerCredit, VolunteerTask, VolunteerTaskStatus, VolunteerEvent } from 'app/entities/volunteer';
 import {
   adminListVolunteerCredits,
   adminApproveVolunteerCredit,
@@ -53,6 +60,7 @@ import {
   adminCancelVolunteerTask,
   adminReleaseVolunteerTask,
   adminRejectPendingVolunteerTask,
+  adminResetTaskCooldown,
   adminDeleteVolunteerTask,
   adminListVolunteerEvents,
   adminCreateVolunteerEvent,
@@ -89,6 +97,10 @@ const taskStatusLabel = (status: string): { label: string; color: Status } => {
     case 'pending':    return { label: 'Pending Verification', color: Status.Warn };
     case 'completed':  return { label: 'Completed',            color: Status.Primary };
     case 'cancelled':  return { label: 'Cancelled',            color: Status.Danger };
+    case 'denied':     return { label: 'Denied',               color: Status.Danger };
+    case 'reusable':   return { label: 'Reusable',             color: Status.Success };
+    case 'repeatable': return { label: 'Repeatable',           color: Status.Success };
+    case 'recurring':  return { label: 'Recurring',            color: Status.Success };
     default:           return { label: status,                 color: Status.Default };
   }
 };
@@ -100,6 +112,10 @@ const eventStatusLabel = (status: string): { label: string; color: Status } => {
     default:       return { label: status,   color: Status.Default };
   }
 };
+
+const MULTI_USE_STATUSES: VolunteerTaskStatus[] = ['reusable', 'repeatable', 'recurring'];
+const CANCELLABLE_STATUSES: VolunteerTaskStatus[] = ['available', 'reusable', 'repeatable', 'recurring'];
+const EDITABLE_STATUSES: VolunteerTaskStatus[]    = ['available', 'claimed', 'reusable', 'repeatable', 'recurring'];
 
 // ── Shared Modals ─────────────────────────────────────────────────────────────
 
@@ -129,8 +145,8 @@ const ReasonModal: React.FC<ReasonModalProps> = ({ title, isOpen, onClose, onSub
 const CreditsTabInner: React.FC = () => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
-  const [statusFilter, setStatusFilter] = React.useState('');
-  const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
+  const [statusFilter, setStatusFilter]   = React.useState('');
+  const [selectedIds, setSelectedIds]     = React.useState<string[]>([]);
   const [reverseTarget, setReverseTarget] = React.useState<string | null>(null);
 
   const { isRequesting, data: credits = [], response, refresh, error: loadError } =
@@ -230,11 +246,9 @@ const CreditsTabInner: React.FC = () => {
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
-            <Select
-              value={statusFilter}
+            <Select value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
-              fullWidth displayEmpty
-            >
+              fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='pending'>Pending</MenuItem>
               <MenuItem value='approved'>Approved</MenuItem>
@@ -323,10 +337,90 @@ const CreditsTab = withQueryContext(CreditsTabInner);
 
 // ── Tasks Tab ─────────────────────────────────────────────────────────────────
 
+type TaskType = 'available' | 'reusable' | 'repeatable' | 'recurring';
+
+interface TaskFormState {
+  title: string;
+  description: string;
+  creditValue: string;
+  taskType: TaskType;
+  days: string;
+}
+
+const emptyTaskForm = (): TaskFormState => ({
+  title: '', description: '', creditValue: '1', taskType: 'available', days: '7',
+});
+
+interface CreateTaskModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (state: TaskFormState) => void;
+  loading: boolean;
+  error: string;
+}
+
+const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSave, loading, error }) => {
+  const [form, setForm] = React.useState<TaskFormState>(emptyTaskForm());
+  React.useEffect(() => { if (!isOpen) setForm(emptyTaskForm()); }, [isOpen]);
+
+  const set = (key: keyof TaskFormState) => (e: React.ChangeEvent<HTMLInputElement | { value: unknown }>) =>
+    setForm(prev => ({ ...prev, [key]: e.target.value as string }));
+
+  const valid = form.title.trim() && form.description.trim() &&
+    (form.taskType !== 'recurring' || parseInt(form.days, 10) > 0);
+
+  return (
+    <FormModal id='create-volunteer-task' title='Create Bounty Task' isOpen={isOpen} closeHandler={onClose}
+      onSubmit={() => valid && onSave(form)} loading={loading} error={error}>
+      <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}>
+          <TextField label='Title' value={form.title} onChange={set('title')} fullWidth required autoFocus />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField label='Description' value={form.description} onChange={set('description')}
+            fullWidth multiline rows={3} required />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <TextField label='Credit Value' value={form.creditValue} onChange={set('creditValue')}
+            type='number' slotProps={{ htmlInput: { min: 0.5, max: 2, step: 0.5 } }} fullWidth required helperText='Max 2 credits' />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <FormControl fullWidth>
+            <InputLabel id='task-type-label'>Task Type</InputLabel>
+            <Select labelId='task-type-label' value={form.taskType} label='Task Type'
+              onChange={e => setForm(prev => ({ ...prev, taskType: e.target.value as TaskType }))}>
+              <MenuItem value='available'>Standard (one-time)</MenuItem>
+              <MenuItem value='reusable'>Reusable (any member once)</MenuItem>
+              <MenuItem value='repeatable'>Repeatable (any member, unlimited)</MenuItem>
+              <MenuItem value='recurring'>Recurring (repeatable with cooldown)</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        {form.taskType === 'recurring' && (
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField label='Recurrence Interval (days)' value={form.days} onChange={set('days')}
+              type='number' slotProps={{ htmlInput: { min: 1, step: 1 } }} fullWidth required
+              helperText='How many days before the task can be claimed again' />
+          </Grid>
+        )}
+        {form.taskType !== 'available' && (
+          <Grid size={{ xs: 12 }}>
+            <Typography variant='caption' color='textSecondary'>
+              {form.taskType === 'reusable'   && 'Each member may claim this task once. The original task stays on the board.'}
+              {form.taskType === 'repeatable' && 'Members may claim this task as many times as they want.'}
+              {form.taskType === 'recurring'  && `Members may claim this task repeatedly, but it will be hidden for ${form.days || '?'} day(s) after each claim.`}
+            </Typography>
+          </Grid>
+        )}
+      </Grid>
+    </FormModal>
+  );
+};
+
 interface EditTaskModalProps {
   task: VolunteerTask | null;
   onClose: () => void;
-  onSave: (id: string, body: Partial<VolunteerTask>) => void;
+  onSave: (id: string, body: Partial<VolunteerTask> & { days?: number | null }) => void;
   loading: boolean;
   error: string;
 }
@@ -334,15 +428,22 @@ interface EditTaskModalProps {
 const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, loading, error }) => {
   const [title, setTitle]             = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [days, setDays]               = React.useState('');
 
   React.useEffect(() => {
-    if (task) { setTitle(task.title); setDescription(task.description); }
-    else { setTitle(''); setDescription(''); }
+    if (task) { setTitle(task.title); setDescription(task.description); setDays(task.days != null ? String(task.days) : ''); }
+    else { setTitle(''); setDescription(''); setDays(''); }
   }, [task]);
+
+  if (!task) return null;
+  const isRecurring = task.status === 'recurring';
 
   return (
     <FormModal id='edit-volunteer-task' title='Edit Task' isOpen={!!task} closeHandler={onClose}
-      onSubmit={() => task && title && onSave(task.id, { title, description })}
+      onSubmit={() => task && title && onSave(task.id, {
+        title, description,
+        days: isRecurring && days ? parseInt(days, 10) : undefined,
+      })}
       loading={loading} error={error}>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
@@ -352,44 +453,182 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, lo
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={3} />
         </Grid>
+        {isRecurring && (
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField label='Recurrence Interval (days)' value={days} onChange={e => setDays(e.target.value)}
+              type='number' slotProps={{ htmlInput: { min: 1, step: 1 } }} fullWidth required
+              helperText='Days before the task can be claimed again' />
+          </Grid>
+        )}
       </Grid>
     </FormModal>
   );
 };
 
-interface CreateTaskModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (task: { title: string; description: string; creditValue: number }) => void;
-  loading: boolean;
-  error: string;
+// ── Child tasks drill-down view ───────────────────────────────────────────────
+
+interface ChildTasksViewProps {
+  parentTask: VolunteerTask;
+  onBack: () => void;
+  onActionSuccess: () => void;
+  isAdmin: boolean;
 }
 
-const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSave, loading, error }) => {
-  const [title, setTitle]             = React.useState('');
-  const [description, setDescription] = React.useState('');
-  const [creditValue, setCreditValue] = React.useState('1');
-  React.useEffect(() => { if (!isOpen) { setTitle(''); setDescription(''); setCreditValue('1'); } }, [isOpen]);
+const ChildTasksViewInner: React.FC<ChildTasksViewProps> = ({ parentTask, onBack, onActionSuccess, isAdmin }) => {
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [releaseTarget, setRelease]   = React.useState<string | null>(null);
+  const [rejectTarget, setReject]     = React.useState<string | null>(null);
+
+  const { isRequesting, data: children = [], response, refresh, error: loadError } =
+    useReadTransaction(
+      adminListVolunteerTasks,
+      { parentTaskId: parentTask.id },
+      undefined,
+      `volunteer-tasks-children-${parentTask.id}`
+    );
+
+  const refreshRef = React.useRef(refresh);
+  React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+
+  const onSuccess = React.useCallback(() => {
+    setSelectedIds([]); setRelease(null); setReject(null);
+    refreshRef.current();
+    onActionSuccess();
+  }, [onActionSuccess]);
+
+  const { call: completeTask, isRequesting: completing, error: completeError } = useWriteTransaction(adminCompleteVolunteerTask, onSuccess);
+  const { call: releaseTask,  isRequesting: releasing,  error: releaseError }  = useWriteTransaction(adminReleaseVolunteerTask, onSuccess);
+  const { call: rejectTask,   isRequesting: rejecting,  error: rejectError }   = useWriteTransaction(adminRejectPendingVolunteerTask, onSuccess);
+  const { call: deleteTask }  = useWriteTransaction(adminDeleteVolunteerTask, onSuccess);
+
+  const selectedChild = selectedIds.length === 1
+    ? (children as VolunteerTask[]).find(t => t.id === selectedIds[0])
+    : null;
+
+  const columns: Column<VolunteerTask>[] = [
+    {
+      id: 'claimedBy',
+      label: 'Claimed By',
+      defaultSortDirection: SortDirection.Asc,
+      cell: (row: VolunteerTask) => (
+        <div>
+          <Typography variant='body2'><strong>{row.claimedByName || '—'}</strong></Typography>
+          {row.claimedAt && (
+            <Typography variant='caption' color='textSecondary'>
+              {new Date(row.claimedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </Typography>
+          )}
+          {row.rejectionReason && (
+            <Typography variant='caption' color='error' style={{ display: 'block' }}>
+              Reason: {row.rejectionReason}
+            </Typography>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'status',
+      label: 'Status',
+      cell: (row: VolunteerTask) => {
+        const s = taskStatusLabel(row.status);
+        return <StatusLabel label={s.label} color={s.color} />;
+      },
+    },
+  ];
+
   return (
-    <FormModal id='create-volunteer-task' title='Create Bounty Task' isOpen={isOpen} closeHandler={onClose}
-      onSubmit={() => title && description && onSave({ title, description, creditValue: parseFloat(creditValue) || 1 })}
-      loading={loading} error={error}>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <TextField label='Title' value={title} onChange={e => setTitle(e.target.value)} fullWidth required autoFocus />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
-            fullWidth multiline rows={3} required />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField label='Credit Value' value={creditValue} onChange={e => setCreditValue(e.target.value)}
-            type='number' slotProps={{ htmlInput: { min: 0.5, max: 2, step: 0.5 } }} fullWidth required helperText='Max 2 credits' />
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}>
+        <Grid container spacing={1} alignItems='center'>
+          <Grid>
+            <Button size='small' startIcon={<ArrowBackIcon />} onClick={onBack}>
+              Back to Tasks
+            </Button>
+          </Grid>
+          <Grid>
+            <Typography variant='subtitle1'>
+              Claims for: <strong>#{parentTask.taskNumber} — {parentTask.title}</strong>
+            </Typography>
+          </Grid>
         </Grid>
       </Grid>
-    </FormModal>
+
+      <Grid size={{ xs: 12 }}>
+        <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
+          {selectedChild?.status === 'pending' && (
+            <>
+              <Grid>
+                <Button variant='contained' color='primary' size='small' startIcon={<CheckIcon />}
+                  disabled={completing}
+                  onClick={() => completeTask({ id: selectedChild.id })}>
+                  Verify
+                </Button>
+              </Grid>
+              <Grid>
+                <Button variant='outlined' color='secondary' size='small' startIcon={<CloseIcon />}
+                  onClick={() => setReject(selectedChild.id)}>
+                  Reject
+                </Button>
+              </Grid>
+            </>
+          )}
+          {selectedChild?.status === 'claimed' && (
+            <Grid>
+              <Button variant='outlined' color='secondary' size='small'
+                onClick={() => setRelease(selectedChild.id)}>
+                Release
+              </Button>
+            </Grid>
+          )}
+          {isAdmin && selectedIds.length > 0 &&
+            (children as VolunteerTask[]).filter(t => selectedIds.includes(t.id))
+              .every(t => ['completed', 'denied'].includes(t.status)) && (
+            <Grid>
+              <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
+                onClick={() => selectedIds.forEach(id => deleteTask({ id }))}>
+                Delete ({selectedIds.length})
+              </Button>
+            </Grid>
+          )}
+        </Grid>
+      </Grid>
+
+      {(completeError || releaseError || rejectError) && (
+        <Grid size={{ xs: 12 }}>
+          <ErrorMessage error={completeError || releaseError || rejectError} />
+        </Grid>
+      )}
+
+      <Grid size={{ xs: 12 }}>
+        <StatefulTable
+          id='volunteer-child-tasks-table'
+          title={`Claims (${(children as VolunteerTask[]).length})`}
+          loading={isRequesting}
+          data={children as VolunteerTask[]}
+          error={loadError}
+          columns={columns}
+          rowId={(t: VolunteerTask) => t.id}
+          totalItems={extractTotalItems(response)}
+          selectedIds={selectedIds}
+          setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])}
+          renderSearch={false}
+        />
+      </Grid>
+
+      <ReasonModal title='Release Claim' isOpen={!!releaseTarget} onClose={() => setRelease(null)}
+        onSubmit={reason => releaseTask({ id: releaseTarget, reason })}
+        loading={releasing} error={releaseError} />
+
+      <ReasonModal title='Reject Claim Completion' isOpen={!!rejectTarget} onClose={() => setReject(null)}
+        onSubmit={reason => rejectTask({ id: rejectTarget, reason })}
+        loading={rejecting} error={rejectError} />
+    </Grid>
   );
 };
+
+const ChildTasksView = withQueryContext(ChildTasksViewInner);
+
+// ── Main Tasks Tab ────────────────────────────────────────────────────────────
 
 const TasksTabInner: React.FC = () => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
@@ -400,9 +639,16 @@ const TasksTabInner: React.FC = () => {
   const [editTarget, setEditTarget]     = React.useState<VolunteerTask | null>(null);
   const [releaseTarget, setRelease]     = React.useState<string | null>(null);
   const [rejectTarget, setReject]       = React.useState<string | null>(null);
+  // When set, renders the child drill-down view instead of the main table
+  const [drillParent, setDrillParent]   = React.useState<VolunteerTask | null>(null);
 
   const { isRequesting, data: tasks = [], response, refresh, error: loadError } =
-    useReadTransaction(adminListVolunteerTasks, { status: statusFilter || undefined }, undefined, `volunteer-tasks-${statusFilter}`);
+    useReadTransaction(
+      adminListVolunteerTasks,
+      { status: statusFilter || undefined, parentsOnly: true },
+      undefined,
+      `volunteer-tasks-${statusFilter}`
+    );
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -414,17 +660,34 @@ const TasksTabInner: React.FC = () => {
     refreshRef.current();
   }, []);
 
-  const { call: createTask,   isRequesting: creating,   error: createError }   = useWriteTransaction(adminCreateVolunteerTask, onSuccess);
-  const { call: updateTask,   isRequesting: updating,   error: updateError }   = useWriteTransaction(adminUpdateVolunteerTask, onSuccess);
-  const { call: completeTask, isRequesting: completing, error: completeError } = useWriteTransaction(adminCompleteVolunteerTask, onSuccess);
-  const { call: cancelTask }  = useWriteTransaction(adminCancelVolunteerTask, onSuccess);
-  const { call: deleteTask }  = useWriteTransaction(adminDeleteVolunteerTask, onSuccess);
-  const { call: releaseTask,  isRequesting: releasing,  error: releaseError }  = useWriteTransaction(adminReleaseVolunteerTask, onSuccess);
-  const { call: rejectTask,   isRequesting: rejecting,  error: rejectError }   = useWriteTransaction(adminRejectPendingVolunteerTask, onSuccess);
+  const { call: createTask,      isRequesting: creating,       error: createError }      = useWriteTransaction(adminCreateVolunteerTask, onSuccess);
+  const { call: updateTask,      isRequesting: updating,       error: updateError }      = useWriteTransaction(adminUpdateVolunteerTask, onSuccess);
+  const { call: completeTask,    isRequesting: completing,     error: completeError }    = useWriteTransaction(adminCompleteVolunteerTask, onSuccess);
+  const { call: cancelTask }     = useWriteTransaction(adminCancelVolunteerTask, onSuccess);
+  const { call: deleteTask }     = useWriteTransaction(adminDeleteVolunteerTask, onSuccess);
+  const { call: releaseTask,     isRequesting: releasing,      error: releaseError }     = useWriteTransaction(adminReleaseVolunteerTask, onSuccess);
+  const { call: rejectTask,      isRequesting: rejecting,      error: rejectError }      = useWriteTransaction(adminRejectPendingVolunteerTask, onSuccess);
+  const { call: resetCooldown,   isRequesting: resetting,      error: resetError }       = useWriteTransaction(adminResetTaskCooldown, onSuccess);
 
   const selectedTask = selectedIds.length === 1
     ? (tasks as VolunteerTask[]).find(t => t.id === selectedIds[0])
     : null;
+
+  // Claim count per parent task id — derived from loaded tasks.
+  // The admin index with parentsOnly=true doesn't include child docs, so we fetch
+  // the count by passing children_only with a per-parent filter in the drill-down view.
+  // For the summary column we show the info we do have: next_available as a proxy.
+
+  if (drillParent) {
+    return (
+      <ChildTasksView
+        parentTask={drillParent}
+        onBack={() => { setDrillParent(null); refreshRef.current(); }}
+        onActionSuccess={() => refreshRef.current()}
+        isAdmin={isAdmin}
+      />
+    );
+  }
 
   const columns: Column<VolunteerTask>[] = [
     {
@@ -440,6 +703,17 @@ const TasksTabInner: React.FC = () => {
           {row.claimedByName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               Claimed by: {row.claimedByName}
+            </Typography>
+          )}
+          {MULTI_USE_STATUSES.includes(row.status) && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              <RepeatIcon style={{ fontSize: 12, verticalAlign: 'middle', marginRight: 2 }} />
+              {row.status === 'recurring' && row.days != null
+                ? `Every ${row.days} day${row.days !== 1 ? 's' : ''}`
+                : row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+              {row.isCoolingDown && row.nextAvailable && (
+                <> — available {new Date(row.nextAvailable).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+              )}
             </Typography>
           )}
           {row.rejectionReason && (
@@ -460,7 +734,32 @@ const TasksTabInner: React.FC = () => {
       label: 'Status',
       cell: (row: VolunteerTask) => {
         const s = taskStatusLabel(row.status);
-        return <StatusLabel label={s.label} color={s.color} />;
+        return (
+          <div>
+            <StatusLabel label={s.label} color={s.color} />
+            {row.isCoolingDown && (
+              <div><StatusLabel label='Cooling Down' color={Status.Warn} /></div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'claims',
+      label: 'Claims',
+      cell: (row: VolunteerTask) => {
+        if (!MULTI_USE_STATUSES.includes(row.status)) return null;
+        return (
+          <Tooltip title='View individual claims for this task'>
+            <Chip
+              icon={<ListAltIcon />}
+              label='View'
+              size='small'
+              clickable
+              onClick={e => { e.stopPropagation(); setDrillParent(row); }}
+            />
+          </Tooltip>
+        );
       },
     },
   ];
@@ -471,14 +770,19 @@ const TasksTabInner: React.FC = () => {
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
-            <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
+            <Select value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='available'>Available</MenuItem>
+              <MenuItem value='reusable'>Reusable</MenuItem>
+              <MenuItem value='repeatable'>Repeatable</MenuItem>
+              <MenuItem value='recurring'>Recurring</MenuItem>
               <MenuItem value='claimed'>Claimed</MenuItem>
               <MenuItem value='pending'>Pending Verification</MenuItem>
               <MenuItem value='completed'>Completed</MenuItem>
               <MenuItem value='cancelled'>Cancelled</MenuItem>
+              <MenuItem value='denied'>Denied</MenuItem>
             </Select>
           </Grid>
           <Grid size={{ xs: 12, sm: 9 }}>
@@ -489,7 +793,7 @@ const TasksTabInner: React.FC = () => {
                   Create Task
                 </Button>
               </Grid>
-              {selectedTask && ['available', 'claimed'].includes(selectedTask.status) && (
+              {selectedTask && EDITABLE_STATUSES.includes(selectedTask.status) && (
                 <Grid>
                   <Button variant='outlined' size='small' startIcon={<EditIcon />}
                     onClick={() => setEditTarget(selectedTask)}>
@@ -522,7 +826,18 @@ const TasksTabInner: React.FC = () => {
                   </Button>
                 </Grid>
               )}
-              {selectedTask?.status === 'available' && (
+              {selectedTask?.status === 'recurring' && selectedTask.isCoolingDown && (
+                <Grid>
+                  <Tooltip title='Clear the cooldown so this task becomes immediately claimable again'>
+                    <Button variant='outlined' size='small' startIcon={<RestoreIcon />}
+                      disabled={resetting}
+                      onClick={() => resetCooldown({ id: selectedTask.id })}>
+                      Reset Cooldown
+                    </Button>
+                  </Tooltip>
+                </Grid>
+              )}
+              {selectedTask && CANCELLABLE_STATUSES.includes(selectedTask.status) && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<CloseIcon />}
                     onClick={() => cancelTask({ id: selectedTask.id })}>
@@ -532,7 +847,7 @@ const TasksTabInner: React.FC = () => {
               )}
               {isAdmin && selectedIds.length > 0 &&
                 (tasks as VolunteerTask[]).filter(t => selectedIds.includes(t.id))
-                  .every(t => ['completed', 'cancelled'].includes(t.status)) && (
+                  .every(t => ['completed', 'cancelled', 'denied'].includes(t.status)) && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
                     onClick={() => selectedIds.forEach(id => deleteTask({ id }))}>
@@ -545,9 +860,9 @@ const TasksTabInner: React.FC = () => {
         </Grid>
       </Grid>
 
-      {(completeError || releaseError || rejectError) && (
+      {(completeError || releaseError || rejectError || resetError) && (
         <Grid size={{ xs: 12 }}>
-          <ErrorMessage error={completeError || releaseError || rejectError} />
+          <ErrorMessage error={completeError || releaseError || rejectError || resetError} />
         </Grid>
       )}
 
@@ -568,7 +883,12 @@ const TasksTabInner: React.FC = () => {
       </Grid>
 
       <CreateTaskModal isOpen={createOpen} onClose={() => setCreateOpen(false)}
-        onSave={task => createTask({ body: { title: task.title, description: task.description, creditValue: task.creditValue } })}
+        onSave={form => createTask({ body: {
+          title: form.title, description: form.description,
+          creditValue: parseFloat(form.creditValue) || 1,
+          status: form.taskType as VolunteerTaskStatus,
+          days: form.taskType === 'recurring' ? parseInt(form.days, 10) || null : null,
+        }})}
         loading={creating} error={createError} />
 
       <EditTaskModal task={editTarget} onClose={() => setEditTarget(null)}
@@ -646,17 +966,12 @@ const AddAttendeeModal: React.FC<AddAttendeeModalProps> = ({ eventId, onClose, o
     <FormModal id='add-event-attendee' title='Add Attendee' isOpen={!!eventId} closeHandler={onClose}
       onSubmit={() => selectedMember?.id && onAdd(selectedMember.id)}
       loading={loading} error={error}>
-      <MemberSearchInput
-        name='event-attendee-search'
-        placeholder='Search by name or email'
-        initialSelection={selectedMember}
-        onChange={setSelectedMember}
-      />
+      <MemberSearchInput name='event-attendee-search' placeholder='Search by name or email'
+        initialSelection={selectedMember} onChange={setSelectedMember} />
     </FormModal>
   );
 };
 
-// Modal showing current attendee list for an open event, with per-attendee remove buttons
 interface ManageAttendeesModalProps {
   event: VolunteerEvent | null;
   onClose: () => void;
@@ -668,34 +983,19 @@ interface ManageAttendeesModalProps {
 const ManageAttendeesModal: React.FC<ManageAttendeesModalProps> = ({ event, onClose, onRemove, removing, error }) => {
   if (!event) return null;
   return (
-    <FormModal
-      id='manage-event-attendees'
-      title={`Attendees — ${event.title}`}
-      isOpen={!!event}
-      closeHandler={onClose}
-      onSubmit={onClose}
-      submitText='Done'
-      loading={false}
-      error={error}
-    >
+    <FormModal id='manage-event-attendees' title={`Attendees — ${event.title}`}
+      isOpen={!!event} closeHandler={onClose} onSubmit={onClose} submitText='Done'
+      loading={false} error={error}>
       {event.attendeeIds.length === 0 ? (
         <Typography variant='body2' color='textSecondary'>No attendees checked in yet.</Typography>
       ) : (
         <List dense>
           {event.attendeeIds.map((id, index) => (
             <ListItem key={id} divider={index < event.attendeeIds.length - 1}>
-              <ListItemText
-                primary={event.attendeeNames[index] || id}
-              />
+              <ListItemText primary={event.attendeeNames[index] || id} />
               {event.status === 'open' && (
                 <ListItemSecondaryAction>
-                  <IconButton
-                    edge='end'
-                    size='small'
-                    disabled={removing}
-                    onClick={() => onRemove(id)}
-                    title='Remove check-in'
-                  >
+                  <IconButton edge='end' size='small' disabled={removing} onClick={() => onRemove(id)} title='Remove check-in'>
                     <RemoveCircleIcon fontSize='small' color='error' />
                   </IconButton>
                 </ListItemSecondaryAction>
@@ -711,10 +1011,10 @@ const ManageAttendeesModal: React.FC<ManageAttendeesModalProps> = ({ event, onCl
 const EventsTabInner: React.FC = () => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
-  const [statusFilter, setStatusFilter]       = React.useState('open');
-  const [selectedIds, setSelectedIds]         = React.useState<string[]>([]);
-  const [createOpen, setCreateOpen]           = React.useState(false);
-  const [addAttendeeTarget, setAddAttendee]   = React.useState<string | null>(null);
+  const [statusFilter, setStatusFilter]            = React.useState('open');
+  const [selectedIds, setSelectedIds]              = React.useState<string[]>([]);
+  const [createOpen, setCreateOpen]                = React.useState(false);
+  const [addAttendeeTarget, setAddAttendee]        = React.useState<string | null>(null);
   const [manageAttendeesEvent, setManageAttendees] = React.useState<VolunteerEvent | null>(null);
 
   const { isRequesting, data: events = [], response, refresh, error: loadError } =
@@ -726,21 +1026,16 @@ const EventsTabInner: React.FC = () => {
   const onSuccess = React.useCallback(() => {
     setCreateOpen(false); setAddAttendee(null); setSelectedIds([]);
     refreshRef.current();
-    // Keep manage attendees modal open but refresh event data
   }, []);
 
   const onRemoveSuccess = React.useCallback(() => {
     refreshRef.current();
-    // Update the manage attendees modal with fresh event data after removal
-    setManageAttendees(prev => {
-      if (!prev) return null;
-      return (events as VolunteerEvent[]).find(e => e.id === prev.id) || null;
-    });
+    setManageAttendees(prev => prev ? (events as VolunteerEvent[]).find(e => e.id === prev.id) || null : null);
   }, [events]);
 
-  const { call: createEvent,    isRequesting: creating,         error: createError }       = useWriteTransaction(adminCreateVolunteerEvent, onSuccess);
-  const { call: closeEvent,     isRequesting: closing,          error: closeError }        = useWriteTransaction(adminCloseVolunteerEvent, onSuccess);
-  const { call: addAttendee,    isRequesting: addingAttendee,   error: addAttendeeError }  = useWriteTransaction(adminAddEventAttendee, onSuccess);
+  const { call: createEvent,    isRequesting: creating,         error: createError }         = useWriteTransaction(adminCreateVolunteerEvent, onSuccess);
+  const { call: closeEvent,     isRequesting: closing,          error: closeError }          = useWriteTransaction(adminCloseVolunteerEvent, onSuccess);
+  const { call: addAttendee,    isRequesting: addingAttendee,   error: addAttendeeError }    = useWriteTransaction(adminAddEventAttendee, onSuccess);
   const { call: removeAttendee, isRequesting: removingAttendee, error: removeAttendeeError } = useWriteTransaction(adminRemoveEventAttendee, onRemoveSuccess);
   const { call: deleteEvent }   = useWriteTransaction(adminDeleteVolunteerEvent, onSuccess);
 
@@ -755,12 +1050,8 @@ const EventsTabInner: React.FC = () => {
       defaultSortDirection: SortDirection.Asc,
       cell: (row: VolunteerEvent) => (
         <div>
-          <Typography variant='body2'>
-            <strong>E{row.eventNumber} — {row.title}</strong>
-          </Typography>
-          {row.description && (
-            <Typography variant='caption' color='textSecondary'>{row.description}</Typography>
-          )}
+          <Typography variant='body2'><strong>E{row.eventNumber} — {row.title}</strong></Typography>
+          {row.description && <Typography variant='caption' color='textSecondary'>{row.description}</Typography>}
           {row.eventDate && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               {new Date(row.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -769,23 +1060,12 @@ const EventsTabInner: React.FC = () => {
         </div>
       ),
     },
-    {
-      id: 'creditValue',
-      label: 'Credits',
-      cell: (row: VolunteerEvent) => <Typography variant='body2'>{row.creditValue}</Typography>,
-    },
-    {
-      id: 'attendees',
-      label: 'Attendees',
-      cell: (row: VolunteerEvent) => <Typography variant='body2'>{row.attendeeCount}</Typography>,
-    },
+    { id: 'creditValue', label: 'Credits', cell: (row: VolunteerEvent) => <Typography variant='body2'>{row.creditValue}</Typography> },
+    { id: 'attendees',   label: 'Attendees', cell: (row: VolunteerEvent) => <Typography variant='body2'>{row.attendeeCount}</Typography> },
     {
       id: 'status',
       label: 'Status',
-      cell: (row: VolunteerEvent) => {
-        const s = eventStatusLabel(row.status);
-        return <StatusLabel label={s.label} color={s.color} />;
-      },
+      cell: (row: VolunteerEvent) => { const s = eventStatusLabel(row.status); return <StatusLabel label={s.label} color={s.color} />; },
     },
   ];
 
@@ -795,7 +1075,8 @@ const EventsTabInner: React.FC = () => {
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
-            <Select value={statusFilter} onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
+            <Select value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='open'>Open</MenuItem>
@@ -805,15 +1086,13 @@ const EventsTabInner: React.FC = () => {
           <Grid size={{ xs: 12, sm: 9 }}>
             <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end'>
               <Grid>
-                <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
-                  onClick={() => setCreateOpen(true)}>
+                <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
                   Create Event
                 </Button>
               </Grid>
               {selectedEvent && (
                 <Grid>
-                  <Button variant='outlined' size='small' startIcon={<PeopleIcon />}
-                    onClick={() => setManageAttendees(selectedEvent)}>
+                  <Button variant='outlined' size='small' startIcon={<PeopleIcon />} onClick={() => setManageAttendees(selectedEvent)}>
                     Manage Attendees
                   </Button>
                 </Grid>
@@ -821,23 +1100,20 @@ const EventsTabInner: React.FC = () => {
               {selectedEvent?.status === 'open' && (
                 <>
                   <Grid>
-                    <Button variant='outlined' size='small' startIcon={<PersonAddIcon />}
-                      onClick={() => setAddAttendee(selectedEvent.id)}>
+                    <Button variant='outlined' size='small' startIcon={<PersonAddIcon />} onClick={() => setAddAttendee(selectedEvent.id)}>
                       Add Attendee
                     </Button>
                   </Grid>
                   <Grid>
                     <Button variant='contained' color='primary' size='small' startIcon={<CheckIcon />}
-                      disabled={closing}
-                      onClick={() => closeEvent({ id: selectedEvent.id })}>
+                      disabled={closing} onClick={() => closeEvent({ id: selectedEvent.id })}>
                       Close Event
                     </Button>
                   </Grid>
                 </>
               )}
               {isAdmin && selectedIds.length > 0 &&
-                (events as VolunteerEvent[]).filter(e => selectedIds.includes(e.id))
-                  .every(e => e.status === 'closed') && (
+                (events as VolunteerEvent[]).filter(e => selectedIds.includes(e.id)).every(e => e.status === 'closed') && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
                     onClick={() => selectedIds.forEach(id => deleteEvent({ id }))}>
@@ -851,24 +1127,16 @@ const EventsTabInner: React.FC = () => {
       </Grid>
 
       {(closeError || addAttendeeError) && (
-        <Grid size={{ xs: 12 }}>
-          <ErrorMessage error={closeError || addAttendeeError} />
-        </Grid>
+        <Grid size={{ xs: 12 }}><ErrorMessage error={closeError || addAttendeeError} /></Grid>
       )}
 
       <Grid size={{ xs: 12 }}>
         <StatefulTable
-          id='volunteer-events-table'
-          title='Volunteer Events'
-          loading={isRequesting}
-          data={events as VolunteerEvent[]}
-          error={loadError}
-          columns={columns}
-          rowId={(e: VolunteerEvent) => e.id}
-          totalItems={extractTotalItems(response)}
-          selectedIds={selectedIds}
-          setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])}
-          renderSearch={true}
+          id='volunteer-events-table' title='Volunteer Events'
+          loading={isRequesting} data={events as VolunteerEvent[]} error={loadError}
+          columns={columns} rowId={(e: VolunteerEvent) => e.id}
+          totalItems={extractTotalItems(response)} selectedIds={selectedIds}
+          setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])} renderSearch={true}
         />
       </Grid>
 
@@ -880,13 +1148,9 @@ const EventsTabInner: React.FC = () => {
         onAdd={memberId => addAttendee({ id: addAttendeeTarget, memberId })}
         loading={addingAttendee} error={addAttendeeError} />
 
-      <ManageAttendeesModal
-        event={manageAttendeesEvent}
-        onClose={() => setManageAttendees(null)}
+      <ManageAttendeesModal event={manageAttendeesEvent} onClose={() => setManageAttendees(null)}
         onRemove={memberId => removeAttendee({ id: manageAttendeesEvent.id, memberId })}
-        removing={removingAttendee}
-        error={removeAttendeeError}
-      />
+        removing={removingAttendee} error={removeAttendeeError} />
     </Grid>
   );
 };
@@ -906,16 +1170,12 @@ const AdminVolunteerPage: React.FC = () => {
           Manage volunteer credits, bounty tasks, and events.
         </Typography>
       </Grid>
-
       <Grid size={{ xs: 12, md: 10 }}>
         <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val as TabKey)}
           indicatorColor='primary' textColor='primary' variant='scrollable' scrollButtons='auto'>
-          {TABS.map(t => (
-            <Tab key={t.key} id={`volunteer-tab-${t.key}`} value={t.key} label={t.label} />
-          ))}
+          {TABS.map(t => <Tab key={t.key} id={`volunteer-tab-${t.key}`} value={t.key} label={t.label} />)}
         </Tabs>
       </Grid>
-
       <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === 'credits' && <CreditsTab />}
         {activeTab === 'tasks'   && <TasksTab />}
