@@ -13,6 +13,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import SpaceUsageTab from 'ui/admin/SpaceUsageTab';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -248,7 +249,7 @@ const VolunteerAnalyticsTab: React.FC = () => {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-type TabKey = 'members' | 'volunteer';
+type TabKey = 'members' | 'volunteer' | 'space';
 
 const AdminAnalyticsPage: React.FC = () => {
   const [tab, setTab]           = React.useState<TabKey>('members');
@@ -296,10 +297,12 @@ const AdminAnalyticsPage: React.FC = () => {
         >
           <Tab value='members'   label='Membership' />
           <Tab value='volunteer' label='Volunteer' />
+          <Tab value='space'     label='Space Usage' />
         </Tabs>
 
         {tab === 'members'   && <MemberGrowthTab />}
         {tab === 'volunteer' && <VolunteerAnalyticsTab />}
+        {tab === 'space'     && <SpaceUsageTab />}
       </Grid>
     </Grid>
   );

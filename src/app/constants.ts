@@ -22,6 +22,7 @@ export namespace Routing {
   export const AdminRentals = '/admin/rentals';
   export const ShopFees = '/shop-fees';
   export const ToolCheckouts = '/tool-checkouts';
+  export const Analytics = '/admin/analytics';
   export const Volunteer = '/volunteer';
   export const SystemSettings = '/admin/system-settings';
   export const AuditLog = '/admin/audit-log';

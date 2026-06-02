@@ -44,6 +44,9 @@ export interface UserCapabilities {
 
   // Audit log — privileged (admin + board)
   canViewAuditLog:             boolean; // admin, board
+
+  // Analytics dashboard
+  canViewAnalytics:            boolean; // admin, board
 }
 
 export const computeCapabilities = (user: AuthMember): UserCapabilities => {
@@ -79,6 +82,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
 
     canViewPortalSettings:       admin, // admin ONLY
     canViewAuditLog:             privileged,
+    canViewAnalytics:            privileged,
   };
 };
 

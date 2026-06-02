@@ -21,6 +21,7 @@ import ShopFeesPage from 'ui/shopFees/ShopFeesPage';
 import ToolCheckoutsPage from 'ui/toolCheckouts/ToolCheckoutsPage';
 import MemberPortalSettings from 'ui/admin/MemberPortalSettings';
 import AdminVolunteerPage from 'ui/volunteer/AdminVolunteerPage';
+import AdminAnalyticsPage from 'ui/admin/AdminAnalyticsPage';
 import AuditLogPage from 'ui/auditLog/AuditLogPage';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
@@ -76,6 +77,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canManageShopFees    && <Route path={Routing.ShopFees}         element={<ShopFeesPage />} />}
       {caps.canManageCheckouts   && <Route path={Routing.ToolCheckouts}    element={<ToolCheckoutsPage />} />}
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
+      {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}
       {caps.canViewAuditLog      && <Route path={Routing.AuditLog}         element={<AuditLogPage />} />}
       {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
