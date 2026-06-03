@@ -3,6 +3,7 @@
     ["@babel/preset-env", {
       "targets": { "browsers": [">0.5%", "not dead"] },
       "useBuiltIns": "usage",
+      "corejs": "3.37",
       "modules": false
     }],
     "@babel/preset-typescript",
