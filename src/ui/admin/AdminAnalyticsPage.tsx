@@ -52,23 +52,34 @@ const StatCard: React.FC<{ label: string; value: number | string; color?: string
   </Card>
 );
 
+// ── Empty State ───────────────────────────────────────────────────────────────
+
+const EmptyChart: React.FC<{ message: string }> = ({ message }) => (
+  <Typography variant='body2' color='textSecondary' style={{ padding: '24px 0' }}>
+    {message}
+  </Typography>
+);
+
 // ── Member Growth Tab ─────────────────────────────────────────────────────────
 
 const MemberGrowthTab: React.FC = () => {
-  const [year, setYear]         = React.useState<number | ''>('');
-  const [growth, setGrowth]     = React.useState<MemberGrowthPoint[]>([]);
-  const [active, setActive]     = React.useState<ActiveMemberPoint[]>([]);
-  const [gran, setGran]         = React.useState<'month' | 'day'>('month');
-  const [loading, setLoading]   = React.useState(false);
+  const [year, setYear]       = React.useState<number | ''>('');
+  const [growth, setGrowth]   = React.useState<MemberGrowthPoint[]>([]);
+  const [active, setActive]   = React.useState<ActiveMemberPoint[]>([]);
+  const [gran, setGran]       = React.useState<'month' | 'day'>('month');
+  const [loading, setLoading] = React.useState(false);
+  const [loaded, setLoaded]   = React.useState(false);
 
   React.useEffect(() => {
     setLoading(true);
+    setLoaded(false);
     Promise.all([
       getMemberGrowth(year ? { year: year as number } : {}),
       getActiveMembers(year ? { year: year as number, granularity: gran } : { granularity: gran }),
     ]).then(([g, a]) => {
-      if (g.data) setGrowth(g.data);
-      if (a.data) setActive(a.data);
+      setGrowth(g.data || []);
+      setActive(a.data || []);
+      setLoaded(true);
     }).finally(() => setLoading(false));
   }, [year, gran]);
 
@@ -87,12 +98,7 @@ const MemberGrowthTab: React.FC = () => {
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
-            <ToggleButtonGroup
-              value={gran}
-              exclusive
-              size='small'
-              onChange={(_, v) => v && setGran(v)}
-            >
+            <ToggleButtonGroup value={gran} exclusive size='small' onChange={(_, v) => v && setGran(v)}>
               <ToggleButton value='month'>Monthly</ToggleButton>
               <ToggleButton value='day'>Daily</ToggleButton>
             </ToggleButtonGroup>
@@ -104,24 +110,27 @@ const MemberGrowthTab: React.FC = () => {
       {/* New members per month */}
       <Grid size={{ xs: 12 }}>
         <Typography variant='h6' gutterBottom>New Members per Month</Typography>
-        <ResponsiveContainer width='100%' height={300}>
-          <BarChart data={growth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray='3 3' />
-            <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
-            <YAxis allowDecimals={false} />
-            <Tooltip labelFormatter={formatMonth} />
-            <Bar dataKey='count' name='New Members' fill='#e85d04' radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        {loaded && growth.length === 0 && (
+          <EmptyChart message='No member records found with a start date in this range. Ensure members have a startDate set.' />
+        )}
+        {growth.length > 0 && (
+          <ResponsiveContainer width='100%' height={300}>
+            <BarChart data={growth} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray='3 3' />
+              <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip labelFormatter={formatMonth} />
+              <Bar dataKey='count' name='New Members' fill='#e85d04' radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Grid>
 
       {/* Active member count over time */}
       <Grid size={{ xs: 12 }}>
         <Typography variant='h6' gutterBottom>Active Member Count Over Time</Typography>
-        {active.length === 0 && !loading && (
-          <Typography variant='body2' color='textSecondary'>
-            No snapshot data available for this range. The daily snapshot job must have run to populate this chart.
-          </Typography>
+        {loaded && active.length === 0 && (
+          <EmptyChart message='No snapshot data available for this range. The daily snapshot job must have run to populate this chart.' />
         )}
         {active.length > 0 && (
           <ResponsiveContainer width='100%' height={300}>
@@ -153,14 +162,21 @@ const MemberGrowthTab: React.FC = () => {
 // ── Volunteer Analytics Tab ───────────────────────────────────────────────────
 
 const VolunteerAnalyticsTab: React.FC = () => {
-  const [year, setYear]       = React.useState<number | ''>(currentYear);
+  // FIX: was defaulting to currentYear which shows blank in dev and early in any new year.
+  // Default to '' (all time) so data always shows on first load.
+  const [year, setYear]       = React.useState<number | ''>('');
   const [data, setData]       = React.useState<VolunteerSummaryAnalytics | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [loaded, setLoaded]   = React.useState(false);
 
   React.useEffect(() => {
     setLoading(true);
+    setLoaded(false);
     getVolunteerSummaryAnalytics(year ? { year: year as number } : {})
-      .then(r => { if (r.data) setData(r.data); })
+      .then(r => {
+        setData(r.data || null);
+        setLoaded(true);
+      })
       .finally(() => setLoading(false));
   }, [year]);
 
@@ -178,7 +194,18 @@ const VolunteerAnalyticsTab: React.FC = () => {
       </Grid>
       {loading && <Grid><CircularProgress size={20} /></Grid>}
 
-      {/* Summary stats */}
+      {/* No data state */}
+      {loaded && data && data.total_credits === 0 && (
+        <Grid size={{ xs: 12 }}>
+          <EmptyChart message={
+            year
+              ? `No volunteer credits found for ${year}. Try selecting a different year or "All time".`
+              : 'No volunteer credits recorded yet.'
+          } />
+        </Grid>
+      )}
+
+      {/* Summary stats — always show once loaded even if counts are 0 */}
       {data && (
         <>
           <Grid size={{ xs: 6, sm: 3 }}>
@@ -194,37 +221,47 @@ const VolunteerAnalyticsTab: React.FC = () => {
           {/* Credits per month */}
           <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>Credits Issued per Month</Typography>
-            <ResponsiveContainer width='100%' height={280}>
-              <BarChart data={data.credits_by_month} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray='3 3' />
-                <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} />
-                <Tooltip labelFormatter={formatMonth} />
-                <Legend />
-                <Bar dataKey='count' name='Credits' fill='#2e7d32' radius={[3, 3, 0, 0]} />
-                <Bar dataKey='total_value' name='Credit Value' fill='#66bb6a' radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {data.credits_by_month.length === 0 ? (
+              <EmptyChart message='No credit data for this period.' />
+            ) : (
+              <ResponsiveContainer width='100%' height={280}>
+                <BarChart data={data.credits_by_month} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip labelFormatter={formatMonth} />
+                  <Legend />
+                  <Bar dataKey='count' name='Credits' fill='#2e7d32' radius={[3, 3, 0, 0]} />
+                  <Bar dataKey='total_value' name='Credit Value' fill='#66bb6a' radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Grid>
 
           {/* Tasks completed per month */}
           <Grid size={{ xs: 12 }}>
             <Typography variant='h6' gutterBottom>Tasks Completed per Month</Typography>
-            <ResponsiveContainer width='100%' height={240}>
-              <BarChart data={data.tasks_by_month} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray='3 3' />
-                <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} />
-                <Tooltip labelFormatter={formatMonth} />
-                <Bar dataKey='count' name='Tasks Completed' fill='#1565c0' radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {data.tasks_by_month.length === 0 ? (
+              <EmptyChart message='No completed tasks for this period.' />
+            ) : (
+              <ResponsiveContainer width='100%' height={240}>
+                <BarChart data={data.tasks_by_month} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray='3 3' />
+                  <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip labelFormatter={formatMonth} />
+                  <Bar dataKey='count' name='Tasks Completed' fill='#1565c0' radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </Grid>
 
           {/* Top volunteers */}
-          {data.top_volunteers.length > 0 && (
-            <Grid size={{ xs: 12 }}>
-              <Typography variant='h6' gutterBottom>Top Volunteers</Typography>
+          <Grid size={{ xs: 12 }}>
+            <Typography variant='h6' gutterBottom>Top Volunteers</Typography>
+            {data.top_volunteers.length === 0 ? (
+              <EmptyChart message='No volunteer data for this period.' />
+            ) : (
               <ResponsiveContainer width='100%' height={280}>
                 <BarChart
                   layout='vertical'
@@ -239,8 +276,8 @@ const VolunteerAnalyticsTab: React.FC = () => {
                   <Bar dataKey='value' name='Credit Value' fill='#e85d04' radius={[0, 3, 3, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            </Grid>
-          )}
+            )}
+          </Grid>
         </>
       )}
     </Grid>
@@ -252,8 +289,8 @@ const VolunteerAnalyticsTab: React.FC = () => {
 type TabKey = 'members' | 'volunteer' | 'space';
 
 const AdminAnalyticsPage: React.FC = () => {
-  const [tab, setTab]           = React.useState<TabKey>('members');
-  const [summary, setSummary]   = React.useState<AnalyticsSummary | null>(null);
+  const [tab, setTab]         = React.useState<TabKey>('members');
+  const [summary, setSummary] = React.useState<AnalyticsSummary | null>(null);
 
   React.useEffect(() => {
     getAnalyticsSummary().then(r => { if (r.data) setSummary(r.data); });
