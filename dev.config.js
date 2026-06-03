@@ -52,7 +52,11 @@ module.exports = env => ({
   resolve: {
     plugins: [new TsconfigPathsPlugin()],
     alias: {
-      "moment-timezone$": "moment-timezone/moment-timezone"
+      // Redirect moment-timezone imports to exclude unnecessary timezone data
+      "moment-timezone$": "moment-timezone/moment-timezone",
+      // Exclude the full tz data bundle and prevent webpack from including it
+      "moment-timezone/data/packed/latest.json": false,
+      "moment-timezone/data/packed/latest.js": false
     },
     extensions: [
       ".ts", ".tsx", ".js", ".jsx",
@@ -84,6 +88,11 @@ module.exports = env => ({
     headers: { "Access-Control-Allow-Origin": "*" }
   },
   plugins: [
+    // IgnorePlugin to prevent moment-timezone from including all timezone data
+    new webpack.IgnorePlugin({
+      resourceRegExp: /^\.\/data\/packed\/latest\.json$/,
+      contextRegExp: /moment-timezone/
+    }),
     new MiniCssExtractPlugin({
       filename: `makerspace-react.css`
     }),
