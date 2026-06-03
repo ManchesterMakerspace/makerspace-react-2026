@@ -1,8 +1,9 @@
 {
   "presets": [
     ["@babel/preset-env", {
-      "targets": { "browsers": [">0.25%", "not dead"] },
-      "useBuiltIns": false
+      "targets": { "browsers": [">0.5%", "not dead"] },
+      "useBuiltIns": usage,
+      "modules": false
     }],
     "@babel/preset-typescript",
     "@babel/preset-react"
