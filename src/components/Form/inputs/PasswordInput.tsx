@@ -7,7 +7,8 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
-import { scorePassword } from "ui/utils/passwordValidator";
+import { useFormValues } from "components/Form/FormContext";
+import { scorePassword, validatePassword } from "ui/utils/password";
 
 interface Props extends InputProps<string> {
   autoComplete?: string;
@@ -16,23 +17,29 @@ interface Props extends InputProps<string> {
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
-export const PasswordInput = ({ 
-  label, 
-  fieldName, 
+export const PasswordInput = ({
+  label,
+  fieldName,
   placeholder,
   disabled,
   ...props
 }: Props): JSX.Element => {
+  const values = useFormValues();
   const [mask, setMask] = React.useState(true);
   const [password, setPassword] = React.useState("");
   const toggleMask = React.useCallback(() => setMask(curr => !curr), [setMask]);
 
   const strength = scorePassword(password);
+  const validate = React.useCallback(
+    (value: string) => validatePassword(value, Object.entries(values).filter(([key]) => key !== fieldName).map(([, v]) => v)),
+    [values, fieldName]
+  );
 
   return (
     <FormField
       fieldName={fieldName}
       required={true}
+      validate={validate}
       {...props}
     >
       {(value, onChange, error) => (
@@ -51,14 +58,14 @@ export const PasswordInput = ({
             disabled={!!disabled}
             id={fieldName}
             placeholder={placeholder}
-            type={mask ? 'password' : 'text'}
+            type={mask ? "password" : "text"}
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
-                    {mask ? 
-                      <Visibility style={{cursor: 'pointer'}} onClick={toggleMask} /> :
-                      <VisibilityOff style={{cursor: 'pointer'}} onClick={toggleMask} />
+                    {mask ?
+                      <Visibility style={{ cursor: "pointer" }} onClick={toggleMask} /> :
+                      <VisibilityOff style={{ cursor: "pointer" }} onClick={toggleMask} />
                     }
                   </InputAdornment>
                 ),
@@ -80,5 +87,5 @@ export const PasswordInput = ({
         </>
       )}
     </FormField>
-  )
+  );
 }
