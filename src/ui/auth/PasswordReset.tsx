@@ -17,7 +17,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { ScopedThunkDispatch } from "ui/reducer";
 import { loginUserAction } from "ui/auth/actions";
 import { resetPassword, isApiErrorResponse, message } from "makerspace-ts-api-client";
-import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
+import { scorePassword, validatePassword } from "ui/utils/password";
 
 interface DispatchProps {
   attemptLogin: () => void;
@@ -87,9 +87,9 @@ class PasswordReset extends React.Component<Props, State> {
 
     if (!form.isValid()) return;
 
-    const validationError = validatePassword(password);
-    if (validationError) {
-      this.setState({ passwordError: validationError });
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      this.setState({ passwordError });
       return;
     }
 
