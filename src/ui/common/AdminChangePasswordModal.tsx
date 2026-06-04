@@ -16,23 +16,13 @@ import { ActionButton } from "ui/common/ButtonRow";
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import useModal from "ui/hooks/useModal";
+import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
 
 interface Props {
   member: Member;
 }
 
 type AdminMode = "reset" | "set";
-
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
 
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
@@ -89,10 +79,16 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
     }
 
     // Direct set mode
-    if (!password) { setError("Password cannot be blank."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    if (strength < 2) { setError("Password is too weak. Try mixing uppercase, numbers, or symbols."); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
+    
+    const validationError = validatePassword(password, {
+      existingAttributes: {
+        name: member.firstname,
+        email: member.email,
+        address: member.address
+      }
+    });
+    if (validationError) { setError(validationError); return; }
 
     setIsRequesting(true);
     try {
@@ -114,7 +110,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
     } finally {
       setIsRequesting(false);
     }
-  }, [adminMode, member, password, confirm, strength]);
+  }, [adminMode, member, password, confirm]);
 
   return (
     <>
@@ -177,7 +173,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
               <>
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="body2" color="textSecondary">
-                    The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead.
+                    The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead[...]
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
