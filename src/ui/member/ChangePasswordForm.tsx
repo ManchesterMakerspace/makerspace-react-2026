@@ -15,32 +15,23 @@ import FormLabel from "@mui/material/FormLabel";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { useAuthState } from "ui/reducer/hooks";
 import { useCapabilities } from "app/permissions";
+import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
 
 interface Props {
   // The member whose password is being changed.
   // For self-service this is the logged-in member; for admin this is the selected member.
   memberId: string;
   memberEmail?: string;
+  memberName?: string;
+  memberAddress?: string;
 }
 
 type AdminMode = "set" | "reset";
 
-// Simple strength scorer: 0-4 based on length and character variety
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
-
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
-const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail }) => {
+const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberName, memberAddress }) => {
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canChangeOtherPasswords: isAdmin } = useCapabilities();
   const isOwnPassword = currentUserId === memberId;
@@ -56,11 +47,17 @@ const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail }) => {
   const strength = scorePassword(password);
 
   const validate = (): string | null => {
-    if (!password) return "Password cannot be blank.";
-    if (password.length < 8) return "Password must be at least 8 characters.";
-    if (strength < 2) return "Password is too weak. Try mixing uppercase, numbers, or symbols.";
     if (password !== confirm) return "Passwords do not match.";
-    return null;
+    
+    // Validate against existing attributes when changing password
+    const validationError = validatePassword(password, {
+      existingAttributes: {
+        name: memberName,
+        email: memberEmail,
+        address: memberAddress
+      }
+    });
+    return validationError;
   };
 
   const handleSubmit = async () => {
