@@ -17,6 +17,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { ScopedThunkDispatch } from "ui/reducer";
 import { loginUserAction } from "ui/auth/actions";
 import { resetPassword, isApiErrorResponse, message } from "makerspace-ts-api-client";
+import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
 
 interface DispatchProps {
   attemptLogin: () => void;
@@ -46,18 +47,6 @@ const passwordFields: FormFields = {
 interface PasswordForm {
   password: string;
 }
-
-// Strength scorer: 0-4
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
 
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
@@ -98,9 +87,9 @@ class PasswordReset extends React.Component<Props, State> {
 
     if (!form.isValid()) return;
 
-    const strength = scorePassword(this.state.password);
-    if (strength < 2) {
-      this.setState({ passwordError: "Password is too weak. Try mixing uppercase, numbers, or symbols." });
+    const validationError = validatePassword(password);
+    if (validationError) {
+      this.setState({ passwordError: validationError });
       return;
     }
 
