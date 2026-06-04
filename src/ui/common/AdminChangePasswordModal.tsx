@@ -16,7 +16,7 @@ import { ActionButton } from "ui/common/ButtonRow";
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import useModal from "ui/hooks/useModal";
-import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
+import { scorePassword, validatePassword } from "ui/utils/password";
 
 interface Props {
   member: Member;
@@ -79,16 +79,18 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
     }
 
     // Direct set mode
+    const passwordError = validatePassword(password, [
+      member.firstname,
+      member.lastname,
+      member.email,
+      member.address_street,
+      member.address_unit,
+      member.address_city,
+      member.address_state,
+      member.address_postal_code,
+    ]);
+    if (passwordError) { setError(passwordError); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
-    
-    const validationError = validatePassword(password, {
-      existingAttributes: {
-        name: member.firstname,
-        email: member.email,
-        address: member.address
-      }
-    });
-    if (validationError) { setError(validationError); return; }
 
     setIsRequesting(true);
     try {
@@ -110,7 +112,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
     } finally {
       setIsRequesting(false);
     }
-  }, [adminMode, member, password, confirm]);
+  }, [adminMode, member, password, confirm, strength]);
 
   return (
     <>
@@ -173,7 +175,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
               <>
                 <Grid size={{ xs: 12 }}>
                   <Typography variant="body2" color="textSecondary">
-                    The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead[...]
+                    The member will receive an email notifying them that their password has been changed. If you do not want them notified, use the <strong>Send reset link</strong> option instead.
                   </Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
