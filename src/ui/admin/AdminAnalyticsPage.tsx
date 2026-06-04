@@ -7,8 +7,6 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -66,7 +64,6 @@ const MemberGrowthTab: React.FC = () => {
   const [year, setYear]       = React.useState<number | ''>('');
   const [growth, setGrowth]   = React.useState<MemberGrowthPoint[]>([]);
   const [active, setActive]   = React.useState<ActiveMemberPoint[]>([]);
-  const [gran, setGran]       = React.useState<'month' | 'day'>('month');
   const [loading, setLoading] = React.useState(false);
   const [loaded, setLoaded]   = React.useState(false);
 
@@ -75,13 +72,13 @@ const MemberGrowthTab: React.FC = () => {
     setLoaded(false);
     Promise.all([
       getMemberGrowth(year ? { year: year as number } : {}),
-      getActiveMembers(year ? { year: year as number, granularity: gran } : { granularity: gran }),
+      getActiveMembers(year ? { year: year as number, granularity: 'month' } : { granularity: 'month' }),
     ]).then(([g, a]) => {
       setGrowth(g.data || []);
       setActive(a.data || []);
       setLoaded(true);
     }).finally(() => setLoading(false));
-  }, [year, gran]);
+  }, [year]);
 
   return (
     <Grid container spacing={3}>
@@ -130,17 +127,10 @@ const MemberGrowthTab: React.FC = () => {
 
       {/* Active member count over time */}
       <Grid size={{ xs: 12 }}>
-        <Grid container spacing={2} alignItems='center' style={{ marginBottom: 8 }}>
-          <Grid>
-            <Typography variant='h6'>Active Member Count Over Time</Typography>
-          </Grid>
-          <Grid>
-            <ToggleButtonGroup value={gran} exclusive size='small' onChange={(_, v) => v && setGran(v)}>
-              <ToggleButton value='month'>Monthly</ToggleButton>
-              <ToggleButton value='day'>Daily</ToggleButton>
-            </ToggleButtonGroup>
-          </Grid>
-        </Grid>
+        <Typography variant='h6'>Active Member Count Over Time</Typography>
+        <Typography variant='caption' color='textSecondary' style={{ display: 'block', marginBottom: 8 }}>
+          How many members did we have at any given point in the past?
+        </Typography>
         {loaded && active.length === 0 && (
           <EmptyChart message='No snapshot data available for this range. The daily snapshot job must have run to populate this chart.' />
         )}
@@ -150,17 +140,17 @@ const MemberGrowthTab: React.FC = () => {
               <CartesianGrid strokeDasharray='3 3' />
               <XAxis
                 dataKey='date'
-                tickFormatter={d => gran === 'month' ? formatMonth(d) : d}
+                tickFormatter={formatMonth}
                 tick={{ fontSize: 11 }}
               />
               <YAxis allowDecimals={false} />
-              <Tooltip labelFormatter={d => gran === 'month' ? formatMonth(d as string) : d} />
+              <Tooltip labelFormatter={formatMonth} />
               <Line
                 type='monotone'
                 dataKey='count'
                 name='Active Members'
                 stroke='#1565c0'
-                dot={gran === 'day' ? false : { r: 3 }}
+                dot={{ r: 3 }}
                 strokeWidth={2}
               />
             </LineChart>
