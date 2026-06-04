@@ -7,21 +7,11 @@ import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
+import { scorePassword } from "ui/utils/passwordValidator";
 
 interface Props extends InputProps<string> {
   autoComplete?: string;
 }
-
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
 
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
