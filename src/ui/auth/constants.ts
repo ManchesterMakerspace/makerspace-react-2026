@@ -1,5 +1,6 @@
 import { emailValid } from "app/utils";
 import isString from "lodash-es/isString";
+import { validatePassword } from "ui/utils/password";
 
 export enum Action {
   StartAuthRequest = "AUTH/START_REQUEST",
@@ -78,7 +79,7 @@ export const SignUpFields: FormFields = {
     label: "Password",
     name: `${signUpPrefix}-password`,
     placeholder: "Enter password",
-    validate: (val) => !(isString(val) && val.length > 7) && "Password must be 8 characters minimum",
+    validate: (val) => validatePassword(isString(val) ? val : ""),
   },
   membershipSelectionId: {
     label: "Membership Option",
