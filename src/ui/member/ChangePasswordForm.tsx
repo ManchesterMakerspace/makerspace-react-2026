@@ -15,15 +15,13 @@ import FormLabel from "@mui/material/FormLabel";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { useAuthState } from "ui/reducer/hooks";
 import { useCapabilities } from "app/permissions";
-import { scorePassword, validatePassword } from "ui/utils/passwordValidator";
+import { scorePassword, validatePassword } from "ui/utils/password";
 
 interface Props {
   // The member whose password is being changed.
   // For self-service this is the logged-in member; for admin this is the selected member.
   memberId: string;
   memberEmail?: string;
-  memberName?: string;
-  memberAddress?: string;
 }
 
 type AdminMode = "set" | "reset";
@@ -31,10 +29,10 @@ type AdminMode = "set" | "reset";
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
-const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberName, memberAddress }) => {
-  const { currentUser: { id: currentUserId } } = useAuthState();
+const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail }) => {
+  const { currentUser } = useAuthState();
   const { canChangeOtherPasswords: isAdmin } = useCapabilities();
-  const isOwnPassword = currentUserId === memberId;
+  const isOwnPassword = currentUser.id === memberId;
 
   const [adminMode, setAdminMode] = React.useState<AdminMode>("reset");
   const [password, setPassword] = React.useState("");
@@ -47,17 +45,21 @@ const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberName
   const strength = scorePassword(password);
 
   const validate = (): string | null => {
+    const guessableFields = [
+      currentUser.firstname,
+      currentUser.lastname,
+      currentUser.email,
+      currentUser.address_street,
+      currentUser.address_unit,
+      currentUser.address_city,
+      currentUser.address_state,
+      currentUser.address_postal_code,
+      memberEmail,
+    ];
+    const passwordError = validatePassword(password, guessableFields);
+    if (passwordError) return passwordError;
     if (password !== confirm) return "Passwords do not match.";
-    
-    // Validate against existing attributes when changing password
-    const validationError = validatePassword(password, {
-      existingAttributes: {
-        name: memberName,
-        email: memberEmail,
-        address: memberAddress
-      }
-    });
-    return validationError;
+    return null;
   };
 
   const handleSubmit = async () => {
