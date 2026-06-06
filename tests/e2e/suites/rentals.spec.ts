@@ -70,7 +70,7 @@ test.describe('Member self-assigns rental spot', () => {
     // Select GT1 from dropdown
     await member.clickTab('Rentals');
     await rentals.waitForRentalsTab();
-    await expect(page.getByRole('button', { name: 'Select an Available Rental' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: 'Select an Available Rental' })).toBeVisible();
     await rentals.selectSpot(GT1);
     await expect(page.getByRole('button', { name: 'Confirm Rental' })).toBeVisible();
 

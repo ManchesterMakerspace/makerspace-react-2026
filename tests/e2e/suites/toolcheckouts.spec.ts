@@ -88,27 +88,29 @@ test.describe('RM checks out member on metalshop CNC mill with prereq warning', 
     await page.waitForTimeout(1500);
     await page.getByRole('option', { name: /Basic Member1/i }).first().click();
 
-    // Scope to dialog — page also has comboboxes behind the modal
+    // Scope to dialog — page also has comboboxes behind the modal.
+    // Use locator('select') not getByRole('combobox'): CheckoutModal uses
+    // <Select native> which renders a real <select> element.
     const dialog = page.locator('[role="dialog"]');
 
-    const shopCombobox = dialog.getByRole('combobox').first();
-    await expect(shopCombobox.locator('option').filter({ hasText: METALSHOP }))
+    const shopSelect = dialog.locator('select').first();
+    await expect(shopSelect.locator('option').filter({ hasText: METALSHOP }))
       .toHaveCount(1, { timeout: 10_000 });
-    const shopValue = await shopCombobox.locator('option')
+    const shopValue = await shopSelect.locator('option')
       .filter({ hasText: METALSHOP })
       .getAttribute('value');
     if (!shopValue) throw new Error(`Shop option not found: ${METALSHOP}`);
-    await shopCombobox.selectOption(shopValue);
+    await shopSelect.selectOption(shopValue);
     await page.waitForTimeout(500);
 
-    const toolCombobox = dialog.getByRole('combobox').nth(1);
-    await expect(toolCombobox.locator('option').filter({ hasText: CNC_MILL }))
+    const toolSelect = dialog.locator('select').nth(1);
+    await expect(toolSelect.locator('option').filter({ hasText: CNC_MILL }))
       .toHaveCount(1, { timeout: 10_000 });
-    const toolValue = await toolCombobox.locator('option')
+    const toolValue = await toolSelect.locator('option')
       .filter({ hasText: CNC_MILL })
       .getAttribute('value');
     if (!toolValue) throw new Error(`Tool option not found: ${CNC_MILL}`);
-    await toolCombobox.selectOption(toolValue);
+    await toolSelect.selectOption(toolValue);
     await page.waitForTimeout(300);
 
     // Prerequisite warning shows in modal before submitting

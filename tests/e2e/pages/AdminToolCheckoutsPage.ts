@@ -27,7 +27,9 @@ export class AdminToolCheckoutsPage {
   }
 
   async verifyShopInTable(name: string): Promise<void> {
-    await expect(this.page.getByRole('cell', { name })).toBeVisible({ timeout: 10_000 });
+    // Use first() because seeded data may already contain a shop with the same
+    // name (e.g. 'woodshop' from seed + the one just created by the test).
+    await expect(this.page.getByRole('cell', { name, exact: true }).first()).toBeVisible({ timeout: 10_000 });
   }
 
   // ── Tools ──────────────────────────────────────────────────────────────────
@@ -92,29 +94,31 @@ export class AdminToolCheckoutsPage {
     await this.page.waitForSelector('[role="option"]', { timeout: 10_000 });
     await this.page.getByRole('option', { name: new RegExp(memberName, 'i') }).first().click();
 
-    // Scope to dialog — page also has comboboxes behind the modal
+    // Scope to dialog — page also has comboboxes behind the modal.
+    // Use locator('select') not getByRole('combobox'): CheckoutModal uses
+    // <Select native> which renders a real <select> element, whereas
+    // getByRole('combobox') also matches the react-select member search.
     const dialog = this.page.locator('[role="dialog"]');
 
-    // Select shop by value — options are in DOM, shop value by text match
-    const shopCombobox = dialog.getByRole('combobox').first();
-    await expect(shopCombobox.locator('option').filter({ hasText: shopName }))
+    const shopSelect = dialog.locator('select').first();
+    await expect(shopSelect.locator('option').filter({ hasText: shopName }))
       .toHaveCount(1, { timeout: 10_000 });
-    const shopValue = await shopCombobox.locator('option')
+    const shopValue = await shopSelect.locator('option')
       .filter({ hasText: shopName })
       .getAttribute('value');
     if (!shopValue) throw new Error(`Shop option not found: ${shopName}`);
-    await shopCombobox.selectOption(shopValue);
+    await shopSelect.selectOption(shopValue);
     await this.page.waitForTimeout(500);
 
     // Wait for tool options to populate after shop selection
-    const toolCombobox = dialog.getByRole('combobox').nth(1);
-    await expect(toolCombobox.locator('option').filter({ hasText: toolName }))
+    const toolSelect = dialog.locator('select').nth(1);
+    await expect(toolSelect.locator('option').filter({ hasText: toolName }))
       .toHaveCount(1, { timeout: 10_000 });
-    const toolValue = await toolCombobox.locator('option')
+    const toolValue = await toolSelect.locator('option')
       .filter({ hasText: toolName })
       .getAttribute('value');
     if (!toolValue) throw new Error(`Tool option not found: ${toolName}`);
-    await toolCombobox.selectOption(toolValue);
+    await toolSelect.selectOption(toolValue);
     await this.page.waitForTimeout(300);
 
     await this.page.getByRole('button', { name: 'Check Out' }).click();

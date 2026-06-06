@@ -41,6 +41,8 @@ test.describe('Shop fee lifecycle', () => {
     // ── Admin logs out ──
     await page.getByRole('button', { name: 'Menu' }).click();
     await page.getByRole('menuitem', { name: 'Logout' }).click();
+    // Wait for redirect to confirm session is fully cleared before member signs in
+    await page.waitForURL(/\/$|\/login/, { timeout: 15_000 });
 
     // ── Member logs in and pays the invoice ──
     await auth.signIn(FEE_MEMBER_EMAIL, 'password');

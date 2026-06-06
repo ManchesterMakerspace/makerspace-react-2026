@@ -70,9 +70,14 @@ export class AdminRentalsPage {
     await dialog.getByRole('textbox').nth(0).fill(spot.number);
     await dialog.getByRole('textbox').nth(1).fill(spot.location);
 
-    // MUI Select for rental type
-    await dialog.getByRole('button').first().click();
+    // MUI TextField select (non-native) — the trigger is the MuiSelect-select div
+    // associated with the "Rental Type" label. Click the label's associated control
+    // to open the dropdown, then click the portal-rendered option.
+    await dialog.getByLabel('Rental Type').click();
+    await this.page.waitForSelector('[role="listbox"]', { timeout: 10_000 });
     await this.page.getByRole('option', { name: spot.rentalTypeName, exact: true }).click();
+    // Wait for listbox to close before continuing
+    await this.page.waitForSelector('[role="listbox"]', { state: 'hidden', timeout: 5_000 });
 
     await dialog.getByRole('textbox').nth(2).fill(spot.description);
   }
