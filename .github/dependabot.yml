@@ -1,0 +1,75 @@
+version: 2
+
+updates:
+  # ── npm / yarn ──────────────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+    ignore:
+      # Pinned internal API client — update manually when API changes are ready
+      - dependency-name: makerspace-ts-api-client
+        update-types: ["version-update:semver-major"]
+      # react-signature-canvas is pinned to a pre-release alpha; ignore until
+      # a stable 1.x release exists
+      - dependency-name: react-signature-canvas
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+    groups:
+      # MUI ecosystem — keep material, icons, emotion in sync
+      mui:
+        patterns:
+          - "@mui/*"
+          - "@emotion/*"
+      # React core
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      # Redux ecosystem
+      redux:
+        patterns:
+          - "redux"
+          - "react-redux"
+          - "redux-thunk"
+          - "@redux-devtools/*"
+      # Babel toolchain
+      babel:
+        patterns:
+          - "@babel/*"
+          - "babel-*"
+      # Webpack toolchain
+      webpack:
+        patterns:
+          - "webpack"
+          - "webpack-*"
+          - "*-webpack-plugin"
+          - "*-loader"
+      # Jest / testing toolchain
+      jest:
+        patterns:
+          - "jest"
+          - "jest-*"
+          - "@types/jest"
+          - "ts-jest"
+      # TypeScript toolchain
+      typescript:
+        patterns:
+          - "typescript"
+          - "ts-*"
+          - "tsconfig-*"
+          - "@types/*"
+
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    labels:
+      - dependencies
