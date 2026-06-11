@@ -49,6 +49,22 @@ export class AdminVolunteerPage {
   }
 
   async verifyTaskInTable(title: string): Promise<void> {
+    // Filter to 'available' so the 70+ completed historical tasks don't push new
+    // tasks off page 1. The Select is a MUI component — click it then pick the option.
+    const statusSelect = this.page.locator('[id="volunteer-tasks-status-filter"], select').first();
+    if (await statusSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // Native select path
+      await statusSelect.selectOption('available');
+    } else {
+      // MUI Select path — find by current displayed value near the Tasks heading
+      const tasksSection = this.page.locator('text=Bounty Tasks').locator('../..');
+      const muiSelect = tasksSection.locator('[role="combobox"]').first();
+      if (await muiSelect.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await muiSelect.click();
+        await this.page.getByRole('option', { name: 'Available', exact: true }).click();
+        await this.page.waitForTimeout(500);
+      }
+    }
     await expect(this.page.getByText(new RegExp(title, 'i')).first())
       .toBeVisible({ timeout: 15_000 });
   }
@@ -124,7 +140,7 @@ export class MemberVolunteerPage {
     await this.page.getByRole('button', { name: 'Claim Task' }).click();
     await this.page.waitForTimeout(1000);
     await this.page.reload();
-    await this.page.waitForLoadState('networkidle');
+    await this.page.getByRole('button', { name: 'Menu' }).waitFor({ state: 'visible', timeout: 15_000 });
     await this.page.getByRole('tab', { name: /volunteer/i }).click();
     await this.page.waitForTimeout(1000);
   }

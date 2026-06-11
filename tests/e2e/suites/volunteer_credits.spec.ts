@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
+import { AdminVolunteerPage } from '../pages/AdminVolunteerPage';
 import { adminMember, rmMember0 } from '../fixtures/testData';
 
 // ── Volunteer credit lifecycle ────────────────────────────────────────────────
@@ -8,51 +9,70 @@ import { adminMember, rmMember0 } from '../fixtures/testData';
 // Tests the manual credit award, approve, reject, and reversal flows.
 // Also verifies the member volunteer summary panel reflects credit counts.
 //
+// Credit award UI lives at /volunteer → Credits tab (admin/RM facing).
+// The Volunteer tab on a MEMBER PROFILE only shows when isOwnProfile is true,
+// so all admin award operations go through the admin volunteer page instead.
+//
 // Uses basic_member3 as the credit recipient — active member with a subscription,
 // not shared with other volunteer suites.
 
 const CREDIT_MEMBER_EMAIL = 'basic_member3@test.com';
 const CREDIT_MEMBER_NAME  = 'Basic Member3';
 
+// ── Helper: award a credit via the admin /volunteer Credits tab ───────────────
+
+async function awardCreditViaAdminPage(
+  page: any,
+  memberName: string,
+  description: string,
+): Promise<void> {
+  const volunteer = new AdminVolunteerPage(page);
+  await volunteer.goto();
+  await volunteer.goToTab('Credits');
+  await page.waitForTimeout(500);
+
+  // Open award dialog
+  const awardBtn = page.getByRole('button', { name: /award credit|add credit/i });
+  await awardBtn.waitFor({ state: 'visible', timeout: 10_000 });
+  await awardBtn.click();
+  await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+
+  // Search for and select member
+  const dialog = page.locator('[role="dialog"]');
+  const memberSearch = dialog.locator('input').first();
+  await memberSearch.fill(memberName);
+  await page.waitForTimeout(500);
+  const memberOption = page.getByRole('option', { name: new RegExp(memberName, 'i') }).first();
+  if (await memberOption.isVisible({ timeout: 5_000 })) {
+    await memberOption.click();
+  }
+
+  await dialog.getByRole('textbox', { name: /description/i }).fill(description);
+  await dialog.getByRole('button', { name: /award|submit/i }).click();
+  await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
+  await page.waitForTimeout(1000);
+}
+
 // ── Test 1: Admin awards a credit directly ───────────────────────────────────
 
 test.describe('Admin directly awards a volunteer credit', () => {
 
-  test('Admin navigates to member and awards a credit', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
+  test('Admin awards a credit via the volunteer credits page', async ({ page }) => {
+    const auth = new AuthPage(page);
+    const desc = 'E2E test award — general cleanup';
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await member.goToMembersList();
-    await member.searchMembers('basic_member3');
-    await member.clickMemberLink(CREDIT_MEMBER_NAME);
-    await member.waitForProfile();
+    await awardCreditViaAdminPage(page, CREDIT_MEMBER_NAME, desc);
 
-    // Navigate to Volunteer tab on the member profile
-    await member.clickTab('Volunteer');
-    await page.waitForTimeout(500);
-
-    // Award a credit via the Credits section
-    const awardBtn = page.getByRole('button', { name: /award credit|add credit/i });
-    await awardBtn.waitFor({ state: 'visible', timeout: 10_000 });
-    await awardBtn.click();
-    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
-
-    const dialog = page.locator('[role="dialog"]');
-    await dialog.getByRole('textbox', { name: /description/i }).fill('E2E test award — general cleanup');
-    await dialog.getByRole('button', { name: /award|submit/i }).click();
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
-    await page.waitForTimeout(1000);
-
-    // Credit should appear in the table as approved (admin direct award is auto-approved)
-    await expect(page.getByText(/E2E test award — general cleanup/i))
-      .toBeVisible({ timeout: 10_000 });
+    // Credit should appear in the credits table
+    await expect(page.getByText(new RegExp(desc, 'i'))).toBeVisible({ timeout: 10_000 });
   });
 
   test('Awarded credit appears in member volunteer summary', async ({ page }) => {
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
+    // Member views their OWN profile — isOwnProfile = true, tab shows
     await auth.signIn(CREDIT_MEMBER_EMAIL, 'password');
     await member.waitForProfile();
     await member.dismissNotificationModal();
@@ -60,9 +80,8 @@ test.describe('Admin directly awards a volunteer credit', () => {
     await page.waitForTimeout(1000);
 
     // Year count should be at least 1
-    const yearCount = page.locator('[id*="year-count"], [id*="year_count"]')
-      .or(page.getByText(/credits this year/i).first());
-    await yearCount.waitFor({ state: 'visible', timeout: 10_000 });
+    await expect(page.getByText(/credits this year|year.*credit/i).first())
+      .toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
   });
 });
@@ -73,18 +92,13 @@ test.describe('RM-awarded credit goes through pending → approved flow', () => 
 
   const PENDING_CREDIT_DESC = 'E2E test RM award — pending approval';
 
-  test('RM awards credit — lands in pending state', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
+  test('RM awards credit via volunteer credits page — lands in pending state', async ({ page }) => {
+    const auth      = new AuthPage(page);
+    const volunteer = new AdminVolunteerPage(page);
 
-    // RM awards credit to basic_member3 (RM cannot approve their own — use admin for that)
     await auth.signIn(rmMember0.email, rmMember0.password);
-    await member.goToMembersList();
-    await member.searchMembers('basic_member3');
-    await member.clickMemberLink(CREDIT_MEMBER_NAME);
-    await member.waitForProfile();
-
-    await member.clickTab('Volunteer');
+    await volunteer.goto();
+    await volunteer.goToTab('Credits');
     await page.waitForTimeout(500);
 
     const awardBtn = page.getByRole('button', { name: /award credit|add credit/i });
@@ -93,33 +107,41 @@ test.describe('RM-awarded credit goes through pending → approved flow', () => 
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
     const dialog = page.locator('[role="dialog"]');
+    const memberSearch = dialog.locator('input').first();
+    await memberSearch.fill(CREDIT_MEMBER_NAME);
+    await page.waitForTimeout(500);
+    const memberOption = page.getByRole('option', { name: new RegExp(CREDIT_MEMBER_NAME, 'i') }).first();
+    if (await memberOption.isVisible({ timeout: 5_000 })) {
+      await memberOption.click();
+    }
+
     await dialog.getByRole('textbox', { name: /description/i }).fill(PENDING_CREDIT_DESC);
     await dialog.getByRole('button', { name: /award|submit/i }).click();
     await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
     await page.waitForTimeout(1000);
 
-    // Credit should appear — RM awards may be auto-approved or pending
+    // Credit should appear in the table
     await expect(page.getByText(new RegExp(PENDING_CREDIT_DESC, 'i')))
       .toBeVisible({ timeout: 10_000 });
   });
 
   test('Admin approves a pending credit from volunteer credits list', async ({ page }) => {
-    const auth = new AuthPage(page);
+    const auth      = new AuthPage(page);
+    const volunteer = new AdminVolunteerPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await page.goto('/volunteer');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('tab', { name: /credits/i }).click();
+    await volunteer.goto();
+    await volunteer.goToTab('Credits');
     await page.waitForTimeout(1000);
 
     // Filter to pending
-    const statusFilter = page.getByRole('combobox', { name: /status/i });
-    if (await statusFilter.isVisible({ timeout: 3_000 })) {
-      await statusFilter.selectOption('pending');
+    const muiSelect = page.locator('[role="combobox"]').first();
+    if (await muiSelect.isVisible({ timeout: 3_000 })) {
+      await muiSelect.click();
+      await page.getByRole('option', { name: 'Pending', exact: true }).click();
       await page.waitForTimeout(500);
     }
 
-    // Find and approve the pending credit
     const creditRow = page.getByRole('row')
       .filter({ hasText: new RegExp(PENDING_CREDIT_DESC, 'i') }).first();
 
@@ -127,11 +149,9 @@ test.describe('RM-awarded credit goes through pending → approved flow', () => 
       await creditRow.getByRole('checkbox').check();
       await page.getByRole('button', { name: /approve/i }).click();
       await page.waitForTimeout(2000);
-
-      // Should now show approved
       await expect(page.getByText(/approved/i).first()).toBeVisible({ timeout: 10_000 });
     }
-    // If not in pending (auto-approved path) — test is still a pass
+    // If not in pending (auto-approved path) — still a pass
   });
 });
 
@@ -141,33 +161,16 @@ test.describe('Admin rejects a volunteer credit', () => {
 
   const REJECT_CREDIT_DESC = 'E2E test credit — to be rejected';
 
-  test('Admin awards then rejects a credit', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
+  test('Admin awards then rejects a credit via credits page', async ({ page }) => {
+    const auth      = new AuthPage(page);
+    const volunteer = new AdminVolunteerPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await member.goToMembersList();
-    await member.searchMembers('basic_member3');
-    await member.clickMemberLink(CREDIT_MEMBER_NAME);
-    await member.waitForProfile();
-    await member.clickTab('Volunteer');
+    await awardCreditViaAdminPage(page, CREDIT_MEMBER_NAME, REJECT_CREDIT_DESC);
 
-    // Award a credit first
-    const awardBtn = page.getByRole('button', { name: /award credit|add credit/i });
-    await awardBtn.waitFor({ state: 'visible', timeout: 10_000 });
-    await awardBtn.click();
-    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
-    await page.locator('[role="dialog"]').getByRole('textbox', { name: /description/i })
-      .fill(REJECT_CREDIT_DESC);
-    await page.locator('[role="dialog"]').getByRole('button', { name: /award|submit/i }).click();
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
-    await page.waitForTimeout(1000);
-
-    // Navigate to volunteer credits admin and reject it
-    await page.goto('/volunteer');
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('tab', { name: /credits/i }).click();
-    await page.waitForTimeout(1000);
+    // Now reject it — already on credits tab after award
+    await volunteer.goToTab('Credits');
+    await page.waitForTimeout(500);
 
     const creditRow = page.getByRole('row')
       .filter({ hasText: new RegExp(REJECT_CREDIT_DESC, 'i') }).first();
@@ -188,28 +191,12 @@ test.describe('Admin reverses an approved volunteer credit', () => {
   const REVERSAL_CREDIT_DESC = 'E2E test credit — to be reversed';
 
   test('Admin awards, then reverses a credit with a reason', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
+    const auth = new AuthPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await member.goToMembersList();
-    await member.searchMembers('basic_member3');
-    await member.clickMemberLink(CREDIT_MEMBER_NAME);
-    await member.waitForProfile();
-    await member.clickTab('Volunteer');
+    await awardCreditViaAdminPage(page, CREDIT_MEMBER_NAME, REVERSAL_CREDIT_DESC);
 
-    // Award credit
-    const awardBtn = page.getByRole('button', { name: /award credit|add credit/i });
-    await awardBtn.waitFor({ state: 'visible', timeout: 10_000 });
-    await awardBtn.click();
-    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
-    await page.locator('[role="dialog"]').getByRole('textbox', { name: /description/i })
-      .fill(REVERSAL_CREDIT_DESC);
-    await page.locator('[role="dialog"]').getByRole('button', { name: /award|submit/i }).click();
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
-    await page.waitForTimeout(1000);
-
-    // Find credit in table and reverse it
+    // Find it in the credits table and reverse
     const creditRow = page.getByRole('row')
       .filter({ hasText: new RegExp(REVERSAL_CREDIT_DESC, 'i') }).first();
     await creditRow.waitFor({ state: 'visible', timeout: 10_000 });
@@ -218,13 +205,13 @@ test.describe('Admin reverses an approved volunteer credit', () => {
     await page.getByRole('button', { name: /reverse/i }).click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Fill reversal reason
-    await page.locator('[role="dialog"]').getByRole('textbox').fill('E2E test reversal — error in award');
-    await page.locator('[role="dialog"]').getByRole('button', { name: /confirm|submit|reverse/i }).click();
+    await page.locator('[role="dialog"]').getByRole('textbox')
+      .fill('E2E test reversal — error in award');
+    await page.locator('[role="dialog"]')
+      .getByRole('button', { name: /confirm|submit|reverse/i }).click();
     await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
     await page.waitForTimeout(1000);
 
-    // Original credit should show reversed state; a reversal record should appear
     await expect(page.getByText(/reversed/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
@@ -232,13 +219,13 @@ test.describe('Admin reverses an approved volunteer credit', () => {
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
+    // Member views own profile — Volunteer tab is visible
     await auth.signIn(CREDIT_MEMBER_EMAIL, 'password');
     await member.waitForProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Volunteer');
     await page.waitForTimeout(1000);
 
-    // Credits table should show negative reversal entry
     await expect(page.getByText(/-/i).first()).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
   });
