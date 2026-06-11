@@ -24,3 +24,7 @@ export const createRejectCard = (uid: string): void => {
 export const cancelMemberSubscription = (email: string): void => {
   runRailsCmd(`bundle exec rake "db:braintree_webhook[${email}]"`);
 };
+
+export const seedVolunteerCredits = (email: string, count: number = 1): void => {
+  runRailsCmd(`bundle exec rake "db:seed_volunteer_credits[${email},${count}]"`);
+};
