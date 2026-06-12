@@ -75,10 +75,11 @@ export const removeCheckinVolunteerEvent = ({ id }: { id: string }) =>
 export const adminListVolunteerCredits = (params?: { memberId?: string; status?: string }) =>
   buildResponse<VolunteerCredit[]>(api.get('/api/admin/volunteer_credits', { params }));
 
-export const adminAwardVolunteerCredit = ({ body }: { body: { memberId: string; description: string } }) =>
+export const adminAwardVolunteerCredit = ({ body }: { body: { memberId: string; description: string; creditValue: number } }) =>
   buildResponse<VolunteerCredit>(api.post('/api/admin/volunteer_credits', {
-    member_id:   body.memberId,
-    description: body.description,
+    member_id:    body.memberId,
+    description:  body.description,
+    credit_value: body.creditValue,
   }));
 
 export const adminApproveVolunteerCredit = ({ id }: { id: string }) =>

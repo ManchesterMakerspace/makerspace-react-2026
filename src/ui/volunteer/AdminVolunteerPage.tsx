@@ -49,6 +49,7 @@ import { useCapabilities } from 'app/permissions';
 import { VolunteerCredit, VolunteerTask, VolunteerTaskStatus, VolunteerEvent } from 'app/entities/volunteer';
 import {
   adminListVolunteerCredits,
+  adminAwardVolunteerCredit,
   adminApproveVolunteerCredit,
   adminRejectVolunteerCredit,
   adminReverseVolunteerCredit,
@@ -140,6 +141,57 @@ const ReasonModal: React.FC<ReasonModalProps> = ({ title, isOpen, onClose, onSub
   );
 };
 
+// ── Award Credit Modal ──────────────────────────────────────────────────────
+//
+// Admin/RM directly award a credit to a member. Always submitted as 'pending' —
+// requires a separate approval (Approve button, above) before it counts toward
+// the member's totals or triggers notifications/discount checks.
+
+interface AwardCreditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (memberId: string, description: string, creditValue: number) => void;
+  loading: boolean;
+  error: string;
+}
+
+const AwardCreditModal: React.FC<AwardCreditModalProps> = ({ isOpen, onClose, onSubmit, loading, error }) => {
+  const [selectedMember, setSelectedMember] = React.useState<SelectOption | null>(null);
+  const [creditValue, setCreditValue]       = React.useState('');
+  const [description, setDescription]       = React.useState('');
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setSelectedMember(null);
+      setCreditValue('');
+      setDescription('');
+    }
+  }, [isOpen]);
+
+  const numericValue = parseFloat(creditValue);
+  const validValue   = !isNaN(numericValue) && numericValue > 0;
+  const canSubmit    = !!selectedMember?.id && description.trim().length > 0 && validValue;
+
+  return (
+    <FormModal id='award-volunteer-credit' title='Award Credit' isOpen={isOpen} closeHandler={onClose}
+      onSubmit={() => canSubmit && onSubmit(selectedMember.id, description.trim(), numericValue)}
+      submitText='Award' loading={loading} error={error}>
+      <div style={{ marginBottom: 16 }}>
+        <MemberSearchInput name='award-credit-member-search' placeholder='Search by name or email'
+          initialSelection={selectedMember} onChange={setSelectedMember} />
+      </div>
+      <TextField label='Credit Value' type='number' value={creditValue}
+        onChange={e => setCreditValue(e.target.value)}
+        inputProps={{ min: 0, step: 'any' }}
+        helperText='Must be a positive number'
+        error={creditValue !== '' && !validValue}
+        fullWidth required margin='normal' />
+      <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
+        fullWidth required multiline rows={2} margin='normal' />
+    </FormModal>
+  );
+};
+
 // ── Credits Tab ───────────────────────────────────────────────────────────────
 
 const CreditsTabInner: React.FC = () => {
@@ -148,6 +200,7 @@ const CreditsTabInner: React.FC = () => {
   const [statusFilter, setStatusFilter]   = React.useState('');
   const [selectedIds, setSelectedIds]     = React.useState<string[]>([]);
   const [reverseTarget, setReverseTarget] = React.useState<string | null>(null);
+  const [awardModalOpen, setAwardModalOpen] = React.useState(false);
 
   const { isRequesting, data: credits = [], response, refresh, error: loadError } =
     useReadTransaction(adminListVolunteerCredits, { status: statusFilter || undefined }, undefined, `volunteer-credits-${statusFilter}`);
@@ -165,6 +218,12 @@ const CreditsTabInner: React.FC = () => {
   const { call: rejectCredit,  isRequesting: rejecting, error: rejectError }  = useWriteTransaction(adminRejectVolunteerCredit, onSuccess);
   const { call: reverseCredit, isRequesting: reversing, error: reverseError } = useWriteTransaction(adminReverseVolunteerCredit, onSuccess);
   const { call: deleteCredit,  isRequesting: deleting,  error: deleteError }  = useWriteTransaction(adminDeleteVolunteerCredit, onSuccess);
+
+  const onAwardSuccess = React.useCallback(() => {
+    setAwardModalOpen(false);
+    refreshRef.current();
+  }, []);
+  const { call: awardCredit, isRequesting: awarding, error: awardError } = useWriteTransaction(adminAwardVolunteerCredit, onAwardSuccess);
 
   const selectedCredit = selectedIds.length === 1
     ? (credits as VolunteerCredit[]).find(c => c.id === selectedIds[0])
@@ -258,6 +317,12 @@ const CreditsTabInner: React.FC = () => {
           </Grid>
           <Grid size={{ xs: 12, sm: 9 }}>
             <Grid container spacing={1} justifyContent='flex-end' alignItems='flex-end' style={{ height: '100%' }}>
+              <Grid>
+                <Button variant='contained' color='primary' size='small' startIcon={<AddIcon />}
+                  onClick={() => setAwardModalOpen(true)}>
+                  Award Credit
+                </Button>
+              </Grid>
               {selectedCredit?.status === 'pending' && (
                 <>
                   <Grid>
@@ -328,6 +393,15 @@ const CreditsTabInner: React.FC = () => {
         onSubmit={reason => reverseCredit({ id: reverseTarget, reason })}
         loading={reversing}
         error={reverseError}
+      />
+
+      <AwardCreditModal
+        isOpen={awardModalOpen}
+        onClose={() => setAwardModalOpen(false)}
+        onSubmit={(memberId, description, creditValue) =>
+          awardCredit({ body: { memberId, description, creditValue } })}
+        loading={awarding}
+        error={awardError}
       />
     </Grid>
   );

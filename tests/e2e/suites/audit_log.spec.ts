@@ -20,7 +20,7 @@ test.describe('Admin audit log captures member changes', () => {
     await page.waitForLoadState('networkidle');
 
     // Page title should be visible
-    await expect(page.getByText('Audit Log')).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText('Audit Log').first()).toBeVisible({ timeout: 15_000 });
 
     // Table should render — at minimum the header row
     await expect(page.getByRole('table').first()).toBeVisible({ timeout: 15_000 });
