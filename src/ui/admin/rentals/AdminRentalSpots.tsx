@@ -10,6 +10,9 @@ import Chip from "@mui/material/Chip";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+
+import { Routing } from "app/constants";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -48,7 +51,16 @@ const AdminRentalSpots: React.FC = () => {
   const [editTarget,   setEditTarget]   = React.useState<Partial<RentalSpot>>(emptySpot());
   const [isEditing,    setIsEditing]    = React.useState(false);
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
+  const [linkCopied,   setLinkCopied]   = React.useState(false);
   const { params, changePage } = useQueryContext();
+
+  const copyDeepLink = React.useCallback((spotId: string) => {
+    const path = Routing.RentalSpotDeepLink.replace(Routing.PathPlaceholder.SpotId, spotId);
+    const url = `${window.location.origin}${path}`;
+    navigator.clipboard?.writeText(url);
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 2000);
+  }, []);
 
   const { data: rentalTypes = [] } = useReadTransaction(
     adminListRentalTypes, {}, undefined, "admin-rental-types-for-spots"
@@ -136,6 +148,10 @@ const AdminRentalSpots: React.FC = () => {
           <div style={{ display: "flex", gap: 8 }}>
             {selectedSpot && (
               <>
+                <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
+                  onClick={() => copyDeepLink(selectedSpot.id)}>
+                  {linkCopied ? "Copied!" : "Copy Link"}
+                </Button>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => openEdit(selectedSpot)}>
                   Edit

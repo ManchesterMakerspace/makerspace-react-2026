@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
-import { RentalType, RentalSpot } from "app/entities/rentalSpot";
+import { RentalType, RentalSpot, RentalSpotPublic } from "app/entities/rentalSpot";
 
 const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
@@ -55,6 +55,15 @@ export const adminDeleteRentalType = ({ id }: { id: string }) =>
 // ─── Rental Spots ─────────────────────────────────────────────────────────────
 export const listRentalSpots = (params?: { available?: string; rentalTypeId?: string }) =>
   buildResponse<RentalSpot[]>(api.get("/api/rental_spots", { params }));
+
+// Single spot lookup — used by the rental deep-link page (authenticated)
+export const getRentalSpot = ({ id }: { id: string }) =>
+  buildResponse<RentalSpot>(api.get(`/api/rental_spots/${id}`));
+
+// Single spot lookup — unauthenticated deep-link/QR landing page.
+// Returns a reduced, non-sensitive subset of fields.
+export const getRentalSpotPublic = ({ id }: { id: string }) =>
+  buildResponse<RentalSpotPublic>(api.get(`/api/rental_spots/${id}/public`));
 
 export const adminListRentalSpots = (params?: any) =>
   buildResponse<RentalSpot[]>(api.get("/api/admin/rental_spots", { params }));

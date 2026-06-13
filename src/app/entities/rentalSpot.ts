@@ -26,6 +26,20 @@ export interface RentalSpot {
   invoiceOptionPlanId:   string | null;
 }
 
+// Reduced, non-sensitive subset returned by GET /api/rental_spots/:id/public
+export interface RentalSpotPublic {
+  id:                    string;
+  number:                string;
+  location:              string;
+  description:           string | null;
+  rentalTypeDisplayName: string | null;
+  requiresApproval:      boolean;
+  active:                boolean;
+  available:             boolean;
+  invoiceOptionName:     string | null;
+  invoiceOptionAmount:   number | null;
+}
+
 export enum RentalStatus {
   Pending           = "pending",
   PendingAgreement  = "pending_agreement",

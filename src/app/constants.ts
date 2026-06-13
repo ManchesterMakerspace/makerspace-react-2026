@@ -6,6 +6,7 @@ export namespace Routing {
     ResourceId = ':resourceId',
     InvoiceId = ':invoiceId',
     Email = ':email',
+    SpotId = ':spotId',
   }
 
   export const Root = '/';
@@ -20,6 +21,7 @@ export namespace Routing {
   export const Subscriptions = '/subscriptions';
   export const Rentals = '/rentals';
   export const AdminRentals = '/admin/rentals';
+  export const RentalSpotDeepLink = `${Rentals}/spots/${PathPlaceholder.SpotId}`;
   export const ShopFees = '/shop-fees';
   export const ToolCheckouts = '/tool-checkouts';
   export const Analytics = '/admin/analytics';

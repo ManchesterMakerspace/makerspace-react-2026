@@ -8,6 +8,7 @@ import PasswordReset from 'ui/auth/PasswordReset';
 import LoginPage from 'ui/auth/LoginPage';
 import UnsubscribeEmails from 'ui/member/UnsubscribeEmails';
 import FirebaseCallback from 'ui/auth/FirebaseCallback';
+import RentalSpotPublicInfo from 'ui/rentalSpots/RentalSpotPublicInfo';
 
 const PublicRouting: React.FC<{}> = () => {
   return (
@@ -17,6 +18,7 @@ const PublicRouting: React.FC<{}> = () => {
       <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
       <Route path={Routing.Root} element={<LandingPage />} />
       <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
+      <Route path={Routing.RentalSpotDeepLink} element={<RentalSpotPublicInfo />} />
       <Route path='/auth/callback' element={<FirebaseCallback />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
