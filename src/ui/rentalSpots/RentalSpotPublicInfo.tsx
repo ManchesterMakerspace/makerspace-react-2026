@@ -108,7 +108,9 @@ const RentalSpotPublicInfo: React.FC = () => {
           variant="contained" color="primary"
           onClick={() => navigate(Routing.Login)}
         >
-          Sign in to rent this spot
+          {spot.available
+            ? "Sign in to rent this spot"
+            : "Sign in to see available rentals"}
         </Button>
       </Grid>
 
