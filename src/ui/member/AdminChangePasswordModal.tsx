@@ -15,6 +15,7 @@ import { ActionButton } from "ui/common/ButtonRow";
 import FormModal from "ui/common/FormModal";
 import useModal from "ui/hooks/useModal";
 import { PasswordStrength, PasswordStrengthProfile, validatePasswordStrength } from "components/Form/inputs/PasswordStrength";
+import { apiErrorMessage } from "ui/common/apiErrors";
 
 interface Props {
   member: Member;
@@ -67,7 +68,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          setError(body?.error?.message || "Failed to send reset email.");
+          setError(apiErrorMessage(body, "Failed to send reset email."));
         } else {
           setSuccess(`Password reset email sent to ${member.email}.`);
         }
@@ -94,7 +95,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body?.error?.message || "Failed to update password.");
+        setError(apiErrorMessage(body, "Failed to update password."));
       } else {
         setSuccess("Password updated successfully.");
         setPassword("");

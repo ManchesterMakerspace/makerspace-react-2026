@@ -15,6 +15,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { useAuthState } from "ui/reducer/hooks";
 import { useCapabilities } from "app/permissions";
 import { PasswordStrength, PasswordStrengthProfile, validatePasswordStrength } from "components/Form/inputs/PasswordStrength";
+import { apiErrorMessage } from "ui/common/apiErrors";
 
 interface Props {
   // The member whose password is being changed.
@@ -72,7 +73,7 @@ const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberFirs
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          setError(body?.error?.message || "Failed to send reset email.");
+          setError(apiErrorMessage(body, "Failed to send reset email."));
         } else {
           setSuccess(`Password reset email sent to ${memberEmail || "the member"}.`);
         }
@@ -103,7 +104,7 @@ const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberFirs
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError(body?.error?.message || "Failed to update password.");
+        setError(apiErrorMessage(body, "Failed to update password."));
       } else {
         setSuccess("Password updated successfully.");
         setPassword("");
