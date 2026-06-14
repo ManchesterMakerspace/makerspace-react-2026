@@ -51,9 +51,12 @@ const formatNestedError = (error: ApiErrorBody["error"]): string | undefined => 
 export const apiErrorMessage = (body: ApiErrorBody, fallback: string): string => {
   if (!body) return fallback;
 
+  const nestedErrorMessage = formatNestedError(body.error);
+
   return body.full_messages?.join(". ")
     || formatErrors(body.errors)
-    || formatNestedError(body.error)
+    || (typeof body.error !== "string" ? nestedErrorMessage : undefined)
     || body.message
+    || nestedErrorMessage
     || fallback;
 };
