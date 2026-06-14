@@ -163,15 +163,12 @@ test.describe('Admin cancels a member subscription', () => {
     await page.waitForURL(/\/billing/, { timeout: 15_000 });
     await page.waitForLoadState('networkidle');
 
-    // Wait for the subscription row to load before selecting it
-    // Table id="subscriptions-table", filtered by the subscription id in the URL
-    await page.locator('#subscriptions-table').waitFor({ state: 'visible', timeout: 15_000 });
-    await page.getByRole('row').filter({ hasText: TARGET_MEMBER }).first()
-      .waitFor({ state: 'visible', timeout: 15_000 });
+    // Wait for Cancel Subscription button — it renders once the table loads
+    // (#subscriptions-table id is on child elements, not the <table> itself)
+    await page.locator('#subscription-option-cancel').waitFor({ state: 'visible', timeout: 15_000 });
 
-    // Select the subscription row checkbox
-    await page.getByRole('row').filter({ hasText: TARGET_MEMBER }).first()
-      .getByRole('checkbox').check();
+    // Select the first (only) subscription row checkbox
+    await page.getByRole('row').nth(1).getByRole('checkbox').check();
 
     // Cancel button id="subscription-option-cancel", confirm modal submit id="cancel-subscription-submit"
     await page.locator('#subscription-option-cancel').click();

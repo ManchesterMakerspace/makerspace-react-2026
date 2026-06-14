@@ -78,6 +78,15 @@ async function approvePendingCredit(page: any, description: string): Promise<voi
   await creditRow.getByRole('checkbox').check();
   await page.getByRole('button', { name: /approve/i }).click();
   await page.waitForTimeout(2000);
+
+  // After approval the credit is no longer 'Pending' so it disappears from the
+  // Pending filter — switch to All to make the approved credit visible again
+  const muiSelect2 = page.locator('[role="combobox"]').first();
+  if (await muiSelect2.isVisible({ timeout: 3_000 })) {
+    await muiSelect2.click();
+    await page.getByRole('option', { name: 'All', exact: true }).click();
+    await page.waitForTimeout(500);
+  }
 }
 
 // ── Test 1: Admin awards a credit directly ───────────────────────────────────
