@@ -126,23 +126,27 @@ test.describe('Member self-service profile update', () => {
   const NEW_POSTAL   = '03101';
 
   test('Member edits phone and address on their profile', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
+    const auth     = new AuthPage(page);
+    const member   = new MemberPage(page);
+    const settings = new SettingsPage(page);
 
     await auth.signIn(MEMBER_EMAIL, 'password');
     await member.waitForProfile();
     await member.dismissNotificationModal();
 
-    // Open edit form — use id to avoid strict mode (multiple buttons on profile)
-    await page.locator('#member-detail-open-edit-modal').click();
-    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+    // Member self-service edit is via Account Settings → Personal Information
+    // (the admin Edit modal is not shown on own profile for non-admin members)
+    await settings.goto();
+    // Personal Information tab is selected by default (index 0)
+    await page.locator('#settings-profile').click();
+    await page.waitForTimeout(500);
 
-    // Update phone
+    // Form renders inline (formOnly=true) — no dialog, fields directly on page
     const phoneField = page.getByRole('textbox', { name: /phone/i });
+    await phoneField.waitFor({ state: 'visible', timeout: 10_000 });
     await phoneField.clear();
     await phoneField.fill(NEW_PHONE);
 
-    // Update address
     const streetField = page.getByRole('textbox', { name: /street/i });
     await streetField.clear();
     await streetField.fill(NEW_STREET);
@@ -155,13 +159,18 @@ test.describe('Member self-service profile update', () => {
     await postalField.clear();
     await postalField.fill(NEW_POSTAL);
 
-    await page.getByRole('button', { name: 'Save' }).click();
-    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
-    await member.reloadProfile();
+    // Submit button id="member-form-submit" (no dialog to wait for)
+    await page.locator('#member-form-submit').click();
+    await page.waitForTimeout(2000);
 
-    // Verify updated values are visible on the profile
-    await expect(page.getByText(NEW_PHONE)).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(new RegExp(NEW_STREET, 'i'))).toBeVisible({ timeout: 10_000 });
+    // Verify by reloading settings and checking the form fields still have the values
+    // (phone/address are not displayed on the member profile page, only in Account Settings)
+    await settings.goto();
+    await page.locator('#settings-profile').click();
+    await page.waitForTimeout(500);
+
+    await expect(page.getByRole('textbox', { name: /phone/i })).toHaveValue(NEW_PHONE, { timeout: 10_000 });
+    await expect(page.getByRole('textbox', { name: /street/i })).toHaveValue(NEW_STREET, { timeout: 10_000 });
   });
 });
 
@@ -182,22 +191,30 @@ test.describe('Member self-service password change', () => {
 
     // Sign in and navigate to Account Settings
     await auth.signIn(MEMBER_EMAIL, ORIGINAL_PASS);
+    await page.waitForURL(/\/members\//, { timeout: 15_000 });
+    // Dismiss any notification modal before navigating to settings
+    const notifModal = page.locator('#notification-modal-submit');
+    if (await notifModal.isVisible({ timeout: 3_000 })) {
+      await notifModal.click();
+      await notifModal.waitFor({ state: 'hidden', timeout: 5_000 });
+    }
     await settings.goto();
 
     // Navigate to Security tab (id="settings-security") — contains password change form
     await page.locator('#settings-security').click();
     await page.waitForTimeout(500);
 
-    // Fill new password form
-    const newPassField = page.getByRole('textbox', { name: /new password/i });
+    // Fill new password form — use exact labels to avoid strict mode violation
+    // (both fields match /new password/i since "Confirm New Password" contains "New Password")
+    const newPassField = page.getByRole('textbox', { name: 'New Password', exact: true });
     await newPassField.waitFor({ state: 'visible', timeout: 10_000 });
     await newPassField.fill(NEW_PASS);
 
-    const confirmField = page.getByRole('textbox', { name: /confirm/i });
+    const confirmField = page.getByRole('textbox', { name: 'Confirm New Password', exact: true });
     await confirmField.waitFor({ state: 'visible', timeout: 10_000 });
     await confirmField.fill(NEW_PASS);
 
-    await page.getByRole('button', { name: /save|update|change/i }).click();
+    await page.locator('#change-password-submit').click();
     await page.waitForTimeout(2000);
 
     // Sign out
@@ -211,12 +228,12 @@ test.describe('Member self-service password change', () => {
     await settings.goto();
     await page.locator('#settings-security').click();
     await page.waitForTimeout(500);
-    const restoreField = page.getByRole('textbox', { name: /new password/i });
+    const restoreField = page.getByRole('textbox', { name: 'New Password', exact: true });
     await restoreField.waitFor({ state: 'visible', timeout: 10_000 });
     await restoreField.fill(ORIGINAL_PASS);
-    const restoreConfirm = page.getByRole('textbox', { name: /confirm/i });
+    const restoreConfirm = page.getByRole('textbox', { name: 'Confirm New Password', exact: true });
     await restoreConfirm.fill(ORIGINAL_PASS);
-    await page.getByRole('button', { name: /save|update|change/i }).click();
+    await page.locator('#change-password-submit').click();
     await page.waitForTimeout(1000);
   });
 });

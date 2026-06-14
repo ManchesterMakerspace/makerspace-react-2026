@@ -103,7 +103,7 @@ export const loginUserAction = (
     }
   } else {
     const body = await res.json().catch(() => ({}));
-    dispatch({ type: AuthAction.AuthUserFailure, error: body?.error?.message || 'Invalid email or password.' });
+    dispatch({ type: AuthAction.AuthUserFailure, error: body?.error?.message || body?.message || 'Invalid email or password.' });
   }
 }
 
