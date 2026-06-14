@@ -103,16 +103,13 @@ test.describe('Admin revokes a member', () => {
     await page.getByRole('textbox', { name: 'Password' }).fill('password');
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // Should stay on login page with an error — not redirect to /members/
+    // Should stay on login page — not redirect to /members/
     await page.waitForTimeout(3000);
     expect(page.url()).not.toMatch(/\/members\//);
 
-    // Error message should be visible
-    const errorVisible =
-      await page.getByText(/revoked/i).isVisible({ timeout: 5_000 }).catch(() => false) ||
-      await page.getByText(/not allowed/i).isVisible({ timeout: 2_000 }).catch(() => false) ||
-      await page.getByText(/sign in/i).isVisible({ timeout: 2_000 }).catch(() => false);
-    expect(errorVisible).toBe(true);
+    // Devise error message for revoked: "Login failed, email board@manchestermakerspace.org with error code R2026"
+    await expect(page.getByText(/login failed|error code R2026/i).first())
+      .toBeVisible({ timeout: 10_000 });
   });
 });
 
