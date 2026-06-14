@@ -44,7 +44,9 @@ test.describe('Admin audit log captures member changes', () => {
     await page.getByRole('button', { name: 'Edit' }).click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    const notesField = page.getByRole('textbox', { name: /notes/i });
+    // Notes field: multiline TextField with name="member-form-notes"
+    // Use name selector to avoid strict-mode violation from 2 textarea elements
+    const notesField = page.locator('textarea[name="member-form-notes"]').first();
     await notesField.clear();
     await notesField.fill('audit log test note');
 

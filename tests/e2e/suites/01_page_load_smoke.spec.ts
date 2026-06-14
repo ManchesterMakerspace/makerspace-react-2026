@@ -103,7 +103,7 @@ test.describe('Member pages load (basic member)', () => {
 
   test('Account Settings — Profile tab', async ({ page }) => {
     if (!memberId) test.skip(true, 'memberId not captured');
-    await gotoAndCheck(page, `/members/${memberId}/settings/profile`, /profile|settings/i);
+    await gotoAndCheck(page, `/members/${memberId}/settings/profile`, /personal information/i);
   });
 
   test('Account Settings — Subscriptions tab', async ({ page }) => {

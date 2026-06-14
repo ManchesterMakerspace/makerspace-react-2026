@@ -57,7 +57,8 @@ test.describe('Household lifecycle', () => {
     await member.clickTab('Dues');
     await page.waitForTimeout(500);
 
-    await page.getByRole('button', { name: /create invoice|add invoice/i }).click();
+    // Button id="invoices-list-create", label="Create New Invoice"
+    await page.locator('#invoices-list-create').click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
     // Select a household plan invoice option

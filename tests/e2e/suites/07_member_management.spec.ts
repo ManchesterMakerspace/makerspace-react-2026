@@ -28,16 +28,15 @@ test.describe('Admin manually renews expired member', () => {
     // Capture current expiration before renewal
     const beforeExpiration = await member.getExpiration();
 
-    // Open edit form and select renew
-    await page.getByRole('button', { name: 'Edit' }).click();
+    // Click the dedicated Renew button (id="members-list-renew") — separate from Edit
+    await page.locator('#members-list-renew').click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Select 1 month renewal from the Renew dropdown
-    const renewSelect = page.getByRole('combobox', { name: /renew/i });
-    await renewSelect.waitFor({ state: 'visible', timeout: 10_000 });
-    await renewSelect.selectOption('1');
+    // Native select id="renewal-term", option value is the number of months
+    await page.locator('#renewal-term').selectOption('1');
 
-    await page.getByRole('button', { name: 'Save' }).click();
+    // Submit button id is "renewal-form-submit"
+    await page.locator('#renewal-form-submit').click();
     await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
     await member.reloadProfile();
 
@@ -81,11 +80,11 @@ test.describe('Admin revokes a member', () => {
     await member.clickMemberLink(TARGET_NAME);
     await member.waitForProfile();
 
-    await page.getByRole('button', { name: 'Edit' }).click();
+    await page.locator('#member-detail-open-edit-modal').click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Change status to revoked
-    const statusSelect = page.getByRole('combobox', { name: /status/i });
+    // Status is a native <Select> with name="member-form-status" — not a labelled combobox
+    const statusSelect = page.locator('select[name="member-form-status"]');
     await statusSelect.waitFor({ state: 'visible', timeout: 10_000 });
     await statusSelect.selectOption('revoked');
 
@@ -137,8 +136,8 @@ test.describe('Member self-service profile update', () => {
     await member.waitForProfile();
     await member.dismissNotificationModal();
 
-    // Open edit form
-    await page.getByRole('button', { name: 'Edit' }).click();
+    // Open edit form — use id to avoid strict mode (multiple buttons on profile)
+    await page.locator('#member-detail-open-edit-modal').click();
     await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
     // Update phone
@@ -188,8 +187,8 @@ test.describe('Member self-service password change', () => {
     await auth.signIn(MEMBER_EMAIL, ORIGINAL_PASS);
     await settings.goto();
 
-    // Navigate to Password tab
-    await page.getByRole('button', { name: /password/i }).click();
+    // Navigate to Security tab (id="settings-security") — contains password change form
+    await page.locator('#settings-security').click();
     await page.waitForTimeout(500);
 
     // Fill new password form
@@ -213,7 +212,7 @@ test.describe('Member self-service password change', () => {
 
     // Restore original password so subsequent runs don't fail
     await settings.goto();
-    await page.getByRole('button', { name: /password/i }).click();
+    await page.locator('#settings-security').click();
     await page.waitForTimeout(500);
     const restoreField = page.getByRole('textbox', { name: /new password/i });
     await restoreField.waitFor({ state: 'visible', timeout: 10_000 });
@@ -241,12 +240,12 @@ test.describe('Member payment method management', () => {
     await auth.signIn(MEMBER_EMAIL, 'password');
     await settings.goto();
 
-    // Navigate to Payment Methods tab
-    await page.getByRole('button', { name: /payment method/i }).click();
+    // Navigate to Payment Methods tab using its known id
+    await page.locator('#settings-payment-methods').click();
     await page.waitForTimeout(500);
 
     // Add new card
-    await page.getByRole('button', { name: /add.*payment|new.*card/i }).click();
+    await page.locator('#add-payment-button').click();
     await payment.waitForCreditCardForm();
     await payment.fillCreditCard(newVisa);
     await page.getByRole('button', { name: /save|add/i }).click();
@@ -263,30 +262,29 @@ test.describe('Member payment method management', () => {
     await auth.signIn(MEMBER_EMAIL, 'password');
     await settings.goto();
 
-    // Navigate to Payment Methods tab
-    await page.getByRole('button', { name: /payment method/i }).click();
+    // Navigate to Payment Methods tab using its known id
+    await page.locator('#settings-payment-methods').click();
     await page.waitForTimeout(500);
 
-    // Delete the card
-    await page.getByRole('button', { name: /delete|remove/i }).first().click();
+    // Must select a payment method (radio) before Delete is enabled
+    const radioGroup = page.locator('[name="paymentMethodSelection"]');
+    await radioGroup.waitFor({ state: 'visible', timeout: 10_000 });
+    await page.locator('[name="paymentMethodSelection"]').first().check();
+    await page.waitForTimeout(300);
 
-    // Confirm deletion if a dialog appears
-    const confirmBtn = page.getByRole('button', { name: /confirm|yes|delete/i });
-    if (await confirmBtn.isVisible({ timeout: 3_000 })) {
-      await confirmBtn.click();
-    }
+    // Delete button id="delete-payment-button"
+    await page.locator('#delete-payment-button').click();
 
+    // Confirm deletion — modal submit button text is "Delete", id pattern = "delete-payment-method-confirm-submit"
+    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+    await page.locator('#delete-payment-method-confirm-submit').click();
+    await page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
     await page.waitForTimeout(2000);
 
-    // No payment methods should remain
-    await expect(page.getByText(/no payment methods/i).or(page.getByText(/visa/i)))
-      .not.toBeVisible({ timeout: 15_000 })
-      .catch(() => {
-        // If Visa is still somehow visible, fail explicitly
-      });
+    // Empty state renders Typography id="none-found"
+    await expect(page.locator('#none-found')).toBeVisible({ timeout: 10_000 });
 
-    // Positive assertion: add button should be visible again (empty state)
-    await expect(page.getByRole('button', { name: /add.*payment|new.*card/i }))
-      .toBeVisible({ timeout: 10_000 });
+    // Add button should be visible in empty state
+    await expect(page.locator('#add-payment-button')).toBeVisible({ timeout: 5_000 });
   });
 });
