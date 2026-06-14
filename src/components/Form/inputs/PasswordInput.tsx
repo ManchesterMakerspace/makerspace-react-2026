@@ -2,47 +2,60 @@ import * as React from "react";
 
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
-import LinearProgress from "@mui/material/LinearProgress";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import { FormField } from "../FormField";
 import { InputProps } from "./types";
+import { useFormValues } from "../FormContext";
+import { PasswordStrength, PasswordStrengthProfile, validatePasswordStrength } from "./PasswordStrength";
+
+interface PasswordProfileFieldNames {
+  firstname?: string;
+  lastname?: string;
+  city?: string;
+  address?: string;
+  email?: string;
+}
 
 interface Props extends InputProps<string> {
   autoComplete?: string;
+  passwordProfile?: PasswordStrengthProfile;
+  passwordProfileFieldNames?: PasswordProfileFieldNames;
 }
-
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
-
-const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
-const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
 export const PasswordInput = ({ 
   label, 
   fieldName, 
   placeholder,
   disabled,
+  passwordProfile,
+  passwordProfileFieldNames,
+  validate,
   ...props
 }: Props): JSX.Element => {
   const [mask, setMask] = React.useState(true);
-  const [password, setPassword] = React.useState("");
+  const values = useFormValues();
   const toggleMask = React.useCallback(() => setMask(curr => !curr), [setMask]);
 
-  const strength = scorePassword(password);
+  const profile = React.useMemo<PasswordStrengthProfile>(() => ({
+    ...passwordProfile,
+    firstname: passwordProfile?.firstname || (passwordProfileFieldNames?.firstname ? values[passwordProfileFieldNames.firstname] as string : undefined),
+    lastname: passwordProfile?.lastname || (passwordProfileFieldNames?.lastname ? values[passwordProfileFieldNames.lastname] as string : undefined),
+    city: passwordProfile?.city || (passwordProfileFieldNames?.city ? values[passwordProfileFieldNames.city] as string : undefined),
+    address: passwordProfile?.address || (passwordProfileFieldNames?.address ? values[passwordProfileFieldNames.address] as string : undefined),
+    email: passwordProfile?.email || (passwordProfileFieldNames?.email ? values[passwordProfileFieldNames.email] as string : undefined),
+  }), [passwordProfile, passwordProfileFieldNames, values]);
+
+  const validatePassword = React.useCallback((value: string) => {
+    const strengthError = validatePasswordStrength(value, profile);
+    return strengthError || validate?.(value);
+  }, [profile, validate]);
 
   return (
     <FormField
       fieldName={fieldName}
       required={true}
+      validate={validatePassword}
       {...props}
     >
       {(value, onChange, error) => (
@@ -52,7 +65,6 @@ export const PasswordInput = ({
             required
             value={value}
             onChange={(e) => {
-              setPassword(e.target.value);
               onChange(e as React.ChangeEvent<HTMLInputElement>);
             }}
             label={label}
@@ -75,18 +87,7 @@ export const PasswordInput = ({
               },
             }}
           />
-          {value && (
-            <>
-              <LinearProgress
-                variant="determinate"
-                value={(strength / 4) * 100}
-                style={{ marginTop: 8, backgroundColor: "#e0e0e0" }}
-              />
-              <span style={{ color: strengthColor[strength], marginTop: 4, display: "block", fontSize: "0.75rem" }}>
-                {strengthLabel[strength]}
-              </span>
-            </>
-          )}
+          <PasswordStrength password={value as string} profile={profile} />
         </>
       )}
     </FormField>

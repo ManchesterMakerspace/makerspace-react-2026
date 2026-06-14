@@ -2,7 +2,6 @@ import * as React from "react";
 import TextField from "@mui/material/TextField";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import LinearProgress from "@mui/material/LinearProgress";
 import InputAdornment from "@mui/material/InputAdornment";
 import RemoveRedEye from "@mui/icons-material/RemoveRedEye";
 import Radio from "@mui/material/Radio";
@@ -14,28 +13,14 @@ import FormLabel from "@mui/material/FormLabel";
 import { Member } from "makerspace-ts-api-client";
 import { ActionButton } from "ui/common/ButtonRow";
 import FormModal from "ui/common/FormModal";
-import ErrorMessage from "ui/common/ErrorMessage";
 import useModal from "ui/hooks/useModal";
+import { PasswordStrength, PasswordStrengthProfile, validatePasswordStrength } from "components/Form/inputs/PasswordStrength";
 
 interface Props {
   member: Member;
 }
 
 type AdminMode = "reset" | "set";
-
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
-
-const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
-const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
 const getCsrfToken = (): string => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -52,7 +37,13 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
   const [error, setError] = React.useState<string>("");
   const [success, setSuccess] = React.useState<string>("");
 
-  const strength = scorePassword(password);
+  const passwordProfile = React.useMemo<PasswordStrengthProfile>(() => ({
+    firstname: member.firstname,
+    lastname: member.lastname,
+    city: member.address?.city,
+    address: member.address?.street,
+    email: member.email,
+  }), [member]);
 
   const handleClose = React.useCallback(() => {
     setAdminMode("reset");
@@ -90,8 +81,8 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
 
     // Direct set mode
     if (!password) { setError("Password cannot be blank."); return; }
-    if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
-    if (strength < 2) { setError("Password is too weak. Try mixing uppercase, numbers, or symbols."); return; }
+    const strengthError = validatePasswordStrength(password, passwordProfile);
+    if (strengthError) { setError(strengthError); return; }
     if (password !== confirm) { setError("Passwords do not match."); return; }
 
     setIsRequesting(true);
@@ -114,7 +105,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
     } finally {
       setIsRequesting(false);
     }
-  }, [adminMode, member, password, confirm, strength]);
+  }, [adminMode, member, password, confirm, passwordProfile]);
 
   return (
     <>
@@ -215,21 +206,14 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
                     onChange={(e) => { setConfirm(e.target.value); setError(""); }}
                   />
                 </Grid>
-                {password.length > 0 && (
-                  <Grid size={{ xs: 12 }}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(strength / 4) * 100}
-                      style={{ height: 8, borderRadius: 4, backgroundColor: "#e0e0e0" }}
-                    />
-                    <Typography
-                      variant="caption"
-                      style={{ color: strengthColor[strength], marginTop: 4, display: "block" }}
-                    >
-                      {strengthLabel[strength]}
-                    </Typography>
-                  </Grid>
-                )}
+                <Grid size={{ xs: 12 }}>
+                  <PasswordStrength
+                    password={password}
+                    profile={passwordProfile}
+                    progressStyle={{ height: 8, borderRadius: 4 }}
+                    useTypography
+                  />
+                </Grid>
               </>
             )}
 
