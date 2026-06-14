@@ -262,7 +262,14 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
         <Divider />
       </Grid>
       <Grid size={{ xs: 12 }}>
-        <ChangePasswordForm memberId={memberId} memberEmail={memberEmail} />
+        <ChangePasswordForm
+          memberId={memberId}
+          memberEmail={memberEmail || currentUser.email}
+          memberFirstname={currentUser.firstname}
+          memberLastname={currentUser.lastname}
+          memberCity={currentUser.address?.city}
+          memberAddress={currentUser.address?.street}
+        />
       </Grid>
     </Grid>
   );

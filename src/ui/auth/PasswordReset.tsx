@@ -6,7 +6,6 @@ import { RouteComponentProps } from "react-router-dom";
 import TextField from "@mui/material/TextField";
 import Grid from "@mui/material/Grid";
 import InputAdornment from "@mui/material/InputAdornment";
-import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import RemoveRedEye from "@mui/icons-material/RemoveRedEye";
 import Typography from "@mui/material/Typography";
@@ -17,6 +16,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { ScopedThunkDispatch } from "ui/reducer";
 import { loginUserAction } from "ui/auth/actions";
 import { resetPassword, isApiErrorResponse, message } from "makerspace-ts-api-client";
+import { PasswordStrength, validatePasswordStrength } from "components/Form/inputs/PasswordStrength";
 
 interface DispatchProps {
   attemptLogin: () => void;
@@ -46,21 +46,6 @@ const passwordFields: FormFields = {
 interface PasswordForm {
   password: string;
 }
-
-// Strength scorer: 0-4
-const scorePassword = (pw: string): number => {
-  if (!pw) return 0;
-  let score = 0;
-  if (pw.length >= 8) score++;
-  if (pw.length >= 12) score++;
-  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
-  if (/[0-9]/.test(pw)) score++;
-  if (/[^A-Za-z0-9]/.test(pw)) score++;
-  return Math.min(score, 4);
-};
-
-const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
-const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
 
 class PasswordReset extends React.Component<Props, State> {
   public formRef: Form;
@@ -98,9 +83,9 @@ class PasswordReset extends React.Component<Props, State> {
 
     if (!form.isValid()) return;
 
-    const strength = scorePassword(this.state.password);
-    if (strength < 2) {
-      this.setState({ passwordError: "Password is too weak. Try mixing uppercase, numbers, or symbols." });
+    const passwordError = validatePasswordStrength(this.state.password);
+    if (passwordError) {
+      this.setState({ passwordError });
       return;
     }
 
@@ -124,7 +109,6 @@ class PasswordReset extends React.Component<Props, State> {
 
   public render(): JSX.Element {
     const { passwordMask, passwordError, passwordRequesting, password } = this.state;
-    const strength = scorePassword(password);
 
     return (
       <Grid container spacing={3} justifyContent="center">
@@ -164,20 +148,7 @@ class PasswordReset extends React.Component<Props, State> {
                         }
                       }}
                     />
-                    {password && (
-                      <>
-                        <LinearProgress
-                          variant="determinate"
-                          value={(strength / 4) * 100}
-                          style={{ marginTop: 8, backgroundColor: "#e0e0e0" }}
-                          // @ts-ignore
-                          color="inherit"
-                        />
-                        <span style={{ color: strengthColor[strength], marginTop: 4, display: "block", fontSize: "0.75rem" }}>
-                          {strengthLabel[strength]}
-                        </span>
-                      </>
-                    )}
+                    <PasswordStrength password={password} />
                   </Grid>
                 </Grid>
                 {!passwordRequesting && passwordError && (

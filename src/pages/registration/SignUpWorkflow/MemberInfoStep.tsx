@@ -203,6 +203,13 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
                   placeholder={SignUpFields.password.placeholder}
                   fieldName={SignUpFields.password.name}
                   validate={SignUpFields.password.validate}
+                  passwordProfileFieldNames={{
+                    firstname: SignUpFields.firstname.name,
+                    lastname: SignUpFields.lastname.name,
+                    city: SignUpFields.city.name,
+                    address: SignUpFields.street.name,
+                    email: SignUpFields.email.name,
+                  }}
                 />
               </Grid>
             </Grid>
