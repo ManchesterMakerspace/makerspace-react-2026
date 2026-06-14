@@ -46,7 +46,7 @@ test.describe('Admin creates approval-required rental infrastructure', () => {
     await page.waitForSelector('[role="listbox"]', { state: 'hidden', timeout: 5_000 });
     await dialog.getByLabel('Description').fill('Approval tote for testing');
     // Check "Requires Approval"
-    await dialog.getByRole('checkbox', { name: /requires admin approval/i }).check();
+    await dialog.getByRole('switch', { name: /requires admin approval/i }).click();
     await rentals.submitRentalSpotForm();
 
     await rentals.searchForSpot(APPROVAL_SPOT);
@@ -71,7 +71,7 @@ test.describe('Admin approves a rental request', () => {
     await member.clickTab('Rentals');
     await rentals.waitForRentalsTab();
     await rentals.selectSpot(APPROVAL_SPOT);
-    await rentals.confirmRental();
+    await rentals.requestRental();
     await page.waitForTimeout(1000);
 
     // Log out
@@ -130,7 +130,7 @@ test.describe('Admin denies a rental request', () => {
     await member.clickTab('Rentals');
     await rentals.waitForRentalsTab();
     await rentals.selectSpot(APPROVAL_SPOT);
-    await rentals.confirmRental();
+    await rentals.requestRental();
     await page.waitForTimeout(1000);
 
     // Log out

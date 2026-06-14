@@ -21,6 +21,15 @@ export class MemberRentalsPage {
     await this.page.waitForTimeout(1000);
   }
 
+  async requestRental(): Promise<void> {
+    // For spots that require admin approval — first button says "Submit Request"
+    await this.page.getByRole('button', { name: 'Submit Request' }).click();
+    await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+    await this.page.getByRole('dialog').getByRole('button', { name: 'Submit Request' }).click();
+    await this.page.waitForSelector('[role="dialog"]', { state: 'hidden', timeout: 15_000 });
+    await this.page.waitForTimeout(1000);
+  }
+
   async openSignAgreement(): Promise<void> {
     await this.page.getByRole('button', { name: 'Confirm & Sign Agreement' }).click();
     await this.page.waitForTimeout(1000);

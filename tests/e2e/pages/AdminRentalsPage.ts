@@ -29,9 +29,11 @@ export class AdminRentalsPage {
   }
 
   async fillRentalTypeForm(displayName: string, billingPlanLabel: string): Promise<void> {
-    // MUI v5: accessible name comes from label ('Display Name'), not placeholder
-    await this.page.getByRole('textbox', { name: 'Display Name' }).fill(displayName);
-    const combobox = this.page.getByRole('combobox');
+    const dialog = this.page.locator('[role="dialog"]');
+    await dialog.getByRole('textbox', { name: 'Display Name' }).fill(displayName);
+    // Native MUI Select renders as role="combobox" — scope to dialog to avoid
+    // matching any comboboxes in the background table/filters.
+    const combobox = dialog.getByRole('combobox');
     const optionValue = await combobox.locator('option')
       .filter({ hasText: billingPlanLabel })
       .getAttribute('value');
