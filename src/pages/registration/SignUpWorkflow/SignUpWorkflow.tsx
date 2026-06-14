@@ -11,13 +11,12 @@
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
 import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
 import Button from "@mui/material/Button";
 import StepLabel from "@mui/material/StepLabel";
 import Typography from "@mui/material/Typography";
-import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import MobileStepper from "@mui/material/MobileStepper";
 import { useTheme } from "@mui/material/styles";
@@ -175,28 +174,8 @@ export const SignUpWorkflow: React.FC = () => {
                 steps={steps.length}
                 position="static"
                 activeStep={activeStep}
-                nextButton={
-                  <Button
-                    size="small"
-                    disabled={nextDisabled ?? activeStep === 5}
-                    onClick={() => onNext(allowLeave)}
-                    id="sign-up-next"
-                  >
-                    {nextLabel}
-                    {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
-                  </Button>
-                }
-                backButton={isSignUpEditable && (
-                  <Button
-                    size="small"
-                    onClick={onBack}
-                    disabled={prevDisabled ?? disableBack}
-                    id="sign-up-back"
-                  >
-                    {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
-                    Back
-                  </Button>
-                )}
+                nextButton={<span />}
+                backButton={<span />}
               />
             ) : (
               <Stepper activeStep={activeStep} alternativeLabel>
@@ -215,28 +194,35 @@ export const SignUpWorkflow: React.FC = () => {
             </Grid>
 
 
-            {!isSmallMedia && <Grid size={{ xs: 12, sm: 10 }}>
-              {isSignUpEditable && (
-                <Button
-                  disabled={prevDisabled ?? disableBack}
-                  variant="contained"
-                  style={{ marginRight: "1rem" }}
-                  onClick={onBack}
-                  id="sign-up-back"
-                >
-                  Back
-                </Button>
-              )}
-              <Button
-                disabled={nextDisabled ?? activeStep === 5}
-                variant="contained"
-                color="primary"
-                onClick={() => onNext(allowLeave)}
-                id="sign-up-next"
+            <Grid size={{ xs: 12, md: 10 }}>
+              <Stack
+                direction={{ xs: "column-reverse", sm: "row" }}
+                justifyContent="flex-end"
+                alignItems={{ xs: "stretch", sm: "center" }}
+                spacing={2}
+                sx={{ mt: 2, mb: { xs: 3, sm: 0 } }}
               >
-                {nextLabel}
-              </Button>
-            </Grid>}
+                {isSignUpEditable && (
+                  <Button
+                    disabled={prevDisabled ?? disableBack}
+                    variant="contained"
+                    onClick={onBack}
+                    id="sign-up-back"
+                  >
+                    Back
+                  </Button>
+                )}
+                <Button
+                  disabled={nextDisabled ?? activeStep === 5}
+                  variant="contained"
+                  color="primary"
+                  onClick={() => onNext(allowLeave)}
+                  id="sign-up-next"
+                >
+                  {nextLabel}
+                </Button>
+              </Stack>
+            </Grid>
           </Grid>
         )}
       </SignUpContextProvider>
