@@ -12,7 +12,7 @@
     "@redux-devtools/extension": "^4.0.0",
     "awesome-debounce-promise": "^2.1.0",
     "axios": "^1.17.0",
-    "braintree-web": "^3.96.0",
+    "braintree-web": "^3.143.0",
     "lodash-es": "^4.17.21",
     "makerspace-ts-api-client": "2.9.0",
     "moment-timezone": "^0.6.2",
