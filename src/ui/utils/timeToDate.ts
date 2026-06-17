@@ -14,13 +14,16 @@ export const toDatePicker = (time: number | string | Date) => {
 };
 
 // Format selected date in UTC to be relative to user's timezone
-export const dateToTime = (date: string): number => {
-  return date && moment.tz(date, 'YYYY-MM-DD', defaultTZ).valueOf();
+export const dateToTime = (date: string): number | undefined => {
+  return date ? moment.tz(date, 'YYYY-MM-DD', defaultTZ).valueOf() : undefined;
 };
 
-export const dateToMidnight = (date: string | number | Date): string => {
+export const dateToMidnight = (date: string | number | Date): string | undefined => {
+  if (!date) {
+    return undefined;
+  }
   const asDate = new Date(date);
   // Normalize to midnight of the next day
   asDate.setUTCHours(24, 0, 0, 0);
-  return date && asDate.toUTCString();
+  return asDate.toUTCString();
 };
