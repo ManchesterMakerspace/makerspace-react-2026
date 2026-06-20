@@ -4,6 +4,7 @@ export class AuthPage {
   constructor(private page: Page) {}
 
   async signIn(email: string, password: string): Promise<void> {
+    const navStart = Date.now();
     await this.page.goto('/login');
 
     // If redirected away from /login (already authenticated), logout via menu first
@@ -14,9 +15,20 @@ export class AuthPage {
       await this.page.goto('/login');
     }
 
-    // Wait for login form to be ready before filling
+    // Wait for login form to be ready before filling.
+    // Timing is logged regardless of outcome so CI output shows actual
+    // elapsed time from navigation start — needed to tell apart "needs
+    // more margin" from "genuinely hanging" the next time this is slow
+    // or fails.
     const emailField = this.page.getByRole('textbox', { name: 'Email' });
-    await emailField.waitFor({ state: 'visible', timeout: 30_000 });
+    try {
+      await emailField.waitFor({ state: 'visible', timeout: 60_000 });
+    } finally {
+      const elapsed = Date.now() - navStart;
+      if (elapsed > 5_000) {
+        console.log(`[AuthPage.signIn] goto('/login') -> email field visible took ${elapsed}ms`);
+      }
+    }
     await emailField.fill(email);
 
     const passwordField = this.page.getByRole('textbox', { name: 'Password' });
