@@ -6,7 +6,9 @@ interface SignUpContext {
   setAllowLeave(cb: BeforeLeave): void;
   setNextDisabled(isDisabled?: boolean): void;
   setPrevDisabled(isDisabled?: boolean): void;
-  setActiveStep: (newStep: number) => void;
+  setActiveStep: React.Dispatch<React.SetStateAction<number>>;
+  goNext(): Promise<void>;
+  nextDisabled?: boolean;
 }
 
 export function useAllowLeave(cb: BeforeLeave): void {
@@ -21,7 +23,9 @@ const SignUpContext = React.createContext<SignUpContext>({
   setAllowLeave: () => {},
   setNextDisabled: () => {},
   setPrevDisabled: () => {},
-  setActiveStep: () => {}
+  setActiveStep: () => {},
+  goNext: async () => {},
+  nextDisabled: undefined
 });
 
 export const useSignUpContext = () => {
@@ -35,7 +39,7 @@ interface RenderProps {
 }
 
 interface Props {
-  setActiveStep: (newStep: number) => void;
+  setActiveStep: React.Dispatch<React.SetStateAction<number>>;
   children(props: RenderProps): JSX.Element
 }
 
@@ -64,14 +68,23 @@ export const SignUpContextProvider: React.FC<Props> = ({ children, setActiveStep
     });
   }, [setAllowLeave]);
 
+  const goNext = React.useCallback(async () => {
+    if (allowLeave && !(await allowLeave())) {
+      return;
+    }
+    setActiveStep(curr => curr + 1);
+  }, [allowLeave, setActiveStep]);
+
   const context: SignUpContext = React.useMemo(() => {
     return {
       setNextDisabled,
       setPrevDisabled,
       setActiveStep,
       setAllowLeave: updateAllowLeave,
+      goNext,
+      nextDisabled,
     }
-  }, [updateAllowLeave, setNextDisabled, setPrevDisabled, setActiveStep]);
+  }, [updateAllowLeave, setNextDisabled, setPrevDisabled, setActiveStep, goNext, nextDisabled]);
 
   return (
     <SignUpContext.Provider value={context}>
