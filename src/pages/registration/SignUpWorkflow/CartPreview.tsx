@@ -225,7 +225,9 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
       sx={{
         position: { xs: 'static', md: 'sticky' },
         top: { md: 16 },
-        width: '100%',
+        width: { xs: '100%', md: 'max-content' },
+        minWidth: { md: 'fit-content' },
+        maxWidth: '100%',
         boxSizing: 'border-box',
         p: 2,
       }}
