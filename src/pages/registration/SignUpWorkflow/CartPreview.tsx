@@ -200,6 +200,7 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                   color='primary'
                   onClick={goNext}
                   id='cart-preview-checkout'
+                  sx={{ px: 3, minWidth: 'fit-content' }}
                 >
                   Checkout
                 </Button>
