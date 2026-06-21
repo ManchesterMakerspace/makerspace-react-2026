@@ -264,7 +264,7 @@ const MemberProfile: React.FC = () => {
                         <Link to={
                           `${
                             Routing.Billing}/${
-                              SubRoutes.Subscriptions}?${SubscriptionFilter.Search}=${
+                              SubRoutes.Subscriptions}?q=${
                                 encodeURIComponent(`${member.subscriptionId}`)
                               }&${SubscriptionFilter.Status}=all`
                         }>
