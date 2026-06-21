@@ -3,6 +3,9 @@ import Typography from '@mui/material/Typography';
 import Grid from "@mui/material/Grid";
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Collapse from '@mui/material/Collapse';
 
 import { discountParam, invoiceOptionParam, noneInvoiceOption, ssmDiscount } from '../MembershipOptions';
 import { useSearchQuery, useSetSearchQuery } from 'hooks/useSearchQuery';
@@ -13,6 +16,7 @@ import { CheckboxInput } from 'components/Form/inputs/CheckboxInput';
 import { FormField } from 'components/Form/FormField';
 import KeyValueItem from 'ui/common/KeyValueItem';
 import { useTotal } from './constant';
+import { useSignUpContext } from './SignUpContext';
 
 interface Props {
   readOnly?: boolean;
@@ -45,6 +49,10 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
   const setSearchQuery = useSetSearchQuery();
 
   const [discountId, setDiscountId] = React.useState(discountIdParam);
+  const [discountExpanded, setDiscountExpanded] = React.useState(!!discountIdParam);
+  const [descriptionExpanded, setDescriptionExpanded] = React.useState(false);
+  const { goNext, nextDisabled } = useSignUpContext();
+
   const updateDiscountId = React.useCallback((discountCode: string) => {
     setSearchQuery({ [discountParam]: discountCode });
     setDiscountId(discountCode);
@@ -78,9 +86,30 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
           </Typography>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <Typography variant='subtitle1'>
-            <strong>Description:</strong> {invoiceOption.description || '-'}
-          </Typography>
+          {invoiceOption.description ? (
+            <>
+              <Button
+                variant='text'
+                onClick={() => setDescriptionExpanded(expanded => !expanded)}
+                aria-expanded={descriptionExpanded}
+                aria-controls='invoice-option-description'
+                sx={{ p: 0, minWidth: 0, textTransform: 'none' }}
+              >
+                <Typography variant='subtitle1'>
+                  <strong>Description</strong>
+                </Typography>
+              </Button>
+              <Collapse in={descriptionExpanded}>
+                <Typography id='invoice-option-description' variant='subtitle1'>
+                  {invoiceOption.description}
+                </Typography>
+              </Collapse>
+            </>
+          ) : (
+            <Typography variant='subtitle1'>
+              <strong>Description:</strong> -
+            </Typography>
+          )}
         </Grid>
         {!isNoneOption && (
           <>
@@ -102,39 +131,55 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
               <Grid size={{ xs: 12 }}>
                 {readOnly ? <KeyValueItem id='discountId' label={fields.discountId.label}>{discountId}</KeyValueItem> : (
                   <>
-                    <Typography variant='subtitle1'>
-                      Qualify for a discount? Select one below or enter a discount code. Proof of applicable affiliation required during orientation.
-                    </Typography>
-
-                    <CheckboxInput
-                      value={isSsmDiscount}
-                      fieldName={ssmDiscount}
-                      disabled={discountId && discountId !== ssmDiscount}
-                      onChange={checked => updateDiscountId(checked ? ssmDiscount : '')}
-                      label={'Student, Military, Senior 10% off'}
-                    />
-                    {isSsmDiscount && !planHasDiscount && (
-                      <Typography variant='body2' style={{ color: 'red' }}>
-                        Discount not available for selected membership plan.
-                      </Typography>
-                    )}
-
-                    <TextInput
-                      fieldName={fields.discountId.name}
-                      label={fields.discountId.label}
-                      onChange={updateDiscountId}
-                      value={discountId}
-                      disabled={isSsmDiscount}
-                      validate={(val: string) => {
-                        if (val === ssmDiscount && !planHasDiscount) return 'Discount not available for selected membership plan.';
-                        return fields.discountId.validate(discounts.map(d => d.id))(val);
-                      }}
-                    />
-                    {selectedDiscount &&
+                    <Button
+                      variant='text'
+                      onClick={() => setDiscountExpanded(expanded => !expanded)}
+                      aria-expanded={discountExpanded}
+                      aria-controls='discount-controls'
+                      sx={{ p: 0, minWidth: 0, textAlign: 'left', textTransform: 'none' }}
+                    >
                       <Typography variant='subtitle1'>
-                        {selectedDiscount.name}
+                        Qualify for a discount?
                       </Typography>
-                    }
+                    </Button>
+
+                    <Collapse in={discountExpanded}>
+                      <Box id='discount-controls' sx={{ pt: 1 }}>
+                        <Typography variant='body2'>
+                          Select one below or enter a discount code. Proof of applicable affiliation required during orientation.
+                        </Typography>
+
+                        <CheckboxInput
+                          value={isSsmDiscount}
+                          fieldName={ssmDiscount}
+                          disabled={discountId && discountId !== ssmDiscount}
+                          onChange={checked => updateDiscountId(checked ? ssmDiscount : '')}
+                          label={'Student, Military, Senior 10% off'}
+                        />
+                        {isSsmDiscount && !planHasDiscount && (
+                          <Typography variant='body2' style={{ color: 'red' }}>
+                            Discount not available for selected membership plan.
+                          </Typography>
+                        )}
+
+                        <TextInput
+                          fieldName={fields.discountId.name}
+                          label={fields.discountId.label}
+                          onChange={updateDiscountId}
+                          value={discountId}
+                          disabled={isSsmDiscount}
+                          validate={(val: string) => {
+                            if (val === ssmDiscount && !planHasDiscount) return 'Discount not available for selected membership plan.';
+                            return fields.discountId.validate(discounts.map(d => d.id))(val);
+                          }}
+                        />
+                        {selectedDiscount &&
+                          <Typography variant='subtitle1'>
+                            {selectedDiscount.name}
+                          </Typography>
+                        }
+                      </Box>
+                    </Collapse>
                   </>
                 )}
               </Grid>
@@ -144,10 +189,21 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
             </Grid>
 
             <Grid size={{ xs: 12 }}>
-              <Typography variant='h6' paragraph={true} id='total'>
-                <strong>Total Due: </strong>
-                {total}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+                <Typography variant='h6' paragraph={false} id='total'>
+                  <strong>Total Due: </strong>
+                  {total}
+                </Typography>
+                <Button
+                  disabled={nextDisabled}
+                  variant='contained'
+                  color='primary'
+                  onClick={goNext}
+                  id='cart-preview-checkout'
+                >
+                  Checkout
+                </Button>
+              </Box>
             </Grid>
           </>
         )}
@@ -164,14 +220,16 @@ export const CartPreview: React.FC<Props> = ({ readOnly }) => {
   });
 
   return (
-    <Paper style={{ position: 'fixed', padding: '1em' }}>
+    <Paper
+      sx={{
+        position: { xs: 'static', md: 'sticky' },
+        top: { md: 16 },
+        width: '100%',
+        boxSizing: 'border-box',
+        p: 2,
+      }}
+    >
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <Typography variant='h4'>
-            Selection
-          </Typography>
-        </Grid>
-
         {invoiceOptionIdParam ? (
           <Grid size={{ xs: 12 }}>
             <MembershipPreview readOnly={readOnly} />
