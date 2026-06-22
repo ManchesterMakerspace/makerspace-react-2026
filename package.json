@@ -52,7 +52,7 @@
     "sass-loader": "^17.0.0",
     "simple-git": "^3.5.0",
     "ts-jest": "^29.0.0",
-    "ts-loader": "^9.6.0",
+    "ts-loader": "^9.6.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsconfig-paths-webpack-plugin": "^4.0.0",
