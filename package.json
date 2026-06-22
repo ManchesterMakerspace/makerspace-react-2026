@@ -27,11 +27,11 @@
     "redux-thunk": "^3.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@babel/plugin-transform-typescript": "^7.24.0",
-    "@babel/preset-env": "^7.24.0",
-    "@babel/preset-react": "^7.24.0",
-    "@babel/preset-typescript": "^7.24.0",
+    "@babel/core": "^8.0.1",
+    "@babel/plugin-transform-typescript": "^8.0.1",
+    "@babel/preset-env": "^8.0.2",
+    "@babel/preset-react": "^8.0.1",
+    "@babel/preset-typescript": "^8.0.1",
     "@playwright/test": "^1.44.0",
     "@types/braintree-web": "^3.96.0",
     "@types/jest": "^30.0.0",
