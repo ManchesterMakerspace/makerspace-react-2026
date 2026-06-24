@@ -122,7 +122,7 @@ const MembersList: React.FC = () => {
   );
 
   const onRenew = React.useCallback(() => { refresh(); }, [refresh]);
-  const onCreate = React.useCallback((id: string) => { navigate(buildProfileRouting(id)); }, [history]);
+  const onCreate = React.useCallback((id: string) => { navigate(buildProfileRouting(id)); }, [navigate]);
 
   const selectedMember = members.find(member => member.id === selectedId);
 
