@@ -102,6 +102,12 @@ export class MemberPage {
     // Wait for search input to be enabled — it's disabled while members table loads
     await searchBox.waitFor({ state: 'visible', timeout: 15_000 });
     await expect(searchBox).toBeEnabled({ timeout: 10_000 });
+    // Uncheck "View only current members" so expired/non-active members appear in results
+    const currentMembersCheckbox = this.page.getByRole('checkbox', { name: 'View only current members' });
+    if (await currentMembersCheckbox.isChecked({ timeout: 3_000 }).catch(() => false)) {
+      await currentMembersCheckbox.uncheck();
+      await this.page.waitForTimeout(500);
+    }
     await searchBox.fill(query);
     await searchBox.press('Enter');
     await this.page.waitForTimeout(500);
