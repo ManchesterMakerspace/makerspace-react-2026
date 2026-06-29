@@ -11,7 +11,7 @@
     "@mui/material": "^9.1.1",
     "@redux-devtools/extension": "^4.0.0",
     "awesome-debounce-promise": "^2.1.0",
-    "axios": "^1.18.0",
+    "axios": "^1.18.1",
     "braintree-web": "^3.143.0",
     "lodash-es": "^4.17.21",
     "makerspace-ts-api-client": "2.9.0",
