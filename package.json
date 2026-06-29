@@ -32,7 +32,7 @@
     "@babel/preset-env": "^7.24.0",
     "@babel/preset-react": "^7.24.0",
     "@babel/preset-typescript": "^7.24.0",
-    "@playwright/test": "^1.61.0",
+    "@playwright/test": "^1.61.1",
     "@types/braintree-web": "^3.96.0",
     "@types/jest": "^30.0.0",
     "@types/lodash-es": "^4.17.1",
