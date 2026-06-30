@@ -8,19 +8,21 @@ import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
 import CheckoutApproversManager from "./CheckoutApproversManager";
+import ToolCheckoutRequests from "./ToolCheckoutRequests";
 import { useAuthState } from "ui/reducer/hooks";
 import { memberIsResourceManager } from "ui/member/utils";
 import { useCapabilities } from "app/permissions";
 
-type TabKey = "roster" | "shops" | "tools" | "approvers";
+type TabKey = "requests" | "roster" | "shops" | "tools" | "approvers";
 
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
   const isRM = memberIsResourceManager(currentUser);
   const caps = useCapabilities();
-  const [activeTab, setActiveTab] = React.useState<TabKey>("roster");
+  const [activeTab, setActiveTab] = React.useState<TabKey>("requests");
 
   const tabs: { key: TabKey; label: string; adminOnly?: boolean }[] = [
+    { key: "requests", label: "Requests" },
     { key: "roster", label: "Checkout Roster" },
     { key: "shops", label: "Shops" },
     { key: "tools", label: "Tools" },
@@ -34,7 +36,7 @@ const ToolCheckoutsPage: React.FC = () => {
       <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant="h5" gutterBottom>Tool Checkouts</Typography>
         <Typography variant="body2" color="textSecondary">
-          Manage member tool checkouts, shops, tools, and checkout approvers.
+          Manage member tool checkout requests, shops, tools, and checkout approvers.
           Members can be checked out via the portal or via Slack slash command in the shop channel.
         </Typography>
       </Grid>
@@ -53,6 +55,7 @@ const ToolCheckoutsPage: React.FC = () => {
         </Tabs>
       </Grid>
       <Grid size={{ xs: 12, md: 10 }}>
+        {activeTab === "requests" && <ToolCheckoutRequests admin />}
         {activeTab === "roster" && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={isRM} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}

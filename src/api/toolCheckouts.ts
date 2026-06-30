@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Shop, Tool, ToolCheckout, CheckoutApprover } from "app/entities/toolCheckout";
+import { Shop, Tool, ToolCheckout, CheckoutApprover, AvailableTool, ToolCheckoutRequest } from "app/entities/toolCheckout";
 
 const getCsrfToken = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -28,6 +28,22 @@ const buildResponse = async <T>(request: Promise<any>) => {
   }
 };
 
+const camelize = (value: any): any => {
+  if (Array.isArray(value)) return value.map(camelize);
+  if (!value || typeof value !== "object") return value;
+  return Object.entries(value).reduce((acc, [key, val]) => {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    acc[camelKey] = camelize(val);
+    return acc;
+  }, {} as any);
+};
+
+const buildCamelResponse = async <T>(request: Promise<any>) => {
+  const response = await buildResponse<T>(request);
+  if ("data" in response) return { ...response, data: camelize(response.data) as T };
+  return response;
+};
+
 // ── Shops ─────────────────────────────────────────────────────────────────────
 
 export const listShops = (_params?: any) =>
@@ -52,7 +68,7 @@ export const adminDeleteShop = ({ id }: { id: string }) =>
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
 export const listTools = (params?: { shopId?: string }) =>
-  buildResponse<Tool[]>(api.get("/api/admin/tools", {
+  buildCamelResponse<Tool[]>(api.get("/api/admin/tools", {
     params: params?.shopId ? { shop_id: params.shopId } : {}
   }));
 
@@ -97,6 +113,36 @@ export const listMemberCheckouts = (params?: { memberId?: string }) =>
   buildResponse<ToolCheckout[]>(api.get("/api/tool_checkouts", {
     params: params?.memberId ? { member_id: params.memberId } : {}
   }));
+
+// ── Tool Checkout Requests ───────────────────────────────────────────────────
+
+export const listAvailableToolsForCheckoutRequest = (_params?: any) =>
+  buildCamelResponse<AvailableTool[]>(api.get("/api/tool_checkout_requests/available_tools"));
+
+export const listToolCheckoutRequests = (_params?: any) =>
+  buildCamelResponse<ToolCheckoutRequest[]>(api.get("/api/tool_checkout_requests"));
+
+export const adminListToolCheckoutRequests = (_params?: any) =>
+  buildCamelResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests"));
+
+export const createToolCheckoutRequest = ({ body }: {
+  body: { toolId: string; note?: string }
+}) =>
+  buildCamelResponse<ToolCheckoutRequest>(api.post("/api/tool_checkout_requests", {
+    tool_id: body.toolId,
+    note: body.note,
+  }));
+
+export const updateToolCheckoutRequest = ({ id, body }: {
+  id: string;
+  body: { note?: string }
+}) =>
+  buildCamelResponse<ToolCheckoutRequest>(api.put(`/api/tool_checkout_requests/${id}`, {
+    note: body.note,
+  }));
+
+export const deleteToolCheckoutRequest = ({ id }: { id: string }) =>
+  buildResponse<{}>(api.delete(`/api/tool_checkout_requests/${id}`));
 
 export const adminCreateToolCheckout = ({ body }: {
   body: { memberId: string; toolId: string }

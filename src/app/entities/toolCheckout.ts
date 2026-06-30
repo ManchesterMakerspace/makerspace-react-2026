@@ -17,6 +17,12 @@ export interface Tool {
   prerequisiteNames: string[];
 }
 
+export interface AvailableTool extends Tool {
+  unmetPrerequisiteIds: string[];
+  unmetPrerequisiteNames: string[];
+  requestable: boolean;
+}
+
 export interface ToolCheckout {
   id: string;
   memberId: string;
@@ -42,4 +48,21 @@ export interface CheckoutApprover {
   memberEmail: string;
   shopIds: string[];
   shopNames: string[];
+}
+
+export interface ToolCheckoutRequest {
+  id: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  toolId: string;
+  toolName: string;
+  shopId: string;
+  shopName: string;
+  note?: string;
+  status: "open" | "approved" | "rejected" | string;
+  messageId?: string;
+  checkedOut?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
