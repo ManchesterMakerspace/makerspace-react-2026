@@ -295,17 +295,21 @@ const ToolManager: React.FC = () => {
   const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-for-tools");
   const { isRequesting, data: tools = [], response, refresh, error: loadError } =
     useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
-  const { data: allTools = [] } =
+  const { data: allTools = [], refresh: refreshAllTools } =
     useReadTransaction(listTools, {}, undefined, "tools-all-validation");
 
   const refreshRef = React.useRef(refresh);
+  const refreshAllToolsRef = React.useRef(refreshAllTools);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+  React.useEffect(() => { refreshAllToolsRef.current = refreshAllTools; }, [refreshAllTools]);
 
   const selectedTool = (tools as Tool[]).find(t => t.id === selectedId);
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
-    setSelectedId(undefined); refreshRef.current();
+    setSelectedId(undefined);
+    refreshRef.current();
+    refreshAllToolsRef.current();
   }, []);
 
   const { call: createTool, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateTool, onSuccess);
