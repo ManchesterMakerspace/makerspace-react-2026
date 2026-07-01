@@ -19,7 +19,13 @@ const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
   const isRM = memberIsResourceManager(currentUser);
   const caps = useCapabilities();
-  const [activeTab, setActiveTab] = React.useState<TabKey>("requests");
+  const defaultTab: TabKey = caps.canManageCheckouts ? "roster" : "requests";
+  const [activeTab, setActiveTab] = React.useState<TabKey>(defaultTab);
+  const [userSelectedTab, setUserSelectedTab] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!userSelectedTab) setActiveTab(defaultTab);
+  }, [defaultTab, userSelectedTab]);
 
   const tabs: { key: TabKey; label: string; adminOnly?: boolean }[] = [
     { key: "requests", label: "Requests" },
@@ -47,7 +53,7 @@ const ToolCheckoutsPage: React.FC = () => {
       <Grid size={{ xs: 12, md: 10 }}>
         <Tabs
           value={activeTab}
-          onChange={(_, val) => setActiveTab(val as TabKey)}
+          onChange={(_, val) => { setUserSelectedTab(true); setActiveTab(val as TabKey); }}
           indicatorColor="primary"
           textColor="primary"
           variant="scrollable"
