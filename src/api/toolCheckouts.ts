@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Shop, Tool, ToolCheckout, CheckoutApprover } from "app/entities/toolCheckout";
+import { Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest } from "app/entities/toolCheckout";
 
 const getCsrfToken = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -61,6 +61,10 @@ export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
     name: body.name,
     description: body.description,
     shop_id: body.shopId,
+    disabled: body.disabled,
+    announce: body.announce,
+    announce_channel: body.announceChannel,
+    users_channel: body.usersChannel,
     prerequisite_ids: body.prerequisiteIds || [],
   }));
 
@@ -70,11 +74,17 @@ export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> 
     description: body.description,
     shop_id: body.shopId,
     disabled: body.disabled,
+    announce: body.announce,
+    announce_channel: body.announceChannel,
+    users_channel: body.usersChannel,
     prerequisite_ids: body.prerequisiteIds || [],
   }));
 
 export const adminDeleteTool = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/tools/${id}`));
+
+export const listAvailableTools = (_params?: any) =>
+  buildResponse<Tool[]>(api.get("/api/tools"));
 
 // ── Tool Checkouts ────────────────────────────────────────────────────────────
 
@@ -117,6 +127,31 @@ export const adminRevokeToolCheckout = ({ id, body }: {
       data: { revocation_reason: body.revocationReason }
     })
   );
+
+export const listToolCheckoutRequests = (_params?: any) =>
+  buildResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests"));
+
+export const listMyToolCheckoutRequests = (_params?: any) =>
+  buildResponse<ToolCheckoutRequest[]>(api.get("/api/tool_checkout_requests"));
+
+export const createToolCheckoutRequest = ({ body }: {
+  body: { toolId: string; note?: string }
+}) =>
+  buildResponse<ToolCheckoutRequest>(api.post("/api/tool_checkout_requests", {
+    tool_id: body.toolId,
+    note: body.note,
+  }));
+
+export const updateToolCheckoutRequest = ({ id, body }: {
+  id: string;
+  body: { note?: string }
+}) =>
+  buildResponse<ToolCheckoutRequest>(api.put(`/api/tool_checkout_requests/${id}`, {
+    note: body.note,
+  }));
+
+export const deleteToolCheckoutRequest = ({ id }: { id: string }) =>
+  buildResponse<{}>(api.delete(`/api/tool_checkout_requests/${id}`));
 
 // ── Checkout Approvers ────────────────────────────────────────────────────────
 

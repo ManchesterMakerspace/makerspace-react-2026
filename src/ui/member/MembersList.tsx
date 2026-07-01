@@ -30,7 +30,9 @@ const nameColumn: Column<MemberSummary> = {
   id: 'lastname',
   label: 'Name',
   cell: (row: MemberSummary) => (
-    <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
+    (row as any).slack?.url
+      ? <a href={(row as any).slack.url}>{row.firstname} {row.lastname}</a>
+      : <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
   ),
   defaultSortDirection: SortDirection.Desc,
 };

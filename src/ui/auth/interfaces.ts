@@ -34,5 +34,6 @@ export type AuthMember = Member & {
   isAdmin: boolean;
   isBoardMember: boolean;
   isResourceManager: boolean;
+  isCheckoutApprover?: boolean;
   totpEnabled?: boolean;
 };

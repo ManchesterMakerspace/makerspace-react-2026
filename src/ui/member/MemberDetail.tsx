@@ -191,11 +191,15 @@ const MemberProfile: React.FC = () => {
   }
 
   const memberSubscription = getDetailsForMember(member);
+  const memberDisplayName = `${member.firstname} ${member.lastname}`;
+  const memberTitle = (member as any).slack?.url
+    ? <a href={(member as any).slack.url}>{memberDisplayName}</a>
+    : memberDisplayName;
 
   return (
     <>
       <DetailView
-        title={`${member.firstname} ${member.lastname}`}
+        title={memberTitle}
         basePath={`/members/${memberId}`}
         actionButtons={[
           ...isOwnProfile ? [
