@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest } from "app/entities/toolCheckout";
+import { apiErrorMessage } from "ui/common/apiErrors";
 
 const getCsrfToken = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
@@ -22,8 +23,10 @@ const buildResponse = async <T>(request: Promise<any>) => {
   try {
     const res = await request;
     return { data: res.data, response: { ...res, headers: wrapHeaders(res.headers) } };
-  } catch (err) {
-    const error = err.response?.data?.error || { message: err.message };
+  } catch (err: any) {
+    const error = {
+      message: apiErrorMessage(err.response?.data, err.message || "Request failed")
+    };
     return { error, response: err.response };
   }
 };

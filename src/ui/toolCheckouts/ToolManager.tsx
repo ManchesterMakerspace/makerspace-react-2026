@@ -34,6 +34,39 @@ import {
 
 const rowId = (t: Tool) => t.id;
 
+const normalizedName = (value: string) => value.trim().toLowerCase();
+
+const duplicateToolName = (tools: Tool[], name: string, shopId: string, excludeId?: string) => {
+  const target = normalizedName(name);
+  return !!target && tools.some(t =>
+    t.shopId === shopId && t.id !== excludeId && normalizedName(t.name) === target
+  );
+};
+
+const wouldCreatePrerequisiteLoop = (
+  tools: Tool[],
+  toolId: string | undefined,
+  prerequisiteIds: string[]
+) => {
+  if (!toolId) return false;
+
+  const byId = new Map(tools.map(t => [t.id, t]));
+  const stack = [...prerequisiteIds];
+  const visited = new Set<string>();
+
+  while (stack.length) {
+    const currentId = stack.pop();
+    if (!currentId || visited.has(currentId)) continue;
+    if (currentId === toolId) return true;
+
+    visited.add(currentId);
+    const currentTool = byId.get(currentId);
+    currentTool?.prerequisiteIds?.forEach(id => stack.push(id));
+  }
+
+  return false;
+};
+
 // ── AddToolModal ──────────────────────────────────────────────────────────────
 
 interface AddToolModalProps {
@@ -54,17 +87,30 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
   const [announce, setAnnounce] = React.useState(false);
   const [announceChannel, setAnnounceChannel] = React.useState("");
   const [usersChannel, setUsersChannel] = React.useState("");
+  const [localError, setLocalError] = React.useState("");
 
   const togglePrereq = (id: string) =>
     setPrerequisiteIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
 
   const availablePrereqs = tools.filter(t => t.shopId === shopId);
+  const submit = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName || !shopId) return;
+
+    if (duplicateToolName(tools, trimmedName, shopId)) {
+      setLocalError("A tool with this name already exists in the selected shop.");
+      return;
+    }
+
+    setLocalError("");
+    onSave({ name: trimmedName, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel });
+  };
 
   return (
     <FormModal id="add-tool" isOpen={true} title="Add Tool"
       closeHandler={onClose}
-      onSubmit={() => name && shopId && onSave({ name, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel })}
-      submitText="Add Tool" loading={loading} error={error}
+      onSubmit={submit}
+      submitText="Add Tool" loading={loading} error={localError || error}
     >
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
@@ -124,18 +170,55 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
 
 interface EditToolRowProps {
   tool: Tool;
+  tools: Tool[];
   onSave: (id: string, body: Partial<Tool>) => void;
   onCancel: () => void;
   saving: boolean;
 }
 
-const EditToolRow: React.FC<EditToolRowProps> = ({ tool, onSave, onCancel, saving }) => {
+const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
   const [description, setDescription] = React.useState(tool.description || "");
+  const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
   const [announce, setAnnounce] = React.useState(!!tool.announce);
   const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
   const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
+  const [localError, setLocalError] = React.useState("");
+
+  const availablePrereqs = tools.filter(t => t.shopId === tool.shopId && t.id !== tool.id);
+  const togglePrereq = (id: string) => {
+    const nextIds = prerequisiteIds.includes(id)
+      ? prerequisiteIds.filter(p => p !== id)
+      : [...prerequisiteIds, id];
+
+    if (wouldCreatePrerequisiteLoop(tools, tool.id, nextIds)) {
+      setLocalError("That prerequisite would create a dependency loop.");
+      return;
+    }
+
+    setLocalError("");
+    setPrerequisiteIds(nextIds);
+  };
+
+  const submit = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    if (duplicateToolName(tools, trimmedName, tool.shopId, tool.id)) {
+      setLocalError("A tool with this name already exists in this shop.");
+      return;
+    }
+
+    if (wouldCreatePrerequisiteLoop(tools, tool.id, prerequisiteIds)) {
+      setLocalError("These prerequisites would create a dependency loop.");
+      return;
+    }
+
+    setLocalError("");
+    onSave(tool.id, { name: trimmedName, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds });
+  };
+
   return (
     <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", alignItems: "center" }}>
       <TextField size="small" value={name} onChange={e => setName(e.target.value)}
@@ -148,10 +231,25 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, onSave, onCancel, savin
         placeholder="Users channel" />
       <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />} label="Hidden" />
       <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />} label="Announce" />
+      <div style={{ gridColumn: "1 / -1" }}>
+        <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>Prerequisites</FormLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {availablePrereqs.length ? availablePrereqs.map(t => (
+            <Chip key={t.id} label={t.name} size="small" clickable
+              onClick={() => togglePrereq(t.id)}
+              color={prerequisiteIds.includes(t.id) ? "primary" : "default"}
+              variant={prerequisiteIds.includes(t.id) ? "default" : "outlined"}
+            />
+          )) : (
+            <Typography variant="caption" color="textSecondary">No other tools in this shop.</Typography>
+          )}
+        </div>
+        {localError && <Typography variant="caption" color="error">{localError}</Typography>}
+      </div>
       <div>
         <Tooltip title="Save"><span>
           <IconButton size="small" color="primary" disabled={saving || !name}
-            onClick={() => onSave(tool.id, { name, description, disabled, announce, announceChannel, usersChannel })}>
+            onClick={submit}>
             <SaveIcon fontSize="small" />
           </IconButton>
         </span></Tooltip>
@@ -197,6 +295,8 @@ const ToolManager: React.FC = () => {
   const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-for-tools");
   const { isRequesting, data: tools = [], response, refresh, error: loadError } =
     useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
+  const { data: allTools = [] } =
+    useReadTransaction(listTools, {}, undefined, "tools-all-validation");
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -231,7 +331,7 @@ const ToolManager: React.FC = () => {
       id: "name", label: "Tool",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Tool) => editingId === row.id
-        ? <EditToolRow tool={row} onSave={handleSave} onCancel={handleCancel} saving={updating} />
+        ? <EditToolRow tool={row} tools={allTools as Tool[]} onSave={handleSave} onCancel={handleCancel} saving={updating} />
         : (
           <div>
             <Typography variant="body2"><strong>{row.name}</strong></Typography>
@@ -317,7 +417,7 @@ const ToolManager: React.FC = () => {
 
       {addOpen && (
         <AddToolModal
-          shops={shops as Shop[]} tools={tools as Tool[]}
+          shops={shops as Shop[]} tools={allTools as Tool[]}
           onClose={() => setAddOpen(false)}
           onSave={(body) => createTool({ body })}
           loading={creating} error={createError}

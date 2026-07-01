@@ -27,24 +27,41 @@ import {
 } from "api/toolCheckouts";
 
 const rowId = (s: Shop) => s.id;
+const normalizedName = (value: string) => value.trim().toLowerCase();
 
 // ── AddShopModal ──────────────────────────────────────────────────────────────
 
 interface AddShopModalProps {
+  shops: Shop[];
   onClose: () => void;
   onSave: (body: { name: string; slackChannel: string }) => void;
   loading: boolean;
   error: string;
 }
 
-const AddShopModal: React.FC<AddShopModalProps> = ({ onClose, onSave, loading, error }) => {
+const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
+  const [localError, setLocalError] = React.useState("");
+
+  const submit = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    if (shops.some(s => normalizedName(s.name) === normalizedName(trimmedName))) {
+      setLocalError("A shop with this name already exists.");
+      return;
+    }
+
+    setLocalError("");
+    onSave({ name: trimmedName, slackChannel });
+  };
+
   return (
     <FormModal id="add-shop" isOpen={true} title="Add Shop"
       closeHandler={onClose}
-      onSubmit={() => name && onSave({ name, slackChannel })}
-      submitText="Add Shop" loading={loading} error={error}
+      onSubmit={submit}
+      submitText="Add Shop" loading={loading} error={localError || error}
     >
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
@@ -221,6 +238,7 @@ const ShopManager: React.FC = () => {
 
       {addOpen && (
         <AddShopModal
+          shops={shops as Shop[]}
           onClose={() => setAddOpen(false)}
           onSave={(body) => createShop({ body })}
           loading={creating} error={createError}

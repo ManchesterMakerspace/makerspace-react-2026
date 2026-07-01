@@ -21,6 +21,7 @@ import { SelectOption } from "ui/common/AsyncSelect";
 import { Status } from "ui/constants";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
+import { useAuthState } from "ui/reducer/hooks";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { ToolCheckout, Shop, Tool } from "app/entities/toolCheckout";
 import {
@@ -162,6 +163,7 @@ interface Props {
 }
 
 const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourceManager }) => {
+  const { currentUser } = useAuthState();
   const [shopFilter,         setShopFilter]         = React.useState("");
   const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
   const [revokeTarget,       setRevokeTarget]       = React.useState<ToolCheckout | null>(null);
@@ -197,6 +199,13 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
 
   const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-roster");
   const { data: tools = [] } = useReadTransaction(listTools, {}, !canManage, "tools-roster");
+  const checkoutApproverShopIds = currentUser.checkoutApproverShopIds || [];
+  const hasGlobalCheckoutAccess = !!currentUser.isAdmin || !!currentUser.isBoardMember || !!currentUser.isResourceManager || isResourceManager;
+  const modalShops = hasGlobalCheckoutAccess
+    ? (shops as Shop[])
+    : (shops as Shop[]).filter(s => checkoutApproverShopIds.includes(s.id));
+  const modalShopIds = new Set(modalShops.map(s => s.id));
+  const modalTools = (tools as Tool[]).filter(t => modalShopIds.has(t.shopId));
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -358,7 +367,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
 
       {checkoutOpen && (
         <CheckoutModal
-          shops={shops as Shop[]} tools={tools as Tool[]}
+          shops={modalShops} tools={modalTools}
           preselectedMember={preselectedMember}
           onClose={() => setCheckoutOpen(false)}
           onCheckout={handleCheckout}

@@ -10,8 +10,8 @@ export interface Tool {
   id: string;
   name: string;
   description?: string;
-  disabled: boolean;
-  announce: boolean;
+  disabled?: boolean;
+  announce?: boolean;
   announceChannel?: string;
   usersChannel?: string;
   shopId: string;
