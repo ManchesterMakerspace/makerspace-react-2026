@@ -14,6 +14,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import StatefulTable from "ui/common/table/StatefulTable";
 import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
+import { useQueryContext, withQueryContext } from "ui/common/Filters/QueryContext";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import extractTotalItems from "ui/utils/extractTotalItems";
@@ -101,6 +102,7 @@ interface Props {
 }
 
 const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
+  const { params } = useQueryContext();
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | undefined>(undefined);
@@ -108,11 +110,16 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
 
   const requestRead = useReadTransaction(
     canManage ? listToolCheckoutRequests : listMyToolCheckoutRequests,
-    {},
+    { ...params },
     undefined,
-    canManage ? "admin-tool-checkout-requests" : "my-tool-checkout-requests"
+    canManage ? `admin-tool-checkout-requests-${JSON.stringify(params)}` : `my-tool-checkout-requests-${JSON.stringify(params)}`
   );
-  const availableRead = useReadTransaction(listAvailableTools, {}, canManage, "available-tool-checkout-requests");
+  const availableRead = useReadTransaction(
+    listAvailableTools,
+    { ...params },
+    canManage,
+    `available-tool-checkout-requests-${JSON.stringify(params)}`
+  );
 
   const refreshRequestsRef = React.useRef(requestRead.refresh);
   const refreshAvailableRef = React.useRef(availableRead.refresh);
@@ -265,4 +272,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   );
 };
 
-export default ToolCheckoutRequestsManager;
+export default withQueryContext(ToolCheckoutRequestsManager, {
+  orderBy: "requestDate",
+  order: SortDirection.Desc,
+});

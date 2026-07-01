@@ -86,8 +86,15 @@ export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> 
 export const adminDeleteTool = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/tools/${id}`));
 
-export const listAvailableTools = (_params?: any) =>
-  buildResponse<Tool[]>(api.get("/api/tools"));
+const tableParams = (params?: any) => ({
+  ...(params?.orderBy && { order_by: params.orderBy }),
+  ...(params?.order && { order: params.order }),
+  ...(params?.pageNum !== undefined && { page_num: params.pageNum }),
+  ...(params?.search && { search: params.search }),
+});
+
+export const listAvailableTools = (params?: any) =>
+  buildResponse<Tool[]>(api.get("/api/tools", { params: tableParams(params) }));
 
 // ── Tool Checkouts ────────────────────────────────────────────────────────────
 
@@ -131,11 +138,15 @@ export const adminRevokeToolCheckout = ({ id, body }: {
     })
   );
 
-export const listToolCheckoutRequests = (_params?: any) =>
-  buildResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests"));
+export const listToolCheckoutRequests = (params?: any) =>
+  buildResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests", {
+    params: tableParams(params)
+  }));
 
-export const listMyToolCheckoutRequests = (_params?: any) =>
-  buildResponse<ToolCheckoutRequest[]>(api.get("/api/tool_checkout_requests"));
+export const listMyToolCheckoutRequests = (params?: any) =>
+  buildResponse<ToolCheckoutRequest[]>(api.get("/api/tool_checkout_requests", {
+    params: tableParams(params)
+  }));
 
 export const createToolCheckoutRequest = ({ body }: {
   body: { toolId: string; note?: string }
