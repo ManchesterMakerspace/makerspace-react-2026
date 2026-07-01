@@ -77,7 +77,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.Rentals} element={<RentalsList />} />
       {caps.canManageRentals     && <Route path={Routing.AdminRentals}    element={<AdminRentalsPage />} />}
       {caps.canManageShopFees    && <Route path={Routing.ShopFees}         element={<ShopFeesPage />} />}
-      {caps.canManageCheckouts   && <Route path={Routing.ToolCheckouts}    element={<ToolCheckoutsPage />} />}
+      <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}

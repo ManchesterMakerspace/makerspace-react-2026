@@ -10,11 +10,17 @@ export interface Tool {
   id: string;
   name: string;
   description?: string;
-  disabled: boolean;
+  disabled?: boolean;
+  announce?: boolean;
+  announceChannel?: string;
+  usersChannel?: string;
   shopId: string;
   shopName: string;
   prerequisiteIds: string[];
   prerequisiteNames: string[];
+  unmetPrerequisiteIds?: string[];
+  unmetPrerequisiteNames?: string[];
+  requestable?: boolean;
 }
 
 export interface ToolCheckout {
@@ -42,4 +48,21 @@ export interface CheckoutApprover {
   memberEmail: string;
   shopIds: string[];
   shopNames: string[];
+}
+
+export interface ToolCheckoutRequest {
+  id: string;
+  memberId: string;
+  memberName: string;
+  memberEmail: string;
+  memberSlackUrl?: string;
+  toolId: string;
+  toolName: string;
+  shopId: string;
+  shopName: string;
+  note?: string;
+  requestDate: string;
+  status: "open" | "closed" | "deleted";
+  messageId?: string;
+  checkedOutId?: string;
 }

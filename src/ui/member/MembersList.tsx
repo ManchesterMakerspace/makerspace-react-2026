@@ -71,10 +71,24 @@ const slackStatusColumn: Column<MemberSummary> = {
   label: 'Slack',
   cell: (row: MemberSummary) => {
     const slack = (row as any).slack;
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    const content = (
+      <>
         <SlackStatusIcon slack={slack} />
         {slack && <span style={{ fontSize: '0.8rem', color: '#555' }}>{slack.name}</span>}
+      </>
+    );
+
+    if (slack?.url) {
+      return (
+        <a href={slack.url} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+          {content}
+        </a>
+      );
+    }
+
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        {content}
       </span>
     );
   },

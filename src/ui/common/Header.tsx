@@ -133,7 +133,7 @@ class Header extends React.Component<Props, State> {
     const isAdminOrBoard = isAdmin || isBoardMember;
     const isPrivileged   = isAdmin || isBoardMember || isRM;
     const canManageShopFees    = isPrivileged;
-    const canManageCheckouts   = isPrivileged || (currentUser as any).isCheckoutApprover;
+    const canManageCheckouts   = true;
     const canManageVolunteer   = isPrivileged;
     const canManageRentals     = isPrivileged;
 

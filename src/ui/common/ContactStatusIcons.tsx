@@ -29,6 +29,7 @@ export interface MailtrapData {
 export interface SlackData {
   slack_id: string;
   name: string;
+  url?: string;
 }
 
 export const EmailStatusIcon: React.FC<{ mailtrap?: MailtrapData }> = ({ mailtrap }) => {
