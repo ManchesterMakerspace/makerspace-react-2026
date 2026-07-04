@@ -97,39 +97,10 @@ module.exports = env => ({
   target: "web",
   optimization: {
     splitChunks: {
-      chunks: "all",
-      cacheGroups: {
-        react: {
-          test: /[\/]node_modules[\/](react|react-dom|react-router-dom|react-redux|redux|redux-thunk)[\/]/,
-          name: "vendor-react",
-          priority: 40,
-          enforce: true
-        },
-        mui: {
-          test: /[\/]node_modules[\/]@mui[\/]/,
-          name: "vendor-mui",
-          priority: 30,
-          enforce: true
-        },
-        charts: {
-          test: /[\/]node_modules[\/](recharts|d3-[^\/]+)[\/]/,
-          name: "vendor-charts",
-          priority: 25,
-          enforce: true
-        },
-        payments: {
-          test: /[\/]node_modules[\/](braintree-web|paypal-checkout)[\/]/,
-          name: "vendor-payments",
-          priority: 25,
-          enforce: true
-        },
-        vendors: {
-          test: /[\/]node_modules[\/]/,
-          name: "vendor",
-          priority: 10,
-          enforce: true
-        }
-      }
+      // Rails currently includes only the main makerspace-react.js asset.
+      // Keep initial dependencies in that file so the Rails-mounted app can
+      // boot, while still splitting lazy route dependencies into async chunks.
+      chunks: "async"
     }
   },
   devServer: {
