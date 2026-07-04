@@ -12,13 +12,13 @@ import { useNavigate } from 'react-router-dom';
  import Typography from '@mui/material/Typography';
 import Box from "@mui/material/Box";
  
- import logoUrl from "../../assets/FilledLaserableLogo.svg";
- 
  import { Routing } from "app/constants";
  import { MembershipOptions } from './MembershipOptions';
  import { useGoToSignUp } from "./useGoToSignUp";
 import { useMembershipOptions } from 'hooks/useMembershipOptions';
 import { AppLoading } from 'components/AppLoading/AppLoading';
+
+const logoUrl = "/assets/FilledLaserableLogo.svg";
  
  const LandingPage: React.FC = () => {
    const navigate = useNavigate();

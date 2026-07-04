@@ -8,7 +8,8 @@ import Box from '@mui/material/Box';
 
 import LoginForm from "ui/auth/LoginForm";
 import { Routing } from 'app/constants';
-import logoUrl from "../../assets/FilledLaserableLogo.svg";
+
+const logoUrl = "/assets/FilledLaserableLogo.svg";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();

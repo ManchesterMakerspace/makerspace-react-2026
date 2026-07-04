@@ -26,6 +26,14 @@ const baseline = [
   "//= link_directory ../stylesheets .css"
 ];
 
+const excludedAssets = new Set([
+  // FilledLaserableLogo.svg is provided by the host Rails app as
+  // /assets/FilledLaserableLogo.svg. Do not link a stale webpack-emitted
+  // copy from dist/assets, which would make Rails serve a duplicate
+  // nested asset URL.
+  "assets/FilledLaserableLogo.svg"
+]);
+
 function walk(dir, prefix = "") {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
     const relativePath = path.join(prefix, entry.name);
@@ -42,6 +50,7 @@ function walk(dir, prefix = "") {
 const emittedAssets = walk(dist)
   .filter(name => name !== "manifest.js")
   .filter(name => name !== "favicon.png")
+  .filter(name => !excludedAssets.has(name))
   .filter(name => linkedExtensions.has(path.extname(name).toLowerCase()))
   .sort();
 

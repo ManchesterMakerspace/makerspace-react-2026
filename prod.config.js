@@ -10,6 +10,7 @@ module.exports = env => ({
   entry: ["./src/app/main.tsx"],
   output: {
     path: path.resolve(__dirname, "dist"),
+    clean: true,
     filename: pathData => pathData.chunk && pathData.chunk.name === "main" ? "makerspace-react.js" : "makerspace-react.[name].js",
     chunkFilename: "makerspace-react.[name].js",
     sourceMapFilename: "[file].map",
@@ -19,6 +20,7 @@ module.exports = env => ({
     rules: [
       {
         test: /\.(png|jpe?g|svg)$/,
+        exclude: /FilledLaserableLogo\.svg$/,
         type: "asset/resource",
         generator: {
           filename: "assets/[name][ext]"

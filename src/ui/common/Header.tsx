@@ -15,14 +15,14 @@ import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import MenuIcon from "@mui/icons-material/Menu";
 
-import logoUrl from "../../assets/FilledLaserableLogo.svg";
-
 import { ScopedThunkDispatch, State as ReduxState } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
 import { AuthMember } from "ui/auth/interfaces";
 import { memberIsAdmin, memberIsBoardMember, memberIsResourceManager } from "ui/member/utils";
 import { Routing, Whitelists } from "app/constants";
 import Help from "ui/common/Help";
+
+const logoUrl = "/assets/FilledLaserableLogo.svg";
 
 interface OwnProps extends RouteComponentProps<any> {}
 interface StateProps {
