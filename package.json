@@ -66,7 +66,7 @@
     "clean": "rm -fr ./node_modules ./dist",
     "start": "webpack serve --config dev.config.js",
     "open": "yarn start --open",
-    "build": "webpack --config prod.config.js",
+    "build": "webpack --config prod.config.js && node scripts/build_rails_manifest.js",
     "test": "jest --no-cache",
     "test-watch": "yarn test --watch"
   },

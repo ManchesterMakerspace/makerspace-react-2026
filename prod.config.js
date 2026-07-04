@@ -13,7 +13,7 @@ module.exports = env => ({
     filename: pathData => pathData.chunk && pathData.chunk.name === "main" ? "makerspace-react.js" : "makerspace-react.[name].js",
     chunkFilename: "makerspace-react.[name].js",
     sourceMapFilename: "[file].map",
-    publicPath: "/"
+    publicPath: "/assets/"
   },
   module: {
     rules: [
