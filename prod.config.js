@@ -18,11 +18,7 @@ module.exports = env => ({
   module: {
     rules: [
       {
-        test: /\.(png|jpg)$/,
-        type: "asset/inline"
-      },
-      {
-        test: /\.svg$/,
+        test: /\.(png|jpe?g|svg)$/,
         type: "asset/resource",
         generator: {
           filename: "assets/[name][ext]"
