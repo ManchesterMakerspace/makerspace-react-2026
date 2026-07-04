@@ -8,7 +8,8 @@ import Box from '@mui/material/Box';
 
 import LoginForm from "ui/auth/LoginForm";
 import { Routing } from 'app/constants';
-import Logo from "../../assets/FilledLaserableLogo.svg";
+
+const logoUrl = "/assets/FilledLaserableLogo.svg";
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const LoginPage: React.FC = () => {
     <Grid container spacing={3}>
       <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
         <Grid size={{ sm: 12, md: 6 }} id="landing-page-graphic">
-          <Logo style={{ width: '100%', height: '200px' }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
+          <img src={logoUrl} style={{ width: '100%', height: '200px' }} alt="Manchester Makerspace" />
         </Grid>
       </Box>
 

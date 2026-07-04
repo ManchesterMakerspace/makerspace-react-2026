@@ -12,13 +12,13 @@ import { useNavigate } from 'react-router-dom';
  import Typography from '@mui/material/Typography';
 import Box from "@mui/material/Box";
  
- import Logo from "../../assets/FilledLaserableLogo.svg";
- 
  import { Routing } from "app/constants";
  import { MembershipOptions } from './MembershipOptions';
  import { useGoToSignUp } from "./useGoToSignUp";
 import { useMembershipOptions } from 'hooks/useMembershipOptions';
 import { AppLoading } from 'components/AppLoading/AppLoading';
+
+const logoUrl = "/assets/FilledLaserableLogo.svg";
  
  const LandingPage: React.FC = () => {
    const navigate = useNavigate();
@@ -39,7 +39,7 @@ import { AppLoading } from 'components/AppLoading/AppLoading';
       <Grid container spacing={3} justifyContent="center">
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
           <Grid size={{ lg: 6 }}>
-            <Logo style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" viewBox="0 0 960 580" />
+            <img src={logoUrl} style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" />
           </Grid>
         </Box>
 

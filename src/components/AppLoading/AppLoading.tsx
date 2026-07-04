@@ -1,7 +1,7 @@
 import * as React from "react";
 import Typography from "@mui/material/Typography";
-import LogoInterior from "../../assets/LogoInterior.svg";
-import LogoOutline from "../../assets/LogoOutline.svg";
+import logoInteriorUrl from "../../assets/LogoInterior.svg";
+import logoOutlineUrl from "../../assets/LogoOutline.svg";
 
 interface Props {
   isLoading: boolean;
@@ -35,8 +35,8 @@ export const AppLoading: React.FC<Props> = ({ isLoading }) => {
   return (
     <>
       <div className="loading-logo">
-        <LogoInterior width="200px" height="200px" alt="Manchester Makerspace" />
-        <LogoOutline width="200px" height="200px" id="loading-logo-outline" alt="Manchester Makerspace" />
+        <img src={logoInteriorUrl} width="200" height="200" alt="Manchester Makerspace" />
+        <img src={logoOutlineUrl} width="200" height="200" id="loading-logo-outline" alt="Manchester Makerspace" />
       </div>
       <div className="loading-text">
         {showLoadingText && <Typography align="center" variant="h3">Loading...</Typography>}
