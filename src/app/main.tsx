@@ -9,7 +9,7 @@ import { applyMiddleware, createStore, Store } from 'redux';
 import { thunk as reduxThunk } from 'redux-thunk';
 import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
-import { Theme, ThemeProvider, createTheme } from '@mui/material';
+import { Theme, ThemeProvider, createTheme } from '@mui/material/styles';
 
 import App from 'app/App';
 import { State as ReduxState, getRootReducer } from 'ui/reducer';

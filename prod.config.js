@@ -10,7 +10,9 @@ module.exports = env => ({
   entry: ["./src/app/main.tsx"],
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "makerspace-react.js",
+    filename: pathData => pathData.chunk && pathData.chunk.name === "main" ? "makerspace-react.js" : "makerspace-react.[name].js",
+    chunkFilename: "makerspace-react.[name].js",
+    sourceMapFilename: "[file].map",
     publicPath: "/"
   },
   module: {
@@ -18,6 +20,13 @@ module.exports = env => ({
       {
         test: /\.(png|jpg)$/,
         type: "asset/inline"
+      },
+      {
+        test: /\.svg$/,
+        type: "asset/resource",
+        generator: {
+          filename: "assets/[name][ext]"
+        }
       },
       {
         test: /\.(html)$/,
@@ -84,9 +93,47 @@ module.exports = env => ({
   },
   context: __dirname,
   target: "web",
+  optimization: {
+    splitChunks: {
+      chunks: "all",
+      cacheGroups: {
+        react: {
+          test: /[\/]node_modules[\/](react|react-dom|react-router-dom|react-redux|redux|redux-thunk)[\/]/,
+          name: "vendor-react",
+          priority: 40,
+          enforce: true
+        },
+        mui: {
+          test: /[\/]node_modules[\/]@mui[\/]/,
+          name: "vendor-mui",
+          priority: 30,
+          enforce: true
+        },
+        charts: {
+          test: /[\/]node_modules[\/](recharts|d3-[^\/]+)[\/]/,
+          name: "vendor-charts",
+          priority: 25,
+          enforce: true
+        },
+        payments: {
+          test: /[\/]node_modules[\/](braintree-web|paypal-checkout)[\/]/,
+          name: "vendor-payments",
+          priority: 25,
+          enforce: true
+        },
+        vendors: {
+          test: /[\/]node_modules[\/]/,
+          name: "vendor",
+          priority: 10,
+          enforce: true
+        }
+      }
+    }
+  },
   plugins: [
     new MiniCssExtractPlugin({
-      filename: `makerspace-react.css`
+      filename: `makerspace-react.css`,
+      chunkFilename: `makerspace-react.[name].css`
     }),
     new HtmlWebPackPlugin({
       template: "./src/assets/index.html",

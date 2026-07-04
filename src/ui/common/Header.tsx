@@ -15,7 +15,7 @@ import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import MenuIcon from "@mui/icons-material/Menu";
 
-import Logo from "../../assets/FilledLaserableLogo.svg";
+import logoUrl from "../../assets/FilledLaserableLogo.svg";
 
 import { ScopedThunkDispatch, State as ReduxState } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
@@ -226,7 +226,7 @@ class Header extends React.Component<Props, State> {
       <AppBar color="default" style={{ marginBottom: "1em" }} position="static" title="Manchester Makerspace">
         <Toolbar>
           <Typography variant="h6" color="inherit" className="flex">
-            <Logo alt="Manchester Makerspace" viewBox="0 0 960 580" preserveAspectRatio="xMinYMin" />
+            <img src={logoUrl} alt="Manchester Makerspace" />
           </Typography>
           <Help />
           {currentUser.id

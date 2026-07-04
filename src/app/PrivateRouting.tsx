@@ -3,11 +3,8 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { Routing, Whitelists } from 'app/constants';
 import MembersList from 'ui/member/MembersList';
-import RentalsList from 'ui/rentals/RentalsList';
-import EarnedMembershipsList from 'ui/earnedMemberships/EarnedMembershipsList';
 import MemberDetail from 'ui/member/MemberDetail';
 import CheckoutPage from 'ui/checkout/CheckoutPage';
-import BillingContainer from 'ui/billing/BillingContainer';
 import SettingsContainer from 'ui/settings/SettingsContainer';
 import Receipt from 'ui/checkout/Receipt';
 import { Permission } from 'app/entities/permission';
@@ -16,16 +13,24 @@ import SendRegistrationComponent from 'ui/auth/SendRegistrationComponent';
 import AgreementContainer from 'ui/documents/AgreementsContainer';
 import UnsubscribeEmails from 'ui/member/UnsubscribeEmails';
 import { SignUpWorkflow } from 'pages/registration/SignUpWorkflow/SignUpWorkflow';
-import AdminRentalsPage from 'ui/admin/rentals/AdminRentalsPage';
-import ShopFeesPage from 'ui/shopFees/ShopFeesPage';
-import ToolCheckoutsPage from 'ui/toolCheckouts/ToolCheckoutsPage';
-import MemberPortalSettings from 'ui/admin/MemberPortalSettings';
-import AdminVolunteerPage from 'ui/volunteer/AdminVolunteerPage';
-import AdminAnalyticsPage from 'ui/admin/AdminAnalyticsPage';
-import AuditLogPage from 'ui/auditLog/AuditLogPage';
+
 import RentalSpotDeepLink from 'ui/rentalSpots/RentalSpotDeepLink';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
+import LoadingOverlay from 'ui/common/LoadingOverlay';
+
+const lazyRoute = <T extends React.ComponentType<any>>(factory: () => Promise<{ default: T }>) => React.lazy(factory);
+
+const RentalsList = lazyRoute(() => import(/* webpackChunkName: "member-rentals", webpackPrefetch: true */ 'ui/rentals/RentalsList'));
+const EarnedMembershipsList = lazyRoute(() => import(/* webpackChunkName: "earned-memberships", webpackPrefetch: true */ 'ui/earnedMemberships/EarnedMembershipsList'));
+const BillingContainer = lazyRoute(() => import(/* webpackChunkName: "billing", webpackPrefetch: true */ 'ui/billing/BillingContainer'));
+const AdminRentalsPage = lazyRoute(() => import(/* webpackChunkName: "admin-rentals", webpackPrefetch: true */ 'ui/admin/rentals/AdminRentalsPage'));
+const ShopFeesPage = lazyRoute(() => import(/* webpackChunkName: "admin-shop-fees", webpackPrefetch: true */ 'ui/shopFees/ShopFeesPage'));
+const ToolCheckoutsPage = lazyRoute(() => import(/* webpackChunkName: "admin-tool-checkouts", webpackPrefetch: true */ 'ui/toolCheckouts/ToolCheckoutsPage'));
+const MemberPortalSettings = lazyRoute(() => import(/* webpackChunkName: "admin-portal-settings", webpackPrefetch: true */ 'ui/admin/MemberPortalSettings'));
+const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-volunteer", webpackPrefetch: true */ 'ui/volunteer/AdminVolunteerPage'));
+const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
+const AuditLogPage = lazyRoute(() => import(/* webpackChunkName: "admin-audit-log", webpackPrefetch: true */ 'ui/auditLog/AuditLogPage'));
 
 interface Props {
   currentUserId: string;
@@ -67,6 +72,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
   }
 
   return (
+    <React.Suspense fallback={<LoadingOverlay id="body" />}>
     <Routes>
       <Route path={Routing.Members} element={<MembersList />} />
       <Route path={`${Routing.Documents}`} element={<AgreementContainer />} />
@@ -90,6 +96,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
       <Route path='*' element={<RedirectHome currentUserId={currentUserId} />} />
     </Routes>
+    </React.Suspense>
   );
 };
 
