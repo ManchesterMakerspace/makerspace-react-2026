@@ -24,6 +24,22 @@ import { useQueryContext, withQueryContext } from '../common/Filters/QueryContex
 import { useAuthState } from 'ui/reducer/hooks';
 import { useCapabilities } from 'app/permissions';
 
+interface HouseholdSummary {
+  displayName?: string;
+  display_name?: string;
+  role?: 'primary' | 'secondary';
+  primaryMemberName?: string;
+  primary_member_name?: string;
+  memberCount?: number;
+  member_count?: number;
+}
+
+interface MemberSummaryHouseholdFields extends MemberSummary {
+  groupName?: string;
+  householdRole?: 'primary' | 'secondary';
+  household?: HouseholdSummary;
+}
+
 // Columns defined individually so getFields can weave them into the correct order.
 
 const nameColumn: Column<MemberSummary> = {
@@ -97,13 +113,60 @@ const slackStatusColumn: Column<MemberSummary> = {
 const notesColumn: Column<MemberSummary> = {
   id: 'notes',
   label: 'Notes',
-  cell: (row: MemberSummary) => row.notes ? (
-    <Tooltip title={row.notes} classes={{ tooltip: 'preformatted' }}>
-      <IconButton aria-label={row.notes} size='small'>
-        <InfoOutlined fontSize='small' />
-      </IconButton>
-    </Tooltip>
-  ) : null,
+  cell: (row: MemberSummary) => {
+    const member = row as MemberSummaryHouseholdFields;
+    const household = member.household;
+    const householdRole = household?.role || member.householdRole;
+    const householdLabel = householdRole === 'primary' ? 'H' : householdRole === 'secondary' ? 'h' : '';
+    const householdName = household?.displayName || household?.display_name || member.groupName || 'Household';
+    const primaryMemberName = household?.primaryMemberName || household?.primary_member_name;
+    const memberCount = household?.memberCount || household?.member_count;
+
+    if (!row.notes && !householdLabel) return null;
+
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {row.notes && (
+          <Tooltip title={row.notes} classes={{ tooltip: 'preformatted' }}>
+            <IconButton aria-label={row.notes} size='small'>
+              <InfoOutlined fontSize='small' />
+            </IconButton>
+          </Tooltip>
+        )}
+        {householdLabel && (
+          <Tooltip
+            title={
+              <>
+                <div>{householdName}</div>
+                <div>Role: {householdRole === 'primary' ? 'Primary member' : 'Additional member'}</div>
+                {primaryMemberName && <div>Primary: {primaryMemberName}</div>}
+                {memberCount !== undefined && <div>Total members: {memberCount}</div>}
+              </>
+            }
+          >
+            <span
+              aria-label={`${householdName} household ${householdRole} member`}
+              style={{
+                alignItems: 'center',
+                backgroundColor: '#fdd835',
+                borderRadius: '50%',
+                color: '#3e2723',
+                display: 'inline-flex',
+                fontSize: 12,
+                fontWeight: 700,
+                height: 20,
+                justifyContent: 'center',
+                lineHeight: '20px',
+                width: 20,
+              }}
+            >
+              {householdLabel}
+            </span>
+          </Tooltip>
+        )}
+      </span>
+    );
+  },
 };
 
 // Column order: Name | [Portal Role] | Expiration | Status | [2FA | Email Status | Slack | Notes]

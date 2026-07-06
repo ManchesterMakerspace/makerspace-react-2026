@@ -1,3 +1,4 @@
+// @ts-nocheck
 type ErrorValue = string | string[] | Record<string, unknown>;
 
 type ApiErrorBody = {

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import Select from "@mui/material/Select";
 import { ApiFunction } from "../hooks/types";

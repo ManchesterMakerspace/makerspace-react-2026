@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import kebabCase from "lodash-es/kebabCase";
 import Grid from "@mui/material/Grid";

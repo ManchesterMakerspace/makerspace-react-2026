@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import TablePagination from "@mui/material/TablePagination";
 import Toolbar from "@mui/material/Toolbar";

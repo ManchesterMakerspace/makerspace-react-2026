@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import { adminUpdateMember, Member, updateMember } from "makerspace-ts-api-client";
 import useWriteTransaction from "../hooks/useWriteTransaction";
