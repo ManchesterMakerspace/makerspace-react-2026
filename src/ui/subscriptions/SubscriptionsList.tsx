@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Grid from "@mui/material/Grid";
 import { Link } from "react-router-dom";
 
-import { Subscription, adminListSubscriptions } from "makerspace-ts-api-client";
+import { Subscription, adminListSubscriptions, listBillingPlans, Plan } from "makerspace-ts-api-client";
 
 import { Column } from "../common/table/Table";
 import StatefulTable from "../common/table/StatefulTable";
@@ -16,17 +16,22 @@ import { withQueryContext, useQueryContext } from "../common/Filters/QueryContex
 import SubscriptionFilters, { SubscriptionFilter, subscriptionStatuses } from "./SubscriptionFilters";
 import { Routing } from "../../app/constants";
 
-const fields: Column<Subscription>[] = [
+const getFields = (planNameById: Record<string, string>): Column<Subscription>[] => [
   {
     id: "memberName",
     label: "Member",
-    cell: (row: Subscription) => 
-      <Link to={`${Routing.Members}/${row.memberId}`}>{row.memberName}</Link>,
+    cell: (row: Subscription) =>
+      row.memberId
+        ? <Link to={`${Routing.Members}/${row.memberId}`}>{row.memberName || "Unknown member"}</Link>
+        : row.memberName || "Unknown member",
   },
   {
     id: "resourceClass",
     label: "Type",
-    cell: (row: Subscription) => row.resourceClass,
+    cell: (row: Subscription) => {
+      const planId = (row as any).planId || (row as any).plan_id;
+      return row.resourceClass || planNameById[planId] || planId || "Unknown";
+    },
   }, {
     id: "amount",
     label: "Amount",
@@ -80,6 +85,12 @@ const SubscriptionsTable: React.FC = () => {
     adminListSubscriptions,
     { ...cleanParams }
   );
+  const { data: billingPlans = [] } = useReadTransaction(listBillingPlans, {}, undefined);
+
+  const planNameById = React.useMemo(() => billingPlans.reduce((acc, plan: Plan) => {
+    acc[plan.id] = plan.name;
+    return acc;
+  }, {} as Record<string, string>), [billingPlans]);
 
   const onCancel = React.useCallback(() => {
     refresh();
@@ -108,7 +119,7 @@ const SubscriptionsTable: React.FC = () => {
           totalItems={extractTotalItems(response)}
           selectedIds={selectedId}
           setSelectedIds={setSelectedId}
-          columns={fields}
+          columns={getFields(planNameById)}
           rowId={rowId}
         />
       </Grid>
