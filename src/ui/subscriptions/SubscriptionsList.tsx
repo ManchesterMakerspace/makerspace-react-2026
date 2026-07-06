@@ -30,7 +30,7 @@ const getFields = (planNameById: Record<string, string>): Column<Subscription>[]
     label: "Type",
     cell: (row: Subscription) => {
       const planId = (row as any).planId || (row as any).plan_id;
-      return row.resourceClass || planNameById[planId] || planId || "Unknown";
+      return planNameById[planId] || row.resourceClass || planId || "Unknown";
     },
   }, {
     id: "amount",
