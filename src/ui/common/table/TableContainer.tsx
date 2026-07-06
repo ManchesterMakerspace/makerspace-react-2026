@@ -8,6 +8,7 @@ import TextField from "@mui/material/TextField";
 import Table, { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { defaultItemsPerPage } from "ui/constants";
+import { getRuntimeItemsPerPage } from "ui/common/table/pagination";
 
 interface Props<T> {
   id: string;
@@ -29,7 +30,25 @@ interface Props<T> {
   onSelectAll?: () => void;
 }
 
-class TableContainer<T> extends React.Component<Props<T>, {}> {
+interface State {
+  itemsPerPage?: number;
+}
+
+class TableContainer<T> extends React.Component<Props<T>, State> {
+
+  public state: State = {};
+
+  public static getDerivedStateFromProps<T>(props: Props<T>, state: State): State {
+    return {
+      itemsPerPage: getRuntimeItemsPerPage({
+        currentItemCount: props.data?.length || 0,
+        pageNum: props.pageNum,
+        totalItems: props.totalItems,
+        previousItemsPerPage: state.itemsPerPage,
+        fallbackItemsPerPage: defaultItemsPerPage,
+      }),
+    };
+  }
 
   private onPageChange = (_event: React.ChangeEvent<EventTarget>, newPage: number) => {
     this.props.onPageChange(newPage);
@@ -62,6 +81,7 @@ class TableContainer<T> extends React.Component<Props<T>, {}> {
       error,
       onPageChange
     } = this.props;
+    const itemsPerPage = this.state.itemsPerPage || defaultItemsPerPage;
 
     return (
       <div className="table-container-wrapper" style={{width: "100%"}}>
@@ -98,10 +118,10 @@ class TableContainer<T> extends React.Component<Props<T>, {}> {
             loading={loading}
           >
           </Table>
-          {totalItems > defaultItemsPerPage && onPageChange && <TablePagination
+          {totalItems > itemsPerPage && onPageChange && <TablePagination
             component="div"
             count={totalItems || 0}
-            rowsPerPage={defaultItemsPerPage}
+            rowsPerPage={itemsPerPage}
             rowsPerPageOptions={[]}
             page={pageNum}
             backIconButtonProps={{
