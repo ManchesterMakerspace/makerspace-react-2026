@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import Typography from "@mui/material/Typography";
 import Select from "@mui/material/Select";

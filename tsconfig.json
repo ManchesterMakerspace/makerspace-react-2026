@@ -7,7 +7,6 @@
     "tmp"
   ],
   "compilerOptions": {
-    "skipLibCheck": true,
-    "types": []
+    "skipLibCheck": true
   }
 }

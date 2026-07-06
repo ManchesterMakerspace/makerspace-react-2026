@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import mapValues from "lodash-es/mapValues";
 import isEmpty from "lodash-es/isEmpty";

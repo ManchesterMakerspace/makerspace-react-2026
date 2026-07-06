@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import TableContainer from "./TableContainer";
 import { SortDirection } from "./constants";

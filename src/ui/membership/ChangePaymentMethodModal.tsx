@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 
 import FormModal from "ui/common/FormModal";

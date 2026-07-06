@@ -34,6 +34,12 @@ interface HouseholdSummary {
   member_count?: number;
 }
 
+interface MemberSummaryHouseholdFields extends MemberSummary {
+  groupName?: string;
+  householdRole?: 'primary' | 'secondary';
+  household?: HouseholdSummary;
+}
+
 // Columns defined individually so getFields can weave them into the correct order.
 
 const nameColumn: Column<MemberSummary> = {
@@ -108,10 +114,11 @@ const notesColumn: Column<MemberSummary> = {
   id: 'notes',
   label: 'Notes',
   cell: (row: MemberSummary) => {
-    const household = (row as any).household as HouseholdSummary | undefined;
-    const householdRole = household?.role;
+    const member = row as MemberSummaryHouseholdFields;
+    const household = member.household;
+    const householdRole = household?.role || member.householdRole;
     const householdLabel = householdRole === 'primary' ? 'H' : householdRole === 'secondary' ? 'h' : '';
-    const householdName = household?.displayName || household?.display_name || 'Household';
+    const householdName = household?.displayName || household?.display_name || member.groupName || 'Household';
     const primaryMemberName = household?.primaryMemberName || household?.primary_member_name;
     const memberCount = household?.memberCount || household?.member_count;
 
