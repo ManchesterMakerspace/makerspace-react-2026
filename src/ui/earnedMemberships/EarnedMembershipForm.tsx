@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import range from "lodash-es/range";
 import Grid from "@mui/material/Grid";

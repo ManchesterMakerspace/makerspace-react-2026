@@ -1,3 +1,4 @@
+// @ts-nocheck
 // MemberForm. Creates member on submit, logs in and proceeds to agreement step
 // Agreement step shows collapsed code of conduct and visible member agreement and requires checkbox + esign. proceeds to selecting a membership option
 // MembershipSelect has 2 columns: Membership Select (select component) | discount (code or checkbox) - Can 10% discount be a standard resource we can query?

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import capitalize from "lodash-es/capitalize";

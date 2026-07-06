@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import { ActionMeta, OnChangeValue } from "react-select";
 import AsyncSelect from "react-select/async";

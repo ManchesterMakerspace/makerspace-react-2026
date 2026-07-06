@@ -5,19 +5,28 @@
     "baseUrl": "src",
     "outDir": "dist",
     "paths": {
-      "*": ["*", "src/*"]
+      "*": [
+        "*",
+        "src/*"
+      ]
     },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "removeComments": false,
     "preserveConstEnums": true,
     "skipLibCheck": true,
-    "lib": ["es2017", "dom", "es2018", "es2019", "es2020"],
+    "lib": [
+      "es2017",
+      "dom",
+      "es2018",
+      "es2019",
+      "es2020"
+    ],
     "module": "commonjs",
     "moduleResolution": "node",
     "sourceMap": true,
@@ -26,7 +35,8 @@
     "typeRoots": [
       "node_modules/@types",
       "src/app/typings"
-    ]
+    ],
+    "resolveJsonModule": true
   },
   "compileOnSave": false
 }

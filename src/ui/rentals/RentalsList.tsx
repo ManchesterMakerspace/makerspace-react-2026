@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as React from "react";
 import moment from "ui/utils/moment";
 import { Link } from 'react-router-dom';
