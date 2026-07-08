@@ -4,10 +4,15 @@
       "targets": { "browsers": [">0.25%", "not dead"] },
       "useBuiltIns": false
     }],
-    "@babel/preset-typescript",
-    "@babel/preset-react"
+    "@babel/preset-typescript"
   ],
   "plugins": [
     ["@babel/plugin-transform-typescript", { "allowNamespaces": true }]
+  ],
+  "overrides": [
+    {
+      "test": ["**/*.tsx", "**/*.jsx"],
+      "presets": ["@babel/preset-react"]
+    }
   ]
 }
