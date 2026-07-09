@@ -25,6 +25,16 @@ async function assertNocrash(page: any): Promise<void> {
 }
 
 async function gotoAndCheck(page: any, url: string, expectedText: RegExp | string): Promise<void> {
+  // TEMP diagnostics — surface real browser-side errors directly in the CI
+  // log instead of only seeing "element not found" timeouts. Remove once
+  // the render failure is diagnosed.
+  page.on('console', (msg: any) => console.log(`[browser console:${msg.type()}] ${msg.text()}`));
+  page.on('pageerror', (err: any) => console.log(`[browser pageerror] ${err.message}\n${err.stack}`));
+  page.on('requestfailed', (req: any) => console.log(`[browser requestfailed] ${req.url()} — ${req.failure()?.errorText}`));
+  page.on('response', (res: any) => {
+    if (res.status() >= 400) console.log(`[browser response ${res.status()}] ${res.url()}`);
+  });
+
   await page.goto(url);
   await page.waitForLoadState('networkidle');
   await expect(page.getByText(expectedText).first()).toBeVisible({ timeout: 20_000 });
