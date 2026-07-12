@@ -73,7 +73,8 @@ module.exports = env => ({
   resolve: {
     plugins: [new TsconfigPathsPlugin()],
     alias: {
-      "moment-timezone$": "moment-timezone/moment-timezone"
+      "moment-timezone$": "moment-timezone/moment-timezone",
+      "/assets": path.resolve(__dirname, "src/assets")
     },
     extensions: [
       ".ts", ".tsx", ".js", ".jsx",
