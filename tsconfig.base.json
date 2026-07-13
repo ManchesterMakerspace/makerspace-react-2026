@@ -13,6 +13,12 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    // Explicitly false: TypeScript 6 changed the default from false to
+    // true. Preserving prior behavior here deliberately — this codebase
+    // has never been checked against strict mode (strictNullChecks
+    // especially). Adopting strict mode is a separate, planned future
+    // effort, not bundled into the TS6 version upgrade itself.
+    "strict":false,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
