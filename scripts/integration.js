@@ -1,5 +1,6 @@
 const path = require("path");
 const fs = require("fs");
+const http = require("http");
 const simpleGit = require("simple-git");
 // const exec = require("child_process").exec;
 const spawn = require("child_process").spawn;
@@ -18,6 +19,44 @@ const reactLogFile = path.join(screenshotsDir, "react.log");
 const railsRepo = {
    url: "https://github.com/ManchesterMakerspace/makerspace-rails-2026.git",
 }
+
+const waitForUrl = (url, timeoutMs = 20000, intervalMs = 500) => {
+  const deadline = Date.now() + timeoutMs;
+
+  return new Promise((resolve, reject) => {
+    const retryOrReject = (error) => {
+      if (Date.now() >= deadline) {
+        reject(error);
+        return;
+      }
+
+      setTimeout(check, intervalMs);
+    };
+
+    const check = () => {
+      const request = http.get(url, (response) => {
+        response.resume();
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          resolve();
+          return;
+        }
+
+        retryOrReject(new Error(`${url} returned HTTP ${response.statusCode}`));
+      });
+
+      request.on("error", (error) => {
+        retryOrReject(error);
+      });
+
+      request.setTimeout(intervalMs, () => {
+        request.destroy();
+      });
+    };
+
+    check();
+  });
+};
 
 
 const getBuildInfo = () => {
@@ -103,15 +142,20 @@ const integrationTest = async () => {
       console.log(`Starting test`);
       runCmd(`RAILS_DIR=${railsFolder} PORT=3035 yarn e2e`, reactLogs, endProcess);
     };
-    const startReact = () => { 
-      console.log(`Waiting on http://localhost:${port}`);
-      //const slept = execSync('sleep 10', { encoding: 'utf8', stdio: 'inherit' });
-      const waiter = execSync(`npx wait-on --timeout 20000 http://localhost:${port}`, { encoding: 'utf8', stdio: 'inherit' });
-      console.log(waiter);
-      process.chdir(reactFolder);
-      console.log(`Starting React`);
-      runCmd(`yarn start`, reactLogs);
-      setTimeout(startTest, 25 * 1000);
+    const startReact = () => {
+      const railsUrl = `http://localhost:${port}`;
+      console.log(`Waiting on ${railsUrl}`);
+      waitForUrl(railsUrl)
+        .then(() => {
+          process.chdir(reactFolder);
+          console.log(`Starting React`);
+          runCmd(`yarn start`, reactLogs);
+          setTimeout(startTest, 25 * 1000);
+        })
+        .catch((error) => {
+          console.error(`Timed out waiting on ${railsUrl}`, error);
+          endProcess(1);
+        });
     };
     const startRails = () => {
       process.chdir(railsFolder);
