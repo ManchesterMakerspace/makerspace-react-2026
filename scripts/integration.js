@@ -20,7 +20,7 @@ const railsRepo = {
    url: "https://github.com/ManchesterMakerspace/makerspace-rails-2026.git",
 }
 
-const waitForUrl = (url, timeoutMs = 20000, intervalMs = 500) => {
+const waitForUrl = (url, timeoutMs = 25000, intervalMs = 2500) => {
   const deadline = Date.now() + timeoutMs;
 
   return new Promise((resolve, reject) => {
@@ -150,7 +150,7 @@ const integrationTest = async () => {
           process.chdir(reactFolder);
           console.log(`Starting React`);
           runCmd(`yarn start`, reactLogs);
-          setTimeout(startTest, 25 * 1000);
+          setTimeout(startTest, 32 * 1000);
         })
         .catch((error) => {
           console.error(`Timed out waiting on ${railsUrl}`, error);
