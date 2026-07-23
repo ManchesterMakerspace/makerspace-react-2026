@@ -18,6 +18,7 @@ export interface Shop {
 
 export interface GoogleCalendarColor {
   id: string;
+  name: string;
   backgroundColor: string;
   foregroundColor: string;
 }

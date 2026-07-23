@@ -6,6 +6,22 @@ import TextField from "@mui/material/TextField";
 import { GoogleCalendarColor } from "app/entities/toolCheckout";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 
+const FALLBACK_COLORS: GoogleCalendarColor[] = [
+  ["Black", "#000000", "#ffffff"],
+  ["Red", "#d50000", "#ffffff"],
+  ["Blue", "#039be5", "#ffffff"],
+  ["Green", "#33b679", "#ffffff"],
+  ["Yellow", "#f6bf26", "#000000"],
+  ["Orange", "#f4511e", "#ffffff"],
+  ["Brown", "#795548", "#ffffff"],
+  ["Purple", "#8e24aa", "#ffffff"],
+  ["Gray", "#616161", "#ffffff"],
+  ["Tan", "#c0a36e", "#000000"],
+  ["Teal", "#00897b", "#ffffff"],
+].map(([name, backgroundColor, foregroundColor], index) => ({
+  id: String(index + 1), name, backgroundColor, foregroundColor
+}));
+
 const ShopColorField: React.FC<{
   value?: string;
   onChange: (colorId: string) => void;
@@ -19,11 +35,23 @@ const ShopColorField: React.FC<{
     listGoogleCalendarColors().then(result => {
       if (!active) return;
       if (result.data) {
-        const available = result.data.colors.slice(0, 24);
+        const available = result.data.colors.slice(0, 24).map((color, index) => ({
+          ...color,
+          name: color.name || `Color ${index + 1}`
+        }));
         setColors(available);
-        if (!value && available[0]) onChange(available[0].id);
+        if (available[0] && !available.some(color => color.id === value)) {
+          onChange(available[0].id);
+        }
       } else {
-        setError(result.error?.message || "Google Calendar colors could not be loaded.");
+        setColors(FALLBACK_COLORS);
+        setError(
+          `${result.error?.message || "Google Calendar colors could not be loaded."} ` +
+          "Using the fallback color palette."
+        );
+        if (!FALLBACK_COLORS.some(color => color.id === value)) {
+          onChange(FALLBACK_COLORS[0].id);
+        }
       }
       setLoading(false);
     });
@@ -53,7 +81,7 @@ const ShopColorField: React.FC<{
                       backgroundColor: color.backgroundColor,
                       border: "1px solid rgba(0,0,0,.2)"
                     }} />
-                    Google color {color.id}
+                    <strong style={{ color: color.backgroundColor }}>{color.name}</strong>
                   </span>
                 : String(selected || "Choose a color");
             }
@@ -64,15 +92,15 @@ const ShopColorField: React.FC<{
         {colors.map(color => (
           <MenuItem key={color.id} value={color.id}>
             <span style={{
-              display: "inline-flex", alignItems: "center", gap: 8,
-              color: color.foregroundColor
+              display: "inline-flex", alignItems: "center", gap: 8
             }}>
               <span aria-hidden style={{
                 width: 22, height: 22, borderRadius: 3,
                 backgroundColor: color.backgroundColor,
                 border: "1px solid rgba(0,0,0,.2)"
               }} />
-              Color {color.id} ({color.backgroundColor})
+              <strong style={{ color: color.backgroundColor }}>{color.name}</strong>
+              <span>({color.backgroundColor})</span>
             </span>
           </MenuItem>
         ))}
