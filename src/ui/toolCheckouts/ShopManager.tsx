@@ -22,10 +22,12 @@ import { withQueryContext } from "ui/common/Filters/QueryContext";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import extractTotalItems from "ui/utils/extractTotalItems";
-import { Shop } from "app/entities/toolCheckout";
+import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  listShops, adminCreateShop, adminUpdateShop, adminDeleteShop,
+  listManagedShops, listTools, adminCreateShop, adminUpdateShop, adminDeleteShop,
 } from "api/toolCheckouts";
+import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
+import { useCapabilities } from "app/permissions";
 
 const rowId = (s: Shop) => s.id;
 const normalizedName = (value: string) => value.trim().toLowerCase();
@@ -35,7 +37,7 @@ const normalizedName = (value: string) => value.trim().toLowerCase();
 interface AddShopModalProps {
   shops: Shop[];
   onClose: () => void;
-  onSave: (body: { name: string; slackChannel: string }) => void;
+  onSave: (body: Partial<Shop>) => void;
   loading: boolean;
   error: string;
 }
@@ -44,6 +46,11 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
   const [name, setName] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
   const [localError, setLocalError] = React.useState("");
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
+    reservable: false, maxConcurrentReservations: 1, reservationHorizonDays: 7,
+    maxReservationDurationHours: 8, reservationRequiresApproval: false,
+    reservationPrerequisiteToolIds: []
+  });
 
   const submit = () => {
     const trimmedName = name.trim();
@@ -55,7 +62,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, slackChannel });
+    onSave({ name: trimmedName, slackChannel, ...reservation });
   };
 
   return (
@@ -69,6 +76,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
           <TextField fullWidth required label="Shop Name" placeholder="e.g. Woodshop"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
+        <ReservationSettingsFields value={reservation} onChange={setReservation} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
             value={slackChannel} onChange={e => setSlackChannel(e.target.value)}
@@ -83,30 +91,39 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
 
 interface EditShopRowProps {
   shop: Shop;
-  onSave: (id: string, body: { name: string; slackChannel: string }) => void;
+  tools: Tool[];
+  onSave: (id: string, body: Partial<Shop>) => void;
   onCancel: () => void;
   saving: boolean;
 }
 
-const EditShopRow: React.FC<EditShopRowProps> = ({ shop, onSave, onCancel, saving }) => {
+const EditShopRow: React.FC<EditShopRowProps> = ({ shop, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(shop.name);
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>(shop);
   return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    <Grid container spacing={1} alignItems="center">
+      <Grid size={{ xs: 12, sm: 4 }}>
       <TextField size="small" value={name} onChange={e => setName(e.target.value)}
-        placeholder="Shop name" style={{ flex: 2 }} autoFocus />
+        placeholder="Shop name" fullWidth autoFocus />
+      </Grid>
+      <Grid size={{ xs: 12, sm: 4 }}>
       <TextField size="small" value={slackChannel} onChange={e => setSlackChannel(e.target.value)}
-        placeholder="slack-channel" style={{ flex: 2 }} />
+        placeholder="slack-channel" fullWidth />
+      </Grid>
+      <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
+      <Grid size={{ xs: 12 }}>
       <Tooltip title="Save"><span>
         <IconButton size="small" color="primary" disabled={saving || !name}
-          onClick={() => onSave(shop.id, { name, slackChannel })}>
+          onClick={() => onSave(shop.id, { name, slackChannel, ...reservation })}>
           <SaveIcon fontSize="small" />
         </IconButton>
       </span></Tooltip>
       <Tooltip title="Cancel">
         <IconButton size="small" onClick={onCancel}><CancelIcon fontSize="small" /></IconButton>
       </Tooltip>
-    </div>
+      </Grid>
+    </Grid>
   );
 };
 
@@ -141,7 +158,9 @@ const ShopManager: React.FC = () => {
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
   const { isRequesting, data: shops = [], response, refresh, error: loadError } =
-    useReadTransaction(listShops, {}, undefined, "shops-list");
+    useReadTransaction(listManagedShops, {}, undefined, "shops-list");
+  const { data: tools = [] } = useReadTransaction(listTools, {}, undefined, "shops-tools-list");
+  const { canManageCheckoutApprovers } = useCapabilities();
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -157,7 +176,7 @@ const ShopManager: React.FC = () => {
   const { call: updateShop, isRequesting: updating, error: updateError } = useWriteTransaction(adminUpdateShop, onSuccess);
   const { call: deleteShop, isRequesting: deleting, error: deleteError } = useWriteTransaction(adminDeleteShop, onSuccess);
 
-  const handleSave = React.useCallback((id: string, body: { name: string; slackChannel: string }) => {
+  const handleSave = React.useCallback((id: string, body: Partial<Shop>) => {
     updateShop({ id, body });
   }, [updateShop]);
 
@@ -176,7 +195,8 @@ const ShopManager: React.FC = () => {
       id: "name", label: "Shop",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Shop) => editingId === row.id
-        ? <EditShopRow shop={row} onSave={handleSave} onCancel={handleCancel} saving={updating} />
+        ? <EditShopRow shop={row} tools={(tools as Tool[]).filter(tool => tool.shopId === row.id)}
+            onSave={handleSave} onCancel={handleCancel} saving={updating} />
         : <strong>{row.name}</strong>,
     },
     {
@@ -185,6 +205,12 @@ const ShopManager: React.FC = () => {
         <span style={{ color: row.slackChannel ? "inherit" : "#aaa" }}>
           {row.slackChannel ? `#${row.slackChannel}` : "Not configured"}
         </span>
+      ),
+    },
+    {
+      id: "reservable", label: "Reservations",
+      cell: (row: Shop) => editingId === row.id ? null : (
+        <span>{row.reservable ? `${row.maxConcurrentReservations} concurrent, ${row.reservationHorizonDays} days` : "Not reservable"}</span>
       ),
     },
     {
@@ -210,16 +236,16 @@ const ShopManager: React.FC = () => {
                   onClick={() => setEditingId(selectedShop.id)}>
                   Edit
                 </Button>
-                <Button variant="outlined" color="secondary" startIcon={<DeleteIcon />}
+                {canManageCheckoutApprovers && <Button variant="outlined" color="secondary" startIcon={<DeleteIcon />}
                   onClick={() => setDeleteTarget(selectedShop)}>
                   Delete
-                </Button>
+                </Button>}
               </>
             )}
-            <Button variant="contained" color="primary" startIcon={<AddIcon />}
+            {canManageCheckoutApprovers && <Button variant="contained" color="primary" startIcon={<AddIcon />}
               onClick={() => setAddOpen(true)}>
               Add Shop
-            </Button>
+            </Button>}
           </div>
         </Grid>
       </Grid>

@@ -4,6 +4,14 @@ export interface Shop {
   slackChannel: string;
   disabled: boolean;
   toolCount: number;
+  reservable: boolean;
+  maxConcurrentReservations: number;
+  reservationHorizonDays: number;
+  maxReservationDurationHours: number;
+  reservationRequiresApproval: boolean;
+  reservationPrerequisiteToolIds: string[];
+  googleResourceId?: string;
+  resourceEmail?: string;
 }
 
 export interface Tool {
@@ -21,6 +29,16 @@ export interface Tool {
   unmetPrerequisiteIds?: string[];
   unmetPrerequisiteNames?: string[];
   requestable?: boolean;
+  reservable?: boolean;
+  maxConcurrentReservations?: number;
+  reservationHorizonDays?: number;
+  maxReservationDurationHours?: number;
+  reservationRequiresApproval?: boolean;
+  reservationPrerequisiteToolIds?: string[];
+  effectiveReservationPrerequisiteIds?: string[];
+  reservationPrerequisiteNames?: string[];
+  googleResourceId?: string;
+  resourceEmail?: string;
 }
 
 export interface ToolCheckout {
@@ -48,6 +66,8 @@ export interface CheckoutApprover {
   memberEmail: string;
   shopIds: string[];
   shopNames: string[];
+  toolIds: string[];
+  toolNames: string[];
 }
 
 export interface ToolCheckoutRequest {

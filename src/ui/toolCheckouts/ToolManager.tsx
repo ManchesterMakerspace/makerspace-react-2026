@@ -29,9 +29,10 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  listShops, listTools,
+  listManagedShops, listTools,
   adminCreateTool, adminUpdateTool, adminDeleteTool,
 } from "api/toolCheckouts";
+import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 
 const rowId = (t: Tool) => t.id;
 
@@ -89,6 +90,11 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
   const [announceChannel, setAnnounceChannel] = React.useState("");
   const [usersChannel, setUsersChannel] = React.useState("");
   const [localError, setLocalError] = React.useState("");
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
+    reservable: false, maxConcurrentReservations: 1, reservationHorizonDays: 7,
+    maxReservationDurationHours: 8, reservationRequiresApproval: false,
+    reservationPrerequisiteToolIds: []
+  });
 
   const togglePrereq = (id: string) =>
     setPrerequisiteIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
@@ -104,7 +110,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel });
+    onSave({ name: trimmedName, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -162,6 +168,11 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
             </div>
           </Grid>
         )}
+        <ReservationSettingsFields
+          value={reservation}
+          onChange={setReservation}
+          tools={availablePrereqs}
+        />
       </Grid>
     </FormModal>
   );
@@ -186,6 +197,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
   const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
   const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
   const [localError, setLocalError] = React.useState("");
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>(tool);
 
   const availablePrereqs = tools.filter(t => t.shopId === tool.shopId && t.id !== tool.id);
   const togglePrereq = (id: string) => {
@@ -217,7 +229,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     }
 
     setLocalError("");
-    onSave(tool.id, { name: trimmedName, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds });
+    onSave(tool.id, { name: trimmedName, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
   };
 
   return (
@@ -246,6 +258,16 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
           )}
         </div>
         {localError && <Typography variant="caption" color="error">{localError}</Typography>}
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <Grid container spacing={1}>
+          <ReservationSettingsFields
+            value={reservation}
+            onChange={setReservation}
+            tools={tools.filter(candidate => candidate.shopId === tool.shopId)}
+            lockedToolId={tool.id}
+          />
+        </Grid>
       </div>
       <div>
         <Tooltip title="Save"><span>
@@ -293,18 +315,21 @@ const ToolManager: React.FC = () => {
   const [shopFilter,   setShopFilter]   = React.useState<string>("");
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
-  const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-for-tools");
+  const { data: shops = [] } = useReadTransaction(listManagedShops, {}, undefined, "shops-for-tools");
   const { isRequesting, data: tools = [], response, refresh, error: loadError } =
     useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
   const { data: allTools = [], refresh: refreshAllTools } =
     useReadTransaction(listTools, {}, undefined, "tools-all-validation");
+  const manageableShopIds = new Set((shops as Shop[]).map(shop => shop.id));
+  const manageableTools = (tools as Tool[]).filter(tool => manageableShopIds.has(tool.shopId));
+  const allManageableTools = (allTools as Tool[]).filter(tool => manageableShopIds.has(tool.shopId));
 
   const refreshRef = React.useRef(refresh);
   const refreshAllToolsRef = React.useRef(refreshAllTools);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
   React.useEffect(() => { refreshAllToolsRef.current = refreshAllTools; }, [refreshAllTools]);
 
-  const selectedTool = (tools as Tool[]).find(t => t.id === selectedId);
+  const selectedTool = manageableTools.find(t => t.id === selectedId);
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
@@ -336,7 +361,7 @@ const ToolManager: React.FC = () => {
       id: "name", label: "Tool",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Tool) => editingId === row.id
-        ? <EditToolRow tool={row} tools={allTools as Tool[]} onSave={handleSave} onCancel={handleCancel} saving={updating} />
+        ? <EditToolRow tool={row} tools={allManageableTools} onSave={handleSave} onCancel={handleCancel} saving={updating} />
         : (
           <div>
             <Typography variant="body2"><strong>{row.name}</strong></Typography>
@@ -362,6 +387,7 @@ const ToolManager: React.FC = () => {
       cell: (row: Tool) => editingId === row.id ? null : (
         <span>
           {row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
+          {row.reservable ? `, reservable (${row.maxConcurrentReservations || 1} concurrent)` : ", not reservable"}
         </span>
       ),
     },
@@ -412,7 +438,7 @@ const ToolManager: React.FC = () => {
       <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
           id="tools-table" title="Tools" loading={isRequesting}
-          data={tools as Tool[]} error={loadError} columns={columns}
+          data={manageableTools} error={loadError} columns={columns}
           rowId={rowId} totalItems={extractTotalItems(response)}
           selectedIds={selectedId} setSelectedIds={handleSelectId}
           renderSearch={true}
@@ -422,7 +448,7 @@ const ToolManager: React.FC = () => {
 
       {addOpen && (
         <AddToolModal
-          shops={shops as Shop[]} tools={allTools as Tool[]}
+          shops={shops as Shop[]} tools={allManageableTools}
           onClose={() => setAddOpen(false)}
           onSave={(body) => createTool({ body })}
           loading={creating} error={createError}

@@ -24,6 +24,7 @@ export namespace Routing {
   export const RentalSpotDeepLink = `${Rentals}/spots/${PathPlaceholder.SpotId}`;
   export const ShopFees = '/shop-fees';
   export const ToolCheckouts = '/tool-checkouts';
+  export const Reservations = '/reservations';
   export const Analytics = '/admin/analytics';
   export const Volunteer = '/volunteer';
   export const SystemSettings = '/admin/system-settings';

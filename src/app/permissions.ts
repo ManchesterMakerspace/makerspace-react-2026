@@ -54,6 +54,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
   const board    = !!user?.isBoardMember;
   const rm       = !!user?.isResourceManager;
   const approver = !!(user as any)?.isCheckoutApprover;
+  const managesShops = rm && ((user as any)?.resourceManagerShopIds || []).length > 0;
 
   const privileged = admin || board;
 
@@ -75,7 +76,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
     canDeleteRentals:            privileged,
 
     canManageShopFees:           privileged || rm,
-    canManageCheckouts:          privileged || rm || approver,
+    canManageCheckouts:          privileged || managesShops || approver,
     canManageCheckoutApprovers:  privileged,
     canManageVolunteer:          privileged || rm,
     canDeleteVolunteerRecords:   privileged,

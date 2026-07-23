@@ -27,6 +27,7 @@ const BillingContainer = lazyRoute(() => import(/* webpackChunkName: "billing", 
 const AdminRentalsPage = lazyRoute(() => import(/* webpackChunkName: "admin-rentals", webpackPrefetch: true */ 'ui/admin/rentals/AdminRentalsPage'));
 const ShopFeesPage = lazyRoute(() => import(/* webpackChunkName: "admin-shop-fees", webpackPrefetch: true */ 'ui/shopFees/ShopFeesPage'));
 const ToolCheckoutsPage = lazyRoute(() => import(/* webpackChunkName: "admin-tool-checkouts", webpackPrefetch: true */ 'ui/toolCheckouts/ToolCheckoutsPage'));
+const ReservationsPage = lazyRoute(() => import(/* webpackChunkName: "member-reservations", webpackPrefetch: true */ 'ui/reservations/ReservationsPage'));
 const MemberPortalSettings = lazyRoute(() => import(/* webpackChunkName: "admin-portal-settings", webpackPrefetch: true */ 'ui/admin/MemberPortalSettings'));
 const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-volunteer", webpackPrefetch: true */ 'ui/volunteer/AdminVolunteerPage'));
 const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
@@ -84,6 +85,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canManageRentals     && <Route path={Routing.AdminRentals}    element={<AdminRentalsPage />} />}
       {caps.canManageShopFees    && <Route path={Routing.ShopFees}         element={<ShopFeesPage />} />}
       <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />
+      <Route path={Routing.Reservations} element={<ReservationsPage />} />
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}
