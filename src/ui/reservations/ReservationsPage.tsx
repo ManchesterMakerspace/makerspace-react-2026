@@ -10,15 +10,20 @@ import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Slider from "@mui/material/Slider";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import {
-  approveReservation, cancelManagedReservation, cancelReservation, createReservation, denyReservation,
+  approveReservation, cancelManagedReservation, cancelReservation, createManagedReservation,
+  createReservation, denyReservation,
   getReservationAvailability, getReservationCatalog, listManagedReservations, listReservations,
-  previewManagedReservation, previewReservation, updateManagedReservation, updateReservation
+  previewManagedReservation, previewManagedReservationCreation, previewReservation,
+  updateManagedReservation, updateReservation
 } from "api/reservations";
 import { Reservation, ReservationCatalog, ReservationInput, ReservationPreview } from "app/entities/reservation";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
+import MemberSearchInput from "ui/common/MemberSearchInput";
 
 const ZONE = "America/New_York";
 const today = () => moment.tz(ZONE).format("YYYY-MM-DD");
@@ -47,15 +52,24 @@ const ReservationsPage: React.FC = () => {
   const [managed, setManaged] = React.useState<Reservation[]>([]);
   const [editing, setEditing] = React.useState<Reservation | null>(null);
   const [editingManaged, setEditingManaged] = React.useState(false);
+  const [creatingForMember, setCreatingForMember] = React.useState(false);
+  const [targetMemberId, setTargetMemberId] = React.useState("");
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  const canCreateReservation = currentUser.status === "activeMember" &&
-    !!currentUser.expirationTime && currentUser.expirationTime > Date.now();
+  const canCreateReservation = !!currentUser.isBoardMember ||
+    (currentUser.status === "activeMember" &&
+      !!currentUser.expirationTime && currentUser.expirationTime > Date.now());
   const isManager = !!(currentUser.isAdmin || currentUser.isBoardMember ||
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
-  const selectedShop = catalog.shops.find(shop => shop.id === shopId);
+  const canUseCreateUi = canCreateReservation;
+  const managedShopIds = currentUser.resourceManagerShopIds || [];
+  const availableShops = creatingForMember && currentUser.isResourceManager &&
+    !currentUser.isAdmin && !currentUser.isBoardMember
+    ? catalog.shops.filter(shop => managedShopIds.includes(shop.id))
+    : catalog.shops;
+  const selectedShop = availableShops.find(shop => shop.id === shopId);
   const shopTools = catalog.tools.filter(tool => tool.shopId === shopId);
   const selectedTools = shopTools.filter(tool => toolIds.includes(tool.id));
   const resourceConfiguredMaximum = scope === "shop"
@@ -70,10 +84,7 @@ const ReservationsPage: React.FC = () => {
     ? Math.max(resourceConfiguredMaximum, originalDuration)
     : resourceConfiguredMaximum;
   const previewMaximum = preview?.maximumDurationHours;
-  const effectiveMaximum = Math.min(
-    configuredMaximum,
-    previewMaximum === undefined ? configuredMaximum : previewMaximum
-  );
+  const effectiveMaximum = previewMaximum === undefined ? configuredMaximum : previewMaximum;
   const sliderMaximum = Math.max(0.5, effectiveMaximum);
   const startMoment = parseStart(date, startTime);
   const validStart = startMoment.isValid();
@@ -87,7 +98,7 @@ const ReservationsPage: React.FC = () => {
 
   const loadReservations = React.useCallback(async () => {
     const [availabilityResult, mineResult] = await Promise.all([
-      canCreateReservation
+      canUseCreateUi
         ? getReservationAvailability({ date, shopId: shopId || undefined })
         : Promise.resolve({ data: [] as Reservation[] }),
       listReservations({ mine: true })
@@ -102,10 +113,10 @@ const ReservationsPage: React.FC = () => {
       const combined = [...(futureResult.data || []), ...(cancelledResult.data || [])];
       setManaged(Array.from(new Map(combined.map(item => [item.id, item])).values()));
     }
-  }, [date, shopId, isManager, canCreateReservation]);
+  }, [date, shopId, isManager, canUseCreateUi]);
 
   React.useEffect(() => {
-    if (!canCreateReservation) {
+    if (!canUseCreateUi) {
       setLoading(false);
       return;
     }
@@ -122,12 +133,21 @@ const ReservationsPage: React.FC = () => {
       }
       setLoading(false);
     });
-  }, [canCreateReservation]);
+  }, [canUseCreateUi]);
+
+  React.useEffect(() => {
+    if (!creatingForMember || availableShops.some(shop => shop.id === shopId)) return;
+    const first = availableShops[0];
+    setShopId(first?.id || "");
+    setToolIds([]);
+    setScope(first?.reservable ? "shop" : "tools");
+  }, [creatingForMember, shopId, availableShops.map(shop => shop.id).join(",")]);
 
   React.useEffect(() => { loadReservations(); }, [loadReservations]);
 
   React.useEffect(() => {
-    if (!canCreateReservation || !validStart || !shopId ||
+    if (!canUseCreateUi || !validStart || !shopId ||
+        (creatingForMember && !targetMemberId) ||
         (scope === "tools" && toolIds.length === 0)) {
       setPreview(null);
       return;
@@ -136,12 +156,14 @@ const ReservationsPage: React.FC = () => {
     const timer = window.setTimeout(async () => {
       const result = editingManaged && editing
         ? await previewManagedReservation({ id: editing.id, body: input })
+        : creatingForMember
+          ? await previewManagedReservationCreation({ memberId: targetMemberId, body: input })
         : await previewReservation({ body: input });
       setPreview(result.data || null);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [canCreateReservation, validStart, title, shopId, scope, toolIds.join(","), date,
-      startTime, durationHours, editingManaged, editing?.id]);
+  }, [canUseCreateUi, creatingForMember, targetMemberId, validStart, title, shopId, scope,
+      toolIds.join(","), date, startTime, durationHours, editingManaged, editing?.id]);
 
   React.useEffect(() => {
     if (effectiveMaximum < 0.5 && durationHours !== 0.5) {
@@ -157,6 +179,8 @@ const ReservationsPage: React.FC = () => {
   const resetForm = () => {
     setEditing(null);
     setEditingManaged(false);
+    setCreatingForMember(false);
+    setTargetMemberId("");
     setTitle("");
     setToolIds([]);
     setPreview(null);
@@ -169,7 +193,9 @@ const ReservationsPage: React.FC = () => {
       ? editingManaged
         ? await updateManagedReservation({ id: editing.id, body: input })
         : await updateReservation({ id: editing.id, body: input })
-      : await createReservation({ body: input });
+      : creatingForMember
+        ? await createManagedReservation({ memberId: targetMemberId, body: input })
+        : await createReservation({ body: input });
     setSaving(false);
     if (result.error) {
       setError(result.error.message);
@@ -228,15 +254,36 @@ const ReservationsPage: React.FC = () => {
       {error && <Grid size={{ xs: 12, lg: 10 }}><Alert severity="error" onClose={() => setError("")}>{error}</Alert></Grid>}
       {!canCreateReservation && <Grid size={{ xs: 12, lg: 10 }}>
         <Alert severity="info">
-          Your membership is inactive or expired. You may cancel existing current or future reservations,
+          Your membership is inactive or expired. You may cancel your existing reservations,
           but cannot create or edit reservations.
         </Alert>
       </Grid>}
 
-      {canCreateReservation && <><Grid size={{ xs: 12, md: 5, lg: 4 }}>
+      {canUseCreateUi && <><Grid size={{ xs: 12, md: 5, lg: 4 }}>
         <Paper style={{ padding: 20 }}>
           <Typography variant="h6">{editing ? "Edit Reservation" : "New Reservation"}</Typography>
           <Grid container spacing={2} style={{ marginTop: 4 }}>
+            {isManager && !editing && <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                control={<Checkbox checked={creatingForMember}
+                  disabled={!canCreateReservation}
+                  onChange={event => {
+                    setCreatingForMember(event.target.checked);
+                    setTargetMemberId("");
+                    setPreview(null);
+                  }} />}
+                label="Create on behalf of another member"
+              />
+              {creatingForMember && (
+                <MemberSearchInput
+                  name="reservation-target-member"
+                  placeholder="Search active members by name or email"
+                  excludeExpired
+                  excludeIds={[currentUser.id]}
+                  onChange={selection => setTargetMemberId(selection?.value || "")}
+                />
+              )}
+            </Grid>}
             <Grid size={{ xs: 12 }}>
               <TextField fullWidth required label="Title" value={title} onChange={event => setTitle(event.target.value)} />
             </Grid>
@@ -244,12 +291,12 @@ const ReservationsPage: React.FC = () => {
               <FormLabel>Shop</FormLabel>
               <Select native fullWidth value={shopId} onChange={event => {
                 const next = event.target.value as string;
-                const shop = catalog.shops.find(item => item.id === next);
+                const shop = availableShops.find(item => item.id === next);
                 setShopId(next); setToolIds([]); setScope(shop?.reservable ? "shop" : "tools");
               }}>
                 {editing && !catalog.shops.some(shop => shop.id === editing.shopId) &&
                   <option value={editing.shopId}>{editing.shopName} (existing reservation)</option>}
-                {catalog.shops.map(shop => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
+                {availableShops.map(shop => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
               </Select>
             </Grid>
             <Grid size={{ xs: 12 }}>

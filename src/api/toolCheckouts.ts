@@ -1,5 +1,7 @@
 import axios from "axios";
-import { Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest } from "app/entities/toolCheckout";
+import {
+  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
+} from "app/entities/toolCheckout";
 import { apiErrorMessage } from "ui/common/apiErrors";
 
 const getCsrfToken = () => {
@@ -39,6 +41,9 @@ export const listShops = (_params?: any) =>
 export const listManagedShops = (_params?: any) =>
   buildResponse<Shop[]>(api.get("/api/admin/shops"));
 
+export const listGoogleCalendarColors = (_params?: any) =>
+  buildResponse<{ colors: GoogleCalendarColor[] }>(api.get("/api/admin/google_calendar/colors"));
+
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
     name: body.name,
@@ -49,6 +54,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
     max_reservation_duration_hours: body.maxReservationDurationHours,
     reservation_requires_approval: body.reservationRequiresApproval,
     reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
+    color_id: body.colorId,
   }));
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
@@ -62,6 +68,7 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
     max_reservation_duration_hours: body.maxReservationDurationHours,
     reservation_requires_approval: body.reservationRequiresApproval,
     reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
+    color_id: body.colorId,
   }));
 
 export const adminDeleteShop = ({ id }: { id: string }) =>

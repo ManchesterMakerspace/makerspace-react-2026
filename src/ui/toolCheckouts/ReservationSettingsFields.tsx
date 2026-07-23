@@ -7,6 +7,7 @@ import FormLabel from "@mui/material/FormLabel";
 import Tooltip from "@mui/material/Tooltip";
 import Chip from "@mui/material/Chip";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import Typography from "@mui/material/Typography";
 import { Tool } from "app/entities/toolCheckout";
 
 export interface ReservationSettingsValue {
@@ -83,10 +84,16 @@ const ReservationSettingsFields: React.FC<{
                 <Chip key={tool.id} label={tool.id === lockedToolId ? `${tool.name} (required)` : tool.name}
                   size="small" clickable={tool.id !== lockedToolId}
                   onClick={() => toggle(tool.id)}
+                  aria-pressed={effectiveSelected.includes(tool.id)}
                   color={effectiveSelected.includes(tool.id) ? "primary" : "default"}
                   variant={effectiveSelected.includes(tool.id) ? "filled" : "outlined"} />
               ))}
             </div>
+            {tools.length === 0 && (
+              <Typography variant="caption" color="textSecondary">
+                No tools belong to this shop yet. Add tools, then edit the shop to select required checkouts.
+              </Typography>
+            )}
           </Grid>
         </>
       )}

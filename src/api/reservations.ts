@@ -63,6 +63,20 @@ export const previewReservation = ({ body: input }: { body: ReservationInput }) 
 export const createReservation = ({ body: input }: { body: ReservationInput }) =>
   wrap<Reservation>(api.post("/api/reservations", body(input)));
 
+export const previewManagedReservationCreation = ({
+  memberId, body: input
+}: { memberId: string; body: ReservationInput }) =>
+  wrap<ReservationPreview>(api.post("/api/admin/reservations/preview", {
+    ...body(input), member_id: memberId
+  }));
+
+export const createManagedReservation = ({
+  memberId, body: input
+}: { memberId: string; body: ReservationInput }) =>
+  wrap<Reservation>(api.post("/api/admin/reservations", {
+    ...body(input), member_id: memberId
+  }));
+
 export const updateReservation = ({ id, body: input }: { id: string; body: ReservationInput }) =>
   wrap<Reservation>(api.put(`/api/reservations/${id}`, body(input)));
 

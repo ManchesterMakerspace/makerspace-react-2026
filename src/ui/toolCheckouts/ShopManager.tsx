@@ -27,6 +27,7 @@ import {
   listManagedShops, listTools, adminCreateShop, adminUpdateShop, adminDeleteShop,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
+import ShopColorField from "./ShopColorField";
 import { useCapabilities } from "app/permissions";
 
 const rowId = (s: Shop) => s.id;
@@ -45,6 +46,7 @@ interface AddShopModalProps {
 const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
+  const [colorId, setColorId] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
     reservable: false, maxConcurrentReservations: 1, reservationHorizonDays: 7,
@@ -62,7 +64,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, slackChannel, ...reservation });
+    onSave({ name: trimmedName, slackChannel, colorId, ...reservation });
   };
 
   return (
@@ -75,6 +77,9 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Shop Name" placeholder="e.g. Woodshop"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
         <Grid size={{ xs: 12 }}>
@@ -100,6 +105,7 @@ interface EditShopRowProps {
 const EditShopRow: React.FC<EditShopRowProps> = ({ shop, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(shop.name);
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
+  const [colorId, setColorId] = React.useState(shop.colorId || "1");
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>(shop);
   return (
     <Grid container spacing={1} alignItems="center">
@@ -113,9 +119,12 @@ const EditShopRow: React.FC<EditShopRowProps> = ({ shop, tools, onSave, onCancel
       </Grid>
       <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
       <Grid size={{ xs: 12 }}>
+        <ShopColorField value={colorId} onChange={setColorId} />
+      </Grid>
+      <Grid size={{ xs: 12 }}>
       <Tooltip title="Save"><span>
         <IconButton size="small" color="primary" disabled={saving || !name}
-          onClick={() => onSave(shop.id, { name, slackChannel, ...reservation })}>
+          onClick={() => onSave(shop.id, { name, slackChannel, colorId, ...reservation })}>
           <SaveIcon fontSize="small" />
         </IconButton>
       </span></Tooltip>
@@ -205,6 +214,12 @@ const ShopManager: React.FC = () => {
         <span style={{ color: row.slackChannel ? "inherit" : "#aaa" }}>
           {row.slackChannel ? `#${row.slackChannel}` : "Not configured"}
         </span>
+      ),
+    },
+    {
+      id: "colorId", label: "Color",
+      cell: (row: Shop) => editingId === row.id ? null : (
+        <span>{row.colorId ? `Google color ${row.colorId}` : "Not selected"}</span>
       ),
     },
     {

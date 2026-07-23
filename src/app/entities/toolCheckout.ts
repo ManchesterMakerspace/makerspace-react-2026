@@ -10,8 +10,16 @@ export interface Shop {
   maxReservationDurationHours: number;
   reservationRequiresApproval: boolean;
   reservationPrerequisiteToolIds: string[];
+  reservationPrerequisiteNames?: string[];
+  colorId?: string;
   googleResourceId?: string;
   resourceEmail?: string;
+}
+
+export interface GoogleCalendarColor {
+  id: string;
+  backgroundColor: string;
+  foregroundColor: string;
 }
 
 export interface Tool {
