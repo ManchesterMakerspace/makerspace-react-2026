@@ -9,6 +9,7 @@ import Chip from "@mui/material/Chip";
 import Paper from "@mui/material/Paper";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
+import Slider from "@mui/material/Slider";
 import {
   approveReservation, cancelManagedReservation, cancelReservation, createReservation, denyReservation,
   getReservationAvailability, getReservationCatalog, listManagedReservations, listReservations,
@@ -21,7 +22,12 @@ import { useAuthState } from "ui/reducer/hooks";
 
 const ZONE = "America/New_York";
 const today = () => moment.tz(ZONE).format("YYYY-MM-DD");
-const asIso = (date: string, time: string) => moment.tz(`${date} ${time}`, "YYYY-MM-DD HH:mm", ZONE).toISOString();
+const parseStart = (date: string, time: string) => moment.tz(
+  `${date} ${time.trim()}`,
+  ["YYYY-MM-DD HH:mm", "YYYY-MM-DD H:mm", "YYYY-MM-DD h:mm A", "YYYY-MM-DD h A"],
+  true,
+  ZONE
+);
 const statusColor = (status: string): "default" | "primary" | "warning" | "success" | "error" =>
   status === "pending" ? "warning" : status === "approved" ? "success" : status === "denied" ? "error" : "default";
 
@@ -33,9 +39,8 @@ const ReservationsPage: React.FC = () => {
   const [toolIds, setToolIds] = React.useState<string[]>([]);
   const [title, setTitle] = React.useState("");
   const [date, setDate] = React.useState(today());
-  const [endDate, setEndDate] = React.useState(today());
   const [startTime, setStartTime] = React.useState("09:00");
-  const [endTime, setEndTime] = React.useState("10:00");
+  const [durationHours, setDurationHours] = React.useState(1);
   const [preview, setPreview] = React.useState<ReservationPreview | null>(null);
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
   const [mine, setMine] = React.useState<Reservation[]>([]);
@@ -46,29 +51,64 @@ const ReservationsPage: React.FC = () => {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
+  const canCreateReservation = currentUser.status === "activeMember" &&
+    !!currentUser.expirationTime && currentUser.expirationTime > Date.now();
   const isManager = !!(currentUser.isAdmin || currentUser.isBoardMember ||
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
   const selectedShop = catalog.shops.find(shop => shop.id === shopId);
   const shopTools = catalog.tools.filter(tool => tool.shopId === shopId);
+  const selectedTools = shopTools.filter(tool => toolIds.includes(tool.id));
+  const resourceConfiguredMaximum = scope === "shop"
+    ? Number(selectedShop?.maxReservationDurationHours || 8)
+    : selectedTools.length
+      ? Math.min(...selectedTools.map(tool => Number(tool.maxReservationDurationHours || 8)))
+      : 8;
+  const originalDuration = editing
+    ? moment(editing.endAt).diff(moment(editing.startAt), "minutes") / 60
+    : 0;
+  const configuredMaximum = editing
+    ? Math.max(resourceConfiguredMaximum, originalDuration)
+    : resourceConfiguredMaximum;
+  const previewMaximum = preview?.maximumDurationHours;
+  const effectiveMaximum = Math.min(
+    configuredMaximum,
+    previewMaximum === undefined ? configuredMaximum : previewMaximum
+  );
+  const sliderMaximum = Math.max(0.5, effectiveMaximum);
+  const startMoment = parseStart(date, startTime);
+  const validStart = startMoment.isValid();
+  const endMoment = validStart ? startMoment.clone().add(durationHours, "hours") : null;
+  const usesMeridiem = /\b(am|pm)\b/i.test(startTime);
   const input: ReservationInput = {
     title, shopId, reservationScope: scope, toolIds,
-    startAt: asIso(date, startTime), endAt: asIso(endDate, endTime)
+    startAt: validStart ? startMoment.toISOString() : "",
+    endAt: endMoment ? endMoment.toISOString() : ""
   };
 
   const loadReservations = React.useCallback(async () => {
-    const [result, mineResult] = await Promise.all([
-      getReservationAvailability({ date, shopId: shopId || undefined }),
+    const [availabilityResult, mineResult] = await Promise.all([
+      canCreateReservation
+        ? getReservationAvailability({ date, shopId: shopId || undefined })
+        : Promise.resolve({ data: [] as Reservation[] }),
       listReservations({ mine: true })
     ]);
-    if (result.data) setReservations(result.data);
+    if (availabilityResult.data) setReservations(availabilityResult.data);
     if (mineResult.data) setMine(mineResult.data);
     if (isManager) {
-      const managerResult = await listManagedReservations({ future: true });
-      if (managerResult.data) setManaged(managerResult.data);
+      const [futureResult, cancelledResult] = await Promise.all([
+        listManagedReservations({ future: true }),
+        listManagedReservations({ status: "cancelled" })
+      ]);
+      const combined = [...(futureResult.data || []), ...(cancelledResult.data || [])];
+      setManaged(Array.from(new Map(combined.map(item => [item.id, item])).values()));
     }
-  }, [date, shopId, isManager]);
+  }, [date, shopId, isManager, canCreateReservation]);
 
   React.useEffect(() => {
+    if (!canCreateReservation) {
+      setLoading(false);
+      return;
+    }
     getReservationCatalog().then(result => {
       if (result.data) {
         setCatalog(result.data);
@@ -82,15 +122,17 @@ const ReservationsPage: React.FC = () => {
       }
       setLoading(false);
     });
-  }, []);
+  }, [canCreateReservation]);
 
   React.useEffect(() => { loadReservations(); }, [loadReservations]);
 
   React.useEffect(() => {
-    if (!title.trim() || !shopId || (scope === "tools" && toolIds.length === 0)) {
+    if (!canCreateReservation || !validStart || !shopId ||
+        (scope === "tools" && toolIds.length === 0)) {
       setPreview(null);
       return;
     }
+    setPreview(null);
     const timer = window.setTimeout(async () => {
       const result = editingManaged && editing
         ? await previewManagedReservation({ id: editing.id, body: input })
@@ -98,7 +140,16 @@ const ReservationsPage: React.FC = () => {
       setPreview(result.data || null);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [title, shopId, scope, toolIds.join(","), date, endDate, startTime, endTime, editingManaged, editing?.id]);
+  }, [canCreateReservation, validStart, title, shopId, scope, toolIds.join(","), date,
+      startTime, durationHours, editingManaged, editing?.id]);
+
+  React.useEffect(() => {
+    if (effectiveMaximum < 0.5 && durationHours !== 0.5) {
+      setDurationHours(0.5);
+    } else if (effectiveMaximum >= 0.5 && durationHours > effectiveMaximum) {
+      setDurationHours(Math.floor(effectiveMaximum * 2) / 2);
+    }
+  }, [effectiveMaximum, durationHours]);
 
   const toggleTool = (id: string) =>
     setToolIds(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]);
@@ -136,9 +187,8 @@ const ReservationsPage: React.FC = () => {
     setScope(reservation.reservationScope);
     setToolIds(reservation.toolIds || []);
     setDate(moment(reservation.startAt).tz(ZONE).format("YYYY-MM-DD"));
-    setEndDate(moment(reservation.endAt).tz(ZONE).format("YYYY-MM-DD"));
     setStartTime(moment(reservation.startAt).tz(ZONE).format("HH:mm"));
-    setEndTime(moment(reservation.endAt).tz(ZONE).format("HH:mm"));
+    setDurationHours(moment(reservation.endAt).diff(moment(reservation.startAt), "minutes") / 60);
   };
 
   const cancel = async (id: string) => {
@@ -163,6 +213,7 @@ const ReservationsPage: React.FC = () => {
     ["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()));
   const reservationHistory = mine.filter(item => !upcomingReservations.includes(item)).reverse();
   const pendingManaged = managed.filter(item => item.status === "pending");
+  const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
   const slots = Array.from({ length: 48 }, (_, index) => moment.tz(date, ZONE).startOf("day").add(index * 30, "minutes"));
 
@@ -175,8 +226,14 @@ const ReservationsPage: React.FC = () => {
         <Typography color="textSecondary">Reserve a shop or checked-out tools in 30-minute increments.</Typography>
       </Grid>
       {error && <Grid size={{ xs: 12, lg: 10 }}><Alert severity="error" onClose={() => setError("")}>{error}</Alert></Grid>}
+      {!canCreateReservation && <Grid size={{ xs: 12, lg: 10 }}>
+        <Alert severity="info">
+          Your membership is inactive or expired. You may cancel existing current or future reservations,
+          but cannot create or edit reservations.
+        </Alert>
+      </Grid>}
 
-      <Grid size={{ xs: 12, md: 5, lg: 4 }}>
+      {canCreateReservation && <><Grid size={{ xs: 12, md: 5, lg: 4 }}>
         <Paper style={{ padding: 20 }}>
           <Typography variant="h6">{editing ? "Edit Reservation" : "New Reservation"}</Typography>
           <Grid container spacing={2} style={{ marginTop: 4 }}>
@@ -219,23 +276,45 @@ const ReservationsPage: React.FC = () => {
               </div>
             </Grid>}
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth type="date" label="Start date" value={date} onChange={event => {
-                setDate(event.target.value);
-                if (endDate < event.target.value) setEndDate(event.target.value);
-              }}
+              <TextField fullWidth type="date" label="Start date" value={date}
+                onChange={event => setDate(event.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }} />
             </Grid>
             <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField fullWidth type="date" label="End date" value={endDate} onChange={event => setEndDate(event.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }} />
+              <TextField fullWidth label="Start time" value={startTime}
+                onChange={event => setStartTime(event.target.value)}
+                placeholder="09:00"
+                error={!!startTime && !validStart}
+                helperText={validStart ? "24-hour time (00:00–23:30), or enter AM/PM explicitly" : "Enter HH:mm, such as 18:30, or 6:30 PM"} />
             </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField fullWidth type="time" label="Start" value={startTime} onChange={event => setStartTime(event.target.value)}
-                slotProps={{ htmlInput: { step: 1800 }, inputLabel: { shrink: true } }} />
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <TextField fullWidth type="number" label="Duration (hours)" value={durationHours}
+                disabled={effectiveMaximum < 0.5}
+                onChange={event => {
+                  const value = Number(event.target.value);
+                  if (!Number.isFinite(value)) return;
+                  const rounded = Math.round(value * 2) / 2;
+                  setDurationHours(Math.max(0.5, Math.min(sliderMaximum, rounded)));
+                }}
+                slotProps={{ htmlInput: { min: 0.5, max: sliderMaximum, step: 0.5 } }} />
             </Grid>
-            <Grid size={{ xs: 6 }}>
-              <TextField fullWidth type="time" label="End" value={endTime} onChange={event => setEndTime(event.target.value)}
-                slotProps={{ htmlInput: { step: 1800 }, inputLabel: { shrink: true } }} />
+            <Grid size={{ xs: 12, sm: 8 }} style={{ paddingLeft: 12, paddingRight: 12 }}>
+              <Typography variant="caption">Duration: {durationHours} hour{durationHours === 1 ? "" : "s"}</Typography>
+              <Slider min={0.5} max={sliderMaximum} step={0.5} value={Math.min(durationHours, sliderMaximum)}
+                disabled={effectiveMaximum < 0.5}
+                valueLabelDisplay="auto"
+                marks={sliderMaximum <= 12}
+                onChange={(_, value) => setDurationHours(value as number)} />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <Alert severity={effectiveMaximum < 0.5 ? "warning" : "info"}>
+                {endMoment
+                  ? `Computed end: ${endMoment.format(usesMeridiem ? "MMM D, YYYY h:mm A" : "MMM D, YYYY HH:mm")}`
+                  : "Enter a valid start date and time."}
+                {effectiveMaximum < 0.5
+                  ? " No 30-minute reservation fits within the current availability and membership limits."
+                  : ` Maximum available duration: ${effectiveMaximum} hour${effectiveMaximum === 1 ? "" : "s"}.`}
+              </Alert>
             </Grid>
             {preview && <Grid size={{ xs: 12 }}>
               {preview.requiresApproval && <Alert severity="warning">This reservation will require approval.</Alert>}
@@ -265,14 +344,14 @@ const ReservationsPage: React.FC = () => {
               moment(item.endAt).isAfter(slot));
             return <div key={slot.toISOString()} style={{ display: "grid", gridTemplateColumns: "75px 1fr",
               minHeight: 38, borderTop: "1px solid #eee", padding: "5px 0" }}>
-              <Typography variant="caption">{slot.format("h:mm A")}</Typography>
+              <Typography variant="caption">{slot.format("HH:mm")}</Typography>
               <div>{active.map(item => <Chip key={item.id}
-                label={`${item.title} — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("h:mm A")}–${moment(item.endAt).tz(ZONE).format("h:mm A")} · ${item.status}`}
+                label={`${item.title} — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("HH:mm")}–${moment(item.endAt).tz(ZONE).format("HH:mm")} · ${item.status}`}
                 color={statusColor(item.status)} size="small" style={{ margin: 2 }} />)}</div>
             </div>;
           })}
         </Paper>
-      </Grid>
+      </Grid></>}
 
       <Grid size={{ xs: 12, lg: 10 }}>
         <Typography variant="h6">My Reservations</Typography>
@@ -283,11 +362,11 @@ const ReservationsPage: React.FC = () => {
             <Grid size={{ xs: 12, sm: 7 }}>
               <strong>{item.title}</strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
-              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, h:mm A")}–{moment(item.endAt).tz(ZONE).format("h:mm A")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
+              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               {["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()) && <>
-                <Button size="small" onClick={() => edit(item)}>Edit</Button>
+                {canCreateReservation && <Button size="small" onClick={() => edit(item)}>Edit</Button>}
                 <Button size="small" color="secondary" onClick={() => cancel(item.id)}>Cancel</Button>
               </>}
             </Grid>
@@ -299,35 +378,49 @@ const ReservationsPage: React.FC = () => {
           <strong>{item.title}</strong>{" "}
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
-            {moment(item.startAt).tz(ZONE).format("MMM D, YYYY h:mm A")}–
-            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY h:mm A")} · {item.toolNames?.join(", ") || item.shopName}
+            {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
           </Typography>
         </Paper>)}
       </Grid>
 
       {isManager && <Grid size={{ xs: 12, lg: 10 }}>
-        <Typography variant="h6">Pending Approval</Typography>
-        {pendingManaged.length === 0 && <Typography color="textSecondary">No pending reservations in your managed shops.</Typography>}
-        {pendingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
-          <Grid container alignItems="center">
-            <Grid size={{ xs: 12, sm: 8 }}>
-              <strong>{item.title}</strong> — {item.memberName}
-              <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, h:mm A")}–{moment(item.endAt).tz(ZONE).format("h:mm A")}</Typography>
+        {canCreateReservation && <>
+          <Typography variant="h6">Pending Approval</Typography>
+          {pendingManaged.length === 0 && <Typography color="textSecondary">No pending reservations in your managed shops.</Typography>}
+          {pendingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+            <Grid container alignItems="center">
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <strong>{item.title}</strong> — {item.memberName}
+                <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")}</Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <Button size="small" color="primary" onClick={() => decide(item.id, true)}>Approve</Button>
+                <Button size="small" color="secondary" onClick={() => decide(item.id, false)}>Deny</Button>
+                <Button size="small" onClick={() => edit(item, true)}>Edit</Button>
+                <Button size="small" onClick={() => managerCancel(item.id)}>Cancel</Button>
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <Button size="small" color="primary" onClick={() => decide(item.id, true)}>Approve</Button>
-              <Button size="small" color="secondary" onClick={() => decide(item.id, false)}>Deny</Button>
-              <Button size="small" onClick={() => edit(item, true)}>Edit</Button>
-              <Button size="small" onClick={() => managerCancel(item.id)}>Cancel</Button>
-            </Grid>
-          </Grid>
-        </Paper>)}
-        {failedManaged.length > 0 && <>
-          <Typography variant="h6" style={{ marginTop: 18 }}>Calendar Sync Warnings</Typography>
-          {failedManaged.map(item => <Alert key={item.id} severity="warning" style={{ marginTop: 8 }}>
-            <strong>{item.title}</strong>: {item.calendarSyncError || "Calendar synchronization failed."}
-          </Alert>)}
+          </Paper>)}
+          {failedManaged.length > 0 && <>
+            <Typography variant="h6" style={{ marginTop: 18 }}>Calendar Sync Warnings</Typography>
+            {failedManaged.map(item => <Alert key={item.id} severity="warning" style={{ marginTop: 8 }}>
+              <strong>{item.title}</strong>: {item.calendarSyncError || "Calendar synchronization failed."}
+            </Alert>)}
+          </>}
         </>}
+        <Typography variant="h6" style={{ marginTop: 18 }}>Cancelled in Managed Shops</Typography>
+        {cancelledManaged.length === 0 &&
+          <Typography color="textSecondary">No cancelled reservations in your managed shops.</Typography>}
+        {cancelledManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+          <strong>{item.title}</strong> — {item.memberName}{" "}
+          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Typography variant="body2">
+            {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}
+            {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")}
+          </Typography>
+        </Paper>)}
       </Grid>}
     </Grid>
   );

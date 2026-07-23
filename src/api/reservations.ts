@@ -1,6 +1,7 @@
 import axios from "axios";
 import {
-  Reservation, ReservationCatalog, ReservationInput, ReservationPreview
+  Reservation, ReservationCatalog, ReservationInput, ReservationPreview,
+  SubscriptionCancellationImpact
 } from "app/entities/reservation";
 import { apiErrorMessage } from "ui/common/apiErrors";
 
@@ -93,3 +94,8 @@ export const denyReservation = ({ id, body: value }: { id: string; body?: { deci
 
 export const cancelManagedReservation = ({ id }: { id: string }) =>
   wrap<Reservation>(api.delete(`/api/admin/reservations/${id}`));
+
+export const getSubscriptionCancellationImpact = ({ id, admin = false }: { id: string; admin?: boolean }) =>
+  wrap<SubscriptionCancellationImpact>(
+    api.get(`/api/${admin ? "admin/" : ""}billing/subscriptions/${id}/cancellation_impact`)
+  );

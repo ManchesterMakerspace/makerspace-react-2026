@@ -1,6 +1,6 @@
 import { Shop, Tool } from "./toolCheckout";
 
-export type ReservationStatus = "pending" | "approved" | "denied" | "canceled";
+export type ReservationStatus = "pending" | "approved" | "denied" | "cancelled";
 export type ReservationScope = "shop" | "tools";
 
 export interface Reservation {
@@ -50,4 +50,16 @@ export interface ReservationPreview {
   missingPrerequisites: Array<{ id: string; name: string }>;
   requiresApproval: boolean;
   approvalReasons: string[];
+  maximumDurationHours: number;
+}
+
+export interface SubscriptionCancellationImpact {
+  reservationCount: number;
+  membershipExpiresAt?: string;
+  reservations: Array<{
+    id: string;
+    title: string;
+    startAt: string;
+    endAt: string;
+  }>;
 }
