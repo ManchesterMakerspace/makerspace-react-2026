@@ -9,6 +9,7 @@ import Chip from "@mui/material/Chip";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Typography from "@mui/material/Typography";
 import { Tool } from "app/entities/toolCheckout";
+import { togglePrerequisiteToolId } from "./reservationPrerequisites";
 
 export interface ReservationSettingsValue {
   reservable?: boolean;
@@ -31,12 +32,11 @@ const ReservationSettingsFields: React.FC<{
 }> = ({ value, onChange, tools = [], lockedToolId }) => {
   const set = (field: keyof ReservationSettingsValue, next: any) =>
     onChange({ ...value, [field]: next });
-  const selected = Array(value.reservationPrerequisiteToolIds || []);
+  const selected = Array.from(value.reservationPrerequisiteToolIds || []);
   const effectiveSelected = lockedToolId ? Array.from(new Set([...selected, lockedToolId])) : selected;
   const toggle = (id: string) => {
     if (id === lockedToolId) return;
-    set("reservationPrerequisiteToolIds",
-      selected.includes(id) ? selected.filter(value => value !== id) : [...selected, id]);
+    set("reservationPrerequisiteToolIds", togglePrerequisiteToolId(selected, id));
   };
 
   return (

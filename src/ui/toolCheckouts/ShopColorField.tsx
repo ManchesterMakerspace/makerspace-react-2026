@@ -8,16 +8,16 @@ import { listGoogleCalendarColors } from "api/toolCheckouts";
 
 const FALLBACK_COLORS: GoogleCalendarColor[] = [
   ["Black", "#000000", "#ffffff"],
-  ["Red", "#d50000", "#ffffff"],
-  ["Blue", "#039be5", "#ffffff"],
-  ["Green", "#33b679", "#ffffff"],
-  ["Yellow", "#f6bf26", "#000000"],
-  ["Orange", "#f4511e", "#ffffff"],
-  ["Brown", "#795548", "#ffffff"],
-  ["Purple", "#8e24aa", "#ffffff"],
-  ["Gray", "#616161", "#ffffff"],
-  ["Tan", "#c0a36e", "#000000"],
-  ["Teal", "#00897b", "#ffffff"],
+  ["Red", "#ff0000", "#ffffff"],
+  ["Blue", "#0000ff", "#ffffff"],
+  ["Green", "#008000", "#ffffff"],
+  ["Yellow", "#ffff00", "#000000"],
+  ["Orange", "#ffa500", "#000000"],
+  ["Brown", "#a52a2a", "#ffffff"],
+  ["Purple", "#800080", "#ffffff"],
+  ["Gray", "#808080", "#ffffff"],
+  ["Tan", "#d2b48c", "#000000"],
+  ["Teal", "#008080", "#ffffff"],
 ].map(([name, backgroundColor, foregroundColor], index) => ({
   id: String(index + 1), name, backgroundColor, foregroundColor
 }));
