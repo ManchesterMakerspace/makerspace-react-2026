@@ -414,6 +414,11 @@ const ReservationsPage: React.FC = () => {
               </Button>
               {editing && <Button onClick={() => resetForm()}>Cancel Edit</Button>}
             </Grid>
+            {success && !editing && <Grid size={{ xs: 12 }}>
+              <Alert severity="success" onClose={() => setSuccess("")}>
+                {success}
+              </Alert>
+            </Grid>}
           </Grid>
         </Paper>
       </Grid>
