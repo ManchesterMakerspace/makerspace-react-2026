@@ -217,12 +217,6 @@ const ShopManager: React.FC = () => {
       ),
     },
     {
-      id: "colorId", label: "Color",
-      cell: (row: Shop) => (
-        <span>{row.colorId ? `Google color ${row.colorId}` : "Not selected"}</span>
-      ),
-    },
-    {
       id: "reservable", label: "Reservations",
       cell: (row: Shop) => (
         <span>{row.reservable ? `${row.maxConcurrentReservations} concurrent, ${row.reservationHorizonDays} days` : "Not reservable"}</span>

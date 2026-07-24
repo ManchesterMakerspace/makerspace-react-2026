@@ -58,6 +58,7 @@ const ReservationsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
 
   const canCreateReservation = !!currentUser.isBoardMember ||
     (currentUser.status === "activeMember" &&
@@ -147,7 +148,7 @@ const ReservationsPage: React.FC = () => {
   React.useEffect(() => { loadReservations(); }, [loadReservations]);
 
   React.useEffect(() => {
-    if (!canUseCreateUi || !validStart || !shopId ||
+    if (!canUseCreateUi || !validStart || !title.trim() || !shopId ||
         (creatingForMember && !targetMemberId) ||
         (scope === "tools" && toolIds.length === 0)) {
       setPreview(null);
@@ -179,20 +180,28 @@ const ReservationsPage: React.FC = () => {
 
   const resetForm = () => {
     const nextStart = nextWholeHour();
+    const firstShop = catalog.shops[0];
     setEditing(null);
     setEditingManaged(false);
     setCreatingForMember(false);
     setTargetMemberId("");
     setTitle("");
+    setShopId(firstShop?.id || "");
+    setScope(firstShop?.reservable ? "shop" : "tools");
     setToolIds([]);
     setDate(nextStart.format("YYYY-MM-DD"));
     setStartTime(nextStart.format("HH:mm"));
+    setDurationHours(1);
     setPreview(null);
+    setError("");
+    setSuccess("");
   };
 
   const submit = async () => {
+    const creating = !editing;
     setSaving(true);
     setError("");
+    setSuccess("");
     const result = editing
       ? editingManaged
         ? await updateManagedReservation({ id: editing.id, body: input })
@@ -202,14 +211,28 @@ const ReservationsPage: React.FC = () => {
         : await createReservation({ body: input });
     setSaving(false);
     if (result.error) {
-      setError(result.error.message);
+      setError(
+        result.error.message ||
+        result.response?.data?.message ||
+        "The reservation could not be saved."
+      );
       return;
     }
+
+    const savedReservation = result.data;
     resetForm();
+    setSuccess(
+      creating
+        ? `Reservation "${savedReservation?.title || input.title}" was created successfully` +
+          `${savedReservation?.status ? ` with status ${savedReservation.status}` : ""}.`
+        : `Reservation "${savedReservation?.title || input.title}" was updated successfully.`
+    );
     await loadReservations();
   };
 
   const edit = (reservation: Reservation, managedEdit = false) => {
+    setError("");
+    setSuccess("");
     setEditing(reservation);
     setEditingManaged(managedEdit);
     setTitle(reservation.title);
@@ -222,18 +245,24 @@ const ReservationsPage: React.FC = () => {
   };
 
   const cancel = async (id: string) => {
+    setError("");
+    setSuccess("");
     const result = await cancelReservation({ id });
     if (result.error) setError(result.error.message);
     else await loadReservations();
   };
 
   const decide = async (id: string, approve: boolean) => {
+    setError("");
+    setSuccess("");
     const result = approve ? await approveReservation({ id }) : await denyReservation({ id });
     if (result.error) setError(result.error.message);
     else await loadReservations();
   };
 
   const managerCancel = async (id: string) => {
+    setError("");
+    setSuccess("");
     const result = await cancelManagedReservation({ id });
     if (result.error) setError(result.error.message);
     else await loadReservations();
@@ -256,6 +285,9 @@ const ReservationsPage: React.FC = () => {
         <Typography color="textSecondary">Reserve a shop or checked-out tools in 30-minute increments.</Typography>
       </Grid>
       {error && <Grid size={{ xs: 12, lg: 10 }}><Alert severity="error" onClose={() => setError("")}>{error}</Alert></Grid>}
+      {success && <Grid size={{ xs: 12, lg: 10 }}>
+        <Alert severity="success" onClose={() => setSuccess("")}>{success}</Alert>
+      </Grid>}
       {!canCreateReservation && <Grid size={{ xs: 12, lg: 10 }}>
         <Alert severity="info">
           Your membership is inactive or expired. You may cancel your existing reservations,
@@ -380,7 +412,7 @@ const ReservationsPage: React.FC = () => {
               <Button variant="contained" disabled={saving || !preview?.eligible} onClick={submit}>
                 {saving ? "Saving…" : editing ? "Save Changes" : "Reserve"}
               </Button>
-              {editing && <Button onClick={resetForm}>Cancel Edit</Button>}
+              {editing && <Button onClick={() => resetForm()}>Cancel Edit</Button>}
             </Grid>
           </Grid>
         </Paper>
