@@ -32,10 +32,10 @@ const ShopColorField: React.FC<{
 
   React.useEffect(() => {
     let active = true;
-    listGoogleCalendarColors().then(result => {
+    listGoogleCalendarColors({ colorId: value || undefined }).then(result => {
       if (!active) return;
       if (result.data) {
-        const available = result.data.colors.slice(0, 24).map((color, index) => ({
+        const available = result.data.colors.map((color, index) => ({
           ...color,
           name: color.name || `Color ${index + 1}`
         }));
@@ -68,7 +68,7 @@ const ShopColorField: React.FC<{
         onChange={event => onChange(event.target.value)}
         disabled={loading}
         helperText={loading
-          ? "Loading the first 24 Google Calendar colors…"
+          ? "Loading curated Google Calendar colors…"
           : "Used for the shop label and all shop/tool reservation events."}
         slotProps={{
           select: {

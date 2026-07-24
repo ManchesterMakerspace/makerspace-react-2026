@@ -41,8 +41,11 @@ export const listShops = (_params?: any) =>
 export const listManagedShops = (_params?: any) =>
   buildResponse<Shop[]>(api.get("/api/admin/shops"));
 
-export const listGoogleCalendarColors = (_params?: any) =>
-  buildResponse<{ colors: GoogleCalendarColor[] }>(api.get("/api/admin/google_calendar/colors"));
+export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
+  buildResponse<{ colors: GoogleCalendarColor[] }>(api.get(
+    "/api/admin/google_calendar/colors",
+    { params: params?.colorId ? { color_id: params.colorId } : {} }
+  ));
 
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {

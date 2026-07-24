@@ -83,7 +83,11 @@ const ReservationSettingsFields: React.FC<{
               {tools.map(tool => (
                 <Chip key={tool.id} label={tool.id === lockedToolId ? `${tool.name} (required)` : tool.name}
                   size="small" clickable={tool.id !== lockedToolId}
-                  onClick={() => toggle(tool.id)}
+                  onMouseDown={event => event.stopPropagation()}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggle(tool.id);
+                  }}
                   aria-pressed={effectiveSelected.includes(tool.id)}
                   color={effectiveSelected.includes(tool.id) ? "primary" : "default"}
                   variant={effectiveSelected.includes(tool.id) ? "filled" : "outlined"} />

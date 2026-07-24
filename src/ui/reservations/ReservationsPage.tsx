@@ -26,7 +26,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 
 const ZONE = "America/New_York";
-const today = () => moment.tz(ZONE).format("YYYY-MM-DD");
+const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
 const parseStart = (date: string, time: string) => moment.tz(
   `${date} ${time.trim()}`,
   ["YYYY-MM-DD HH:mm", "YYYY-MM-DD H:mm", "YYYY-MM-DD h:mm A", "YYYY-MM-DD h A"],
@@ -38,13 +38,14 @@ const statusColor = (status: string): "default" | "primary" | "warning" | "succe
 
 const ReservationsPage: React.FC = () => {
   const { currentUser } = useAuthState();
+  const initialStart = React.useMemo(nextWholeHour, []);
   const [catalog, setCatalog] = React.useState<ReservationCatalog>({ shops: [], tools: [] });
   const [shopId, setShopId] = React.useState("");
   const [scope, setScope] = React.useState<"shop" | "tools">("tools");
   const [toolIds, setToolIds] = React.useState<string[]>([]);
   const [title, setTitle] = React.useState("");
-  const [date, setDate] = React.useState(today());
-  const [startTime, setStartTime] = React.useState("09:00");
+  const [date, setDate] = React.useState(initialStart.format("YYYY-MM-DD"));
+  const [startTime, setStartTime] = React.useState(initialStart.format("HH:mm"));
   const [durationHours, setDurationHours] = React.useState(1);
   const [preview, setPreview] = React.useState<ReservationPreview | null>(null);
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
@@ -177,12 +178,15 @@ const ReservationsPage: React.FC = () => {
     setToolIds(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]);
 
   const resetForm = () => {
+    const nextStart = nextWholeHour();
     setEditing(null);
     setEditingManaged(false);
     setCreatingForMember(false);
     setTargetMemberId("");
     setTitle("");
     setToolIds([]);
+    setDate(nextStart.format("YYYY-MM-DD"));
+    setStartTime(nextStart.format("HH:mm"));
     setPreview(null);
   };
 
