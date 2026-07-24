@@ -111,7 +111,11 @@ const CancelSubscriptionModal: React.FC<Props> = ({ subscription, onSuccess }) =
               <ul>
                 {impact.reservations.map(reservation => (
                   <li key={reservation.id}>
-                    {reservation.title} — ends {new Date(reservation.endAt).toLocaleString(undefined, {
+                    {reservation.calendarHtmlLink
+                      ? <a href={reservation.calendarHtmlLink} target="_blank" rel="noopener noreferrer">
+                          {reservation.title}
+                        </a>
+                      : reservation.title} — ends {new Date(reservation.endAt).toLocaleString(undefined, {
                       hour12: false,
                       timeZone: "America/New_York"
                     })}

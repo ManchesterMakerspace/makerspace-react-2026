@@ -36,6 +36,14 @@ const parseStart = (date: string, time: string) => moment.tz(
 const statusColor = (status: string): "default" | "primary" | "warning" | "success" | "error" =>
   status === "pending" ? "warning" : status === "approved" ? "success" : status === "denied" ? "error" : "default";
 
+const ReservationTitle: React.FC<{ reservation: Reservation }> = ({ reservation }) => (
+  reservation.calendarHtmlLink
+    ? <a href={reservation.calendarHtmlLink} target="_blank" rel="noopener noreferrer">
+        {reservation.title}
+      </a>
+    : <>{reservation.title}</>
+);
+
 const ReservationsPage: React.FC = () => {
   const { currentUser } = useAuthState();
   const initialStart = React.useMemo(nextWholeHour, []);
@@ -434,7 +442,10 @@ const ReservationsPage: React.FC = () => {
               minHeight: 38, borderTop: "1px solid #eee", padding: "5px 0" }}>
               <Typography variant="caption">{slot.format("HH:mm")}</Typography>
               <div>{active.map(item => <Chip key={item.id}
-                label={`${item.title} — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("HH:mm")}–${moment(item.endAt).tz(ZONE).format("HH:mm")} · ${item.status}`}
+                label={<>
+                  <ReservationTitle reservation={item} />
+                  {` — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("HH:mm")}–${moment(item.endAt).tz(ZONE).format("HH:mm")} · ${item.status}`}
+                </>}
                 color={statusColor(item.status)} size="small" style={{ margin: 2 }} />)}</div>
             </div>;
           })}
@@ -448,7 +459,7 @@ const ReservationsPage: React.FC = () => {
         {upcomingReservations.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <Grid container alignItems="center" spacing={1}>
             <Grid size={{ xs: 12, sm: 7 }}>
-              <strong>{item.title}</strong>{" "}
+              <strong><ReservationTitle reservation={item} /></strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
               <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
             </Grid>
@@ -463,7 +474,7 @@ const ReservationsPage: React.FC = () => {
         <Typography variant="subtitle2" style={{ marginTop: 16 }}>History</Typography>
         {reservationHistory.length === 0 && <Typography color="textSecondary">No reservation history.</Typography>}
         {reservationHistory.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
-          <strong>{item.title}</strong>{" "}
+          <strong><ReservationTitle reservation={item} /></strong>{" "}
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
@@ -479,7 +490,7 @@ const ReservationsPage: React.FC = () => {
           {pendingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
-                <strong>{item.title}</strong> — {item.memberName}
+                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
                 <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")}</Typography>
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -493,7 +504,7 @@ const ReservationsPage: React.FC = () => {
           {failedManaged.length > 0 && <>
             <Typography variant="h6" style={{ marginTop: 18 }}>Calendar Sync Warnings</Typography>
             {failedManaged.map(item => <Alert key={item.id} severity="warning" style={{ marginTop: 8 }}>
-              <strong>{item.title}</strong>: {item.calendarSyncError || "Calendar synchronization failed."}
+              <strong><ReservationTitle reservation={item} /></strong>: {item.calendarSyncError || "Calendar synchronization failed."}
             </Alert>)}
           </>}
         </>}
@@ -501,7 +512,7 @@ const ReservationsPage: React.FC = () => {
         {cancelledManaged.length === 0 &&
           <Typography color="textSecondary">No cancelled reservations in your managed shops.</Typography>}
         {cancelledManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
-          <strong>{item.title}</strong> — {item.memberName}{" "}
+          <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
             {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}

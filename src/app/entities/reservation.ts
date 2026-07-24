@@ -23,6 +23,7 @@ export interface Reservation {
   decidedAt?: string;
   source: "portal" | "slack";
   calendarEventId?: string;
+  calendarHtmlLink?: string;
   calendarSyncStatus?: "pending" | "synced" | "failed" | "deleted";
   calendarSyncError?: string;
   createdAt: string;
@@ -59,6 +60,7 @@ export interface SubscriptionCancellationImpact {
   reservations: Array<{
     id: string;
     title: string;
+    calendarHtmlLink?: string;
     startAt: string;
     endAt: string;
   }>;
