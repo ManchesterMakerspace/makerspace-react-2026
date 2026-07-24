@@ -30,6 +30,7 @@ import { SubscriptionFilter } from "../subscriptions/SubscriptionFilters";
 import { useSearchQuery, useSetSearchQuery } from "hooks/useSearchQuery";
 import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
+import MemberReservationsTab from "ui/reservations/MemberReservationsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
 import MemberCheckInActivity from "ui/member/MemberCheckInActivity";
 import MemberEmailLogTab from "ui/member/MemberEmailLogTab";
@@ -345,6 +346,11 @@ const MemberProfile: React.FC = () => {
             name: "checkouts",
             displayName: "Checkouts",
             content: <MemberCheckoutsTab member={member} />
+          },
+          {
+            name: "reservations",
+            displayName: "Reservations",
+            content: <MemberReservationsTab member={member} />
           },
           ...billingEnabled && !!customerId ? [{
             name: "transactions",
