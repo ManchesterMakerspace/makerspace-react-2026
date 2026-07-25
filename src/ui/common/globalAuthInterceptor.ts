@@ -4,38 +4,80 @@
  * Registers a global axios response interceptor that handles 401 responses.
  * Call setupGlobalAuthInterceptor(dispatch) once on app boot from App.tsx.
  */
-import axios from 'axios';
-import { Action as AuthAction } from 'ui/auth/constants';
-import { TransactionAction } from 'ui/reducer';
+import axios, { AxiosInstance } from 'axios';
 import { Routing } from 'app/constants';
 
-let interceptorRegistered = false;
+const RESET_TRANSACTIONS = 'reset';
+const LOGOUT_SUCCESS = 'AUTH/LOGOUT';
 
-export const setupGlobalAuthInterceptor = (dispatch: Function): void => {
-  if (interceptorRegistered) return;
-  interceptorRegistered = true;
+let axiosInterceptorRegistered = false;
+let fetchInterceptorRegistered = false;
+let globalDispatch: Function | null = null;
 
-  axios.interceptors.response.use(
-    response => response,
-    error => {
-      if (error?.response?.status === 401) {
-        handle401(dispatch);
-      }
-      return Promise.reject(error);
-    }
-  );
+const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset];
+
+export const shouldRedirectToLogin = (pathname: string): boolean =>
+  !publicPaths.some(path => pathname.startsWith(path));
+
+const isApiRequest = (input: RequestInfo | URL): boolean => {
+  if (typeof window === 'undefined') return false;
+
+  const rawUrl = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input.url;
+  const url = new URL(rawUrl, window.location.origin);
+
+  return url.origin === window.location.origin && url.pathname.startsWith('/api/');
 };
 
-const handle401 = (dispatch: Function) => {
-  dispatch({ type: TransactionAction.Reset });
-  dispatch({ type: AuthAction.LogoutSuccess });
+const handle401 = (dispatch: Function | null = globalDispatch) => {
+  if (dispatch) {
+    dispatch({ type: RESET_TRANSACTIONS });
+    dispatch({ type: LOGOUT_SUCCESS });
+  }
 
   const currentPath = window.location.pathname;
-  const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset];
-  const isPublicPath = publicPaths.some(p => currentPath.startsWith(p));
 
-  if (!isPublicPath) {
+  if (shouldRedirectToLogin(currentPath)) {
     window.location.href = Routing.Login;
+  }
+};
+
+const interceptAxiosError = (error: any) => {
+  if (error?.response?.status === 401) {
+    handle401();
+  }
+  return Promise.reject(error);
+};
+
+export const attachGlobalAuthInterceptor = <T extends AxiosInstance>(api: T): T => {
+  api.interceptors.response.use(
+    response => response,
+    interceptAxiosError
+  );
+  return api;
+};
+
+export const setupGlobalAuthInterceptor = (dispatch: Function): void => {
+  globalDispatch = dispatch;
+
+  if (!axiosInterceptorRegistered) {
+    axiosInterceptorRegistered = true;
+    attachGlobalAuthInterceptor(axios);
+  }
+
+  if (!fetchInterceptorRegistered && typeof window.fetch === 'function') {
+    fetchInterceptorRegistered = true;
+    const originalFetch = window.fetch.bind(window);
+    window.fetch = async (...args: Parameters<typeof window.fetch>) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401 && isApiRequest(args[0])) {
+        handle401();
+      }
+      return response;
+    };
   }
 };
 
@@ -45,21 +87,14 @@ const handle401 = (dispatch: Function) => {
  * that return error objects rather than throwing.
  * Returns true if a 401 was detected and handled.
  */
-let globalDispatch: Function | null = null;
-
 export const setGlobalDispatch = (dispatch: Function): void => {
   globalDispatch = dispatch;
 };
 
 export const handle401IfNeeded = (response: any): boolean => {
-  const status = response?.response?.status;
+  const status = response?.response?.status ?? response?.status;
   if (status === 401) {
-    if (globalDispatch) {
-      handle401(globalDispatch);
-    } else {
-      // Fallback if dispatch not yet set
-      window.location.href = Routing.Login;
-    }
+    handle401();
     return true;
   }
   return false;

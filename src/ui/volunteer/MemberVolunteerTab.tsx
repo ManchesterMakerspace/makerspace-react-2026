@@ -201,6 +201,11 @@ const MyClaimsInner: React.FC<MyClaimsProps> = ({ member, onRefresh }) => {
           {row.shopName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{row.shopName}</Typography>
           )}
+          {row.prerequisiteToolNames?.length > 0 && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Required checkouts: {row.prerequisiteToolNames.join(', ')}
+            </Typography>
+          )}
           {row.claimedAt && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               Claimed {new Date(row.claimedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -334,6 +339,11 @@ const TasksTableInner: React.FC<TasksTableProps> = ({ member, onRefresh }) => {
           {row.shopName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{row.shopName}</Typography>
           )}
+          {row.prerequisiteToolNames?.length > 0 && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Required checkouts: {row.prerequisiteToolNames.join(', ')}
+            </Typography>
+          )}
           {row.status === 'recurring' && row.days != null && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               <RepeatIcon style={{ fontSize: 12, verticalAlign: 'middle', marginRight: 2 }} />
@@ -463,6 +473,16 @@ const EventsTableInner: React.FC<EventsTableProps> = ({ member, onRefresh }) => 
         <div>
           <Typography variant='body2'><strong>E{row.eventNumber} — {row.title}</strong></Typography>
           {row.description && <Typography variant='caption' color='textSecondary'>{row.description}</Typography>}
+          {row.shopName && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              {row.shopName}
+            </Typography>
+          )}
+          {row.prerequisiteToolNames?.length > 0 && (
+            <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
+              Required checkouts: {row.prerequisiteToolNames.join(', ')}
+            </Typography>
+          )}
           {row.eventDate && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               {new Date(row.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

@@ -30,6 +30,7 @@ import { SubscriptionFilter } from "../subscriptions/SubscriptionFilters";
 import { useSearchQuery, useSetSearchQuery } from "hooks/useSearchQuery";
 import ChargeButton from "ui/shopFees/ChargeButton";
 import MemberCheckoutsTab from "ui/toolCheckouts/MemberCheckoutsTab";
+import MemberReservationsTab from "ui/reservations/MemberReservationsTab";
 import MemberVolunteerTab from "ui/volunteer/MemberVolunteerTab";
 import MemberCheckInActivity from "ui/member/MemberCheckInActivity";
 import MemberEmailLogTab from "ui/member/MemberEmailLogTab";
@@ -89,6 +90,7 @@ const MemberProfile: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser: { id: currentUserId, isAdmin }, permissions } = useAuthState();
   const {
+    canViewAllMembers,
     canEditMembers,
     canChangeOtherPasswords,
     canViewEmailStatus,
@@ -195,9 +197,31 @@ const MemberProfile: React.FC = () => {
   const memberTitle = (member as any).slack?.url
     ? <a href={(member as any).slack.url}>{memberDisplayName}</a>
     : memberDisplayName;
+  const showManualSlackDeactivationWarning =
+    canViewAllMembers &&
+    !isOwnProfile &&
+    member.status === "revoked" &&
+    !!(member as any).slackManualDeactivationRequired;
 
   return (
     <>
+      {showManualSlackDeactivationWarning && (
+        <div
+          id="member-slack-manual-deactivation-warning"
+          role="alert"
+          style={{
+            color: "#b00020",
+            fontWeight: 700,
+            border: "2px solid #b00020",
+            borderRadius: 4,
+            marginBottom: 16,
+            padding: "12px 16px",
+          }}
+        >
+          Slack was not deactivated automatically because SLACK_ADMIN_TOKEN is not configured.
+          You must manually deactivate this member in Slack.
+        </div>
+      )}
       <DetailView
         title={memberTitle}
         basePath={`/members/${memberId}`}
@@ -322,6 +346,11 @@ const MemberProfile: React.FC = () => {
             name: "checkouts",
             displayName: "Checkouts",
             content: <MemberCheckoutsTab member={member} />
+          },
+          {
+            name: "reservations",
+            displayName: "Reservations",
+            content: <MemberReservationsTab member={member} />
           },
           ...billingEnabled && !!customerId ? [{
             name: "transactions",

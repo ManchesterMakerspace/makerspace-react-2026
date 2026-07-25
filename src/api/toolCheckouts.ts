@@ -1,13 +1,16 @@
 import axios from "axios";
-import { Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest } from "app/entities/toolCheckout";
+import {
+  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
+} from "app/entities/toolCheckout";
 import { apiErrorMessage } from "ui/common/apiErrors";
+import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
 
 const getCsrfToken = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set("X-XSRF-TOKEN", getCsrfToken());
   config.headers.set("Content-Type", "application/json");
@@ -36,10 +39,26 @@ const buildResponse = async <T>(request: Promise<any>) => {
 export const listShops = (_params?: any) =>
   buildResponse<Shop[]>(api.get("/api/shops"));
 
+export const listManagedShops = (_params?: any) =>
+  buildResponse<Shop[]>(api.get("/api/admin/shops"));
+
+export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
+  buildResponse<{ colors: GoogleCalendarColor[] }>(api.get(
+    "/api/admin/google_calendar/colors",
+    { params: params?.colorId ? { color_id: params.colorId } : {} }
+  ));
+
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
     name: body.name,
     slack_channel: body.slackChannel,
+    reservable: body.reservable,
+    max_concurrent_reservations: body.maxConcurrentReservations,
+    reservation_horizon_days: body.reservationHorizonDays,
+    max_reservation_duration_hours: body.maxReservationDurationHours,
+    reservation_requires_approval: body.reservationRequiresApproval,
+    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
+    color_id: body.colorId,
   }));
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
@@ -47,6 +66,13 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
     name: body.name,
     slack_channel: body.slackChannel,
     disabled: body.disabled,
+    reservable: body.reservable,
+    max_concurrent_reservations: body.maxConcurrentReservations,
+    reservation_horizon_days: body.reservationHorizonDays,
+    max_reservation_duration_hours: body.maxReservationDurationHours,
+    reservation_requires_approval: body.reservationRequiresApproval,
+    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
+    color_id: body.colorId,
   }));
 
 export const adminDeleteShop = ({ id }: { id: string }) =>
@@ -69,6 +95,12 @@ export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
     announce_channel: body.announceChannel,
     users_channel: body.usersChannel,
     prerequisite_ids: body.prerequisiteIds || [],
+    reservable: body.reservable,
+    max_concurrent_reservations: body.maxConcurrentReservations,
+    reservation_horizon_days: body.reservationHorizonDays,
+    max_reservation_duration_hours: body.maxReservationDurationHours,
+    reservation_requires_approval: body.reservationRequiresApproval,
+    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
   }));
 
 export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> }) =>
@@ -81,6 +113,12 @@ export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> 
     announce_channel: body.announceChannel,
     users_channel: body.usersChannel,
     prerequisite_ids: body.prerequisiteIds || [],
+    reservable: body.reservable,
+    max_concurrent_reservations: body.maxConcurrentReservations,
+    reservation_horizon_days: body.reservationHorizonDays,
+    max_reservation_duration_hours: body.maxReservationDurationHours,
+    reservation_requires_approval: body.reservationRequiresApproval,
+    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
   }));
 
 export const adminDeleteTool = ({ id }: { id: string }) =>
@@ -173,19 +211,21 @@ export const listCheckoutApprovers = (_params?: any) =>
   buildResponse<CheckoutApprover[]>(api.get("/api/admin/checkout_approvers"));
 
 export const adminCreateCheckoutApprover = ({ body }: {
-  body: { memberId: string; shopIds: string[] }
+  body: { memberId: string; shopIds: string[]; toolIds: string[] }
 }) =>
   buildResponse<CheckoutApprover>(api.post("/api/admin/checkout_approvers", {
     member_id: body.memberId,
     shop_ids: body.shopIds,
+    tool_ids: body.toolIds,
   }));
 
 export const adminUpdateCheckoutApprover = ({ id, body }: {
   id: string;
-  body: { shopIds: string[] }
+  body: { shopIds: string[]; toolIds: string[] }
 }) =>
   buildResponse<CheckoutApprover>(api.put(`/api/admin/checkout_approvers/${id}`, {
     shop_ids: body.shopIds,
+    tool_ids: body.toolIds,
   }));
 
 export const adminDeleteCheckoutApprover = ({ id }: { id: string }) =>

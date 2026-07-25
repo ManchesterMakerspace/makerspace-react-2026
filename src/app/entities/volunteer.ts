@@ -48,6 +48,8 @@ export interface VolunteerTask {
   creditValue: number;
   shopId: string | null;
   shopName: string | null;
+  prerequisiteToolIds: string[];
+  prerequisiteToolNames: string[];
   status: VolunteerTaskStatus;
   // Multi-use / recurrence fields
   days: number | null;          // Recurring tasks only — recurrence interval in days
@@ -75,6 +77,10 @@ export interface VolunteerEvent {
   description: string;
   creditValue: number;
   eventDate: string | null;
+  shopId: string | null;
+  shopName: string | null;
+  prerequisiteToolIds: string[];
+  prerequisiteToolNames: string[];
   status: 'open' | 'closed';
   createdById: string;
   createdByName: string;

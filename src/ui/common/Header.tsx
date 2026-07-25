@@ -147,6 +147,7 @@ class Header extends React.Component<Props, State> {
       ...(isPrivileged ? [this.renderMenuNavLink(Routing.Members, "Members", "members")] : []),
       ...(isAdmin ? [this.renderMenuNavLink(Routing.SystemSettings, "Portal Settings", "system-settings")] : []),
       ...(canManageRentals ? [this.renderMenuNavLink(Routing.AdminRentals, "Rentals", "rentals")] : []),
+      this.renderMenuNavLink(Routing.Reservations, "Reservations", "reservations"),
       ...(canManageShopFees ? [this.renderMenuNavLink(Routing.ShopFees, "Shop Fees", "shop-fees")] : []),
       ...(canManageCheckouts ? [this.renderMenuNavLink(Routing.ToolCheckouts, "Tool Checkouts", "tool-checkouts")] : []),
       ...(canManageVolunteer ? [this.renderMenuNavLink(Routing.Volunteer, "Volunteer", "volunteer")] : []),

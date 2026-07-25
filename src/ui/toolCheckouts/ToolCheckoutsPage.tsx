@@ -18,6 +18,7 @@ type TabKey = "requests" | "roster" | "shops" | "tools" | "approvers";
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
   const isRM = memberIsResourceManager(currentUser);
+  const managesShops = isRM && ((currentUser as any).resourceManagerShopIds || []).length > 0;
   const caps = useCapabilities();
   const defaultTab: TabKey = caps.canManageCheckouts ? "roster" : "requests";
   const [activeTab, setActiveTab] = React.useState<TabKey>(defaultTab);
@@ -38,7 +39,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const visibleTabs = tabs.filter(t => {
     if (!t.adminOnly) return true;
     if (t.key === "approvers") return caps.canManageCheckoutApprovers;
-    if (t.key === "shops" || t.key === "tools") return isRM || caps.canManageCheckoutApprovers;
+    if (t.key === "shops" || t.key === "tools") return managesShops || caps.canManageCheckoutApprovers;
     return caps.canManageCheckouts;
   });
 
@@ -66,7 +67,7 @@ const ToolCheckoutsPage: React.FC = () => {
       </Grid>
       <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === "requests" && <ToolCheckoutRequestsManager canManage={caps.canManageCheckouts} />}
-        {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={isRM} />}
+        {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={managesShops} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}

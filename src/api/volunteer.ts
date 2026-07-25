@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { ApiDataResponse, ApiErrorResponse } from 'makerspace-ts-api-client';
 import { VolunteerCredit, VolunteerTask, VolunteerEvent, VolunteerSummary } from 'app/entities/volunteer';
+import { attachGlobalAuthInterceptor } from 'ui/common/globalAuthInterceptor';
 
 const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
@@ -29,7 +30,7 @@ const getCsrfToken = () => {
   return match ? decodeURIComponent(match[1]) : '';
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set('X-XSRF-TOKEN', getCsrfToken());
   config.headers.set('Content-Type', 'application/json');
@@ -115,6 +116,7 @@ export const adminCreateVolunteerTask = ({ body }: { body: Partial<VolunteerTask
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status || 'available',
     days:         body.days ?? null,
   }));
@@ -125,6 +127,7 @@ export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Parti
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status,
     days:         body.days ?? null,
   }));
@@ -159,6 +162,18 @@ export const adminCreateVolunteerEvent = ({ body }: { body: Partial<VolunteerEve
     description:  body.description,
     credit_value: body.creditValue,
     event_date:   body.eventDate || null,
+    shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
+  }));
+
+export const adminUpdateVolunteerEvent = ({ id, body }: { id: string; body: Partial<VolunteerEvent> }) =>
+  buildResponse<VolunteerEvent>(api.put(`/api/admin/volunteer_events/${id}`, {
+    title:        body.title,
+    description:  body.description,
+    credit_value: body.creditValue,
+    event_date:   body.eventDate || null,
+    shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
   }));
 
 export const adminCloseVolunteerEvent = ({ id }: { id: string }) =>

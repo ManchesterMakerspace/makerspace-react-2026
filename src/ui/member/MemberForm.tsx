@@ -7,6 +7,8 @@ import Select from "@mui/material/Select";
 import FormLabel from "@mui/material/FormLabel";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Chip from "@mui/material/Chip";
+import Typography from "@mui/material/Typography";
 
 import { Member } from "makerspace-ts-api-client";
 
@@ -16,6 +18,8 @@ import Form from "ui/common/Form";
 import { toDatePicker } from "ui/utils/timeToDate";
 import { memberStatusLabelMap } from "./MemberStatusLabel";
 import { states } from "./states";
+import { listShops } from "api/toolCheckouts";
+import { Shop } from "app/entities/toolCheckout";
 
 interface OwnProps {
   member?: Member;
@@ -34,6 +38,9 @@ interface State {
   memberContractOnFile: boolean;
   subscription: boolean;
   silenceEmails: boolean;
+  role: string;
+  resourceManagerShopIds: string[];
+  shops: Shop[];
 }
 
 class MemberForm extends React.Component<OwnProps, State> {
@@ -46,6 +53,9 @@ class MemberForm extends React.Component<OwnProps, State> {
       memberContractOnFile: false,
       subscription: false,
       silenceEmails: false,
+      role: props.member?.role || "member",
+      resourceManagerShopIds: (props.member as any)?.resourceManagerShopIds || [],
+      shops: [],
     }
   }
 
@@ -54,8 +64,11 @@ class MemberForm extends React.Component<OwnProps, State> {
     this.setState({ 
       memberContractOnFile: member && member.memberContractOnFile || false,
       subscription: member && member.subscription || false,
-      silenceEmails: member && !!member.silenceEmails || false
+      silenceEmails: member && !!member.silenceEmails || false,
+      role: member?.role || "member",
+      resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
     });
+    listShops().then(result => this.setState({ shops: (result.data || []) as Shop[] }));
   }
 
   public componentDidUpdate(prevProps: OwnProps) {
@@ -65,7 +78,9 @@ class MemberForm extends React.Component<OwnProps, State> {
       this.setState({ 
         memberContractOnFile: member && member.memberContractOnFile || false,
         subscription: member && member.subscription || false,
-        silenceEmails: member && !!member.silenceEmails || false
+        silenceEmails: member && !!member.silenceEmails || false,
+        role: member?.role || "member",
+        resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
       });
       this.formRef && this.formRef.resetForm();
     }
@@ -96,7 +111,16 @@ class MemberForm extends React.Component<OwnProps, State> {
       silenceEmails,
       memberContractOnFile,
       subscription,
+      resourceManagerShopIds: this.state.role === "resource_manager" ? this.state.resourceManagerShopIds : [],
     };
+  }
+
+  public toggleResourceManagerShop = (shopId: string) => {
+    this.setState(({ resourceManagerShopIds }) => ({
+      resourceManagerShopIds: resourceManagerShopIds.includes(shopId)
+        ? resourceManagerShopIds.filter(id => id !== shopId)
+        : [...resourceManagerShopIds, shopId]
+    }));
   }
 
   private renderFormContents = () => {
@@ -259,7 +283,8 @@ class MemberForm extends React.Component<OwnProps, State> {
             <FormLabel component="legend">{fields.role.label}</FormLabel>
             <Select
               name={fields.role.name}
-              value={member.role || Object.keys(MemberRoleOptions)[0]}
+              value={this.state.role}
+              onChange={event => this.setState({ role: event.target.value as string })}
               fullWidth
               native
               required
@@ -269,6 +294,29 @@ class MemberForm extends React.Component<OwnProps, State> {
                 ([key, value]) => <option id={`${fields.role.name}-option-${kebabCase(key)}`} key={kebabCase(key)} value={key}>{value}</option>)}
             </Select>
           </Grid>
+          {this.state.role === "resource_manager" && (
+            <Grid size={{ xs: 12 }}>
+              <FormLabel component="legend">Managed Shops *</FormLabel>
+              <Typography variant="caption" color="textSecondary" display="block" gutterBottom>
+                Resource Manager authority applies only to these shops.
+              </Typography>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {this.state.shops.map(shop => (
+                  <Chip
+                    key={shop.id}
+                    label={shop.name}
+                    clickable
+                    onClick={() => this.toggleResourceManagerShop(shop.id)}
+                    color={this.state.resourceManagerShopIds.includes(shop.id) ? "primary" : "default"}
+                    variant={this.state.resourceManagerShopIds.includes(shop.id) ? "filled" : "outlined"}
+                  />
+                ))}
+              </div>
+              {this.state.resourceManagerShopIds.length === 0 && (
+                <Typography variant="caption" color="error">Select at least one shop.</Typography>
+              )}
+            </Grid>
+          )}
           <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.notes.label}</FormLabel>
             <TextField
