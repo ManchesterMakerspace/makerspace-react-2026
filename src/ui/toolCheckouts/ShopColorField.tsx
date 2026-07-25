@@ -6,20 +6,20 @@ import TextField from "@mui/material/TextField";
 import { GoogleCalendarColor } from "app/entities/toolCheckout";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 
-const FALLBACK_COLORS: GoogleCalendarColor[] = [
-  ["Black", "#000000", "#ffffff"],
-  ["Red", "#ff0000", "#ffffff"],
-  ["Blue", "#0000ff", "#ffffff"],
-  ["Green", "#008000", "#ffffff"],
-  ["Yellow", "#ffff00", "#000000"],
-  ["Orange", "#ffa500", "#000000"],
-  ["Brown", "#a52a2a", "#ffffff"],
-  ["Purple", "#800080", "#ffffff"],
-  ["Gray", "#808080", "#ffffff"],
-  ["Tan", "#d2b48c", "#000000"],
-  ["Teal", "#008080", "#ffffff"],
-].map(([name, backgroundColor, foregroundColor], index) => ({
-  id: String(index + 1), name, backgroundColor, foregroundColor
+export const FALLBACK_COLORS: GoogleCalendarColor[] = [
+  ["1", "Lavender", "#a4bdfc", "#1d1d1d"],
+  ["2", "Sage", "#7ae7bf", "#1d1d1d"],
+  ["3", "Grape", "#dbadff", "#1d1d1d"],
+  ["4", "Flamingo", "#ff887c", "#1d1d1d"],
+  ["5", "Banana", "#fbd75b", "#1d1d1d"],
+  ["6", "Tangerine", "#ffb878", "#1d1d1d"],
+  ["7", "Peacock", "#46d6db", "#1d1d1d"],
+  ["8", "Graphite", "#e1e1e1", "#1d1d1d"],
+  ["9", "Blueberry", "#5484ed", "#1d1d1d"],
+  ["10", "Basil", "#51b749", "#1d1d1d"],
+  ["11", "Tomato", "#dc2127", "#1d1d1d"],
+].map(([id, name, backgroundColor, foregroundColor]) => ({
+  id, name, backgroundColor, foregroundColor
 }));
 
 const ShopColorField: React.FC<{

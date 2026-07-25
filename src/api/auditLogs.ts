@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ApiDataResponse, ApiErrorResponse } from 'makerspace-ts-api-client';
+import { attachGlobalAuthInterceptor } from 'ui/common/globalAuthInterceptor';
 
 export interface AuditLog {
   id:              string;
@@ -60,7 +61,7 @@ const getCsrfToken = () => {
   return match ? decodeURIComponent(match[1]) : '';
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set('X-XSRF-TOKEN', getCsrfToken());
   config.headers.set('Content-Type', 'application/json');

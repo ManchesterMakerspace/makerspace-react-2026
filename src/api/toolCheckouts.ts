@@ -3,13 +3,14 @@ import {
   Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
 } from "app/entities/toolCheckout";
 import { apiErrorMessage } from "ui/common/apiErrors";
+import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
 
 const getCsrfToken = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set("X-XSRF-TOKEN", getCsrfToken());
   config.headers.set("Content-Type", "application/json");

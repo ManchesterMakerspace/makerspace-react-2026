@@ -4,13 +4,14 @@ import {
   SubscriptionCancellationImpact
 } from "app/entities/reservation";
 import { apiErrorMessage } from "ui/common/apiErrors";
+import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
 
 const token = () => {
   const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set("X-XSRF-TOKEN", token());
   config.headers.set("Content-Type", "application/json");
@@ -59,6 +60,9 @@ export const getReservationAvailability = (params: { date: string; shopId?: stri
 
 export const previewReservation = ({ body: input }: { body: ReservationInput }) =>
   wrap<ReservationPreview>(api.post("/api/reservations/preview", body(input)));
+
+export const previewReservationUpdate = ({ id, body: input }: { id: string; body: ReservationInput }) =>
+  wrap<ReservationPreview>(api.post(`/api/reservations/${id}/preview`, body(input)));
 
 export const createReservation = ({ body: input }: { body: ReservationInput }) =>
   wrap<Reservation>(api.post("/api/reservations", body(input)));

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
 import { ShopFeeItem } from "app/entities/shopFee";
+import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
 
 // ── Shared helpers (same pattern as src/api/rentals.ts) ──────────────────────
 
@@ -31,7 +32,7 @@ const getCsrfToken = () => {
   return match ? decodeURIComponent(match[1]) : "";
 };
 
-const api = axios.create({ withCredentials: true });
+const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
 api.interceptors.request.use(config => {
   config.headers.set("X-XSRF-TOKEN", getCsrfToken());
   config.headers.set("Content-Type", "application/json");

@@ -17,6 +17,7 @@ import {
   createReservation, denyReservation,
   getReservationAvailability, getReservationCatalog, listManagedReservations, listReservations,
   previewManagedReservation, previewManagedReservationCreation, previewReservation,
+  previewReservationUpdate,
   updateManagedReservation, updateReservation
 } from "api/reservations";
 import { Reservation, ReservationCatalog, ReservationInput, ReservationPreview } from "app/entities/reservation";
@@ -166,6 +167,8 @@ const ReservationsPage: React.FC = () => {
     const timer = window.setTimeout(async () => {
       const result = editingManaged && editing
         ? await previewManagedReservation({ id: editing.id, body: input })
+        : editing
+          ? await previewReservationUpdate({ id: editing.id, body: input })
         : creatingForMember
           ? await previewManagedReservationCreation({ memberId: targetMemberId, body: input })
         : await previewReservation({ body: input });
@@ -186,16 +189,17 @@ const ReservationsPage: React.FC = () => {
   const toggleTool = (id: string) =>
     setToolIds(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]);
 
-  const resetForm = () => {
+  const resetForm = (preservedShopId?: string) => {
     const nextStart = nextWholeHour();
-    const firstShop = catalog.shops[0];
+    const resetShop = catalog.shops.find(shop => shop.id === preservedShopId) ||
+      catalog.shops[0];
     setEditing(null);
     setEditingManaged(false);
     setCreatingForMember(false);
     setTargetMemberId("");
     setTitle("");
-    setShopId(firstShop?.id || "");
-    setScope(firstShop?.reservable ? "shop" : "tools");
+    setShopId(resetShop?.id || "");
+    setScope(resetShop?.reservable ? "shop" : "tools");
     setToolIds([]);
     setDate(nextStart.format("YYYY-MM-DD"));
     setStartTime(nextStart.format("HH:mm"));
@@ -228,7 +232,7 @@ const ReservationsPage: React.FC = () => {
     }
 
     const savedReservation = result.data;
-    resetForm();
+    resetForm(shopId);
     setSuccess(
       creating
         ? `Reservation "${savedReservation?.title || input.title}" was created successfully` +
@@ -241,6 +245,9 @@ const ReservationsPage: React.FC = () => {
   const edit = (reservation: Reservation, managedEdit = false) => {
     setError("");
     setSuccess("");
+    setPreview(null);
+    setCreatingForMember(false);
+    setTargetMemberId("");
     setEditing(reservation);
     setEditingManaged(managedEdit);
     setTitle(reservation.title);
