@@ -15,7 +15,9 @@ interface DispatchProps {
 }
 
 interface OwnProps {
-  history: any;
+  //history: any;
+  // Now Passes navigate={navigate} instead of the obsolete history={history}.
+  navigate: ReturnType<typeof useNavigate>;
 }
 
 interface Props extends DispatchProps, OwnProps {}
