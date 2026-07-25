@@ -115,6 +115,7 @@ export const adminCreateVolunteerTask = ({ body }: { body: Partial<VolunteerTask
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status || 'available',
     days:         body.days ?? null,
   }));
@@ -125,6 +126,7 @@ export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Parti
     description:  body.description,
     credit_value: body.creditValue,
     shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status,
     days:         body.days ?? null,
   }));
@@ -159,6 +161,18 @@ export const adminCreateVolunteerEvent = ({ body }: { body: Partial<VolunteerEve
     description:  body.description,
     credit_value: body.creditValue,
     event_date:   body.eventDate || null,
+    shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
+  }));
+
+export const adminUpdateVolunteerEvent = ({ id, body }: { id: string; body: Partial<VolunteerEvent> }) =>
+  buildResponse<VolunteerEvent>(api.put(`/api/admin/volunteer_events/${id}`, {
+    title:        body.title,
+    description:  body.description,
+    credit_value: body.creditValue,
+    event_date:   body.eventDate || null,
+    shop_id:      body.shopId || null,
+    prerequisite_tool_ids: body.prerequisiteToolIds || [],
   }));
 
 export const adminCloseVolunteerEvent = ({ id }: { id: string }) =>
