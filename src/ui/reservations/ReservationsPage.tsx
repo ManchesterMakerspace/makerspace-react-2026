@@ -25,6 +25,7 @@ import { Shop, Tool } from "app/entities/toolCheckout";
 import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
+import { reservationShopOptions } from "./reservationForm";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -68,6 +69,7 @@ const ReservationsPage: React.FC = () => {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const previewRequestGeneration = React.useRef(0);
 
   const canCreateReservation = !!currentUser.isBoardMember ||
     (currentUser.status === "activeMember" &&
@@ -76,10 +78,15 @@ const ReservationsPage: React.FC = () => {
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
   const canUseCreateUi = canCreateReservation;
   const managedShopIds = currentUser.resourceManagerShopIds || [];
-  const availableShops = creatingForMember && currentUser.isResourceManager &&
-    !currentUser.isAdmin && !currentUser.isBoardMember
-    ? catalog.shops.filter(shop => managedShopIds.includes(shop.id))
-    : catalog.shops;
+  const availableShops = reservationShopOptions({
+    shops: catalog.shops,
+    managedShopIds,
+    creatingForMember,
+    editingManaged,
+    isResourceManager: !!currentUser.isResourceManager,
+    isAdmin: !!currentUser.isAdmin,
+    isBoardMember: !!currentUser.isBoardMember,
+  });
   const selectedShop = availableShops.find(shop => shop.id === shopId);
   const shopTools = catalog.tools.filter(tool => tool.shopId === shopId);
   const selectedTools = shopTools.filter(tool => toolIds.includes(tool.id));
@@ -147,16 +154,19 @@ const ReservationsPage: React.FC = () => {
   }, [canUseCreateUi]);
 
   React.useEffect(() => {
-    if (!creatingForMember || availableShops.some(shop => shop.id === shopId)) return;
+    if (!(creatingForMember || editingManaged) ||
+        availableShops.some(shop => shop.id === shopId)) return;
     const first = availableShops[0];
     setShopId(first?.id || "");
     setToolIds([]);
     setScope(first?.reservable ? "shop" : "tools");
-  }, [creatingForMember, shopId, availableShops.map(shop => shop.id).join(",")]);
+  }, [creatingForMember, editingManaged, shopId,
+      availableShops.map(shop => shop.id).join(",")]);
 
   React.useEffect(() => { loadReservations(); }, [loadReservations]);
 
   React.useEffect(() => {
+    const requestGeneration = ++previewRequestGeneration.current;
     if (!canUseCreateUi || !validStart || !title.trim() || !shopId ||
         (creatingForMember && !targetMemberId) ||
         (scope === "tools" && toolIds.length === 0)) {
@@ -172,9 +182,16 @@ const ReservationsPage: React.FC = () => {
         : creatingForMember
           ? await previewManagedReservationCreation({ memberId: targetMemberId, body: input })
         : await previewReservation({ body: input });
-      setPreview(result.data || null);
+      if (previewRequestGeneration.current === requestGeneration) {
+        setPreview(result.data || null);
+      }
     }, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      if (previewRequestGeneration.current === requestGeneration) {
+        previewRequestGeneration.current += 1;
+      }
+    };
   }, [canUseCreateUi, creatingForMember, targetMemberId, validStart, title, shopId, scope,
       toolIds.join(","), date, startTime, durationHours, editingManaged, editing?.id]);
 
