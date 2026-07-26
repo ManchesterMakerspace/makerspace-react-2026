@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { connect } from 'react-redux';
@@ -15,7 +14,7 @@ interface DispatchProps {
 }
 
 interface OwnProps {
-  history: any;
+  navigate: ReturnType<typeof useNavigate>;
 }
 
 interface Props extends DispatchProps, OwnProps {}
@@ -40,8 +39,9 @@ class FirebaseCallback extends React.Component<Props, State> {
       const idToken = await completeProviderSignIn();
       await this.props.firebaseLogin(idToken);
       this.props.navigate(Routing.Members);
-    } catch (err) {
-      const message = (err && (err as any).message) || 'Sign in failed. Please try again.';
+    } catch (err: unknown) {
+      console.error('[Firebase Auth] Redirect callback failed', err);
+      const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
       this.setState({ error: message });
     }
   }
@@ -83,10 +83,10 @@ const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
 
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);
 
-// Wrap with router to get history prop
+// Wrap with router to get the navigation function.
 const FirebaseCallbackWithRouter: React.FC<{}> = () => {
   const navigate = useNavigate();
-  return <ConnectedFirebaseCallback history={history} />;
+  return <ConnectedFirebaseCallback navigate={navigate} />;
 };
 
 export default FirebaseCallbackWithRouter;
