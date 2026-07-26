@@ -189,10 +189,12 @@ export const firebaseLoginAction = (
     );
   } else {
     const body = await response.json().catch(() => ({}));
+    const error = body?.message || 'Firebase login failed. Please try again.';
     dispatch({
       type: AuthAction.AuthUserFailure,
-      error: body?.message || 'Firebase login failed. Please try again.',
+      error,
     });
+    throw new Error(error);
   }
 };
 

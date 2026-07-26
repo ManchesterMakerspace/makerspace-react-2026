@@ -16,6 +16,7 @@ describe("global authentication interception", () => {
     expect(shouldRedirectToLogin("/login")).toBe(false);
     expect(shouldRedirectToLogin("/signup")).toBe(false);
     expect(shouldRedirectToLogin("/resetPassword")).toBe(false);
+    expect(shouldRedirectToLogin("/auth/callback")).toBe(false);
   });
 
   it("handles a 401 from an isolated Axios instance", async () => {
@@ -77,5 +78,13 @@ describe("global authentication interception", () => {
     expect(originalFetch).toHaveBeenCalledWith("/api/members/sign_in");
     expect(originalFetch).toHaveBeenCalledWith("/api/auth/firebase_login");
     expect(dispatch).not.toHaveBeenCalled();
+
+    window.history.replaceState({}, "", "/reservations");
+    const navigationError = jest.spyOn(console, "error").mockImplementation(() => {});
+    await window.fetch("/api/members/sign_in");
+    navigationError.mockRestore();
+
+    expect(dispatch).toHaveBeenCalledWith({ type: "reset" });
+    expect(dispatch).toHaveBeenCalledWith({ type: "AUTH/LOGOUT" });
   });
 });

@@ -14,7 +14,8 @@ let axiosInterceptorRegistered = false;
 let fetchInterceptorRegistered = false;
 let globalDispatch: Function | null = null;
 
-const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset];
+const FIREBASE_CALLBACK_PATH = '/auth/callback';
+const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset, FIREBASE_CALLBACK_PATH];
 
 // A 401 is an expected, locally handled result while establishing a session.
 // Treating it as an expired session interrupts OAuth callbacks (App's session
@@ -54,6 +55,25 @@ const isSessionEstablishmentRequest = (input: RequestInfo | URL | undefined): bo
     && sessionEstablishmentPaths.includes(url.pathname);
 };
 
+const shouldSuppressSessionEstablishment401 = (
+  input: RequestInfo | URL | undefined
+): boolean => {
+  if (!isSessionEstablishmentRequest(input)) return false;
+
+  const rawUrl = typeof input === 'string'
+    ? input
+    : input instanceof URL
+      ? input.toString()
+      : input!.url;
+  const requestPath = new URL(rawUrl, window.location.origin).pathname;
+
+  // Firebase login reports its failure to the callback. Session restoration is
+  // only an expected 401 on a public page; on a protected deep link the global
+  // handler must still send the visitor to the login screen.
+  return requestPath === '/api/auth/firebase_login'
+    || !shouldRedirectToLogin(window.location.pathname);
+};
+
 const handle401 = (dispatch: Function | null = globalDispatch) => {
   if (dispatch) {
     dispatch({ type: RESET_TRANSACTIONS });
@@ -70,7 +90,7 @@ const handle401 = (dispatch: Function | null = globalDispatch) => {
 const interceptAxiosError = (error: any) => {
   if (
     error?.response?.status === 401
-    && !isSessionEstablishmentRequest(error?.config?.url)
+    && !shouldSuppressSessionEstablishment401(error?.config?.url)
   ) {
     handle401();
   }
@@ -101,7 +121,7 @@ export const setupGlobalAuthInterceptor = (dispatch: Function): void => {
       if (
         response.status === 401
         && isApiRequest(args[0])
-        && !isSessionEstablishmentRequest(args[0])
+        && !shouldSuppressSessionEstablishment401(args[0])
       ) {
         handle401();
       }
