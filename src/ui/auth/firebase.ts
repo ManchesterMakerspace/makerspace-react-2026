@@ -77,6 +77,13 @@ const initializeFirebase = (): Promise<FirebaseServices> => {
   return initializer;
 };
 
+/** Load runtime configuration and initialize the SDK before a provider button is clicked. */
+export const preloadFirebaseAuth = async (): Promise<void> => {
+  console.info('[Firebase Auth] Preloading Firebase services');
+  await initializeFirebase();
+  console.info('[Firebase Auth] Firebase services ready for provider authentication');
+};
+
 const providerFor = (provider: ProviderKey): AuthProvider => {
   switch (provider) {
     case 'google': {

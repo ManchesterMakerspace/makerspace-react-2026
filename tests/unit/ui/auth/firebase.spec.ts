@@ -122,10 +122,13 @@ describe('Firebase SDK authentication bridge', () => {
       ok: true,
       json: async () => ({ ...runtimeConfig, firebase_auth_type: 'signInWithPopup' }),
     });
-    const { signInWithGoogle } = await import('ui/auth/firebase');
+    const { preloadFirebaseAuth, signInWithGoogle } = await import('ui/auth/firebase');
+
+    await preloadFirebaseAuth();
 
     await expect(signInWithGoogle()).resolves.toBe('popup-token');
 
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(signInWithPopup).toHaveBeenCalledWith(auth, expect.any(Object));
     expect(signInWithRedirect).not.toHaveBeenCalled();
   });

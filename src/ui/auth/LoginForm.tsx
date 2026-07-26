@@ -21,7 +21,13 @@ import FormModal from "ui/common/FormModal";
 import { requestPasswordReset, isApiErrorResponse } from "makerspace-ts-api-client";
 import FirebaseAuthButtons from "ui/auth/FirebaseAuthButtons";
 import TotpVerifyForm from "ui/auth/TotpVerifyForm";
-import { signInWithGoogle, signInWithApple, signInWithGitHub, signInWithMicrosoft } from "ui/auth/firebase";
+import {
+  preloadFirebaseAuth,
+  signInWithGoogle,
+  signInWithApple,
+  signInWithGitHub,
+  signInWithMicrosoft,
+} from "ui/auth/firebase";
 
 const formPrefix = "request-password-reset";
 const passwordFields = {
@@ -75,7 +81,9 @@ class LoginForm extends React.Component<Props, State> {
       openPassword: false,
       passwordError: "",
       email: "",
-      firebaseLoading: false,
+      // Keep provider buttons disabled until Firebase has been preloaded so a
+      // popup can open synchronously from the eventual user gesture.
+      firebaseLoading: true,
       firebaseError: "",
       totpLoading: false,
       totpError: "",
@@ -86,8 +94,20 @@ class LoginForm extends React.Component<Props, State> {
     const { auth, pushLocation } = this.props;
     if (auth) {
       pushLocation(Routing.Members);
+      return;
     }
 
+    // Popup authentication must be initialized before the click so that the
+    // browser's transient user activation is still valid when Firebase opens it.
+    this.setState({ firebaseLoading: true, firebaseError: '' });
+    try {
+      await preloadFirebaseAuth();
+      this.setState({ firebaseLoading: false });
+    } catch (err) {
+      console.error('[Firebase Auth] Firebase preload failed', err);
+      const message = (err && (err as any).message) || 'Sign in is unavailable. Please try again.';
+      this.setState({ firebaseLoading: false, firebaseError: message });
+    }
   }
 
   public componentDidUpdate(prevProps: Props) {
