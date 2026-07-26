@@ -102,14 +102,20 @@ export const initiateProviderSignIn = async (provider: ProviderKey): Promise<voi
 export const completeProviderSignIn = async (): Promise<string> => {
   const { auth } = await initializeFirebase();
   const result = await getRedirectResult(auth);
-  if (result) return result.user.getIdToken();
+  if (result) {
+    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+    return result.user.getIdToken();
+  }
 
   const pendingProvider = sessionStorage.getItem(PENDING_PROVIDER_KEY) as ProviderKey | null;
   if (!pendingProvider || !['google', 'apple', 'github', 'microsoft'].includes(pendingProvider)) {
     throw new Error('No Firebase sign-in redirect found. Please try signing in again.');
   }
 
-  sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  // Keep the provider marker until Firebase returns a credential. The redirect
+  // SDK may navigate after this promise resolves, so clearing it here makes the
+  // callback indistinguishable from a direct visit when redirect state is not
+  // immediately available on the subsequent page load.
   await signInWithRedirect(auth, providerFor(pendingProvider));
   throw new Error('Firebase sign-in redirect did not start. Please try again.');
 };

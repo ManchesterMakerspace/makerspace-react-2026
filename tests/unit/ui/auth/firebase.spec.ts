@@ -48,6 +48,7 @@ describe('Firebase SDK authentication bridge', () => {
   });
 
   it('initializes the modular SDK with the runtime auth domain and returns its token', async () => {
+    sessionStorage.setItem('firebase_pending_provider', 'google');
     const { completeProviderSignIn } = await import('ui/auth/firebase');
 
     await expect(completeProviderSignIn()).resolves.toBe('firebase-token');
@@ -58,6 +59,7 @@ describe('Firebase SDK authentication bridge', () => {
       authDomain: 'login.example.test',
     });
     expect(getRedirectResult).toHaveBeenCalledWith(auth);
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
   });
 
   it('clears a rejected initializer so a later attempt can retry', async () => {
@@ -94,7 +96,7 @@ describe('Firebase SDK authentication bridge', () => {
     expect(addGoogleScope).toHaveBeenCalledWith('email');
     expect(addGoogleScope).toHaveBeenCalledWith('profile');
     expect(signInWithRedirect).toHaveBeenCalledWith(auth, expect.any(Object));
-    expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
   });
 
   it('rejects runtime configuration that omits authDomain', async () => {
