@@ -1,49 +1,38 @@
 /**
- * firebase.ts
+ * Firebase Authentication using the modular Firebase SDK.
  *
- * Firebase Authentication using the REST API only — no SDK required.
- * Avoids Node/TypeScript version incompatibilities with the Firebase npm package.
- *
- * Flow:
- *  1. fetchConfig() loads FIREBASE_API_KEY and FIREBASE_PROJECT_ID from Rails
- *     GET /api/config at runtime — keys never baked into the JS bundle.
- *  2. Call initiateProviderSignIn to redirect to OAuth provider
- *  3. Provider redirects back to /auth/callback
- *  4. Call completeProviderSignIn to exchange for a Firebase ID token
- *  5. POST the ID token to Rails /api/auth/firebase_login
+ * Firebase configuration is loaded from Rails at runtime so it is not baked
+ * into the JavaScript bundle. After Firebase completes a provider redirect,
+ * its ID token is exchanged by Rails for the application's cookie-backed
+ * session.
  */
 
-const BASE = 'https://identitytoolkit.googleapis.com/v1';
-
-const PROVIDERS: Record<string, string> = {
-  google:    'google.com',
-  apple:     'apple.com',
-  github:    'github.com',
-  microsoft: 'microsoft.com',
-};
-
-// OAuth scopes to request per provider.
-// 'profile' is required to include name fields in the Firebase ID token.
-// Without this, Google only returns email — name is absent from the JWT.
-const OAUTH_SCOPES: Partial<Record<ProviderKey, string>> = {
-  google:    'email profile',
-  apple:     'email name',
-  microsoft: 'email profile',
-};
+import { FirebaseApp, initializeApp } from 'firebase/app';
+import {
+  Auth,
+  AuthProvider,
+  GithubAuthProvider,
+  GoogleAuthProvider,
+  OAuthProvider,
+  UserCredential,
+  getAuth,
+  getRedirectResult,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 
-// Runtime config cache — fetched once from /api/config
 interface FirebaseConfig {
-  apiKey:    string;
+  apiKey: string;
   projectId: string;
 }
 
-let _config: FirebaseConfig | null = null;
+let firebaseApp: FirebaseApp | null = null;
+let firebaseAuth: Auth | null = null;
+let firebaseInitialization: Promise<Auth> | null = null;
 
 const fetchConfig = async (): Promise<FirebaseConfig> => {
-  if (_config) return _config;
-
   const response = await fetch('/api/config', {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -58,96 +47,75 @@ const fetchConfig = async (): Promise<FirebaseConfig> => {
     throw new Error('Firebase is not configured. Set FIREBASE_API_KEY in your environment.');
   }
 
-  _config = {
-    apiKey:    data.firebase_api_key,
+  return {
+    apiKey: data.firebase_api_key,
     projectId: data.firebase_project_id,
   };
-
-  return _config;
 };
 
-/**
- * Redirect the browser to the provider OAuth page.
- * Stores sessionId so completeProviderSignIn can finish the flow.
- */
+const initializeFirebaseAuth = async (): Promise<Auth> => {
+  if (firebaseAuth) return firebaseAuth;
+
+  if (!firebaseInitialization) {
+    firebaseInitialization = fetchConfig().then((config) => {
+      firebaseApp = initializeApp(config);
+      firebaseAuth = getAuth(firebaseApp);
+      return firebaseAuth;
+    });
+  }
+
+  return firebaseInitialization;
+};
+
+const providerFactories: Record<ProviderKey, () => AuthProvider> = {
+  google: () => {
+    const provider = new GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
+    return provider;
+  },
+  github: () => {
+    const provider = new GithubAuthProvider();
+    provider.addScope('user:email');
+    return provider;
+  },
+  apple: () => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    return provider;
+  },
+  microsoft: () => {
+    const provider = new OAuthProvider('microsoft.com');
+    provider.addScope('email');
+    provider.addScope('profile');
+    return provider;
+  },
+};
+
 export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void> => {
-  const { apiKey } = await fetchConfig();
-
-  const continueUri = `${window.location.origin}/auth/callback`;
-  const providerId  = PROVIDERS[provider];
-
-  const response = await fetch(
-    `${BASE}/accounts:createAuthUri?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        providerId,
-        continueUri,
-        ...(OAUTH_SCOPES[provider] ? { oauthScope: OAUTH_SCOPES[provider] } : {}),
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error((err && err.error && err.error.message) || 'Failed to initiate sign in');
-  }
-
-  const data = await response.json();
-  sessionStorage.setItem('firebase_session_id', data.sessionId);
-  sessionStorage.setItem('firebase_provider',   provider);
-  window.location.href = data.authUri;
+  const auth = await initializeFirebaseAuth();
+  await signInWithRedirect(auth, providerFactories[provider]());
 };
 
-/**
- * Complete the OAuth flow after provider redirect.
- * Call from the /auth/callback route component.
- * Returns a Firebase ID token.
- */
+/** Complete the provider redirect and return its Firebase ID token. */
 export const completeProviderSignIn = async (): Promise<string> => {
-  const { apiKey } = await fetchConfig();
+  const auth = await initializeFirebaseAuth();
+  const credential: UserCredential | null = await getRedirectResult(auth);
 
-  const requestUri = window.location.href;
-  const sessionId  = sessionStorage.getItem('firebase_session_id');
-
-  if (!sessionId) {
-    throw new Error('No Firebase session found. Please try signing in again.');
+  if (!credential) {
+    throw new Error('No Firebase sign-in result was returned. Please try signing in again.');
   }
 
-  sessionStorage.removeItem('firebase_session_id');
-  sessionStorage.removeItem('firebase_provider');
-
-  const response = await fetch(
-    `${BASE}/accounts:signInWithIdp?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestUri,
-        sessionId,
-        returnIdpCredential: true,
-        returnSecureToken:   true,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error((err && err.error && err.error.message) || 'Sign in failed');
-  }
-
-  const data = await response.json();
-  return data.idToken;
+  return credential.user.getIdToken();
 };
 
-// Convenience wrappers
-export const signInWithGoogle    = () => initiateProviderSignIn('google');
-export const signInWithApple     = () => initiateProviderSignIn('apple');
-export const signInWithGitHub    = () => initiateProviderSignIn('github');
-export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
+export const signInWithGoogle = (): Promise<void> => initiateProviderSignIn('google');
+export const signInWithApple = (): Promise<void> => initiateProviderSignIn('apple');
+export const signInWithGitHub = (): Promise<void> => initiateProviderSignIn('github');
+export const signInWithMicrosoft = (): Promise<void> => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
-  sessionStorage.removeItem('firebase_session_id');
-  sessionStorage.removeItem('firebase_provider');
+  const auth = await initializeFirebaseAuth();
+  await signOut(auth);
 };
