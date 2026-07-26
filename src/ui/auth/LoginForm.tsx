@@ -1,6 +1,4 @@
-// @ts-nocheck
 import * as React from "react";
-import { useNavigate } from 'react-router-dom';
 import { connect } from "react-redux";
 
 import TextField from "@mui/material/TextField";
@@ -11,7 +9,7 @@ import { Routing } from "app/constants";
 import { emailValid } from "app/utils";
 
 import { State as ReduxState, ScopedThunkDispatch } from "ui/reducer";
-import { loginUserAction, firebaseLoginAction, totpLoginSuccessAction } from "ui/auth/actions";
+import { loginUserAction, totpLoginSuccessAction } from "ui/auth/actions";
 import { Action as AuthAction } from "ui/auth/constants";
 import { LoginFields, loginPrefix } from "ui/auth/constants";
 import { AuthForm } from "ui/auth/interfaces";
@@ -37,7 +35,6 @@ const passwordFields = {
 interface OwnProps {}
 interface DispatchProps {
   loginUser: (authForm: AuthForm) => Promise<void>;
-  firebaseLogin: (idToken: string) => Promise<void>;
   totpLoginSuccess: (member: any) => Promise<void>;
   pushLocation: (location: string) => void;
   clearTotpRequired: () => void;
@@ -309,9 +306,8 @@ const mapDispatchToProps = (
 ): DispatchProps => {
   return {
     loginUser: (authForm) => dispatch(loginUserAction(authForm)),
-    firebaseLogin: (idToken) => dispatch(firebaseLoginAction(idToken)),
     totpLoginSuccess: (member) => dispatch(totpLoginSuccessAction(member)),
-    pushLocation: (location) => navigate(location),
+    pushLocation: (location) => { window.location.href = location; },
     clearTotpRequired: () => dispatch({ type: AuthAction.ClearTotpRequired }),
   };
 }
