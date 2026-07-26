@@ -1,153 +1,128 @@
-/**
- * firebase.ts
- *
- * Firebase Authentication using the REST API only — no SDK required.
- * Avoids Node/TypeScript version incompatibilities with the Firebase npm package.
- *
- * Flow:
- *  1. fetchConfig() loads FIREBASE_API_KEY and FIREBASE_PROJECT_ID from Rails
- *     GET /api/config at runtime — keys never baked into the JS bundle.
- *  2. Call initiateProviderSignIn to redirect to OAuth provider
- *  3. Provider redirects back to /auth/callback
- *  4. Call completeProviderSignIn to exchange for a Firebase ID token
- *  5. POST the ID token to Rails /api/auth/firebase_login
- */
-
-const BASE = 'https://identitytoolkit.googleapis.com/v1';
-
-const PROVIDERS: Record<string, string> = {
-  google:    'google.com',
-  apple:     'apple.com',
-  github:    'github.com',
-  microsoft: 'microsoft.com',
-};
-
-// OAuth scopes to request per provider.
-// 'profile' is required to include name fields in the Firebase ID token.
-// Without this, Google only returns email — name is absent from the JWT.
-const OAUTH_SCOPES: Partial<Record<ProviderKey, string>> = {
-  google:    'email profile',
-  apple:     'email name',
-  microsoft: 'email profile',
-};
+/** Firebase Authentication bridge backed by the official modular SDK. */
+import { FirebaseApp, getApp, getApps, initializeApp } from 'firebase/app';
+import {
+  Auth,
+  AuthProvider,
+  GithubAuthProvider,
+  GoogleAuthProvider,
+  OAuthProvider,
+  getAuth,
+  getRedirectResult,
+  signInWithRedirect,
+  signOut,
+} from 'firebase/auth';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 
-// Runtime config cache — fetched once from /api/config
-interface FirebaseConfig {
-  apiKey:    string;
-  projectId: string;
+interface RuntimeConfigResponse {
+  firebase_api_key?: unknown;
+  firebase_project_id?: unknown;
+  firebase_auth_domain?: unknown;
 }
 
-let _config: FirebaseConfig | null = null;
+interface FirebaseServices {
+  app: FirebaseApp;
+  auth: Auth;
+}
 
-const fetchConfig = async (): Promise<FirebaseConfig> => {
-  if (_config) return _config;
+const PENDING_PROVIDER_KEY = 'firebase_pending_provider';
+let initializer: Promise<FirebaseServices> | undefined;
 
-  const response = await fetch('/api/config', {
-    headers: { 'Content-Type': 'application/json' },
+const requiredString = (value: unknown, setting: string): string => {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`Firebase is not configured. Set ${setting} in your environment.`);
+  }
+  return value;
+};
+
+const initializeFirebase = (): Promise<FirebaseServices> => {
+  if (initializer) return initializer;
+
+  initializer = (async () => {
+    const response = await fetch('/api/config', {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) {
+      throw new Error('Failed to load Firebase configuration from server.');
+    }
+
+    const config = await response.json() as RuntimeConfigResponse;
+    const firebaseConfig = {
+      apiKey: requiredString(config.firebase_api_key, 'FIREBASE_API_KEY'),
+      projectId: requiredString(config.firebase_project_id, 'FIREBASE_PROJECT_ID'),
+      authDomain: requiredString(config.firebase_auth_domain, 'FIREBASE_AUTH_DOMAIN'),
+    };
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    return { app, auth: getAuth(app) };
+  })();
+
+  // A transient config/network error must not poison all subsequent attempts.
+  initializer.catch(() => {
+    initializer = undefined;
   });
+  return initializer;
+};
 
-  if (!response.ok) {
-    throw new Error('Failed to load Firebase configuration from server.');
+const providerFor = (provider: ProviderKey): AuthProvider => {
+  switch (provider) {
+    case 'google': {
+      const google = new GoogleAuthProvider();
+      google.addScope('profile');
+      google.addScope('email');
+      return google;
+    }
+    case 'github':
+      return new GithubAuthProvider();
+    case 'apple': {
+      const apple = new OAuthProvider('apple.com');
+      apple.addScope('email');
+      apple.addScope('name');
+      return apple;
+    }
+    case 'microsoft': {
+      const microsoft = new OAuthProvider('microsoft.com');
+      microsoft.addScope('email');
+      microsoft.addScope('profile');
+      return microsoft;
+    }
   }
-
-  const data = await response.json();
-
-  if (!data.firebase_api_key) {
-    throw new Error('Firebase is not configured. Set FIREBASE_API_KEY in your environment.');
-  }
-
-  _config = {
-    apiKey:    data.firebase_api_key,
-    projectId: data.firebase_project_id,
-  };
-
-  return _config;
 };
 
 /**
- * Redirect the browser to the provider OAuth page.
- * Stores sessionId so completeProviderSignIn can finish the flow.
+ * Stage the provider and move to the callback before starting Firebase's
+ * redirect. Firebase therefore uses /auth/callback as its continuation URI.
  */
 export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void> => {
-  const { apiKey } = await fetchConfig();
-
-  const continueUri = `${window.location.origin}/auth/callback`;
-  const providerId  = PROVIDERS[provider];
-
-  const response = await fetch(
-    `${BASE}/accounts:createAuthUri?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        providerId,
-        continueUri,
-        ...(OAUTH_SCOPES[provider] ? { oauthScope: OAUTH_SCOPES[provider] } : {}),
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error((err && err.error && err.error.message) || 'Failed to initiate sign in');
-  }
-
-  const data = await response.json();
-  sessionStorage.setItem('firebase_session_id', data.sessionId);
-  sessionStorage.setItem('firebase_provider',   provider);
-  window.location.href = data.authUri;
+  await initializeFirebase();
+  sessionStorage.setItem(PENDING_PROVIDER_KEY, provider);
+  window.location.assign('/auth/callback');
 };
 
-/**
- * Complete the OAuth flow after provider redirect.
- * Call from the /auth/callback route component.
- * Returns a Firebase ID token.
- */
+/** Finish a Firebase redirect, returning the SDK-issued ID token. */
 export const completeProviderSignIn = async (): Promise<string> => {
-  const { apiKey } = await fetchConfig();
+  const { auth } = await initializeFirebase();
+  const result = await getRedirectResult(auth);
+  if (result) return result.user.getIdToken();
 
-  const requestUri = window.location.href;
-  const sessionId  = sessionStorage.getItem('firebase_session_id');
-
-  if (!sessionId) {
-    throw new Error('No Firebase session found. Please try signing in again.');
+  const pendingProvider = sessionStorage.getItem(PENDING_PROVIDER_KEY) as ProviderKey | null;
+  if (!pendingProvider || !['google', 'apple', 'github', 'microsoft'].includes(pendingProvider)) {
+    throw new Error('No Firebase sign-in redirect found. Please try signing in again.');
   }
 
-  sessionStorage.removeItem('firebase_session_id');
-  sessionStorage.removeItem('firebase_provider');
-
-  const response = await fetch(
-    `${BASE}/accounts:signInWithIdp?key=${apiKey}`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestUri,
-        sessionId,
-        returnIdpCredential: true,
-        returnSecureToken:   true,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error((err && err.error && err.error.message) || 'Sign in failed');
-  }
-
-  const data = await response.json();
-  return data.idToken;
+  sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  await signInWithRedirect(auth, providerFor(pendingProvider));
+  throw new Error('Firebase sign-in redirect did not start. Please try again.');
 };
 
-// Convenience wrappers
-export const signInWithGoogle    = () => initiateProviderSignIn('google');
-export const signInWithApple     = () => initiateProviderSignIn('apple');
-export const signInWithGitHub    = () => initiateProviderSignIn('github');
+export const signInWithGoogle = () => initiateProviderSignIn('google');
+export const signInWithApple = () => initiateProviderSignIn('apple');
+export const signInWithGitHub = () => initiateProviderSignIn('github');
 export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
-  sessionStorage.removeItem('firebase_session_id');
-  sessionStorage.removeItem('firebase_provider');
+  sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  const { auth } = await initializeFirebase();
+  // Ensure persisted credentials have been restored before attempting logout.
+  await auth.authStateReady();
+  await signOut(auth);
 };
