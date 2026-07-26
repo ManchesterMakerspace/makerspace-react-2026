@@ -87,6 +87,28 @@ describe('Firebase Authentication SDK bridge', () => {
     });
   });
 
+  it('retries initialization after a transient configuration failure', async () => {
+    (window.fetch as jest.Mock)
+      .mockRejectedValueOnce(new Error('network unavailable'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          firebase_api_key: 'retry-key',
+          firebase_auth_domain: 'retry.example.test',
+        }),
+      });
+
+    await expect(initiateProviderSignIn('google')).rejects.toThrow('network unavailable');
+    await expect(initiateProviderSignIn('google')).resolves.toBeUndefined();
+
+    expect(window.fetch).toHaveBeenCalledTimes(2);
+    expect(initializeApp).toHaveBeenCalledWith({
+      apiKey: 'retry-key',
+      authDomain: 'retry.example.test',
+    });
+    expect(signInWithRedirect).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     ['google', 'google', ['email', 'profile']],
     ['github', 'github', []],

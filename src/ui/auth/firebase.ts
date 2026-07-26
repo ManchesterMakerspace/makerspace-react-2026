@@ -55,7 +55,16 @@ const initializeFirebaseAuth = async (): Promise<Auth> => {
 };
 
 export const getFirebaseAuth = (): Promise<Auth> => {
-  if (!authPromise) authPromise = initializeFirebaseAuth();
+  if (!authPromise) {
+    const initialization = initializeFirebaseAuth().catch((error: unknown) => {
+      // Do not permanently cache a transient configuration or SDK failure.
+      // Only clear this attempt so a newer concurrent initialization cannot be
+      // discarded by an older promise settling later.
+      if (authPromise === initialization) authPromise = undefined;
+      throw error;
+    });
+    authPromise = initialization;
+  }
   return authPromise;
 };
 
