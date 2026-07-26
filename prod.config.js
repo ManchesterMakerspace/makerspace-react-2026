@@ -114,11 +114,7 @@ module.exports = env => ({
     }),
     new webpack.EnvironmentPlugin({
       BILLING_ENABLED: true,
-      BASE_URL: (env && env.BASE_URL) || "",
-      FIREBASE_API_KEY: "",
-      FIREBASE_AUTH_DOMAIN: "",
-      FIREBASE_PROJECT_ID: "",
-      FIREBASE_APP_ID: "",
+      BASE_URL: (env && env.BASE_URL) || ""
     })
   ]
 });

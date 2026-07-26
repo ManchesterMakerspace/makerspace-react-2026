@@ -5,8 +5,8 @@
  * Avoids Node/TypeScript version incompatibilities with the Firebase npm package.
  *
  * Flow:
- *  1. fetchConfig() loads FIREBASE_API_KEY and FIREBASE_PROJECT_ID from Rails
- *     GET /api/config at runtime — keys never baked into the JS bundle.
+ *  1. fetchConfig() loads the public Firebase web configuration from Rails
+ *     GET /api/config at runtime — values are never baked into the JS bundle.
  *  2. Call initiateProviderSignIn to redirect to OAuth provider
  *  3. Provider redirects back to /auth/callback
  *  4. Call completeProviderSignIn to exchange for a Firebase ID token
@@ -35,8 +35,17 @@ export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 
 // Runtime config cache — fetched once from /api/config
 interface FirebaseConfig {
-  apiKey:    string;
-  projectId: string;
+  apiKey:     string;
+  authDomain: string;
+  projectId:  string;
+  appId:      string;
+}
+
+interface ConfigResponse {
+  firebase_api_key?: unknown;
+  firebase_auth_domain?: unknown;
+  firebase_project_id?: unknown;
+  firebase_app_id?: unknown;
 }
 
 let _config: FirebaseConfig | null = null;
@@ -52,15 +61,24 @@ const fetchConfig = async (): Promise<FirebaseConfig> => {
     throw new Error('Failed to load Firebase configuration from server.');
   }
 
-  const data = await response.json();
+  const data: ConfigResponse = await response.json();
 
-  if (!data.firebase_api_key) {
-    throw new Error('Firebase is not configured. Set FIREBASE_API_KEY in your environment.');
+  const requiredValues = [
+    data.firebase_api_key,
+    data.firebase_auth_domain,
+    data.firebase_project_id,
+    data.firebase_app_id,
+  ];
+
+  if (requiredValues.some(value => typeof value !== 'string' || value.trim() === '')) {
+    throw new Error('Firebase public web configuration is incomplete.');
   }
 
   _config = {
-    apiKey:    data.firebase_api_key,
-    projectId: data.firebase_project_id,
+    apiKey:     data.firebase_api_key as string,
+    authDomain: data.firebase_auth_domain as string,
+    projectId:  data.firebase_project_id as string,
+    appId:      data.firebase_app_id as string,
   };
 
   return _config;
