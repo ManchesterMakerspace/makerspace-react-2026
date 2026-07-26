@@ -37,6 +37,27 @@ describe("global authentication interception", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "AUTH/LOGOUT" });
   });
 
+  it("leaves Firebase login 401 responses for the login flow to handle", async () => {
+    const dispatch = jest.fn();
+    const use = jest.fn();
+    const api = {
+      interceptors: {
+        response: { use },
+      },
+    } as any;
+    setGlobalDispatch(dispatch);
+    attachGlobalAuthInterceptor(api);
+
+    const rejectResponse = use.mock.calls[0][1];
+    const error = {
+      config: { url: "/api/auth/firebase_login" },
+      response: { status: 401 },
+    };
+    await expect(rejectResponse(error)).rejects.toBe(error);
+
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it("handles API 401 responses returned through window.fetch", async () => {
     const dispatch = jest.fn();
     const originalFetch = jest.fn().mockResolvedValue({ status: 401 });
@@ -48,5 +69,13 @@ describe("global authentication interception", () => {
     expect(originalFetch).toHaveBeenCalledWith("/api/reservations");
     expect(dispatch).toHaveBeenCalledWith({ type: "reset" });
     expect(dispatch).toHaveBeenCalledWith({ type: "AUTH/LOGOUT" });
+    dispatch.mockClear();
+
+    await window.fetch("/api/members/sign_in");
+    await window.fetch("/api/auth/firebase_login");
+
+    expect(originalFetch).toHaveBeenCalledWith("/api/members/sign_in");
+    expect(originalFetch).toHaveBeenCalledWith("/api/auth/firebase_login");
+    expect(dispatch).not.toHaveBeenCalled();
   });
 });
