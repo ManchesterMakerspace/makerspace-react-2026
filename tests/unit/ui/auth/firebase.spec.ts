@@ -3,6 +3,7 @@ const getApps = jest.fn();
 const getApp = jest.fn();
 const getAuth = jest.fn();
 const getRedirectResult = jest.fn();
+const signInWithPopup = jest.fn();
 const signInWithRedirect = jest.fn();
 const signOut = jest.fn();
 const addGoogleScope = jest.fn();
@@ -11,6 +12,7 @@ jest.mock('firebase/app', () => ({ initializeApp, getApps, getApp }));
 jest.mock('firebase/auth', () => ({
   getAuth,
   getRedirectResult,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
   GoogleAuthProvider: jest.fn(() => ({ addScope: addGoogleScope })),
@@ -97,6 +99,35 @@ describe('Firebase SDK authentication bridge', () => {
     expect(addGoogleScope).toHaveBeenCalledWith('profile');
     expect(signInWithRedirect).toHaveBeenCalledWith(auth, expect.any(Object));
     expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
+  });
+
+  it('does not restart a redirect that returned without a credential', async () => {
+    getRedirectResult.mockResolvedValue(null);
+    sessionStorage.setItem('firebase_pending_provider', 'google');
+    sessionStorage.setItem('firebase_redirect_started', 'true');
+    const { completeProviderSignIn } = await import('ui/auth/firebase');
+
+    await expect(completeProviderSignIn()).rejects.toThrow('returned without a credential');
+
+    expect(signInWithRedirect).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBeNull();
+  });
+
+  it('uses popup authentication when configured and returns its token', async () => {
+    const getIdToken = jest.fn().mockResolvedValue('popup-token');
+    signInWithPopup.mockResolvedValue({ user: { getIdToken } });
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...runtimeConfig, firebase_auth_type: 'signInWithPopup' }),
+    });
+    const { signInWithGoogle } = await import('ui/auth/firebase');
+
+    await expect(signInWithGoogle()).resolves.toBe('popup-token');
+
+    expect(signInWithPopup).toHaveBeenCalledWith(auth, expect.any(Object));
+    expect(signInWithRedirect).not.toHaveBeenCalled();
   });
 
   it('rejects runtime configuration that omits authDomain', async () => {

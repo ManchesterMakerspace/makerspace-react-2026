@@ -8,6 +8,7 @@ import {
   OAuthProvider,
   getAuth,
   getRedirectResult,
+  signInWithPopup,
   signInWithRedirect,
   signOut,
 } from 'firebase/auth';
@@ -18,14 +19,19 @@ interface RuntimeConfigResponse {
   firebase_api_key?: unknown;
   firebase_project_id?: unknown;
   firebase_auth_domain?: unknown;
+  firebase_auth_type?: unknown;
 }
+
+type FirebaseAuthType = 'popup' | 'redirect';
 
 interface FirebaseServices {
   app: FirebaseApp;
   auth: Auth;
+  authType: FirebaseAuthType;
 }
 
 const PENDING_PROVIDER_KEY = 'firebase_pending_provider';
+const REDIRECT_STARTED_KEY = 'firebase_redirect_started';
 let initializer: Promise<FirebaseServices> | undefined;
 
 const requiredString = (value: unknown, setting: string): string => {
@@ -52,8 +58,16 @@ const initializeFirebase = (): Promise<FirebaseServices> => {
       projectId: requiredString(config.firebase_project_id, 'FIREBASE_PROJECT_ID'),
       authDomain: requiredString(config.firebase_auth_domain, 'FIREBASE_AUTH_DOMAIN'),
     };
+    const authType: FirebaseAuthType = ['popup', 'signInWithPopup'].includes(String(config.firebase_auth_type))
+      ? 'popup'
+      : 'redirect';
+    console.info('[Firebase Auth] Configuration loaded', {
+      authType,
+      authDomain: firebaseConfig.authDomain,
+      projectId: firebaseConfig.projectId,
+    });
     const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-    return { app, auth: getAuth(app) };
+    return { app, auth: getAuth(app), authType };
   })();
 
   // A transient config/network error must not poison all subsequent attempts.
@@ -88,34 +102,54 @@ const providerFor = (provider: ProviderKey): AuthProvider => {
   }
 };
 
-/**
- * Stage the provider and move to the callback before starting Firebase's
- * redirect. Firebase therefore uses /auth/callback as its continuation URI.
- */
-export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void> => {
-  await initializeFirebase();
+/** Start the configured popup flow, or stage the provider for the redirect callback. */
+export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void | string> => {
+  const { auth, authType } = await initializeFirebase();
+  console.info('[Firebase Auth] Starting provider authentication', { provider, authType });
+
+  if (authType === 'popup') {
+    console.info('[Firebase Auth] Opening provider popup', { provider });
+    const result = await signInWithPopup(auth, providerFor(provider));
+    console.info('[Firebase Auth] Provider popup completed', { provider, hasUser: !!result.user });
+    const idToken = await result.user.getIdToken();
+    console.info('[Firebase Auth] Popup ID token acquired', { provider });
+    return idToken;
+  }
+
   sessionStorage.setItem(PENDING_PROVIDER_KEY, provider);
+  sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+  console.info('[Firebase Auth] Provider staged for redirect callback', { provider });
   window.location.assign('/auth/callback');
 };
 
 /** Finish a Firebase redirect, returning the SDK-issued ID token. */
 export const completeProviderSignIn = async (): Promise<string> => {
   const { auth } = await initializeFirebase();
+  const pendingProvider = sessionStorage.getItem(PENDING_PROVIDER_KEY) as ProviderKey | null;
+  const redirectStarted = sessionStorage.getItem(REDIRECT_STARTED_KEY) === 'true';
+  console.info('[Firebase Auth] Checking redirect result', { pendingProvider, redirectStarted });
   const result = await getRedirectResult(auth);
   if (result) {
+    console.info('[Firebase Auth] Redirect credential received', { pendingProvider, hasUser: !!result.user });
     sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+    sessionStorage.removeItem(REDIRECT_STARTED_KEY);
     return result.user.getIdToken();
   }
 
-  const pendingProvider = sessionStorage.getItem(PENDING_PROVIDER_KEY) as ProviderKey | null;
+  console.info('[Firebase Auth] No redirect credential returned', { pendingProvider, redirectStarted });
   if (!pendingProvider || !['google', 'apple', 'github', 'microsoft'].includes(pendingProvider)) {
     throw new Error('No Firebase sign-in redirect found. Please try signing in again.');
   }
 
-  // Keep the provider marker until Firebase returns a credential. The redirect
-  // SDK may navigate after this promise resolves, so clearing it here makes the
-  // callback indistinguishable from a direct visit when redirect state is not
-  // immediately available on the subsequent page load.
+  if (redirectStarted) {
+    console.error('[Firebase Auth] Redirect returned without a credential', { pendingProvider });
+    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+    sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+    throw new Error('Firebase sign-in returned without a credential. Please try signing in again.');
+  }
+
+  sessionStorage.setItem(REDIRECT_STARTED_KEY, 'true');
+  console.info('[Firebase Auth] Sending browser to Firebase provider', { pendingProvider });
   await signInWithRedirect(auth, providerFor(pendingProvider));
   throw new Error('Firebase sign-in redirect did not start. Please try again.');
 };
@@ -127,6 +161,7 @@ export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
   sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  sessionStorage.removeItem(REDIRECT_STARTED_KEY);
   const { auth } = await initializeFirebase();
   // Ensure persisted credentials have been restored before attempting logout.
   await auth.authStateReady();

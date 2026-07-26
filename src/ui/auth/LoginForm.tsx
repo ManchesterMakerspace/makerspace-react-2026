@@ -102,12 +102,17 @@ class LoginForm extends React.Component<Props, State> {
     }
   }
 
-  private handleFirebaseSignIn = async (signInFn: () => Promise<void>) => {
+  private handleFirebaseSignIn = async (signInFn: () => Promise<void | string>) => {
     this.setState({ firebaseLoading: true, firebaseError: '' });
     try {
-      // This redirects the browser to the provider — page will navigate away
-      await signInFn();
+      const idToken = await signInFn();
+      if (idToken) {
+        console.info('[Firebase Auth] Sending popup credential to the application server');
+        await this.props.firebaseLogin(idToken);
+        this.setState({ firebaseLoading: false });
+      }
     } catch (err) {
+      console.error('[Firebase Auth] Provider authentication failed', err);
       const message = (err && (err as any).message) || 'Sign in failed. Please try again.';
       this.setState({ firebaseError: message, firebaseLoading: false });
     }
