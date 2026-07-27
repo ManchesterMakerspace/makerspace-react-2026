@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
 import Grid from "@mui/material/Grid";
-import { completeProviderSignIn } from 'ui/auth/firebase';
+import { clearProviderSignInState, completeProviderSignIn } from 'ui/auth/firebase';
 import { firebaseLoginAction } from 'ui/auth/actions';
 import { Routing } from 'app/constants';
 import { ScopedThunkDispatch } from 'ui/reducer';
@@ -38,8 +38,10 @@ class FirebaseCallback extends React.Component<Props, State> {
     try {
       const idToken = await completeProviderSignIn();
       await this.props.firebaseLogin(idToken);
+      clearProviderSignInState();
       this.props.navigate(Routing.Members);
     } catch (err: unknown) {
+      console.error('[Firebase Auth] Redirect callback failed', err);
       const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
       this.setState({ error: message });
     }
