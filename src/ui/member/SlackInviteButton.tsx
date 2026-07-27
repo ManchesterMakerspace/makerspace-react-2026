@@ -3,7 +3,9 @@ import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 import { Member } from 'makerspace-ts-api-client';
+import { apiErrorMessage } from 'ui/common/apiErrors';
 
 // Slack logo mark SVG
 const SlackIcon: React.FC = () => (
@@ -48,7 +50,7 @@ const SlackInviteButton: React.FC<Props> = ({ member }) => {
         setSuccess(true);
       } else {
         const body = await res.json().catch(() => ({}));
-        setError(body?.message || 'Failed to send Slack invite.');
+        setError(apiErrorMessage(body, 'Failed to send Slack invite.'));
       }
     } catch {
       setError('Network error — please try again.');
@@ -84,11 +86,13 @@ const SlackInviteButton: React.FC<Props> = ({ member }) => {
 
       <Snackbar
         open={!!error}
-        autoHideDuration={5000}
         onClose={() => setError(null)}
-        message={error}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      />
+      >
+        <Alert severity='error' onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
