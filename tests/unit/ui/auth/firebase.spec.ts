@@ -51,6 +51,7 @@ describe('Firebase SDK authentication bridge', () => {
 
   it('initializes the modular SDK with the runtime auth domain and returns its token', async () => {
     sessionStorage.setItem('firebase_pending_provider', 'google');
+    sessionStorage.setItem('firebase_redirect_started', 'true');
     const { completeProviderSignIn } = await import('ui/auth/firebase');
 
     await expect(completeProviderSignIn()).resolves.toBe('firebase-token');
@@ -62,6 +63,20 @@ describe('Firebase SDK authentication bridge', () => {
     });
     expect(getRedirectResult).toHaveBeenCalledWith(auth);
     expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBeNull();
+  });
+
+  it('preserves redirect markers when acquiring the ID token fails', async () => {
+    const getIdToken = jest.fn().mockRejectedValue(new Error('token refresh failed'));
+    getRedirectResult.mockResolvedValue({ user: { getIdToken } });
+    sessionStorage.setItem('firebase_pending_provider', 'google');
+    sessionStorage.setItem('firebase_redirect_started', 'true');
+    const { completeProviderSignIn } = await import('ui/auth/firebase');
+
+    await expect(completeProviderSignIn()).rejects.toThrow('token refresh failed');
+
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
   });
 
   it('clears a rejected initializer so a later attempt can retry', async () => {

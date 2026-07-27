@@ -138,9 +138,11 @@ export const completeProviderSignIn = async (): Promise<string> => {
   const result = await getRedirectResult(auth);
   if (result) {
     console.info('[Firebase Auth] Redirect credential received', { pendingProvider, hasUser: !!result.user });
+    const idToken = await result.user.getIdToken();
     sessionStorage.removeItem(PENDING_PROVIDER_KEY);
     sessionStorage.removeItem(REDIRECT_STARTED_KEY);
-    return result.user.getIdToken();
+    console.info('[Firebase Auth] Redirect ID token acquired', { pendingProvider });
+    return idToken;
   }
 
   console.info('[Firebase Auth] No redirect credential returned', { pendingProvider, redirectStarted });
