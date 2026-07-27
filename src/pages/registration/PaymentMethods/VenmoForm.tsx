@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import { usePaymentMethodsContext } from './PaymentMethodsContext';
 import { FormContextProvider, useFormContext } from 'components/Form/FormContext';
 import ErrorMessage from 'ui/common/ErrorMessage';
+import WarningMessage from 'ui/common/WarningMessage';
 import { FormField } from 'components/Form/FormField';
 import { venmoValidation } from './constants';
 import { message } from 'makerspace-ts-api-client';
@@ -141,7 +142,7 @@ export function useVenmoContext(): VenmoContext {
   return React.useContext(VenmoContext);
 }
 
-export const VenmoForm: React.FC = () => {
+export const VenmoForm: React.FC<{ active?: boolean }> = ({ active = true }) => {
   const { error: venmoError, initialize, tokenize, loading, ready, supported } = useVenmoContext();
   const { error: createPaymentMethodError } = usePaymentMethodsContext();
   const error = venmoError || createPaymentMethodError;
@@ -171,13 +172,11 @@ export const VenmoForm: React.FC = () => {
           >
             Pay with Venmo
           </Button>
-        ) : (
-          <Typography variant='body2' color='textSecondary'>
-            Venmo is not supported in your current browser. Please select another payment method.
-          </Typography>
-        )}
+        ) : active ? (
+          <WarningMessage warning='Venmo is not supported in your current browser. Please select another payment method.' />
+        ) : null}
         <FormField fieldName={venmoValidation} />
-        {error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
+        {active && error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
       </Grid>
     </Grid>
   );

@@ -90,7 +90,7 @@
     },
     "testRegex": "/tests/unit/.*\\.spec\\.(j|t)sx?$",
     "moduleNameMapper": {
-      "^(api|app|ui|documents)[/](.*)$": "<rootDir>/src/$1/$2"
+      "^(api|app|ui|documents|components|pages|hooks)[/](.*)$": "<rootDir>/src/$1/$2"
     },
     "moduleFileExtensions": [
       "js",

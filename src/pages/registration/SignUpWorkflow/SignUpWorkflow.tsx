@@ -39,6 +39,8 @@ import { buildNewMemberProfileRoute, buildProfileRouting } from "ui/member/utils
 import Link from "@mui/material/Link";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { invoiceOptionParam, noneInvoiceOption } from "../MembershipOptions/constants";
+import { DisplayedFeedbackProvider } from "components/Feedback/DisplayedFeedback";
+import { SignUpFeedbackNotification } from "./SignUpFeedbackNotification";
 
 interface Step {
   label: string;
@@ -70,7 +72,14 @@ const getSteps = (requiresPayment: boolean = true): Step[] => [
   ] : [],
 ];
 
-export const SignUpWorkflow: React.FC = () => {
+export const SignUpWorkflow: React.FC = () => (
+  <DisplayedFeedbackProvider>
+    <SignUpFeedbackNotification />
+    <SignUpWorkflowContent />
+  </DisplayedFeedbackProvider>
+);
+
+const SignUpWorkflowContent: React.FC = () => {
   const { currentUser, isRequesting } = useAuthState();
   const { current: authLoadingOnMount } = React.useRef(isRequesting);
   const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile);

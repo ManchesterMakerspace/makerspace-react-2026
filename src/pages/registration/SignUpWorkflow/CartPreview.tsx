@@ -18,6 +18,7 @@ import { FormField } from 'components/Form/FormField';
 import KeyValueItem from 'ui/common/KeyValueItem';
 import { useTotal } from './constant';
 import { useSignUpContext } from './SignUpContext';
+import WarningMessage from 'ui/common/WarningMessage';
 
 interface Props {
   readOnly?: boolean;
@@ -158,9 +159,7 @@ export const MembershipPreview: React.FC<Props> = ({ readOnly }) => {
                           label={'Student, Military, Senior 10% off'}
                         />
                         {isSsmDiscount && !planHasDiscount && (
-                          <Typography variant='body2' style={{ color: 'red' }}>
-                            Discount not available for selected membership plan.
-                          </Typography>
+                          <WarningMessage warning='Discount not available for selected membership plan.' />
                         )}
 
                         <TextInput

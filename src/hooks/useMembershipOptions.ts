@@ -1,27 +1,49 @@
 
 import * as React from "react";
 import useReadTransaction from "ui/hooks/useReadTransaction";
-import { InvoiceOption, listInvoiceOptions, InvoiceableResource, listBillingDiscounts, Discount } from "makerspace-ts-api-client";
-import { byAmount, defaultPlanId, noneInvoiceOption, prepaidInvoiceOption } from "pages/registration/MembershipOptions";
+import {
+  Discount,
+  InvoiceOption,
+  listBillingDiscounts,
+} from "makerspace-ts-api-client";
+import {
+  byAmount,
+  defaultPlanId,
+  discountParam,
+  invoiceOptionParam,
+  noneInvoiceOption,
+  prepaidInvoiceOption,
+} from "pages/registration/MembershipOptions/constants";
+import { useSearchQuery } from "hooks/useSearchQuery";
+import { getMembershipOptionsRequest } from "hooks/membershipOptionsRequest";
 
 interface ParsedInvoiceOptions {
   loading: boolean;
   error: string;
   promotionOptions: InvoiceOption[];
   normalOptions: InvoiceOption[];
-  defaultOption: InvoiceOption;
+  defaultOption?: InvoiceOption;
   allOptions: InvoiceOption[];
   discounts: Discount[];
 }
 
 export const useMembershipOptions = (includeNone?: boolean): ParsedInvoiceOptions => {
   const {
+    invoiceOptionId,
+    discountId,
+  } = useSearchQuery({
+    invoiceOptionId: invoiceOptionParam,
+    discountId: discountParam,
+  });
+  const optionsRequest = getMembershipOptionsRequest(invoiceOptionId, discountId);
+
+  const {
     isRequesting,
     error,
     data: membershipOptions
-  } = useReadTransaction(
-    listInvoiceOptions, 
-    { types: [InvoiceableResource.Member] },
+  } = useReadTransaction<any, InvoiceOption[]>(
+    optionsRequest.apiFunction as any,
+    optionsRequest.args as any,
     undefined,
     undefined,
     false
@@ -31,7 +53,7 @@ export const useMembershipOptions = (includeNone?: boolean): ParsedInvoiceOption
 
   return React.useMemo(() => {
     const promotionOptions: InvoiceOption[] = [];
-    let defaultOption: InvoiceOption;
+    let defaultOption: InvoiceOption | undefined;
 
     const normalOptions = (membershipOptions || []).reduce((opts, option) => {
       if (option.planId === defaultPlanId) {
@@ -53,7 +75,7 @@ export const useMembershipOptions = (includeNone?: boolean): ParsedInvoiceOption
       discounts: discounts || [],
       normalOptions: sortedNormalOpts.concat(includeNone ? [noneInvoiceOption] : []),
       defaultOption: defaultOption || sortedNormalOpts[0],
-      allOptions: promotionOptions.concat(sortedNormalOpts)
+      allOptions: promotionOptions.concat(sortedNormalOpts, includeNone ? [noneInvoiceOption] : [])
     };
   }, [membershipOptions, isRequesting, error, discounts]);
 }

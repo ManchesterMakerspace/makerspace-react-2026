@@ -5,6 +5,56 @@ import { PaymentPage } from '../pages/PaymentPage';
 import { buildTestMember, newVisa, newMastercard, adminMember } from '../fixtures/testData';
 import { createRejectCard } from '../fixtures/seed';
 
+test.describe('Signup catalog and feedback', () => {
+  test('Landing page uses the signup-eligible invoice options endpoint', async ({ page }) => {
+    const signupCatalogRequest = page.waitForRequest(request =>
+      request.url().includes('/api/invoice_options/signup')
+    );
+
+    await page.goto('/');
+    await signupCatalogRequest;
+    await expect(page.getByRole('cell', { name: 'One Month', exact: true }))
+      .toBeVisible({ timeout: 30_000 });
+  });
+
+  test('Explicit signup links retain the option and discount parameters', async ({ page }) => {
+    const optionId = '63dda79f724abf0002042ed8';
+    const discountId = '2026_Membership_Annual_Old';
+
+    await page.goto(`/signup?optionId=${optionId}&discountId=${discountId}`);
+
+    await expect(page).toHaveURL(new RegExp(`optionId=${optionId}`));
+    await expect(page).toHaveURL(new RegExp(`discountId=${discountId}`));
+  });
+
+  test('Validation feedback is deduplicated in a mobile bottom sheet', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/signup');
+
+    await page.getByRole('button', { name: 'Next' }).click();
+
+    const notification = page.getByTestId('signup-feedback-notification');
+    await expect(notification).toBeVisible();
+    await expect(notification.getByText('Required', { exact: true })).toHaveCount(1);
+    expect(
+      await page.locator("[id$='-error']").filter({ hasText: 'Required' }).count()
+    ).toBeGreaterThan(1);
+
+    const box = await notification.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box.width).toBeGreaterThanOrEqual(389);
+    expect(Math.abs(box.y + box.height - 844)).toBeLessThanOrEqual(1);
+
+    await page.getByTestId('signup-feedback-backdrop').click({
+      position: { x: 5, y: 5 },
+    });
+    await expect(notification).toBeHidden();
+    expect(
+      await page.locator("[id$='-error']").filter({ hasText: 'Required' }).count()
+    ).toBeGreaterThan(1);
+  });
+});
+
 // ── Test 1: Customer self-registers from home page ────────────────────────────
 
 test.describe('Self-registration from home page', () => {
