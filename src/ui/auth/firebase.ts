@@ -32,12 +32,14 @@ interface FirebaseServices {
 
 const PENDING_PROVIDER_KEY = 'firebase_pending_provider';
 const REDIRECT_STARTED_KEY = 'firebase_redirect_started';
+const REDIRECT_USER_UID_KEY = 'firebase_redirect_user_uid';
 let initializer: Promise<FirebaseServices> | undefined;
 
 /** Clear redirect recovery state after the application server accepts the token. */
 export const clearProviderSignInState = (): void => {
   sessionStorage.removeItem(PENDING_PROVIDER_KEY);
   sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+  sessionStorage.removeItem(REDIRECT_USER_UID_KEY);
   console.info('[Firebase Auth] Provider sign-in state cleared');
 };
 
@@ -132,6 +134,7 @@ export const initiateProviderSignIn = async (provider: ProviderKey): Promise<voi
 
   sessionStorage.setItem(PENDING_PROVIDER_KEY, provider);
   sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+  sessionStorage.removeItem(REDIRECT_USER_UID_KEY);
   console.info('[Firebase Auth] Provider staged for redirect callback', { provider });
   window.location.assign('/auth/callback');
 };
@@ -145,6 +148,7 @@ export const completeProviderSignIn = async (): Promise<string> => {
   const result = await getRedirectResult(auth);
   if (result) {
     console.info('[Firebase Auth] Redirect credential received', { pendingProvider, hasUser: !!result.user });
+    sessionStorage.setItem(REDIRECT_USER_UID_KEY, result.user.uid);
     const idToken = await result.user.getIdToken();
     console.info('[Firebase Auth] Redirect ID token acquired', { pendingProvider });
     return idToken;
@@ -156,25 +160,39 @@ export const completeProviderSignIn = async (): Promise<string> => {
   }
 
   if (redirectStarted) {
+    const redirectUserUid = sessionStorage.getItem(REDIRECT_USER_UID_KEY);
     console.info('[Firebase Auth] Redirect credential was already consumed; restoring authenticated user', {
       pendingProvider,
+      hasExpectedUser: !!redirectUserUid,
     });
     await auth.authStateReady();
-    if (auth.currentUser) {
+    if (auth.currentUser && redirectUserUid && auth.currentUser.uid === redirectUserUid) {
       const idToken = await auth.currentUser.getIdToken();
       console.info('[Firebase Auth] ID token recovered from restored user', { pendingProvider });
       return idToken;
     }
 
-    console.error('[Firebase Auth] Redirect returned without a credential or restored user', { pendingProvider });
+    console.error('[Firebase Auth] Redirect returned without the expected restored user', {
+      pendingProvider,
+      hasExpectedUser: !!redirectUserUid,
+      hasCurrentUser: !!auth.currentUser,
+      currentUserMatches: !!auth.currentUser && auth.currentUser.uid === redirectUserUid,
+    });
     sessionStorage.removeItem(PENDING_PROVIDER_KEY);
     sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+    sessionStorage.removeItem(REDIRECT_USER_UID_KEY);
     throw new Error('Firebase sign-in returned without a credential. Please try signing in again.');
   }
 
   sessionStorage.setItem(REDIRECT_STARTED_KEY, 'true');
   console.info('[Firebase Auth] Sending browser to Firebase provider', { pendingProvider });
-  await signInWithRedirect(auth, providerFor(pendingProvider));
+  try {
+    await signInWithRedirect(auth, providerFor(pendingProvider));
+  } catch (error) {
+    sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+    console.error('[Firebase Auth] Firebase provider redirect failed to launch', { pendingProvider, error });
+    throw error;
+  }
   throw new Error('Firebase sign-in redirect did not start. Please try again.');
 };
 
