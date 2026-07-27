@@ -34,6 +34,13 @@ const PENDING_PROVIDER_KEY = 'firebase_pending_provider';
 const REDIRECT_STARTED_KEY = 'firebase_redirect_started';
 let initializer: Promise<FirebaseServices> | undefined;
 
+/** Clear redirect recovery state after the application server accepts the token. */
+export const clearProviderSignInState = (): void => {
+  sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+  sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+  console.info('[Firebase Auth] Provider sign-in state cleared');
+};
+
 const requiredString = (value: unknown, setting: string): string => {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`Firebase is not configured. Set ${setting} in your environment.`);
@@ -139,8 +146,6 @@ export const completeProviderSignIn = async (): Promise<string> => {
   if (result) {
     console.info('[Firebase Auth] Redirect credential received', { pendingProvider, hasUser: !!result.user });
     const idToken = await result.user.getIdToken();
-    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
-    sessionStorage.removeItem(REDIRECT_STARTED_KEY);
     console.info('[Firebase Auth] Redirect ID token acquired', { pendingProvider });
     return idToken;
   }
@@ -157,8 +162,6 @@ export const completeProviderSignIn = async (): Promise<string> => {
     await auth.authStateReady();
     if (auth.currentUser) {
       const idToken = await auth.currentUser.getIdToken();
-      sessionStorage.removeItem(PENDING_PROVIDER_KEY);
-      sessionStorage.removeItem(REDIRECT_STARTED_KEY);
       console.info('[Firebase Auth] ID token recovered from restored user', { pendingProvider });
       return idToken;
     }
@@ -181,8 +184,7 @@ export const signInWithGitHub = () => initiateProviderSignIn('github');
 export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
-  sessionStorage.removeItem(PENDING_PROVIDER_KEY);
-  sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+  clearProviderSignInState();
   const { auth } = await initializeFirebase();
   // Ensure persisted credentials have been restored before attempting logout.
   await auth.authStateReady();

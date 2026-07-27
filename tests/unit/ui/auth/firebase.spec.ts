@@ -53,7 +53,7 @@ describe('Firebase SDK authentication bridge', () => {
     } as unknown as Response);
   });
 
-  it('initializes the modular SDK with the runtime auth domain and returns its token', async () => {
+  it('initializes Firebase and preserves redirect state after returning its token', async () => {
     sessionStorage.setItem('firebase_pending_provider', 'google');
     sessionStorage.setItem('firebase_redirect_started', 'true');
     const { completeProviderSignIn } = await import('ui/auth/firebase');
@@ -66,8 +66,8 @@ describe('Firebase SDK authentication bridge', () => {
       authDomain: 'login.example.test',
     });
     expect(getRedirectResult).toHaveBeenCalledWith(auth);
-    expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
-    expect(sessionStorage.getItem('firebase_redirect_started')).toBeNull();
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
   });
 
   it('preserves redirect markers when acquiring the ID token fails', async () => {
@@ -142,6 +142,17 @@ describe('Firebase SDK authentication bridge', () => {
     expect(authStateReady).toHaveBeenCalled();
     expect(getIdToken).toHaveBeenCalledTimes(2);
     expect(signInWithRedirect).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
+  });
+
+  it('clears redirect markers only when explicitly finalized after server login', async () => {
+    sessionStorage.setItem('firebase_pending_provider', 'google');
+    sessionStorage.setItem('firebase_redirect_started', 'true');
+    const { clearProviderSignInState } = await import('ui/auth/firebase');
+
+    clearProviderSignInState();
+
     expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
     expect(sessionStorage.getItem('firebase_redirect_started')).toBeNull();
   });
