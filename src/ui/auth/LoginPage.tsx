@@ -18,7 +18,11 @@ const LoginPage: React.FC = () => {
     <Grid container spacing={3}>
       <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
         <Grid size={{ sm: 12, md: 6 }} id="landing-page-graphic">
-          <img src={logoUrl} style={{ width: '100%', height: '200px' }} alt="Manchester Makerspace" />
+          <img
+            src={logoUrl}
+            style={{ width: '100%', height: '200px', objectFit: 'contain' }}
+            alt="Manchester Makerspace"
+          />
         </Grid>
       </Box>
 

@@ -39,7 +39,11 @@ const logoUrl = "/assets/FilledLaserableLogo.svg";
       <Grid container spacing={3} justifyContent="center">
         <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
           <Grid size={{ lg: 6 }}>
-            <img src={logoUrl} style={{ width: "100%", height: "200px" }} alt="Manchester Makerspace" />
+            <img
+              src={logoUrl}
+              style={{ width: "100%", height: "200px", objectFit: "contain" }}
+              alt="Manchester Makerspace"
+            />
           </Grid>
         </Box>
 
@@ -80,4 +84,3 @@ const logoUrl = "/assets/FilledLaserableLogo.svg";
 };
 
 export default LandingPage;
- 

@@ -26,7 +26,8 @@ const sessionEstablishmentPaths = [
 ];
 
 export const shouldRedirectToLogin = (pathname: string): boolean =>
-  !publicPaths.some(path => pathname.startsWith(path));
+  pathname !== Routing.Root
+  && !publicPaths.some(path => pathname.startsWith(path));
 
 const isApiRequest = (input: RequestInfo | URL): boolean => {
   if (typeof window === 'undefined') return false;
