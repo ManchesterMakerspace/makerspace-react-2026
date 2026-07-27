@@ -13,6 +13,7 @@ describe("global authentication interception", () => {
   it("recognizes protected and public routes", () => {
     expect(shouldRedirectToLogin("/members/123")).toBe(true);
     expect(shouldRedirectToLogin("/reservations")).toBe(true);
+    expect(shouldRedirectToLogin("/")).toBe(false);
     expect(shouldRedirectToLogin("/login")).toBe(false);
     expect(shouldRedirectToLogin("/signup")).toBe(false);
     expect(shouldRedirectToLogin("/resetPassword")).toBe(false);
