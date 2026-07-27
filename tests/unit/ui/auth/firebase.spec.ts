@@ -29,7 +29,10 @@ const runtimeConfig = {
 describe('Firebase SDK authentication bridge', () => {
   const app = { name: 'app' };
   const authStateReady = jest.fn();
-  const auth = { authStateReady };
+  const auth: { authStateReady: jest.Mock; currentUser: null | { getIdToken: jest.Mock } } = {
+    authStateReady,
+    currentUser: null,
+  };
 
   beforeEach(() => {
     jest.resetModules();
@@ -38,6 +41,7 @@ describe('Firebase SDK authentication bridge', () => {
     getApps.mockReturnValue([]);
     initializeApp.mockReturnValue(app);
     getAuth.mockReturnValue(auth);
+    auth.currentUser = null;
     authStateReady.mockResolvedValue(undefined);
     signOut.mockResolvedValue(undefined);
     getRedirectResult.mockResolvedValue({
@@ -117,7 +121,32 @@ describe('Firebase SDK authentication bridge', () => {
     expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
   });
 
-  it('does not restart a redirect that returned without a credential', async () => {
+  it('recovers the token from restored auth after the redirect credential was consumed', async () => {
+    const getIdToken = jest.fn()
+      .mockRejectedValueOnce(new Error('token refresh failed'))
+      .mockResolvedValueOnce('restored-token');
+    auth.currentUser = { getIdToken };
+    getRedirectResult
+      .mockResolvedValueOnce({ user: auth.currentUser })
+      .mockResolvedValueOnce(null);
+    sessionStorage.setItem('firebase_pending_provider', 'google');
+    sessionStorage.setItem('firebase_redirect_started', 'true');
+    const { completeProviderSignIn } = await import('ui/auth/firebase');
+
+    await expect(completeProviderSignIn()).rejects.toThrow('token refresh failed');
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBe('google');
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBe('true');
+
+    await expect(completeProviderSignIn()).resolves.toBe('restored-token');
+
+    expect(authStateReady).toHaveBeenCalled();
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    expect(signInWithRedirect).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('firebase_pending_provider')).toBeNull();
+    expect(sessionStorage.getItem('firebase_redirect_started')).toBeNull();
+  });
+
+  it('does not restart a redirect when no credential or restored user exists', async () => {
     getRedirectResult.mockResolvedValue(null);
     sessionStorage.setItem('firebase_pending_provider', 'google');
     sessionStorage.setItem('firebase_redirect_started', 'true');

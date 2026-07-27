@@ -151,7 +151,19 @@ export const completeProviderSignIn = async (): Promise<string> => {
   }
 
   if (redirectStarted) {
-    console.error('[Firebase Auth] Redirect returned without a credential', { pendingProvider });
+    console.info('[Firebase Auth] Redirect credential was already consumed; restoring authenticated user', {
+      pendingProvider,
+    });
+    await auth.authStateReady();
+    if (auth.currentUser) {
+      const idToken = await auth.currentUser.getIdToken();
+      sessionStorage.removeItem(PENDING_PROVIDER_KEY);
+      sessionStorage.removeItem(REDIRECT_STARTED_KEY);
+      console.info('[Firebase Auth] ID token recovered from restored user', { pendingProvider });
+      return idToken;
+    }
+
+    console.error('[Firebase Auth] Redirect returned without a credential or restored user', { pendingProvider });
     sessionStorage.removeItem(PENDING_PROVIDER_KEY);
     sessionStorage.removeItem(REDIRECT_STARTED_KEY);
     throw new Error('Firebase sign-in returned without a credential. Please try signing in again.');
