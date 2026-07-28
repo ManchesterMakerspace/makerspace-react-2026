@@ -1,6 +1,7 @@
 import axios from "axios";
 import {
-  Reservation, ReservationCatalog, ReservationInput, ReservationPreview,
+  Reservation, ReservationBlackout, ReservationBlackoutInput,
+  ReservationCatalog, ReservationInput, ReservationPreview,
   SubscriptionCancellationImpact
 } from "app/entities/reservation";
 import { apiErrorMessage } from "ui/common/apiErrors";
@@ -112,6 +113,33 @@ export const denyReservation = ({ id, body: value }: { id: string; body?: { deci
 
 export const cancelManagedReservation = ({ id }: { id: string }) =>
   wrap<Reservation>(api.delete(`/api/admin/reservations/${id}`));
+
+export const reservationBlackoutBody = (input: ReservationBlackoutInput) => ({
+  title: input.title,
+  shop_id: input.shopId,
+  recurrence: input.recurrence,
+  weekday: input.recurrence === "weekly" ? input.weekday : null,
+  start_time: input.startTime,
+  end_time: input.endTime,
+  start_date: input.startDate || null,
+  end_date: input.endDate || null,
+});
+
+export const listReservationBlackouts = (params?: { shopId?: string }) =>
+  wrap<ReservationBlackout[]>(api.get("/api/admin/reservation_blackouts", {
+    params: { shop_id: params?.shopId }
+  }));
+
+export const createReservationBlackout = ({ body: input }: { body: ReservationBlackoutInput }) =>
+  wrap<ReservationBlackout>(api.post("/api/admin/reservation_blackouts", reservationBlackoutBody(input)));
+
+export const updateReservationBlackout = ({
+  id, body: input
+}: { id: string; body: ReservationBlackoutInput }) =>
+  wrap<ReservationBlackout>(api.put(`/api/admin/reservation_blackouts/${id}`, reservationBlackoutBody(input)));
+
+export const deleteReservationBlackout = ({ id }: { id: string }) =>
+  wrap<{}>(api.delete(`/api/admin/reservation_blackouts/${id}`));
 
 export const getSubscriptionCancellationImpact = ({ id, admin = false }: { id: string; admin?: boolean }) =>
   wrap<SubscriptionCancellationImpact>(

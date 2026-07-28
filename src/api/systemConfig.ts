@@ -61,6 +61,10 @@ export interface TotpSettings {
   require_totp_rm: boolean;
 }
 
+export interface ReservationSettings {
+  reservation_token: string;
+}
+
 export interface SystemConfigData {
   flags: {
     slack_sync_enabled: boolean;
@@ -74,6 +78,7 @@ export interface SystemConfigData {
   slack: SlackSettings;
   volunteer: VolunteerSettings;
   totp: TotpSettings;
+  reservation: ReservationSettings;
 }
 
 /** A Braintree discount as returned by /api/billing/discounts */

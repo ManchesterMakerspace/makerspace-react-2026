@@ -39,11 +39,12 @@ import {
   BraintreeDiscount,
 } from 'api/systemConfig';
 
-type TabKey = 'slack' | 'volunteer' | 'jobs' | 'security';
+type TabKey = 'slack' | 'volunteer' | 'reservations' | 'jobs' | 'security';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'slack',     label: 'Slack' },
   { key: 'volunteer', label: 'Volunteer' },
+  { key: 'reservations', label: 'Reservations' },
   { key: 'jobs',      label: 'Jobs' },
   { key: 'security',  label: 'Security' },
 ];
@@ -536,6 +537,34 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
   </Grid>
 );
 
+const ReservationsTab: React.FC<{
+  config: SystemConfigData;
+  onSettingSave: (key: string, value: string) => Promise<void>;
+  savingKey: string | null;
+}> = ({ config, onSettingSave, savingKey }) => (
+  <Grid container spacing={3}>
+    <Grid size={{ xs: 12 }}>
+      <Card>
+        <CardHeader
+          title='Public Reservation Agenda'
+          subheader='Optional token protection for the public 24-hour shop and tool agenda.'
+        />
+        <Divider />
+        <CardContent>
+          <SettingRow
+            label='Reservation Token'
+            description='When nonblank, append this value as ?token=... to /reservations/agenda. Leave blank for public access.'
+            settingKey='reservation_token'
+            value={config.reservation.reservation_token}
+            onSave={onSettingSave}
+            saving={savingKey === 'reservation_token'}
+          />
+        </CardContent>
+      </Card>
+    </Grid>
+  </Grid>
+);
+
 // ── Jobs Tab ──────────────────────────────────────────────────────────────────
 
 interface JobsTabProps {
@@ -759,6 +788,8 @@ const MemberPortalSettings: React.FC = () => {
         setConfig({ ...config, slack: { ...config.slack, [key]: value } });
       } else if (key.startsWith('volunteer_')) {
         setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
+      } else if (key === 'reservation_token') {
+        setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
       }
     }
     setSavingKey(null);
@@ -835,6 +866,13 @@ const MemberPortalSettings: React.FC = () => {
             onFlagToggle={handleFlagToggle}
             onSettingSave={handleSettingSave}
             togglingFlag={togglingFlag}
+            savingKey={savingKey}
+          />
+        )}
+        {activeTab === 'reservations' && (
+          <ReservationsTab
+            config={config}
+            onSettingSave={handleSettingSave}
             savingKey={savingKey}
           />
         )}

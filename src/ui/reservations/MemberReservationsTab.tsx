@@ -10,6 +10,7 @@ import { listManagedReservations, listReservations } from "api/reservations";
 import { Reservation } from "app/entities/reservation";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
+import ApprovalDetails from "./ApprovalDetails";
 
 const ZONE = "America/New_York";
 
@@ -63,6 +64,9 @@ const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
         {moment(reservation.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} ·{" "}
         {resources}
       </Typography>
+      {reservation.status === "pending" && (
+        <ApprovalDetails details={reservation.approvalDetails} compact />
+      )}
     </Paper>
   );
 };

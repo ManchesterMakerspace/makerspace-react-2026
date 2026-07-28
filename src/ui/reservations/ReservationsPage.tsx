@@ -26,6 +26,8 @@ import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { reservationShopOptions } from "./reservationForm";
+import ApprovalDetails from "./ApprovalDetails";
+import ReservationBlackouts from "./ReservationBlackouts";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -253,8 +255,14 @@ const ReservationsPage: React.FC = () => {
     setSuccess(
       creating
         ? `Reservation "${savedReservation?.title || input.title}" was created successfully` +
-          `${savedReservation?.status ? ` with status ${savedReservation.status}` : ""}.`
-        : `Reservation "${savedReservation?.title || input.title}" was updated successfully.`
+          `${savedReservation?.status ? ` with status ${savedReservation.status}` : ""}.` +
+          `${savedReservation?.approvalDetails?.length
+            ? ` ${savedReservation.approvalDetails.map(detail => detail.message).join(" ")}`
+            : ""}`
+        : `Reservation "${savedReservation?.title || input.title}" was updated successfully.` +
+          `${savedReservation?.approvalDetails?.length
+            ? ` ${savedReservation.approvalDetails.map(detail => detail.message).join(" ")}`
+            : ""}`
     );
     await loadReservations();
   };
@@ -432,7 +440,9 @@ const ReservationsPage: React.FC = () => {
               </Alert>
             </Grid>
             {preview && <Grid size={{ xs: 12 }}>
-              {preview.requiresApproval && <Alert severity="warning">This reservation will require approval.</Alert>}
+              {preview.requiresApproval && !preview.approvalDetails?.length &&
+                <Alert severity="warning">This reservation will require approval.</Alert>}
+              {preview.requiresApproval && <ApprovalDetails details={preview.approvalDetails} />}
               {preview.missingPrerequisites.length > 0 &&
                 <Alert severity="error" style={{ marginTop: 6 }}>
                   Missing checkouts: {preview.missingPrerequisites.map(tool => tool.name).join(", ")}
@@ -486,6 +496,7 @@ const ReservationsPage: React.FC = () => {
               <strong><ReservationTitle reservation={item} /></strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
               <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
+              {item.status === "pending" && <ApprovalDetails details={item.approvalDetails} compact />}
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               {["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()) && <>
@@ -516,6 +527,7 @@ const ReservationsPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 8 }}>
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
                 <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")}</Typography>
+                <ApprovalDetails details={item.approvalDetails} compact />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <Button size="small" color="primary" onClick={() => decide(item.id, true)}>Approve</Button>
@@ -544,6 +556,10 @@ const ReservationsPage: React.FC = () => {
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")}
           </Typography>
         </Paper>)}
+      </Grid>}
+
+      {isManager && <Grid size={{ xs: 12, lg: 10 }}>
+        <ReservationBlackouts />
       </Grid>}
     </Grid>
   );
