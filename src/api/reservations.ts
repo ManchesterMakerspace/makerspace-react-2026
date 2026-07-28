@@ -1,6 +1,7 @@
 import axios from "axios";
 import {
   Reservation, ReservationBlackout, ReservationBlackoutInput,
+  ReservationBlackoutOccurrence,
   ReservationCatalog, ReservationInput, ReservationPreview,
   SubscriptionCancellationImpact
 } from "app/entities/reservation";
@@ -58,6 +59,11 @@ export const getReservationAvailability = (params: { date: string; shopId?: stri
     date: params.date,
     shop_id: params.shopId,
   } }));
+
+export const getReservationBlackouts = (params: { date: string; shopId: string }) =>
+  wrap<ReservationBlackoutOccurrence[]>(api.get("/api/reservations/blackouts", {
+    params: { date: params.date, shop_id: params.shopId }
+  }));
 
 export const previewReservation = ({ body: input }: { body: ReservationInput }) =>
   wrap<ReservationPreview>(api.post("/api/reservations/preview", body(input)));

@@ -1,6 +1,8 @@
 export interface Shop {
   id: string;
   name: string;
+  wikiUrl: string;
+  wikiUrlOverride?: string;
   slackChannel: string;
   disabled: boolean;
   toolCount: number;
@@ -26,6 +28,8 @@ export interface GoogleCalendarColor {
 export interface Tool {
   id: string;
   name: string;
+  wikiUrl: string;
+  wikiUrlOverride?: string;
   description?: string;
   disabled?: boolean;
   announce?: boolean;
@@ -59,6 +63,7 @@ export interface ToolCheckout {
   toolName: string;
   shopName: string;
   shopId: string;
+  shopWikiUrl?: string;
   checkedOutAt: string;
   revokedAt?: string;
   revocationReason?: string;

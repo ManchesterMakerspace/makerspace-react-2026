@@ -90,6 +90,13 @@ export interface ReservationBlackoutInput {
   endDate?: string;
 }
 
+export interface ReservationBlackoutOccurrence {
+  blackoutId: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+}
+
 export interface SubscriptionCancellationImpact {
   reservationCount: number;
   membershipExpiresAt?: string;

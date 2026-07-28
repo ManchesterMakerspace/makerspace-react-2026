@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 
 import { ScopedThunkDispatch } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
+import { getClientConfig } from "api/clientConfig";
 
 interface DispatchProps {
   logout: () => Promise<void>;
@@ -35,6 +36,16 @@ const linkStyle: React.CSSProperties = {
 const mailtoHref = `mailto:${"contact@manchestermakerspace.org"}?subject=${encodeURIComponent("Member Portal assistance request")}`;
 
 const FooterBase: React.FC<Props> = ({ logout }) => {
+  const [wikiUrl, setWikiUrl] = React.useState("");
+
+  React.useEffect(() => {
+    let active = true;
+    getClientConfig()
+      .then(config => active && setWikiUrl(config.wiki_url))
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
   const logoutAndGo = async (event: any, href: string) => {
     event.preventDefault();
     try {
@@ -49,9 +60,10 @@ const FooterBase: React.FC<Props> = ({ logout }) => {
       <a href="https://manchestermakerspace.org/" style={linkStyle} aria-label="Public Home" title="Public Home" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/")}>
         <span className="material-symbols-rounded" style={iconStyle}>home</span>
       </a>
-      <a href="https://wiki.manchestermakerspace.org/" style={linkStyle} aria-label="Public Wiki" title="Public Wiki" onClick={(e) => logoutAndGo(e, "https://wiki.manchestermakerspace.org/")}>
-        <span className="material-symbols-rounded" style={iconStyle}>help_center</span>
-      </a>
+      {wikiUrl &&
+        <a href={wikiUrl} style={linkStyle} aria-label="Public Wiki" title="Public Wiki" onClick={(e) => logoutAndGo(e, wikiUrl)}>
+          <span className="material-symbols-rounded" style={iconStyle}>help_center</span>
+        </a>}
       <a href="https://manchestermakerspace.org/calendar" style={linkStyle} aria-label="Event Calendar" title="Event Calendar" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/calendar")}>
         <span className="material-symbols-rounded" style={iconStyle}>calendar_month</span>
       </a>

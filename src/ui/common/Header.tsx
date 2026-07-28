@@ -15,6 +15,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import MenuIcon from "@mui/icons-material/Menu";
+import ConstructionIcon from "@mui/icons-material/Construction";
 
 import { ScopedThunkDispatch, State as ReduxState } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
@@ -100,11 +101,18 @@ class Header extends React.Component<Props, State> {
     this.setState({ anchorEl: null });
   };
 
-  private renderMenuNavLink = (path: string, label: string, id: string) => {
+  private renderMenuNavLink = (
+    path: string,
+    label: string,
+    id: string,
+    icon?: React.ReactNode
+  ) => {
     const match = this.props.location && this.props.location.pathname === path;
     return (
       <Link key={id} id={id} to={path} style={{ outline: "none", textDecoration: "none", color: "unset" }} onClick={this.detachMenu}>
-        <ListItemButton selected={match} sx={{ py: 0.75, px: 2 }}>{label}</ListItemButton>
+        <ListItemButton selected={match} sx={{ py: 0.75, px: 2, gap: 1 }}>
+          {icon}{label}
+        </ListItemButton>
       </Link>
     );
   }
@@ -151,6 +159,12 @@ class Header extends React.Component<Props, State> {
       ...(canManageShopFees ? [this.renderMenuNavLink(Routing.ShopFees, "Shop Fees", "shop-fees")] : []),
       ...(canManageCheckouts ? [this.renderMenuNavLink(Routing.ToolCheckouts, "Tool Checkouts", "tool-checkouts")] : []),
       ...(canManageVolunteer ? [this.renderMenuNavLink(Routing.Volunteer, "Volunteer", "volunteer")] : []),
+      this.renderMenuNavLink(
+        Routing.Workshops,
+        "Workshops",
+        "workshops",
+        <ConstructionIcon fontSize="small" />
+      ),
     ];
 
     // Settings submenu items - shown when privilegedItems.length < 5

@@ -51,6 +51,7 @@ export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
     name: body.name,
+    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     slack_channel: body.slackChannel,
     reservable: body.reservable,
     max_concurrent_reservations: body.maxConcurrentReservations,
@@ -64,6 +65,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
   buildResponse<Shop>(api.put(`/api/admin/shops/${id}`, {
     name: body.name,
+    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     slack_channel: body.slackChannel,
     disabled: body.disabled,
     reservable: body.reservable,
@@ -88,6 +90,7 @@ export const listTools = (params?: { shopId?: string }) =>
 export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
   buildResponse<Tool>(api.post("/api/admin/tools", {
     name: body.name,
+    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     description: body.description,
     shop_id: body.shopId,
     disabled: body.disabled,
@@ -106,6 +109,7 @@ export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
 export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> }) =>
   buildResponse<Tool>(api.put(`/api/admin/tools/${id}`, {
     name: body.name,
+    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     description: body.description,
     shop_id: body.shopId,
     disabled: body.disabled,
@@ -151,9 +155,19 @@ export const listToolCheckouts = (params?: {
     }
   }));
 
-export const listMemberCheckouts = (params?: { memberId?: string }) =>
+export const listMemberCheckouts = (params?: {
+  memberId?: string;
+  shopId?: string;
+  active?: boolean;
+  includeHidden?: boolean;
+}) =>
   buildResponse<ToolCheckout[]>(api.get("/api/tool_checkouts", {
-    params: params?.memberId ? { member_id: params.memberId } : {}
+    params: {
+      ...(params?.memberId && { member_id: params.memberId }),
+      ...(params?.shopId && { shop_id: params.shopId }),
+      ...(params?.active !== undefined && { active: params.active }),
+      ...(params?.includeHidden && { include_hidden: true }),
+    }
   }));
 
 export const adminCreateToolCheckout = ({ body }: {

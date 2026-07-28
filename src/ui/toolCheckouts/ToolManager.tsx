@@ -82,6 +82,7 @@ interface AddToolModalProps {
 
 const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
+  const [wikiUrl, setWikiUrl] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
@@ -110,7 +111,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -131,6 +132,11 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Tool Name" placeholder="e.g. Bandsaw"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="Wiki URL" value={wikiUrl}
+            onChange={e => setWikiUrl(e.target.value)}
+            helperText="Optional. Defaults to WIKI_URL/workshops/shop-slug#tool-slug." />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
@@ -190,6 +196,7 @@ interface EditToolRowProps {
 
 const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
+  const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [description, setDescription] = React.useState(tool.description || "");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
@@ -229,7 +236,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     }
 
     setLocalError("");
-    onSave(tool.id, { name: trimmedName, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
+    onSave(tool.id, { name: trimmedName, wikiUrlOverride: wikiUrl, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
   };
 
   return (
@@ -238,6 +245,8 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
         placeholder="Tool name" autoFocus />
       <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
         placeholder="Description" />
+      <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
+        placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
       <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(e.target.value)}
         placeholder="Announce channel" />
       <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(e.target.value)}

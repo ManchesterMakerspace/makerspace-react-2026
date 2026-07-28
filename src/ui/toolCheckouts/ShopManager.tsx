@@ -41,6 +41,7 @@ interface AddShopModalProps {
 
 const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
+  const [wikiUrl, setWikiUrl] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
   const [colorId, setColorId] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
@@ -60,7 +61,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, slackChannel, colorId, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, slackChannel, colorId, ...reservation });
   };
 
   return (
@@ -73,6 +74,11 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Shop Name" placeholder="e.g. Woodshop"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="Wiki URL" value={wikiUrl}
+            onChange={e => setWikiUrl(e.target.value)}
+            helperText="Optional. Defaults to WIKI_URL/workshops/slugified-shop-name." />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />
@@ -103,6 +109,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   shop, tools, onSave, onCancel, saving, error
 }) => {
   const [name, setName] = React.useState(shop.name);
+  const [wikiUrl, setWikiUrl] = React.useState(shop.wikiUrlOverride || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>(shop);
@@ -110,7 +117,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave(shop.id, { name: trimmedName, slackChannel, colorId, ...reservation });
+    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, slackChannel, colorId, ...reservation });
   };
 
   return (
@@ -123,6 +130,11 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Shop Name" value={name}
             onChange={event => setName(event.target.value)} autoFocus />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="Wiki URL" value={wikiUrl}
+            onChange={event => setWikiUrl(event.target.value)}
+            helperText="Leave blank to use the generated workshop URL." />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />

@@ -15,12 +15,16 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import {
   approveReservation, cancelManagedReservation, cancelReservation, createManagedReservation,
   createReservation, denyReservation,
-  getReservationAvailability, getReservationCatalog, listManagedReservations, listReservations,
+  getReservationAvailability, getReservationBlackouts, getReservationCatalog,
+  listManagedReservations, listReservations,
   previewManagedReservation, previewManagedReservationCreation, previewReservation,
   previewReservationUpdate,
   updateManagedReservation, updateReservation
 } from "api/reservations";
-import { Reservation, ReservationCatalog, ReservationInput, ReservationPreview } from "app/entities/reservation";
+import {
+  Reservation, ReservationBlackoutOccurrence, ReservationCatalog,
+  ReservationInput, ReservationPreview
+} from "app/entities/reservation";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
@@ -28,6 +32,7 @@ import MemberSearchInput from "ui/common/MemberSearchInput";
 import { reservationShopOptions } from "./reservationForm";
 import ApprovalDetails from "./ApprovalDetails";
 import ReservationBlackouts from "./ReservationBlackouts";
+import DayAgenda from "./DayAgenda";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -61,6 +66,8 @@ const ReservationsPage: React.FC = () => {
   const [durationHours, setDurationHours] = React.useState(1);
   const [preview, setPreview] = React.useState<ReservationPreview | null>(null);
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
+  const [blackoutOccurrences, setBlackoutOccurrences] =
+    React.useState<ReservationBlackoutOccurrence[]>([]);
   const [mine, setMine] = React.useState<Reservation[]>([]);
   const [managed, setManaged] = React.useState<Reservation[]>([]);
   const [editing, setEditing] = React.useState<Reservation | null>(null);
@@ -117,13 +124,17 @@ const ReservationsPage: React.FC = () => {
   };
 
   const loadReservations = React.useCallback(async () => {
-    const [availabilityResult, mineResult] = await Promise.all([
+    const [availabilityResult, mineResult, blackoutResult] = await Promise.all([
       canUseCreateUi
         ? getReservationAvailability({ date, shopId: shopId || undefined })
         : Promise.resolve({ data: [] as Reservation[] }),
-      listReservations({ mine: true })
+      listReservations({ mine: true }),
+      canUseCreateUi && shopId
+        ? getReservationBlackouts({ date, shopId })
+        : Promise.resolve({ data: [] as ReservationBlackoutOccurrence[] })
     ]);
     if (availabilityResult.data) setReservations(availabilityResult.data);
+    if (blackoutResult.data) setBlackoutOccurrences(blackoutResult.data);
     if (mineResult.data) setMine(mineResult.data);
     if (isManager) {
       const [futureResult, cancelledResult] = await Promise.all([
@@ -143,7 +154,9 @@ const ReservationsPage: React.FC = () => {
     getReservationCatalog().then(result => {
       if (result.data) {
         setCatalog(result.data);
-        const first = result.data.shops[0];
+        const requestedShopId = new URLSearchParams(window.location.search).get("shop");
+        const first = result.data.shops.find(shop => shop.id === requestedShopId) ||
+          result.data.shops[0];
         if (first) {
           setShopId(first.id);
           setScope(first.reservable ? "shop" : "tools");
@@ -314,8 +327,6 @@ const ReservationsPage: React.FC = () => {
   const pendingManaged = managed.filter(item => item.status === "pending");
   const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
-  const slots = Array.from({ length: 48 }, (_, index) => moment.tz(date, ZONE).startOf("day").add(index * 30, "minutes"));
-
   if (loading) return <Grid container justifyContent="center"><CircularProgress /></Grid>;
 
   return (
@@ -466,24 +477,7 @@ const ReservationsPage: React.FC = () => {
       </Grid>
 
       <Grid size={{ xs: 12, md: 7, lg: 6 }}>
-        <Paper style={{ padding: 16, maxHeight: 650, overflowY: "auto" }}>
-          <Typography variant="h6">Day Agenda</Typography>
-          {slots.map(slot => {
-            const active = reservations.filter(item =>
-              moment(item.startAt).isBefore(slot.clone().add(30, "minutes")) &&
-              moment(item.endAt).isAfter(slot));
-            return <div key={slot.toISOString()} style={{ display: "grid", gridTemplateColumns: "75px 1fr",
-              minHeight: 38, borderTop: "1px solid #eee", padding: "5px 0" }}>
-              <Typography variant="caption">{slot.format("HH:mm")}</Typography>
-              <div>{active.map(item => <Chip key={item.id}
-                label={<>
-                  <ReservationTitle reservation={item} />
-                  {` — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("HH:mm")}–${moment(item.endAt).tz(ZONE).format("HH:mm")} · ${item.status}`}
-                </>}
-                color={statusColor(item.status)} size="small" style={{ margin: 2 }} />)}</div>
-            </div>;
-          })}
-        </Paper>
+        <DayAgenda date={date} reservations={reservations} blackouts={blackoutOccurrences} />
       </Grid></>}
 
       <Grid size={{ xs: 12, lg: 10 }}>
