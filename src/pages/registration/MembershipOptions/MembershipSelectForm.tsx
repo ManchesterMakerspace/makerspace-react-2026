@@ -30,16 +30,16 @@ export const MembershipSelectForm: React.FC<Props> = ({ onSubmit, showNoneOption
 
   const { allOptions, promotionOptions, defaultOption } = useMembershipOptions(true);
 
-  React.useEffect(() => {
-    setInvoiceOption(allOptions.find(({ id }) => id === invoiceOptionIdParam));
-  }, [invoiceOptionIdParam, allOptions]);
-
   const [invoiceOption, setInvoiceOption] = React.useState(allOptions.find(({ id }) => id === invoiceOptionIdParam));
   const setSearchQuery = useSetSearchQuery();
   const updateInvoiceOption = React.useCallback((newOpt: InvoiceOption) => {
     setSearchQuery({ [invoiceOptionParam]: newOpt.id });
     setInvoiceOption(newOpt);
   }, [setSearchQuery, setInvoiceOption]);
+
+  React.useEffect(() => {
+    setInvoiceOption(allOptions.find(({ id }) => id === invoiceOptionIdParam));
+  }, [invoiceOptionIdParam, allOptions]);
 
   React.useEffect(() => {
     const firstSelection = promotionOptions[0] || defaultOption;

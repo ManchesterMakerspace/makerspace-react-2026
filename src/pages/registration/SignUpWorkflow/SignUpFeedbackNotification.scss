@@ -1,0 +1,53 @@
+.signup-feedback-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.signup-feedback-notification {
+  position: absolute;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  box-sizing: border-box;
+  width: min(28rem, calc(100vw - 3rem));
+  max-height: min(70vh, 36rem);
+  overflow-y: auto;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.3);
+}
+
+.signup-feedback-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.signup-feedback-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.signup-feedback-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .signup-feedback-notification {
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 70vh;
+    padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+    border-radius: 1rem 1rem 0 0;
+  }
+}

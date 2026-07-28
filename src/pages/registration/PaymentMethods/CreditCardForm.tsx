@@ -175,7 +175,7 @@ export function useCreditCardContext(): CreditCardContext {
   return React.useContext(CreditCardContext);
 }
 
-export const CreditCardForm: React.FC = () => {
+export const CreditCardForm: React.FC<{ active?: boolean }> = ({ active = true }) => {
   const { error: ccError, cardType, initialize } = useCreditCardContext();
   const { error: createPaymentMethodError } = usePaymentMethodsContext();
   const error = ccError || createPaymentMethodError;
@@ -226,7 +226,7 @@ export const CreditCardForm: React.FC = () => {
             <div className='input-wrapper' id={CreditCardFields[EmittedBy.PostalCode].name}></div>
           </div>
         </form>
-        {error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
+        {active && error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
       </Grid>
     </Grid>
   );

@@ -124,7 +124,7 @@ export function usePayPalContext(): PayPalContext {
   return React.useContext(PayPalContext);
 }
 
-export const PayPalForm: React.FC = () => {
+export const PayPalForm: React.FC<{ active?: boolean }> = ({ active = true }) => {
   const { error: payPalError, initialize } = usePayPalContext();
   const { error: createPaymentMethodError } = usePaymentMethodsContext();
   const error = payPalError || createPaymentMethodError;
@@ -138,7 +138,7 @@ export const PayPalForm: React.FC = () => {
       <Grid size={{ xs: 12 }}>
         <div id='paypal-button' />
         <FormField fieldName={paypalValidation} />
-        {error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
+        {active && error && <ErrorMessage error={typeof error === 'string' ? error : error.message} />}
       </Grid>
     </Grid>
   );

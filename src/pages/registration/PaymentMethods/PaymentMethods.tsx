@@ -22,6 +22,7 @@ import { usePaymentMethodsContext } from './PaymentMethodsContext';
 import { CreditCardConsumer, CreditCardForm } from './CreditCardForm';
 import { PayPalConsumer, PayPalForm } from './PayPalForm';
 import { VenmoConsumer, VenmoForm } from './VenmoForm';
+import ErrorMessage from 'ui/common/ErrorMessage';
 import {
   paymentMethodQueryParam,
   PaymentType,
@@ -48,7 +49,7 @@ export const PaymentMethods: React.FC<Props> = () => {
   const { loading } = usePaymentMethodsContext();
   const { values, setValue } = useFormContext();
   const emptyParams = React.useMemo(() => ({}), []);
-  const { isRequesting, response, refresh } = useReadTransaction(listPaymentMethods, emptyParams);
+  const { isRequesting, response, refresh, error } = useReadTransaction(listPaymentMethods, emptyParams);
   // Deduplicate by id — guards against stale Redux state producing repeated entries
   const rawPaymentMethods = !isApiErrorResponse(response) && response?.data || [];
   const paymentMethods = rawPaymentMethods.filter(
@@ -125,7 +126,9 @@ export const PaymentMethods: React.FC<Props> = () => {
                       <AccordionDetails>
                         <Grid container>
                           <Grid size={{ xs: 12 }}>
-                            {!!paymentMethods.length ? (
+                            {error ? (
+                              <ErrorMessage error={error} />
+                            ) : !!paymentMethods.length ? (
                               <RadioGroup
                                 aria-label='Payment Method'
                                 fieldName={selectedFieldName}
@@ -170,7 +173,7 @@ export const PaymentMethods: React.FC<Props> = () => {
                         />
                       </AccordionSummary>
                       <AccordionDetails>
-                        <CreditCardForm />
+                        <CreditCardForm active={values[paymentTypeFieldName] === PaymentType.CreditCard} />
                       </AccordionDetails>
                     </Accordion>
 
@@ -189,7 +192,7 @@ export const PaymentMethods: React.FC<Props> = () => {
                         />
                       </AccordionSummary>
                       <AccordionDetails>
-                        <PayPalForm />
+                        <PayPalForm active={values[paymentTypeFieldName] === PaymentType.PayPal} />
                       </AccordionDetails>
                     </Accordion>
 
@@ -208,7 +211,7 @@ export const PaymentMethods: React.FC<Props> = () => {
                         />
                       </AccordionSummary>
                       <AccordionDetails>
-                        <VenmoForm />
+                        <VenmoForm active={values[paymentTypeFieldName] === PaymentType.Venmo} />
                       </AccordionDetails>
                     </Accordion>
                   </>
