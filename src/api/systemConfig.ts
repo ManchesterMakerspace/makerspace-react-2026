@@ -99,7 +99,12 @@ export const updateSystemFlag = (key: string, value: boolean) =>
 
 export const updateSystemSetting = ({ key, value }: { key: string; value: string }) =>
   buildResponse<{ key: string; value: string }>(
-    api.put('/api/admin/system_configs/update_setting', { key, value })
+    api.put('/api/admin/system_configs/update_setting', {
+      key,
+      value: key.startsWith('slack_channel_') || key === 'volunteer_pending_slack_channel'
+        ? value.trim().replace(/^#+/, '')
+        : value
+    })
   );
 
 export const runSystemJob = ({ key }: { key: string }) =>

@@ -3,6 +3,7 @@ export interface Shop {
   name: string;
   wikiUrl: string;
   wikiUrlOverride?: string;
+  gdriveId?: string;
   slackChannel: string;
   disabled: boolean;
   toolCount: number;
@@ -30,6 +31,7 @@ export interface Tool {
   name: string;
   wikiUrl: string;
   wikiUrlOverride?: string;
+  gdriveId?: string;
   description?: string;
   disabled?: boolean;
   announce?: boolean;

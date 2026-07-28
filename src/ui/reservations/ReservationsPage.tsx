@@ -79,6 +79,7 @@ const ReservationsPage: React.FC = () => {
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
   const previewRequestGeneration = React.useRef(0);
+  const handledEditId = React.useRef("");
 
   const canCreateReservation = !!currentUser.isBoardMember ||
     (currentUser.status === "activeMember" &&
@@ -154,12 +155,25 @@ const ReservationsPage: React.FC = () => {
     getReservationCatalog().then(result => {
       if (result.data) {
         setCatalog(result.data);
-        const requestedShopId = new URLSearchParams(window.location.search).get("shop");
-        const first = result.data.shops.find(shop => shop.id === requestedShopId) ||
+        const query = new URLSearchParams(window.location.search);
+        const requestedShopId = query.get("shop");
+        const requestedToolId = query.get("tool");
+        const requestedTool = result.data.tools.find(tool =>
+          tool.id === requestedToolId &&
+          (!requestedShopId || tool.shopId === requestedShopId)
+        );
+        const first = result.data.shops.find(shop =>
+          shop.id === (requestedShopId || requestedTool?.shopId)
+        ) ||
           result.data.shops[0];
         if (first) {
           setShopId(first.id);
-          setScope(first.reservable ? "shop" : "tools");
+          if (requestedTool && requestedTool.shopId === first.id) {
+            setScope("tools");
+            setToolIds([requestedTool.id]);
+          } else {
+            setScope(first.reservable ? "shop" : "tools");
+          }
         }
       } else {
         setError(result.error?.message || "Unable to load reservable resources.");
@@ -296,6 +310,19 @@ const ReservationsPage: React.FC = () => {
     setStartTime(moment(reservation.startAt).tz(ZONE).format("HH:mm"));
     setDurationHours(moment(reservation.endAt).diff(moment(reservation.startAt), "minutes") / 60);
   };
+
+  React.useEffect(() => {
+    const requestedEditId =
+      new URLSearchParams(window.location.search).get("edit") || "";
+    if (!requestedEditId || handledEditId.current === requestedEditId) return;
+
+    const reservation = mine.find(item => item.id === requestedEditId);
+    if (!reservation) return;
+
+    handledEditId.current = requestedEditId;
+    edit(reservation);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [mine]);
 
   const cancel = async (id: string) => {
     setError("");

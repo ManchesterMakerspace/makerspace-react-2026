@@ -28,6 +28,7 @@ import { useCapabilities } from "app/permissions";
 
 const rowId = (s: Shop) => s.id;
 const normalizedName = (value: string) => value.trim().toLowerCase();
+const normalizedChannel = (value: string) => value.replace(/^#+/, "");
 
 // ── AddShopModal ──────────────────────────────────────────────────────────────
 
@@ -42,6 +43,7 @@ interface AddShopModalProps {
 const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
+  const [gdriveId, setGdriveId] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
   const [colorId, setColorId] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
@@ -61,7 +63,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, slackChannel, colorId, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
   };
 
   return (
@@ -81,12 +83,17 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
             helperText="Optional. Defaults to WIKI_URL/workshops/slugified-shop-name." />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="GDrive ID" value={gdriveId}
+            onChange={e => setGdriveId(e.target.value)}
+            helperText="Optional Google Drive folder ID." />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
-            value={slackChannel} onChange={e => setSlackChannel(e.target.value)}
+            value={slackChannel} onChange={e => setSlackChannel(normalizedChannel(e.target.value))}
             helperText="Used to route /checkout slash commands to this shop" />
         </Grid>
       </Grid>
@@ -110,6 +117,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
 }) => {
   const [name, setName] = React.useState(shop.name);
   const [wikiUrl, setWikiUrl] = React.useState(shop.wikiUrlOverride || "");
+  const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>(shop);
@@ -117,7 +125,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, slackChannel, colorId, ...reservation });
+    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
   };
 
   return (
@@ -137,12 +145,17 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
             helperText="Leave blank to use the generated workshop URL." />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="GDrive ID" value={gdriveId}
+            onChange={event => setGdriveId(event.target.value)}
+            helperText="Optional Google Drive folder ID." />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
-            value={slackChannel} onChange={event => setSlackChannel(event.target.value)}
+            value={slackChannel} onChange={event => setSlackChannel(normalizedChannel(event.target.value))}
             helperText="Used to route /checkout and /reserve slash commands to this shop" />
         </Grid>
       </Grid>

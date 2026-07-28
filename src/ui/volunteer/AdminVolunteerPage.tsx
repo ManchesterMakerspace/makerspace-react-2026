@@ -500,22 +500,29 @@ interface TaskFormState {
   prerequisiteToolIds: string[];
 }
 
-const emptyTaskForm = (): TaskFormState => ({
+const emptyTaskForm = (shopId = ''): TaskFormState => ({
   title: '', description: '', creditValue: '1', taskType: 'available', days: '7',
-  shopId: '', prerequisiteToolIds: [],
+  shopId, prerequisiteToolIds: [],
 });
 
 interface CreateTaskModalProps {
   isOpen: boolean;
+  initialShopId?: string;
   onClose: () => void;
   onSave: (state: TaskFormState) => void;
   loading: boolean;
   error: string;
 }
 
-const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose, onSave, loading, error }) => {
-  const [form, setForm] = React.useState<TaskFormState>(emptyTaskForm());
-  React.useEffect(() => { if (!isOpen) setForm(emptyTaskForm()); }, [isOpen]);
+const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
+  isOpen, initialShopId = '', onClose, onSave, loading, error
+}) => {
+  const [form, setForm] = React.useState<TaskFormState>(
+    () => emptyTaskForm(initialShopId)
+  );
+  React.useEffect(() => {
+    if (!isOpen) setForm(emptyTaskForm(initialShopId));
+  }, [isOpen, initialShopId]);
 
   const set = (key: keyof TaskFormState) => (e: React.ChangeEvent<HTMLInputElement | { value: unknown }>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value as string }));
@@ -820,10 +827,14 @@ const ChildTasksView = withQueryContext(ChildTasksViewInner);
 
 const TasksTabInner: React.FC = () => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
+  const query = new URLSearchParams(window.location.search);
+  const initialShopId = query.get('shop') || '';
 
   const [statusFilter, setStatusFilter] = React.useState('');
   const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
-  const [createOpen, setCreateOpen]     = React.useState(false);
+  const [createOpen, setCreateOpen]     = React.useState(
+    query.get('createTask') === 'true'
+  );
   const [editTarget, setEditTarget]     = React.useState<VolunteerTask | null>(null);
   const [releaseTarget, setRelease]     = React.useState<string | null>(null);
   const [rejectTarget, setReject]       = React.useState<string | null>(null);
@@ -1080,7 +1091,8 @@ const TasksTabInner: React.FC = () => {
         />
       </Grid>
 
-      <CreateTaskModal isOpen={createOpen} onClose={() => setCreateOpen(false)}
+      <CreateTaskModal isOpen={createOpen} initialShopId={initialShopId}
+        onClose={() => setCreateOpen(false)}
         onSave={form => createTask({ body: {
           title: form.title, description: form.description,
           creditValue: parseFloat(form.creditValue) || 1,
@@ -1422,7 +1434,11 @@ const EventsTab = withQueryContext(EventsTabInner);
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const AdminVolunteerPage: React.FC = () => {
-  const [activeTab, setActiveTab] = React.useState<TabKey>('credits');
+  const initialTab: TabKey =
+    new URLSearchParams(window.location.search).get('createTask') === 'true'
+      ? 'tasks'
+      : 'credits';
+  const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
 
   return (
     <Grid container spacing={3} justifyContent='center'>
