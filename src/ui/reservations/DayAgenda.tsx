@@ -102,7 +102,9 @@ const DayAgenda: React.FC<{
                 padding: "4px 8px",
                 overflow: "hidden",
               }}>
-                <Typography variant="caption"><strong>Blackout: {blackout.title}</strong></Typography>
+                <Typography variant="caption">
+                  <strong>No Reservations Available: {blackout.title}</strong>
+                </Typography>
               </div>
             );
           })}

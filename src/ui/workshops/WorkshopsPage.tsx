@@ -429,7 +429,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
               marginTop: 8,
               background: "rgba(97, 97, 97, 0.18)"
             }}>
-            <strong>Blackout: {row.blackout.title}</strong>
+            <strong>No Reservations Available: {row.blackout.title}</strong>
             <Typography variant="body2">
               {moment(row.blackout.startAt).tz(ZONE).format("HH:mm")}–
               {moment(row.blackout.endAt).tz(ZONE).format("HH:mm")}

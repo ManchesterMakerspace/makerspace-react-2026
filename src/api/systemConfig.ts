@@ -41,6 +41,11 @@ export interface SlackSettings {
   slack_channel_admin: string;
   slack_channel_logs: string;
   volunteer_pending_slack_channel: string;
+  channel_cache: {
+    available: boolean;
+    total_channels: number | null;
+    last_updated_at: string | null;
+  };
 }
 
 export interface VolunteerSettings {
