@@ -85,9 +85,16 @@ interface SettingRowProps {
   value: string;
   onSave: (key: string, value: string) => Promise<void>;
   saving: boolean;
+  inputType?: React.HTMLInputTypeAttribute;
+  min?: number;
+  max?: number;
+  suffix?: string;
 }
 
-const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey, value, onSave, saving }) => {
+const SettingRow: React.FC<SettingRowProps> = ({
+  label, description, settingKey, value, onSave, saving,
+  inputType = 'text', min, max, suffix
+}) => {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft]     = React.useState(value);
 
@@ -114,6 +121,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
       <Grid size={{ xs: 12, sm: 8 }}>
         {editing ? (
           <TextField
+            type={inputType}
             value={draft}
             onChange={e => setDraft(e.target.value)}
             size='small'
@@ -121,6 +129,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
             fullWidth
             disabled={saving}
             slotProps={{
+              htmlInput: { min, max, step: inputType === 'number' ? 1 : undefined },
               input: {
                 endAdornment: (
                   <InputAdornment position='end'>
@@ -139,7 +148,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
           <Grid container alignItems='center' spacing={1}>
             <Grid>
               <Typography variant='body2' style={{ fontFamily: 'monospace' }}>
-                {value || <span style={{ color: '#999' }}>not set</span>}
+                {value ? `${value}${suffix ? ` ${suffix}` : ''}` : <span style={{ color: '#999' }}>not set</span>}
               </Typography>
             </Grid>
             <Grid>
@@ -630,52 +639,41 @@ const TotpToggle: React.FC<TotpToggleProps> = ({ label, description, flagKey, va
   </Grid>
 );
 
-const SecurityTab: React.FC = () => {
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving]   = React.useState(false);
-  const [error, setError]     = React.useState('');
-  const [flags, setFlags]     = React.useState({
-    require_totp_admin: false,
-    require_totp_board: false,
-    require_totp_rm:    false,
-  });
+interface SecurityTabProps {
+  config: SystemConfigData;
+  onFlagToggle: (key: string, current: boolean) => void;
+  onSettingSave: (key: string, value: string) => Promise<void>;
+  togglingFlag: string | null;
+  savingKey: string | null;
+}
 
-  React.useEffect(() => {
-    getSystemConfigs()
-      .then(result => {
-        const totp = (result as any)?.data?.totp;
-        if (totp) {
-          setFlags({
-            require_totp_admin: !!totp.require_totp_admin,
-            require_totp_board: !!totp.require_totp_board,
-            require_totp_rm:    !!totp.require_totp_rm,
-          });
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load security settings.');
-        setLoading(false);
-      });
-  }, []);
-
-  const handleToggle = async (key: string, value: boolean) => {
-    setSaving(true);
-    setError('');
-    try {
-      await updateSystemFlag(key, value);
-      setFlags(prev => ({ ...prev, [key]: value }));
-    } catch {
-      setError('Failed to save setting.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return <CircularProgress />;
-
-  return (
+const SecurityTab: React.FC<SecurityTabProps> = ({
+  config, onFlagToggle, onSettingSave, togglingFlag, savingKey
+}) => (
     <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}>
+        <Card>
+          <CardHeader
+            title='Mongo Cache'
+            subheader='Controls how long Mongo-backed reference data remains in Redis.'
+          />
+          <Divider />
+          <CardContent>
+            <SettingRow
+              label='Mongo Cache TTL'
+              description='Allowed range: 1–24 hours; default: 8. Rails writes invalidate affected entries immediately.'
+              settingKey='mongo_cache_ttl_hours'
+              value={config.security.mongo_cache_ttl_hours || '8'}
+              onSave={onSettingSave}
+              saving={savingKey === 'mongo_cache_ttl_hours'}
+              inputType='number'
+              min={1}
+              max={24}
+              suffix='hours'
+            />
+          </CardContent>
+        </Card>
+      </Grid>
       <Grid size={{ xs: 12 }}>
         <Typography variant='h6' gutterBottom>Two-Factor Authentication Enforcement</Typography>
         <Typography variant='body2' color='textSecondary' style={{ marginBottom: 16 }}>
@@ -684,34 +682,32 @@ const SecurityTab: React.FC = () => {
           All members can optionally enable 2FA from their Account Settings → Security tab.
         </Typography>
       </Grid>
-      {error && <Grid size={{ xs: 12 }}><Typography color='error'>{error}</Typography></Grid>}
       <TotpToggle
         label='Require 2FA for Admins'
         description='Admin accounts must have two-factor authentication enabled.'
         flagKey='require_totp_admin'
-        value={flags.require_totp_admin}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_admin}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_admin)}
+        saving={togglingFlag === 'require_totp_admin'}
       />
       <TotpToggle
         label='Require 2FA for Board Members'
         description='Board member accounts must have two-factor authentication enabled.'
         flagKey='require_totp_board'
-        value={flags.require_totp_board}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_board}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_board)}
+        saving={togglingFlag === 'require_totp_board'}
       />
       <TotpToggle
         label='Require 2FA for Resource Managers'
         description='Resource manager accounts must have two-factor authentication enabled.'
         flagKey='require_totp_rm'
-        value={flags.require_totp_rm}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_rm}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_rm)}
+        saving={togglingFlag === 'require_totp_rm'}
       />
     </Grid>
-  );
-};
+);
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -759,6 +755,8 @@ const MemberPortalSettings: React.FC = () => {
         setConfig({ ...config, slack: { ...config.slack, [key]: value } });
       } else if (key.startsWith('volunteer_')) {
         setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
+      } else if (key === 'mongo_cache_ttl_hours') {
+        setConfig({ ...config, security: { ...config.security, [key]: value } });
       }
     }
     setSavingKey(null);
@@ -838,7 +836,15 @@ const MemberPortalSettings: React.FC = () => {
             savingKey={savingKey}
           />
         )}
-        {activeTab === 'security' && <SecurityTab />}
+        {activeTab === 'security' && (
+          <SecurityTab
+            config={config}
+            onFlagToggle={handleFlagToggle}
+            onSettingSave={handleSettingSave}
+            togglingFlag={togglingFlag}
+            savingKey={savingKey}
+          />
+        )}
         {activeTab === 'jobs' && (
           <JobsTab
             config={config}

@@ -74,6 +74,10 @@ export interface SystemConfigData {
   slack: SlackSettings;
   volunteer: VolunteerSettings;
   totp: TotpSettings;
+  security: {
+    devise_timeout_minutes: string;
+    mongo_cache_ttl_hours: string;
+  };
 }
 
 /** A Braintree discount as returned by /api/billing/discounts */
