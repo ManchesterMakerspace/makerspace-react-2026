@@ -59,4 +59,45 @@ describe("SlackInviteButton", () => {
     expect(document.body.querySelector("[role='alert']")?.textContent)
       .toContain("not_authed");
   });
+
+  it("blocks revoked members without calling the API", async () => {
+    const fetchMock = jest.fn();
+    (globalThis as any).fetch = fetchMock;
+
+    await act(async () => {
+      root.render(
+        <SlackInviteButton
+          member={{
+            id: "member-id",
+            email: "member@example.com",
+            status: "revoked",
+          } as any}
+        />
+      );
+    });
+
+    const button = container.querySelector("button") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    button.click();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refreshes member provisioning after a successful request", async () => {
+    const onProvisioned = jest.fn();
+    (globalThis as any).fetch = jest.fn().mockResolvedValue({ ok: true } as Response);
+
+    await act(async () => {
+      root.render(
+        <SlackInviteButton
+          member={{ id: "member-id", email: "member@example.com", status: "activeMember" } as any}
+          onProvisioned={onProvisioned}
+        />
+      );
+    });
+    await act(async () => {
+      container.querySelector("button")!.click();
+    });
+
+    expect(onProvisioned).toHaveBeenCalledTimes(1);
+  });
 });
