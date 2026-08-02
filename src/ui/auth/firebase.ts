@@ -12,15 +12,9 @@ import {
   signInWithRedirect,
   signOut,
 } from 'firebase/auth';
+import { loadClientConfig } from 'api/clientConfig';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
-
-interface RuntimeConfigResponse {
-  firebase_api_key?: unknown;
-  firebase_project_id?: unknown;
-  firebase_auth_domain?: unknown;
-  firebase_auth_type?: unknown;
-}
 
 type FirebaseAuthType = 'popup' | 'redirect';
 
@@ -54,14 +48,7 @@ const initializeFirebase = (): Promise<FirebaseServices> => {
   if (initializer) return initializer;
 
   initializer = (async () => {
-    const response = await fetch('/api/config', {
-      headers: { 'Content-Type': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error('Failed to load Firebase configuration from server.');
-    }
-
-    const config = await response.json() as RuntimeConfigResponse;
+    const config = await loadClientConfig();
     const firebaseConfig = {
       apiKey: requiredString(config.firebase_api_key, 'FIREBASE_API_KEY'),
       projectId: requiredString(config.firebase_project_id, 'FIREBASE_PROJECT_ID'),

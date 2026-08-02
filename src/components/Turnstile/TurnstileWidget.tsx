@@ -1,6 +1,6 @@
 import * as React from "react";
+import { loadClientConfig } from "api/clientConfig";
 
-export const TURNSTILE_SITE_KEY = "0x4AAAAAAEBaoXYwLYluLrUY";
 export const TURNSTILE_ACTION = "turnstile-spin-v2";
 
 const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script";
@@ -83,8 +83,12 @@ interface Props {
   onTokenChange(token?: string): void;
 }
 
-export const TurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Props>(
-  ({ onTokenChange }, forwardedRef) => {
+interface ConfiguredProps extends Props {
+  siteKey: string;
+}
+
+const ConfiguredTurnstileWidget = React.forwardRef<TurnstileWidgetHandle, ConfiguredProps>(
+  ({ onTokenChange, siteKey }, forwardedRef) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const widgetIdRef = React.useRef<string | undefined>(undefined);
 
@@ -107,7 +111,7 @@ export const TurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Props>(
           }
 
           widgetIdRef.current = turnstile.render(containerRef.current, {
-            sitekey: TURNSTILE_SITE_KEY,
+            sitekey: siteKey,
             action: TURNSTILE_ACTION,
             callback: token => onTokenChange(token),
             "expired-callback": () => onTokenChange(undefined),
@@ -127,14 +131,57 @@ export const TurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Props>(
           widgetIdRef.current = undefined;
         }
       };
-    }, [onTokenChange]);
+    }, [onTokenChange, siteKey]);
 
     return (
       <div
         ref={containerRef}
         className="cf-turnstile"
-        data-sitekey={TURNSTILE_SITE_KEY}
+        data-sitekey={siteKey}
         data-action={TURNSTILE_ACTION}
+      />
+    );
+  }
+);
+
+ConfiguredTurnstileWidget.displayName = "ConfiguredTurnstileWidget";
+
+export const TurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Props>(
+  ({ onTokenChange }, forwardedRef) => {
+    const [siteKey, setSiteKey] = React.useState<string>();
+
+    React.useEffect(() => {
+      let cancelled = false;
+
+      loadClientConfig()
+        .then(config => {
+          const configuredKey = typeof config.turnstile_site_key === "string"
+            ? config.turnstile_site_key.trim()
+            : "";
+          if (!cancelled && configuredKey) {
+            setSiteKey(configuredKey);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            onTokenChange(undefined);
+          }
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [onTokenChange]);
+
+    if (!siteKey) {
+      return null;
+    }
+
+    return (
+      <ConfiguredTurnstileWidget
+        ref={forwardedRef}
+        siteKey={siteKey}
+        onTokenChange={onTokenChange}
       />
     );
   }

@@ -1,12 +1,17 @@
 import * as React from "react";
 import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
+import { loadClientConfig } from "api/clientConfig";
 import {
   TURNSTILE_ACTION,
-  TURNSTILE_SITE_KEY,
   TurnstileWidget,
   TurnstileWidgetHandle
 } from "components/Turnstile/TurnstileWidget";
+
+jest.mock("api/clientConfig", () => ({ loadClientConfig: jest.fn() }));
+
+const siteKey = "runtime-public-site-key";
+const mockLoadClientConfig = loadClientConfig as jest.Mock;
 
 describe("TurnstileWidget", () => {
   let container: HTMLDivElement;
@@ -17,6 +22,7 @@ describe("TurnstileWidget", () => {
   });
 
   beforeEach(() => {
+    mockLoadClientConfig.mockResolvedValue({ turnstile_site_key: siteKey });
     delete (window as any).turnstile;
     document.getElementById("cloudflare-turnstile-script")?.remove();
     container = document.createElement("div");
@@ -48,12 +54,13 @@ describe("TurnstileWidget", () => {
           <TurnstileWidget onTokenChange={secondTokenChange} />
         </>
       );
+      await Promise.resolve();
     });
 
     const widgets = container.querySelectorAll(".cf-turnstile");
     expect(widgets).toHaveLength(2);
     widgets.forEach(widget => {
-      expect(widget.getAttribute("data-sitekey")).toBe(TURNSTILE_SITE_KEY);
+      expect(widget.getAttribute("data-sitekey")).toBe(siteKey);
       expect(widget.getAttribute("data-action")).toBe(TURNSTILE_ACTION);
     });
     expect(document.querySelectorAll("#cloudflare-turnstile-script")).toHaveLength(1);
@@ -68,7 +75,7 @@ describe("TurnstileWidget", () => {
     expect(render).toHaveBeenCalledTimes(2);
     const firstOptions = render.mock.calls[0][1];
     expect(firstOptions).toMatchObject({
-      sitekey: TURNSTILE_SITE_KEY,
+      sitekey: siteKey,
       action: TURNSTILE_ACTION
     });
 
@@ -84,5 +91,17 @@ describe("TurnstileWidget", () => {
     act(() => firstRef.current!.reset());
     expect(reset).toHaveBeenCalledWith("widget-one");
     expect(firstTokenChange).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("does not load or render Turnstile when runtime config has no site key", async () => {
+    mockLoadClientConfig.mockResolvedValue({});
+
+    await act(async () => {
+      root.render(<TurnstileWidget onTokenChange={jest.fn()} />);
+      await Promise.resolve();
+    });
+
+    expect(container.querySelector(".cf-turnstile")).toBeNull();
+    expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
   });
 });
