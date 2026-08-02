@@ -21,6 +21,7 @@ export interface SignUpForm {
   lastname: string;
   email: string;
   password: string;
+  "cf-turnstile-response": string;
   address: {
     street: string;
     unit?: string;
