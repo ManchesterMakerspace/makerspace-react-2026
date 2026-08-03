@@ -20,6 +20,13 @@ import {
   Select,
   MenuItem,
   FormControl,
+  Alert,
+  Tooltip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -27,6 +34,9 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import RestoreIcon from '@mui/icons-material/Restore';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
 import {
   getSystemConfigs,
@@ -37,15 +47,20 @@ import {
   SystemConfigData,
   JobStatus,
   BraintreeDiscount,
+  getExternalTemplates,
+  runExternalTemplateAction,
+  ExternalTemplateStatus,
 } from 'api/systemConfig';
+import { useAuthState } from 'ui/reducer/hooks';
 
-type TabKey = 'slack' | 'volunteer' | 'jobs' | 'security';
+type TabKey = 'slack' | 'volunteer' | 'jobs' | 'security' | 'templates';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'slack',     label: 'Slack' },
   { key: 'volunteer', label: 'Volunteer' },
   { key: 'jobs',      label: 'Jobs' },
   { key: 'security',  label: 'Security' },
+  { key: 'templates', label: 'Templates' },
 ];
 
 const JOB_LABELS: Record<string, string> = {
@@ -713,9 +728,150 @@ const SecurityTab: React.FC = () => {
   );
 };
 
+// ── Templates Tab ──────────────────────────────────────────────────────────────
+
+const templateStatusLabel = (template: ExternalTemplateStatus) => {
+  if (template.status === 'ok') return 'Cached';
+  if (template.status === 'empty') return 'Empty document';
+  if (template.status === 'missing_env') return 'Environment variable missing';
+  if (template.status === 'permission_error') return 'Permission denied';
+  if (template.status === 'invalid') return 'Invalid template';
+  return 'Unavailable';
+};
+
+const TemplatesTab: React.FC = () => {
+  const [templates, setTemplates] = React.useState<ExternalTemplateStatus[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [running, setRunning] = React.useState<string | null>(null);
+  const [error, setError] = React.useState('');
+  const [restoreTarget, setRestoreTarget] = React.useState<ExternalTemplateStatus | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError('');
+    const result = await getExternalTemplates();
+    if (result.error) {
+      setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to load templates.');
+    } else {
+      setTemplates(result.data?.templates || []);
+    }
+    setLoading(false);
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const runAction = async (template: ExternalTemplateStatus, action: 'refresh' | 'restore' | 'populate') => {
+    setRunning(template.name);
+    setError('');
+    const result = await runExternalTemplateAction(template.name, action);
+    if (result.error) {
+      setError(typeof result.error === 'string' ? result.error : result.error.message || `Unable to ${action} template.`);
+    } else if (result.data?.template) {
+      setTemplates(current => current.map(item => item.name === template.name ? result.data.template : item));
+    }
+    setRunning(null);
+    setRestoreTarget(null);
+  };
+
+  if (loading) return <CircularProgress />;
+
+  return (
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h6'>Google document templates</Typography>
+        <Typography variant='body2' color='textSecondary'>
+          Valid exports are cached in Redis. A failed refresh continues to preserve the last valid content.
+        </Typography>
+      </Grid>
+      {error && <Grid size={{ xs: 12 }}><Alert severity='error'>{error}</Alert></Grid>}
+      {templates.map(template => {
+        const available = template.status === 'ok' || template.status === 'empty';
+        const tooltip = available
+          ? `Template placeholders: ${template.template_placeholders.join(', ') || '(none)'}. Common placeholders: ${template.common_placeholders.join(', ')}.`
+          : `${template.error || templateStatusLabel(template)} Create the Google document, grant the service account access, and set ${template.env_key} to a valid document ID. Template placeholders: ${template.template_placeholders.join(', ') || '(none)'}. Common placeholders: ${template.common_placeholders.join(', ')}.`;
+        return (
+          <Grid size={{ xs: 12 }} key={template.name}>
+            <Tooltip title={tooltip} placement='top-start' arrow>
+              <Card variant='outlined'>
+                <CardContent>
+                  <Grid container spacing={2} alignItems='center'>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      <Typography variant='body1'><strong>{template.env_key}</strong></Typography>
+                      <Typography variant='caption' color='textSecondary'>{template.metadata?.name || template.name}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                      <Chip
+                        size='small'
+                        color={template.status === 'ok' ? 'success' : template.status === 'empty' ? 'warning' : 'error'}
+                        label={templateStatusLabel(template)}
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 8, md: 2 }}>
+                      <Typography variant='caption' color='textSecondary'>Cache fetched</Typography>
+                      <Typography variant='body2'>{formatDate(template.fetched_at)}</Typography>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 4 }}>
+                      {available && (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <Button
+                            size='small'
+                            variant='outlined'
+                            startIcon={running === template.name ? <CircularProgress size={14} /> : <RefreshIcon />}
+                            disabled={!!running}
+                            onClick={() => runAction(template, 'refresh')}
+                          >Refresh</Button>
+                          {template.status === 'empty' ? (
+                            <Button size='small' variant='outlined' disabled={!!running} onClick={() => runAction(template, 'populate')}>
+                              Populate
+                            </Button>
+                          ) : (
+                            <Button
+                              size='small'
+                              variant='outlined'
+                              color='warning'
+                              startIcon={<RestoreIcon />}
+                              disabled={!!running}
+                              onClick={() => setRestoreTarget(template)}
+                            >Restore default</Button>
+                          )}
+                          <Button
+                            size='small'
+                            variant='outlined'
+                            startIcon={<OpenInNewIcon />}
+                            onClick={() => window.open(template.edit_url!, `google-template-${template.name}`, 'noopener,noreferrer')}
+                          >Edit</Button>
+                        </div>
+                      )}
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Tooltip>
+          </Grid>
+        );
+      })}
+      <Dialog open={!!restoreTarget} onClose={() => setRestoreTarget(null)}>
+        <DialogTitle>Restore compiled-in default?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will wipe out all changes in {restoreTarget?.env_key} and replace the Google document with the compiled-in default content.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRestoreTarget(null)}>Cancel</Button>
+          <Button color='warning' variant='contained' onClick={() => restoreTarget && runAction(restoreTarget, 'restore')}>
+            Restore default
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Grid>
+  );
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const MemberPortalSettings: React.FC = () => {
+  const { currentUser } = useAuthState();
   const [activeTab, setActiveTab]       = React.useState<TabKey>('slack');
   const [config, setConfig]             = React.useState<SystemConfigData | null>(null);
   const [loading, setLoading]           = React.useState(true);
@@ -810,7 +966,7 @@ const MemberPortalSettings: React.FC = () => {
           variant='scrollable'
           scrollButtons='auto'
         >
-          {TABS.map(t => (
+          {TABS.filter(t => t.key !== 'templates' || currentUser.isAdmin).map(t => (
             <Tab key={t.key} id={`settings-tab-${t.key}`} value={t.key} label={t.label} />
           ))}
         </Tabs>
@@ -839,6 +995,7 @@ const MemberPortalSettings: React.FC = () => {
           />
         )}
         {activeTab === 'security' && <SecurityTab />}
+        {activeTab === 'templates' && currentUser.isAdmin && <TemplatesTab />}
         {activeTab === 'jobs' && (
           <JobsTab
             config={config}
