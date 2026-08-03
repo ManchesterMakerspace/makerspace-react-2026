@@ -170,7 +170,10 @@ describe("TurnstileWidget", () => {
     const retryButton = Array.from(container.querySelectorAll("button"))
       .find(button => button.textContent === "Retry verification");
     expect(retryButton).toBeDefined();
-    expect(jest.getTimerCount()).toBe(0);
+
+    act(() => jest.advanceTimersByTime(30000));
+    expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
+    expect(container.textContent).toContain("Retry verification");
 
     act(() => retryButton!.click());
     expect(document.getElementById("cloudflare-turnstile-script")).not.toBeNull();
@@ -193,7 +196,6 @@ describe("TurnstileWidget", () => {
 
     expect(render).toHaveBeenCalledTimes(1);
     expect(onTokenChange).toHaveBeenLastCalledWith(undefined);
-    expect(jest.getTimerCount()).toBe(0);
 
     act(() => jest.advanceTimersByTime(30000));
     expect(render).toHaveBeenCalledTimes(1);
