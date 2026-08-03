@@ -5,6 +5,7 @@ export const TURNSTILE_ACTION = "turnstile-spin-v2";
 
 const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script";
 const TURNSTILE_SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const TURNSTILE_LOAD_RETRY_DELAY_MS = 1000;
 
 interface TurnstileApi {
   render(
@@ -43,8 +44,10 @@ const loadTurnstile = (): Promise<TurnstileApi> => {
 
     const handleLoad = () => {
       if (window.turnstile) {
+        scriptPromise = undefined;
         resolve(window.turnstile);
       } else {
+        script?.remove();
         scriptPromise = undefined;
         reject(new Error("Cloudflare Turnstile loaded without exposing its browser API"));
       }
@@ -103,29 +106,41 @@ const ConfiguredTurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Config
 
     React.useEffect(() => {
       let cancelled = false;
+      let retryTimeout: number | undefined;
 
-      loadTurnstile()
-        .then(turnstile => {
-          if (cancelled || !containerRef.current) {
-            return;
-          }
+      const loadAndRenderTurnstile = () => {
+        loadTurnstile()
+          .then(turnstile => {
+            if (cancelled || !containerRef.current) {
+              return;
+            }
 
-          widgetIdRef.current = turnstile.render(containerRef.current, {
-            sitekey: siteKey,
-            action: TURNSTILE_ACTION,
-            callback: token => onTokenChange(token),
-            "expired-callback": () => onTokenChange(undefined),
-            "error-callback": () => onTokenChange(undefined)
+            widgetIdRef.current = turnstile.render(containerRef.current, {
+              sitekey: siteKey,
+              action: TURNSTILE_ACTION,
+              callback: token => onTokenChange(token),
+              "expired-callback": () => onTokenChange(undefined),
+              "error-callback": () => onTokenChange(undefined)
+            });
+          })
+          .catch(() => {
+            if (!cancelled) {
+              onTokenChange(undefined);
+              retryTimeout = window.setTimeout(
+                loadAndRenderTurnstile,
+                TURNSTILE_LOAD_RETRY_DELAY_MS
+              );
+            }
           });
-        })
-        .catch(() => {
-          if (!cancelled) {
-            onTokenChange(undefined);
-          }
-        });
+      };
+
+      loadAndRenderTurnstile();
 
       return () => {
         cancelled = true;
+        if (retryTimeout !== undefined) {
+          window.clearTimeout(retryTimeout);
+        }
         if (widgetIdRef.current && window.turnstile) {
           window.turnstile.remove(widgetIdRef.current);
           widgetIdRef.current = undefined;

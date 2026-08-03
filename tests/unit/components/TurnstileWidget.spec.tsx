@@ -104,4 +104,37 @@ describe("TurnstileWidget", () => {
     expect(container.querySelector(".cf-turnstile")).toBeNull();
     expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
   });
+
+  it("retries loading Turnstile after a transient script error", async () => {
+    jest.useFakeTimers();
+    const onTokenChange = jest.fn();
+    const render = jest.fn().mockReturnValue("retried-widget");
+
+    await act(async () => {
+      root.render(<TurnstileWidget onTokenChange={onTokenChange} />);
+      await Promise.resolve();
+    });
+
+    const failedScript = document.getElementById("cloudflare-turnstile-script")!;
+    await act(async () => {
+      failedScript.dispatchEvent(new Event("error"));
+      await Promise.resolve();
+    });
+
+    expect(failedScript.isConnected).toBe(false);
+    expect(onTokenChange).toHaveBeenLastCalledWith(undefined);
+
+    act(() => jest.advanceTimersByTime(1000));
+    const retriedScript = document.getElementById("cloudflare-turnstile-script")!;
+    expect(retriedScript).not.toBe(failedScript);
+
+    (window as any).turnstile = { render, reset: jest.fn(), remove: jest.fn() };
+    await act(async () => {
+      retriedScript.dispatchEvent(new Event("load"));
+      await Promise.resolve();
+    });
+
+    expect(render).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
 });
