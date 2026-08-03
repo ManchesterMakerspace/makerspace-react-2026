@@ -5,6 +5,9 @@ export const TURNSTILE_ACTION = "turnstile-spin-v2";
 
 const TURNSTILE_SCRIPT_ID = "cloudflare-turnstile-script";
 const TURNSTILE_SCRIPT_URL = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+const TURNSTILE_LOAD_RETRY_DELAY_MS = 1000;
+const TURNSTILE_LOAD_RETRY_DELAY_INCREMENT_MS = 2000;
+const TURNSTILE_LOAD_MAX_FAILURES = 5;
 
 interface TurnstileApi {
   render(
@@ -43,8 +46,10 @@ const loadTurnstile = (): Promise<TurnstileApi> => {
 
     const handleLoad = () => {
       if (window.turnstile) {
+        scriptPromise = undefined;
         resolve(window.turnstile);
       } else {
+        script?.remove();
         scriptPromise = undefined;
         reject(new Error("Cloudflare Turnstile loaded without exposing its browser API"));
       }
@@ -91,6 +96,8 @@ const ConfiguredTurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Config
   ({ onTokenChange, siteKey }, forwardedRef) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
     const widgetIdRef = React.useRef<string | undefined>(undefined);
+    const [retryGeneration, setRetryGeneration] = React.useState(0);
+    const [manualRetryAvailable, setManualRetryAvailable] = React.useState(false);
 
     React.useImperativeHandle(forwardedRef, () => ({
       reset: () => {
@@ -103,43 +110,83 @@ const ConfiguredTurnstileWidget = React.forwardRef<TurnstileWidgetHandle, Config
 
     React.useEffect(() => {
       let cancelled = false;
+      let retryTimeout: number | undefined;
+      let loadFailureCount = 0;
 
-      loadTurnstile()
-        .then(turnstile => {
-          if (cancelled || !containerRef.current) {
-            return;
-          }
+      const loadAndRenderTurnstile = () => {
+        loadTurnstile().then(
+          turnstile => {
+            if (cancelled || !containerRef.current) {
+              return;
+            }
 
-          widgetIdRef.current = turnstile.render(containerRef.current, {
-            sitekey: siteKey,
-            action: TURNSTILE_ACTION,
-            callback: token => onTokenChange(token),
-            "expired-callback": () => onTokenChange(undefined),
-            "error-callback": () => onTokenChange(undefined)
-          });
-        })
-        .catch(() => {
-          if (!cancelled) {
+            try {
+              widgetIdRef.current = turnstile.render(containerRef.current, {
+                sitekey: siteKey,
+                action: TURNSTILE_ACTION,
+                callback: token => onTokenChange(token),
+                "expired-callback": () => onTokenChange(undefined),
+                "error-callback": () => onTokenChange(undefined)
+              });
+            } catch {
+              // Rendering errors are not script-loading failures and will not be
+              // fixed by repeatedly loading an already available script.
+              onTokenChange(undefined);
+            }
+          },
+          () => {
+            if (cancelled) {
+              return;
+            }
+
             onTokenChange(undefined);
+            loadFailureCount += 1;
+            if (loadFailureCount >= TURNSTILE_LOAD_MAX_FAILURES) {
+              setManualRetryAvailable(true);
+              return;
+            }
+
+            const retryDelay = TURNSTILE_LOAD_RETRY_DELAY_MS
+              + (loadFailureCount - 1) * TURNSTILE_LOAD_RETRY_DELAY_INCREMENT_MS;
+            retryTimeout = window.setTimeout(loadAndRenderTurnstile, retryDelay);
           }
-        });
+        );
+      };
+
+      loadAndRenderTurnstile();
 
       return () => {
         cancelled = true;
+        if (retryTimeout !== undefined) {
+          window.clearTimeout(retryTimeout);
+        }
         if (widgetIdRef.current && window.turnstile) {
           window.turnstile.remove(widgetIdRef.current);
           widgetIdRef.current = undefined;
         }
       };
-    }, [onTokenChange, siteKey]);
+    }, [onTokenChange, retryGeneration, siteKey]);
 
     return (
-      <div
-        ref={containerRef}
-        className="cf-turnstile"
-        data-sitekey={siteKey}
-        data-action={TURNSTILE_ACTION}
-      />
+      <>
+        <div
+          ref={containerRef}
+          className="cf-turnstile"
+          data-sitekey={siteKey}
+          data-action={TURNSTILE_ACTION}
+        />
+        {manualRetryAvailable && (
+          <button
+            type="button"
+            onClick={() => {
+              setManualRetryAvailable(false);
+              setRetryGeneration(generation => generation + 1);
+            }}
+          >
+            Retry verification
+          </button>
+        )}
+      </>
     );
   }
 );

@@ -104,4 +104,102 @@ describe("TurnstileWidget", () => {
     expect(container.querySelector(".cf-turnstile")).toBeNull();
     expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
   });
+
+  it("retries loading Turnstile after a transient script error", async () => {
+    jest.useFakeTimers();
+    const onTokenChange = jest.fn();
+    const render = jest.fn().mockReturnValue("retried-widget");
+
+    await act(async () => {
+      root.render(<TurnstileWidget onTokenChange={onTokenChange} />);
+      await Promise.resolve();
+    });
+
+    const failedScript = document.getElementById("cloudflare-turnstile-script")!;
+    await act(async () => {
+      failedScript.dispatchEvent(new Event("error"));
+      await Promise.resolve();
+    });
+
+    expect(failedScript.isConnected).toBe(false);
+    expect(onTokenChange).toHaveBeenLastCalledWith(undefined);
+
+    act(() => jest.advanceTimersByTime(1000));
+    const retriedScript = document.getElementById("cloudflare-turnstile-script")!;
+    expect(retriedScript).not.toBe(failedScript);
+
+    (window as any).turnstile = { render, reset: jest.fn(), remove: jest.fn() };
+    await act(async () => {
+      retriedScript.dispatchEvent(new Event("load"));
+      await Promise.resolve();
+    });
+
+    expect(render).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
+
+  it("backs off retries and offers a manual retry after five load failures", async () => {
+    jest.useFakeTimers();
+    const onTokenChange = jest.fn();
+
+    await act(async () => {
+      root.render(<TurnstileWidget onTokenChange={onTokenChange} />);
+      await Promise.resolve();
+    });
+
+    const retryDelays = [1000, 3000, 5000, 7000];
+    for (const retryDelay of retryDelays) {
+      const failedScript = document.getElementById("cloudflare-turnstile-script")!;
+      await act(async () => {
+        failedScript.dispatchEvent(new Event("error"));
+        await Promise.resolve();
+      });
+
+      act(() => jest.advanceTimersByTime(retryDelay - 1));
+      expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
+      act(() => jest.advanceTimersByTime(1));
+      expect(document.getElementById("cloudflare-turnstile-script")).not.toBeNull();
+    }
+
+    const fifthScript = document.getElementById("cloudflare-turnstile-script")!;
+    await act(async () => {
+      fifthScript.dispatchEvent(new Event("error"));
+      await Promise.resolve();
+    });
+
+    const retryButton = Array.from(container.querySelectorAll("button"))
+      .find(button => button.textContent === "Retry verification");
+    expect(retryButton).toBeDefined();
+
+    act(() => jest.advanceTimersByTime(30000));
+    expect(document.getElementById("cloudflare-turnstile-script")).toBeNull();
+    expect(container.textContent).toContain("Retry verification");
+
+    act(() => retryButton!.click());
+    expect(document.getElementById("cloudflare-turnstile-script")).not.toBeNull();
+    expect(container.textContent).not.toContain("Retry verification");
+    jest.useRealTimers();
+  });
+
+  it("does not retry when rendering Turnstile throws", async () => {
+    jest.useFakeTimers();
+    const onTokenChange = jest.fn();
+    const render = jest.fn(() => {
+      throw new Error("invalid render option");
+    });
+    (window as any).turnstile = { render, reset: jest.fn(), remove: jest.fn() };
+
+    await act(async () => {
+      root.render(<TurnstileWidget onTokenChange={onTokenChange} />);
+      await Promise.resolve();
+    });
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(onTokenChange).toHaveBeenLastCalledWith(undefined);
+
+    act(() => jest.advanceTimersByTime(30000));
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(container.textContent).not.toContain("Retry verification");
+    jest.useRealTimers();
+  });
 });
