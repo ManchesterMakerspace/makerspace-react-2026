@@ -733,7 +733,7 @@ const SecurityTab: React.FC = () => {
 const templateStatusLabel = (template: ExternalTemplateStatus) => {
   if (template.status === 'ok') return 'Cached';
   if (template.status === 'empty') return 'Empty document';
-  if (template.status === 'missing_env') return 'Environment variable missing';
+  if (template.status === 'missing_env') return 'Using embedded template';
   if (template.status === 'permission_error') return 'Permission denied';
   if (template.status === 'invalid') return 'Invalid template';
   return 'Unavailable';
@@ -796,19 +796,29 @@ const TemplatesTab: React.FC = () => {
                 <CardContent>
                   <Grid container spacing={2} alignItems='center'>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      <Typography variant='body1'><strong>{template.env_key}</strong></Typography>
-                      <Typography variant='caption' color='textSecondary'>{template.metadata?.name || template.name}</Typography>
+                      <Typography variant='body1'><strong>{template.name}</strong></Typography>
+                      <Typography variant='caption' color='textSecondary'>{template.env_key}</Typography>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 4, md: 2 }}>
                       <Chip
                         size='small'
-                        color={template.status === 'ok' ? 'success' : template.status === 'empty' ? 'warning' : 'error'}
+                        color={
+                          template.status === 'ok'
+                            ? 'success'
+                            : template.status === 'empty'
+                              ? 'warning'
+                              : template.status === 'missing_env'
+                                ? 'info'
+                                : 'error'
+                        }
                         label={templateStatusLabel(template)}
                       />
                     </Grid>
                     <Grid size={{ xs: 12, sm: 8, md: 2 }}>
                       <Typography variant='caption' color='textSecondary'>Cache fetched</Typography>
-                      <Typography variant='body2'>{formatDate(template.fetched_at)}</Typography>
+                      <Typography variant='body2'>
+                        {template.status === 'missing_env' ? 'Environment variable missing' : formatDate(template.fetched_at)}
+                      </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
                       {available && (
