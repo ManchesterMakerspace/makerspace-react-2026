@@ -51,7 +51,7 @@ import {
   runExternalTemplateAction,
   ExternalTemplateStatus,
 } from 'api/systemConfig';
-import { useAuthState } from 'ui/reducer/hooks';
+import { useCapabilities } from 'app/permissions';
 
 type TabKey = 'slack' | 'volunteer' | 'jobs' | 'security' | 'templates';
 
@@ -733,6 +733,7 @@ const SecurityTab: React.FC = () => {
 const templateStatusLabel = (template: ExternalTemplateStatus) => {
   if (template.status === 'ok') return 'Cached';
   if (template.status === 'empty') return 'Empty document';
+  if (template.status === 'uncached') return 'Not cached';
   if (template.status === 'missing_env') return 'Using embedded template';
   if (template.status === 'permission_error') return 'Permission denied';
   if (template.status === 'invalid') return 'Invalid template';
@@ -785,10 +786,14 @@ const TemplatesTab: React.FC = () => {
       </Grid>
       {error && <Grid size={{ xs: 12 }}><Alert severity='error'>{error}</Alert></Grid>}
       {templates.map(template => {
-        const available = template.status === 'ok' || template.status === 'empty';
-        const tooltip = available
-          ? `Template placeholders: ${template.template_placeholders.join(', ') || '(none)'}. Common placeholders: ${template.common_placeholders.join(', ')}.`
-          : `${template.error || templateStatusLabel(template)} Create the Google document, grant the service account access, and set ${template.env_key} to a valid document ID. Template placeholders: ${template.template_placeholders.join(', ') || '(none)'}. Common placeholders: ${template.common_placeholders.join(', ')}.`;
+        const healthy = template.status === 'ok' || template.status === 'empty' || template.status === 'uncached';
+        const retryable = !!template.edit_url && template.status !== 'missing_env';
+        const placeholderHelp = `Template placeholders: ${template.template_placeholders.join(', ') || '(none)'}. Common placeholders: ${template.common_placeholders.join(', ')}.`;
+        const tooltip = healthy
+          ? placeholderHelp
+          : template.status === 'missing_env'
+            ? `${template.error || templateStatusLabel(template)} Create the Google document, grant the service account access, and set ${template.env_key} to a valid document ID. ${placeholderHelp}`
+            : `${template.error || templateStatusLabel(template)} Correct the Google document or its access, then select Refresh to retry. ${placeholderHelp}`;
         return (
           <Grid size={{ xs: 12 }} key={template.name}>
             <Tooltip title={tooltip} placement='top-start' arrow>
@@ -807,7 +812,7 @@ const TemplatesTab: React.FC = () => {
                             ? 'success'
                             : template.status === 'empty'
                               ? 'warning'
-                              : template.status === 'missing_env'
+                              : template.status === 'missing_env' || template.status === 'uncached'
                                 ? 'info'
                                 : 'error'
                         }
@@ -821,7 +826,7 @@ const TemplatesTab: React.FC = () => {
                       </Typography>
                     </Grid>
                     <Grid size={{ xs: 12, md: 4 }}>
-                      {available && (
+                      {retryable && (
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           <Button
                             size='small'
@@ -834,7 +839,7 @@ const TemplatesTab: React.FC = () => {
                             <Button size='small' variant='outlined' disabled={!!running} onClick={() => runAction(template, 'populate')}>
                               Populate
                             </Button>
-                          ) : (
+                          ) : template.status === 'ok' ? (
                             <Button
                               size='small'
                               variant='outlined'
@@ -843,7 +848,7 @@ const TemplatesTab: React.FC = () => {
                               disabled={!!running}
                               onClick={() => setRestoreTarget(template)}
                             >Restore default</Button>
-                          )}
+                          ) : null}
                           <Button
                             size='small'
                             variant='outlined'
@@ -881,7 +886,7 @@ const TemplatesTab: React.FC = () => {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const MemberPortalSettings: React.FC = () => {
-  const { currentUser } = useAuthState();
+  const { canViewPortalSettings } = useCapabilities();
   const [activeTab, setActiveTab]       = React.useState<TabKey>('slack');
   const [config, setConfig]             = React.useState<SystemConfigData | null>(null);
   const [loading, setLoading]           = React.useState(true);
@@ -976,7 +981,7 @@ const MemberPortalSettings: React.FC = () => {
           variant='scrollable'
           scrollButtons='auto'
         >
-          {TABS.filter(t => t.key !== 'templates' || currentUser.isAdmin).map(t => (
+          {TABS.filter(t => t.key !== 'templates' || canViewPortalSettings).map(t => (
             <Tab key={t.key} id={`settings-tab-${t.key}`} value={t.key} label={t.label} />
           ))}
         </Tabs>
@@ -1005,7 +1010,7 @@ const MemberPortalSettings: React.FC = () => {
           />
         )}
         {activeTab === 'security' && <SecurityTab />}
-        {activeTab === 'templates' && currentUser.isAdmin && <TemplatesTab />}
+        {activeTab === 'templates' && canViewPortalSettings && <TemplatesTab />}
         {activeTab === 'jobs' && (
           <JobsTab
             config={config}

@@ -79,6 +79,7 @@ export interface SystemConfigData {
 export type TemplateStatusValue =
   | 'ok'
   | 'empty'
+  | 'uncached'
   | 'missing_env'
   | 'invalid'
   | 'permission_error'
