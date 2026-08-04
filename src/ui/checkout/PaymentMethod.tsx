@@ -7,12 +7,52 @@ import { VenmoAccount } from 'app/entities/paymentMethod';
 
 export interface Props extends Partial<CreditCard>, Partial<PayPalAccount>, Partial<VenmoAccount> {}
 
-const PaymentMethodComponent: React.FC<Props> = ({ cardType, last4, imageUrl, email, username, id }) => {
-  const image = imageUrl;
+export const isCurrentCardExpiration = (
+  expirationMonth?: number,
+  expirationYear?: number,
+  now: Date = new Date()
+): boolean =>
+  Number(expirationMonth) === now.getMonth() + 1 &&
+  Number(expirationYear) === now.getFullYear();
 
-  let description: string;
+export const formatCardExpiration = (expirationMonth?: number, expirationYear?: number): string | undefined => {
+  if (expirationMonth == null || expirationYear == null) return undefined;
+  return `${String(expirationMonth).padStart(2, '0')}/${expirationYear}`;
+};
+
+const PaymentMethodComponent: React.FC<Props> = (props: Props) => {
+  const {
+    cardType,
+    last4,
+    expirationMonth,
+    expirationYear,
+    imageUrl,
+    email,
+    username,
+    id
+  } = props;
+  const image = imageUrl;
+  const expiration = formatCardExpiration(expirationMonth, expirationYear);
+  const expiresThisMonth = isCurrentCardExpiration(expirationMonth, expirationYear);
+
+  let description: React.ReactNode;
   if (cardType) {
-    description = `${cardType} ending in ${last4}`;
+    description = (
+      <>
+        {cardType} ending in {last4}
+        {expiration && (
+          <>
+            {' · Expires '}
+            <span
+              data-payment-method-expiration={expiration}
+              style={expiresThisMonth ? { color: '#b00020', fontWeight: 700 } : undefined}
+            >
+              {expiration}
+            </span>
+          </>
+        )}
+      </>
+    );
   } else if (username) {
     description = `Venmo account @${username}`;
   } else if (email) {

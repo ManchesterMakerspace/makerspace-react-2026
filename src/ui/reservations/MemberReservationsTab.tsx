@@ -1,5 +1,6 @@
 import * as React from "react";
 import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
@@ -7,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import { Member } from "makerspace-ts-api-client";
 
 import { listManagedReservations, listReservations } from "api/reservations";
+import { Routing } from "app/constants";
 import { Reservation } from "app/entities/reservation";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
@@ -120,7 +122,14 @@ const MemberReservationsTab: React.FC<Props> = ({ member }) => {
 
   return (
     <div id="member-reservations-tab">
-      <Typography variant="h6">My Reservations</Typography>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <Typography variant="h6">My Reservations</Typography>
+        {isOwnProfile && (
+          <Button href={Routing.Reservations} variant="contained" color="primary">
+            New Reservation
+          </Button>
+        )}
+      </div>
 
       {loading && (
         <div style={{ padding: 24, textAlign: "center" }}>
