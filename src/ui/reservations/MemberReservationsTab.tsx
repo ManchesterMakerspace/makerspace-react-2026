@@ -12,6 +12,7 @@ import { Routing } from "app/constants";
 import { Reservation } from "app/entities/reservation";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
+import { isReservationCreationEligible } from "./eligibility";
 
 const ZONE = "America/New_York";
 
@@ -79,6 +80,7 @@ const MemberReservationsTab: React.FC<Props> = ({ member }) => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const isOwnProfile = currentUser.id === member.id;
+  const canCreateReservation = isReservationCreationEligible(currentUser);
 
   React.useEffect(() => {
     let active = true;
@@ -124,7 +126,7 @@ const MemberReservationsTab: React.FC<Props> = ({ member }) => {
     <div id="member-reservations-tab">
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <Typography variant="h6">My Reservations</Typography>
-        {isOwnProfile && (
+        {isOwnProfile && canCreateReservation && (
           <Button href={Routing.Reservations} variant="contained" color="primary">
             New Reservation
           </Button>

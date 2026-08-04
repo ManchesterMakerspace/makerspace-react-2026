@@ -26,6 +26,7 @@ import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { reservationShopOptions } from "./reservationForm";
+import { isReservationCreationEligible } from "./eligibility";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -71,9 +72,7 @@ const ReservationsPage: React.FC = () => {
   const [success, setSuccess] = React.useState("");
   const previewRequestGeneration = React.useRef(0);
 
-  const canCreateReservation = !!currentUser.isBoardMember ||
-    (currentUser.status === "activeMember" &&
-      !!currentUser.expirationTime && currentUser.expirationTime > Date.now());
+  const canCreateReservation = isReservationCreationEligible(currentUser);
   const isManager = !!(currentUser.isAdmin || currentUser.isBoardMember ||
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
   const canUseCreateUi = canCreateReservation;

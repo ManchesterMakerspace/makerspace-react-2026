@@ -3,7 +3,12 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 
-let mockCurrentUser = { id: "member-1" };
+let mockCurrentUser: any = {
+  id: "member-1",
+  status: "activeMember",
+  expirationTime: Date.now() + 86_400_000,
+  isBoardMember: false
+};
 let mockCanManageCheckouts = false;
 
 jest.mock("ui/reducer/hooks", () => ({
@@ -37,7 +42,12 @@ describe("member profile action buttons", () => {
   });
 
   beforeEach(() => {
-    mockCurrentUser = { id: "member-1" };
+    mockCurrentUser = {
+      id: "member-1",
+      status: "activeMember",
+      expirationTime: Date.now() + 86_400_000,
+      isBoardMember: false
+    };
     mockCanManageCheckouts = false;
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -73,11 +83,38 @@ describe("member profile action buttons", () => {
   });
 
   it("does not show self-service actions when another member's profile is viewed", async () => {
-    mockCurrentUser = { id: "different-member" };
+    mockCurrentUser.id = "different-member";
 
     await renderTabs();
 
     expect(container.textContent).not.toContain("Request Checkout");
     expect(container.textContent).not.toContain("New Reservation");
+  });
+
+  it("does not advertise a new reservation to an expired profile owner", async () => {
+    mockCurrentUser.expirationTime = Date.now() - 1;
+
+    await renderTabs();
+
+    expect(container.textContent).toContain("Request Checkout");
+    expect(container.textContent).not.toContain("New Reservation");
+  });
+
+  it("does not advertise a new reservation to an inactive profile owner", async () => {
+    mockCurrentUser.status = "inactive";
+
+    await renderTabs();
+
+    expect(container.textContent).not.toContain("New Reservation");
+  });
+
+  it("allows a board member to create a reservation regardless of membership expiration", async () => {
+    mockCurrentUser.status = "inactive";
+    mockCurrentUser.expirationTime = Date.now() - 1;
+    mockCurrentUser.isBoardMember = true;
+
+    await renderTabs();
+
+    expect(container.textContent).toContain("New Reservation");
   });
 });
