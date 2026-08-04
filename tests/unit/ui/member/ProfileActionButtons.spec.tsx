@@ -4,12 +4,13 @@ import { createRoot, Root } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
 
 let mockCurrentUser = { id: "member-1" };
+let mockCanManageCheckouts = false;
 
 jest.mock("ui/reducer/hooks", () => ({
   useAuthState: () => ({ currentUser: mockCurrentUser })
 }));
 jest.mock("app/permissions", () => ({
-  useCapabilities: () => ({ canManageCheckouts: false })
+  useCapabilities: () => ({ canManageCheckouts: mockCanManageCheckouts })
 }));
 jest.mock("ui/member/utils", () => ({ memberIsResourceManager: () => false }));
 jest.mock("ui/toolCheckouts/CheckoutRoster", () => () => <div>Checkout roster</div>);
@@ -37,6 +38,7 @@ describe("member profile action buttons", () => {
 
   beforeEach(() => {
     mockCurrentUser = { id: "member-1" };
+    mockCanManageCheckouts = false;
     container = document.createElement("div");
     document.body.appendChild(container);
     root = createRoot(container);
@@ -60,12 +62,13 @@ describe("member profile action buttons", () => {
   };
 
   it("links members from their own profile to request a checkout and make a reservation", async () => {
+    mockCanManageCheckouts = true;
     await renderTabs();
 
     const links = Array.from(container.querySelectorAll("a"));
     const checkoutLink = links.find(link => link.textContent?.includes("Request Checkout"));
     const reservationLink = links.find(link => link.textContent?.includes("New Reservation"));
-    expect(checkoutLink?.getAttribute("href")).toBe("/tool-checkouts");
+    expect(checkoutLink?.getAttribute("href")).toBe("/tool-checkouts?mode=self-service");
     expect(reservationLink?.getAttribute("href")).toBe("/reservations");
   });
 

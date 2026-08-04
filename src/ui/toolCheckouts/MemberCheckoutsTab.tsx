@@ -21,7 +21,7 @@ const MemberCheckoutsTab: React.FC<Props> = ({ member }) => {
     <>
       {isOwnProfile && (
         <Button
-          href={Routing.ToolCheckouts}
+          href={Routing.ToolCheckoutRequests}
           variant="contained"
           color="primary"
           style={{ marginBottom: 16 }}

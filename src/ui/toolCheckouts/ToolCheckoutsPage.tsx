@@ -3,6 +3,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import { useLocation } from "react-router-dom";
 
 import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
@@ -20,7 +21,12 @@ const ToolCheckoutsPage: React.FC = () => {
   const isRM = memberIsResourceManager(currentUser);
   const managesShops = isRM && ((currentUser as any).resourceManagerShopIds || []).length > 0;
   const caps = useCapabilities();
-  const defaultTab: TabKey = caps.canManageCheckouts ? "roster" : "requests";
+  const { search } = useLocation();
+  const selfService = React.useMemo(
+    () => new URLSearchParams(search).get("mode") === "self-service",
+    [search]
+  );
+  const defaultTab: TabKey = selfService || !caps.canManageCheckouts ? "requests" : "roster";
   const [activeTab, setActiveTab] = React.useState<TabKey>(defaultTab);
   const [userSelectedTab, setUserSelectedTab] = React.useState(false);
 
@@ -66,7 +72,9 @@ const ToolCheckoutsPage: React.FC = () => {
         </Tabs>
       </Grid>
       <Grid size={{ xs: 12, md: 10 }}>
-        {activeTab === "requests" && <ToolCheckoutRequestsManager canManage={caps.canManageCheckouts} />}
+        {activeTab === "requests" && (
+          <ToolCheckoutRequestsManager canManage={caps.canManageCheckouts && !selfService} />
+        )}
         {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={managesShops} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}
