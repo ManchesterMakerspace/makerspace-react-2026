@@ -76,6 +76,33 @@ export interface SystemConfigData {
   totp: TotpSettings;
 }
 
+export type TemplateStatusValue =
+  | 'ok'
+  | 'empty'
+  | 'uncached'
+  | 'missing_env'
+  | 'invalid'
+  | 'permission_error'
+  | 'error';
+
+export interface ExternalTemplateStatus {
+  name: string;
+  env_key: string;
+  status: TemplateStatusValue;
+  checked_at: string | null;
+  fetched_at: string | null;
+  empty: boolean;
+  error: string | null;
+  edit_url: string | null;
+  placeholders: string[];
+  template_placeholders: string[];
+  common_placeholders: string[];
+  metadata?: {
+    name?: string;
+    modified_time?: string;
+  } | null;
+}
+
 /** A Braintree discount as returned by /api/billing/discounts */
 export interface BraintreeDiscount {
   id: string;
@@ -101,6 +128,18 @@ export const runSystemJob = ({ key }: { key: string }) =>
   buildResponse<{ message: string }>(
     api.post('/api/admin/system_configs/run_job', { key })
   );
+
+export const getExternalTemplates = () =>
+  buildResponse<{ templates: ExternalTemplateStatus[] }>(
+    api.get('/api/admin/templates')
+  );
+
+export const runExternalTemplateAction = (
+  name: string,
+  action: 'refresh' | 'restore' | 'populate'
+) => buildResponse<{ template: ExternalTemplateStatus }>(
+  api.post(`/api/admin/templates/${encodeURIComponent(name)}/${action}`)
+);
 
 /**
  * Fetches Braintree discounts filtered to the 'volunteer' type.

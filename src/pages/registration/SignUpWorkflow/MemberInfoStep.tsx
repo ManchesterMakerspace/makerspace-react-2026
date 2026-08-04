@@ -40,7 +40,7 @@ const ConfirmEmailField: React.FC = () => {
       placeholder={SignUpFields.confirmEmail.placeholder}
       validate={(val: string) => {
         if (!val) return "Required";
-        if (val !== emailValue) return "Email addresses do not match";
+        if (val.trim() !== emailValue?.trim()) return "Email addresses do not match";
         return undefined;
       }}
     />

@@ -25,6 +25,7 @@ export interface AnalyticsSummary {
   totalMembers: number;
   newMembers: number;
   subscribedMembers: number;
+  membersWithExpiringPaymentMethods: number;
   pastDueInvoices: number;
   refundsPending: number;
 }
