@@ -24,9 +24,10 @@ const BillingContainer: React.FC = () => {
     totalMembers,
     newMembers,
     subscribedMembers,
+    membersWithExpiringPaymentMethods,
     pastDueInvoices,
     refundsPending
-  } = data || {}; 
+  } = (data || {}) as any;
 
   const fallbackUI = (isRequesting && <LoadingOverlay id="plans-loading" contained={true} />)
     || (error && <ErrorMessage error={error} />);
@@ -43,6 +44,7 @@ const BillingContainer: React.FC = () => {
               <KeyValueItem label="Number of Members">{String(totalMembers)}</KeyValueItem>
               <KeyValueItem label="New Members (Prior 30 days)">{String(newMembers)}</KeyValueItem>
               <KeyValueItem label="Number of Members on Subscription">{String(subscribedMembers)}</KeyValueItem>
+              <KeyValueItem label="Members with payment methods expiring this month">{String(membersWithExpiringPaymentMethods ?? 0)}</KeyValueItem>
               <KeyValueItem label="Number of Past Due Invoices">{String(pastDueInvoices)}</KeyValueItem>
               <KeyValueItem label="Number of Refunds Pending">{String(refundsPending)}</KeyValueItem>
             </>

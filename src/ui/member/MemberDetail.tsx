@@ -208,9 +208,35 @@ const MemberProfile: React.FC = () => {
     !isOwnProfile &&
     member.status === "revoked" &&
     !!(member as any).slackManualDeactivationRequired;
+  const expiringPaymentCardTypes = (member as any).expiringPaymentCardTypes as string | undefined;
+  const showExpiringPaymentWarning =
+    !!expiringPaymentCardTypes && (isOwnProfile || canManageBilling);
+  const paymentMethodsPath = `${Routing.Settings.replace(Routing.PathPlaceholder.MemberId, member.id)}/${SubRoutes.PaymentMethods}`;
 
   return (
     <>
+      {showExpiringPaymentWarning && (
+        <div
+          id="member-expiring-payment-method-warning"
+          role="alert"
+          style={{
+            color: "#b00020",
+            fontWeight: 700,
+            border: "2px solid #b00020",
+            borderRadius: 4,
+            marginBottom: 16,
+            padding: "12px 16px",
+          }}
+        >
+          {isOwnProfile ? (
+            <Link to={paymentMethodsPath} style={{ color: "inherit", textDecoration: "underline" }}>
+              Your {expiringPaymentCardTypes.toLowerCase()} payment card(s) expire this month
+            </Link>
+          ) : (
+            <span>{memberDisplayName}&apos;s {expiringPaymentCardTypes} payment card(s) expire this month.</span>
+          )}
+        </div>
+      )}
       {showManualSlackDeactivationWarning && (
         <div
           id="member-slack-manual-deactivation-warning"

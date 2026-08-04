@@ -70,6 +70,7 @@ const JOB_LABELS: Record<string, string> = {
   invoice_review:  'Invoice Review',
   garbage_collect: 'Garbage Collector',
   db_backup:       'Database Backup',
+  card_expiration_check: 'Card on File Expiration Check',
   reservation_canvas_rebuild: 'Reservation Canvas Rebuild',
 };
 
@@ -80,6 +81,7 @@ const JOB_DESCRIPTIONS: Record<string, string> = {
   invoice_review:  'Reviews invoice statuses, flags past due accounts, and reports to the treasurer channel.',
   garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month.',
   db_backup:       'Backs up the MongoDB database to Google Drive.',
+  card_expiration_check: 'Finds active members with payment cards expiring this month, caches the results, and sends Slack notifications.',
   reservation_canvas_rebuild: "Rebuilds today's and tomorrow's Slack reservation canvases and refreshes owner access.",
 };
 
