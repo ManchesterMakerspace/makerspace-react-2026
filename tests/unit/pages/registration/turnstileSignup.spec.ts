@@ -34,6 +34,47 @@ describe("submitSignUpWithTurnstile", () => {
     expect(reset).not.toHaveBeenCalled();
   });
 
+  it("trims every registration string except the password", async () => {
+    const response = { data: { id: "member-id" } } as any;
+    const submit = jest.fn().mockResolvedValue(response);
+    const reset = jest.fn();
+    const details = {
+      ...signUpDetails,
+      firstname: "  First ",
+      lastname: " Last  ",
+      email: " member@example.com ",
+      confirmEmail: " member@example.com  ",
+      phone: " 603-555-0100 ",
+      password: "  password with spaces  ",
+      address: {
+        street: " 123 Main Street ",
+        unit: " Apt 2 ",
+        city: " Manchester ",
+        state: " NH ",
+        postalCode: " 03101 "
+      }
+    };
+
+    await submitSignUpWithTurnstile(submit, details, " token-with-spaces ", reset);
+
+    expect(submit).toHaveBeenCalledWith({
+      firstname: "First",
+      lastname: "Last",
+      email: "member@example.com",
+      confirmEmail: "member@example.com",
+      phone: "603-555-0100",
+      password: "  password with spaces  ",
+      address: {
+        street: "123 Main Street",
+        unit: "Apt 2",
+        city: "Manchester",
+        state: "NH",
+        postalCode: "03101"
+      },
+      "cf-turnstile-response": " token-with-spaces "
+    });
+  });
+
   it("resets the widget after an API rejection", async () => {
     const response = { error: { message: "Turnstile verification failed" } } as any;
     const submit = jest.fn().mockResolvedValue(response);

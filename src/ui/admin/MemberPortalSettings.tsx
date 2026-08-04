@@ -867,7 +867,7 @@ const TemplatesTab: React.FC = () => {
           </Grid>
         );
       })}
-      <Dialog open={!!restoreTarget} onClose={() => setRestoreTarget(null)}>
+      <Dialog open={!!restoreTarget} onClose={() => !running && setRestoreTarget(null)}>
         <DialogTitle>Restore compiled-in default?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -875,8 +875,14 @@ const TemplatesTab: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRestoreTarget(null)}>Cancel</Button>
-          <Button color='warning' variant='contained' onClick={() => restoreTarget && runAction(restoreTarget, 'restore')}>
+          <Button disabled={!!running} onClick={() => setRestoreTarget(null)}>Cancel</Button>
+          <Button
+            color='warning'
+            variant='contained'
+            disabled={!!running}
+            startIcon={running === restoreTarget?.name ? <CircularProgress size={14} /> : <RestoreIcon />}
+            onClick={() => restoreTarget && runAction(restoreTarget, 'restore')}
+          >
             Restore default
           </Button>
         </DialogActions>
