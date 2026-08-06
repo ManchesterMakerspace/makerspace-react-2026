@@ -9,6 +9,8 @@ import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import {
   createReservationBlackout, deleteReservationBlackout, listReservationBlackouts,
@@ -38,14 +40,16 @@ const ReservationBlackouts: React.FC = () => {
   const [shopFilter, setShopFilter] = React.useState("");
   const [form, setForm] = React.useState<ReservationBlackoutInput>(emptyForm());
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [entireDay, setEntireDay] = React.useState(false);
+  const previousTimes = React.useRef({ startTime: "17:00", endTime: "20:00" });
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
 
-  const load = React.useCallback(async (filter = shopFilter) => {
+  const load = React.useCallback(async (filter: string) => {
     const result = await listReservationBlackouts({ shopId: filter || undefined });
     if (result.error) setError(result.error.message);
     else setBlackouts(result.data || []);
-  }, [shopFilter]);
+  }, []);
 
   React.useEffect(() => {
     listManagedShops().then(result => {
@@ -59,7 +63,7 @@ const ReservationBlackouts: React.FC = () => {
     });
   }, []);
 
-  React.useEffect(() => { load(shopFilter); }, [shopFilter]);
+  React.useEffect(() => { void load(shopFilter); }, [load, shopFilter]);
 
   const setField = <K extends keyof ReservationBlackoutInput>(
     key: K, value: ReservationBlackoutInput[K]
@@ -67,6 +71,8 @@ const ReservationBlackouts: React.FC = () => {
 
   const reset = () => {
     setEditingId(null);
+    setEntireDay(false);
+    previousTimes.current = { startTime: "17:00", endTime: "20:00" };
     setForm(emptyForm(shopFilter || shops[0]?.id || ""));
     setError("");
   };
@@ -74,20 +80,31 @@ const ReservationBlackouts: React.FC = () => {
   const submit = async () => {
     setSaving(true);
     setError("");
+    const body = entireDay
+      ? { ...form, startTime: "00:00", endTime: "00:00" }
+      : form;
     const result = editingId
-      ? await updateReservationBlackout({ id: editingId, body: form })
-      : await createReservationBlackout({ body: form });
+      ? await updateReservationBlackout({ id: editingId, body })
+      : await createReservationBlackout({ body });
     setSaving(false);
     if (result.error) {
       setError(result.error.message);
       return;
     }
     reset();
-    await load();
+    await load(shopFilter);
   };
 
   const edit = (blackout: ReservationBlackout) => {
+    const editsEntireDay = blackout.startTime === "00:00" && blackout.endTime === "00:00";
     setEditingId(blackout.id);
+    setEntireDay(editsEntireDay);
+    if (!editsEntireDay) {
+      previousTimes.current = {
+        startTime: blackout.startTime,
+        endTime: blackout.endTime,
+      };
+    }
     setForm({
       title: blackout.title,
       shopId: blackout.shopId,
@@ -102,12 +119,29 @@ const ReservationBlackouts: React.FC = () => {
 
   const remove = async (blackout: ReservationBlackout) => {
     if (!window.confirm(`Delete blackout "${blackout.title}"?`)) return;
+    setError("");
     const result = await deleteReservationBlackout({ id: blackout.id });
     if (result.error) setError(result.error.message);
-    else await load();
+    else {
+      if (editingId === blackout.id) reset();
+      await load(shopFilter);
+    }
   };
 
-  const overnight = form.endTime <= form.startTime;
+  const setEntireDayValue = (checked: boolean) => {
+    setEntireDay(checked);
+    if (checked) {
+      previousTimes.current = {
+        startTime: form.startTime,
+        endTime: form.endTime,
+      };
+      setForm(current => ({ ...current, startTime: "00:00", endTime: "00:00" }));
+    } else {
+      setForm(current => ({ ...current, ...previousTimes.current }));
+    }
+  };
+
+  const overnight = !entireDay && form.endTime <= form.startTime;
 
   return (
     <Paper style={{ padding: 16 }}>
@@ -163,13 +197,22 @@ const ReservationBlackouts: React.FC = () => {
             </Select>
           </FormControl>
         </Grid>}
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <FormControlLabel
+            control={<Checkbox checked={entireDay}
+              onChange={event => setEntireDayValue(event.target.checked)} />}
+            label="Entire Day"
+          />
+        </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
           <TextField fullWidth required size="small" type="time" label="Start"
+            disabled={entireDay}
             value={form.startTime} onChange={event => setField("startTime", event.target.value)}
             slotProps={{ htmlInput: { step: 1800 } }} />
         </Grid>
         <Grid size={{ xs: 6, sm: 2 }}>
           <TextField fullWidth required size="small" type="time" label="End"
+            disabled={entireDay}
             value={form.endTime} onChange={event => setField("endTime", event.target.value)}
             slotProps={{ htmlInput: { step: 1800 } }} />
         </Grid>
@@ -184,6 +227,9 @@ const ReservationBlackouts: React.FC = () => {
             slotProps={{ inputLabel: { shrink: true } }} />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          {entireDay && <Typography variant="caption" color="textSecondary">
+            This blackout covers the entire day.
+          </Typography>}
           {overnight && <Typography variant="caption" color="textSecondary">
             This period ends on the following day{form.endTime === form.startTime ? " (24 hours)" : ""}.
           </Typography>}
