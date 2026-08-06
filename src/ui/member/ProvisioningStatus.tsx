@@ -73,15 +73,15 @@ const DRIVE_LABELS: Record<GoogleDriveProvisioningStatus, string> = {
 
 const statusIcon = (status: string) => {
   if (status === 'full_member' || status === 'complete') {
-    return <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />;
+    return <CheckCircleIcon fontSize='small' color='success' style={{ verticalAlign: 'middle' }} />;
   }
   if (status.startsWith('manual_') || status === 'failed' || status === 'not_invited' || status === 'blocked') {
-    return <ErrorIcon fontSize='small' style={{ color: '#f44336', verticalAlign: 'middle' }} />;
+    return <ErrorIcon fontSize='small' color='error' style={{ verticalAlign: 'middle' }} />;
   }
   if (status === 'invite_pending' || status === 'guest' || status === 'pending_activation' || status === 'partial') {
-    return <HourglassTopIcon fontSize='small' style={{ color: '#ff9800', verticalAlign: 'middle' }} />;
+    return <HourglassTopIcon fontSize='small' color='warning' style={{ verticalAlign: 'middle' }} />;
   }
-  return <InfoOutlined fontSize='small' style={{ color: '#9e9e9e', verticalAlign: 'middle' }} />;
+  return <InfoOutlined fontSize='small' color='disabled' style={{ verticalAlign: 'middle' }} />;
 };
 
 const formatTimestamp = (value?: string | null) =>
