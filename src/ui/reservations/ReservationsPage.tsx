@@ -33,6 +33,7 @@ import { reservationShopOptions } from "./reservationForm";
 import ApprovalDetails from "./ApprovalDetails";
 import ReservationBlackouts from "./ReservationBlackouts";
 import DayAgenda from "./DayAgenda";
+import { isReservationCreationEligible } from "./eligibility";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -81,9 +82,7 @@ const ReservationsPage: React.FC = () => {
   const previewRequestGeneration = React.useRef(0);
   const handledEditId = React.useRef("");
 
-  const canCreateReservation = !!currentUser.isBoardMember ||
-    (currentUser.status === "activeMember" &&
-      !!currentUser.expirationTime && currentUser.expirationTime > Date.now());
+  const canCreateReservation = isReservationCreationEligible(currentUser);
   const isManager = !!(currentUser.isAdmin || currentUser.isBoardMember ||
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
   const canUseCreateUi = canCreateReservation;

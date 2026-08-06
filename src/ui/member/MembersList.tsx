@@ -13,6 +13,11 @@ import { SortDirection } from 'ui/common/table/constants';
 import { Column } from 'ui/common/table/Table';
 import MemberStatusLabel from 'ui/member/MemberStatusLabel';
 import { EmailStatusIcon, SlackStatusIcon, TotpStatusIcon, RoleBadge } from 'ui/common/ContactStatusIcons';
+import {
+  DriveProvisioningIcon,
+  MemberProvisioning,
+  SlackProvisioningIcon,
+} from 'ui/member/ProvisioningStatus';
 
 import { listMembers, MemberSummary } from 'makerspace-ts-api-client';
 import CreateMember from 'ui/member/CreateMember';
@@ -38,6 +43,7 @@ interface MemberSummaryHouseholdFields extends MemberSummary {
   groupName?: string;
   householdRole?: 'primary' | 'secondary';
   household?: HouseholdSummary;
+  provisioning?: MemberProvisioning;
 }
 
 // Columns defined individually so getFields can weave them into the correct order.
@@ -87,9 +93,13 @@ const slackStatusColumn: Column<MemberSummary> = {
   label: 'Slack',
   cell: (row: MemberSummary) => {
     const slack = (row as any).slack;
+    const provisioning = (row as MemberSummaryHouseholdFields).provisioning;
     const content = (
       <>
-        <SlackStatusIcon slack={slack} />
+        {provisioning
+          ? <SlackProvisioningIcon provisioning={provisioning} fallbackLinkedName={slack?.name} />
+          : <SlackStatusIcon slack={slack} />
+        }
         {slack && <span style={{ fontSize: '0.8rem', color: '#555' }}>{slack.name}</span>}
       </>
     );
@@ -107,6 +117,15 @@ const slackStatusColumn: Column<MemberSummary> = {
         {content}
       </span>
     );
+  },
+};
+
+const driveStatusColumn: Column<MemberSummary> = {
+  id: 'driveStatus',
+  label: 'Drive',
+  cell: (row: MemberSummary) => {
+    const provisioning = (row as MemberSummaryHouseholdFields).provisioning;
+    return provisioning ? <DriveProvisioningIcon provisioning={provisioning} /> : null;
   },
 };
 
@@ -169,14 +188,20 @@ const notesColumn: Column<MemberSummary> = {
   },
 };
 
-// Column order: Name | [Portal Role] | Expiration | Status | [2FA | Email Status | Slack | Notes]
+// Column order: Name | [Portal Role] | Expiration | Status | [2FA | Email Status | Slack | Drive | Notes]
 // Privileged columns visible to anyone with canViewAll (admin, RM, board).
-const getFields = (showPrivileged: boolean): Column<MemberSummary>[] => [
+const getFields = (showPrivileged: boolean, showProvisioning: boolean): Column<MemberSummary>[] => [
   nameColumn,
   ...(showPrivileged ? [roleColumn] : []),
   expirationColumn,
   statusColumn,
-  ...(showPrivileged ? [totpColumn, emailStatusColumn, slackStatusColumn, notesColumn] : []),
+  ...(showPrivileged ? [
+    totpColumn,
+    emailStatusColumn,
+    slackStatusColumn,
+    ...(showProvisioning ? [driveStatusColumn] : []),
+    notesColumn
+  ] : []),
 ];
 
 const rowId = (member: MemberSummary) => member.id;
@@ -188,6 +213,7 @@ const MembersList: React.FC = () => {
   useAuthState(); // required for auth context
   const caps = useCapabilities();
   const canViewAll = caps.canViewAllMembers;
+  const canViewProvisioning = caps.canViewAuditLog;
   const updateFilter = React.useCallback(
     () => setParam('currentMembers', !params.currentMembers),
     [params, setParam]
@@ -232,7 +258,7 @@ const MembersList: React.FC = () => {
           totalItems={extractTotalItems(response)}
           selectedIds={selectedId}
           setSelectedIds={canViewAll ? setSelectedId : undefined}
-          columns={getFields(canViewAll)}
+          columns={getFields(canViewAll, canViewProvisioning)}
           rowId={rowId}
           renderSearch={canViewAll}
         />

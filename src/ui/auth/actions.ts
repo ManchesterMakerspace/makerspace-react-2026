@@ -216,11 +216,12 @@ export const totpLoginSuccessAction = (
 
 export const submitSignUpAction = (
   signUpForm: SignUpForm
-): ThunkAction<Promise<void>, {}, {}, AnyAction> => async (dispatch) => {
+): ThunkAction<Promise<ApiErrorResponse | ApiDataResponse<Member>>, {}, {}, AnyAction> => async (dispatch) => {
   dispatch({ type: AuthAction.StartAuthRequest });
 
   const response = await registerMember({ body: signUpForm });
   await handleAuthWithPermissions(response, dispatch);
+  return response;
 }
 
 const defaultState: AuthState = {

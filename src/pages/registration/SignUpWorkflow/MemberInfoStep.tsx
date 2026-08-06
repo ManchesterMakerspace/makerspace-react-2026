@@ -25,6 +25,8 @@ import { Form } from "components/Form/Form";
 import { FormState, useFormValues } from "components/Form/FormContext";
 import { CollectionOf } from "app/interfaces";
 import { useAuthState } from "ui/reducer/hooks";
+import { TurnstileWidget, TurnstileWidgetHandle } from "components/Turnstile/TurnstileWidget";
+import { submitSignUpWithTurnstile } from "./turnstileSignup";
 
 // Confirm email field that validates against the email field value
 const ConfirmEmailField: React.FC = () => {
@@ -38,7 +40,7 @@ const ConfirmEmailField: React.FC = () => {
       placeholder={SignUpFields.confirmEmail.placeholder}
       validate={(val: string) => {
         if (!val) return "Required";
-        if (val !== emailValue) return "Email addresses do not match";
+        if (val.trim() !== emailValue?.trim()) return "Email addresses do not match";
         return undefined;
       }}
     />
@@ -50,6 +52,8 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const goToLogin = React.useCallback(() => navigate(Routing.Login), [history]);
+  const turnstileWidget = React.useRef<TurnstileWidgetHandle>(null);
+  const [turnstileToken, setTurnstileToken] = React.useState<string>();
   
   const { isRequesting, error } = useAuthState();
 
@@ -66,17 +70,22 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
 
     const { street, unit, city, state, postalCode, ...rest } = validSignUp;
 
-    await dispatch(submitSignUpAction({
-      ...rest as SignUpForm,
-      address: {
-        street,
-        unit,
-        city,
-        state,
-        postalCode
-      }
-    }));
-  }, [membershipOptionId, discountId, dispatch, submitSignUpAction]);
+    return submitSignUpWithTurnstile(
+      signUpForm => dispatch(submitSignUpAction(signUpForm)),
+      {
+        ...rest as SignUpForm,
+        address: {
+          street,
+          unit,
+          city,
+          state,
+          postalCode
+        }
+      },
+      turnstileToken,
+      () => turnstileWidget.current?.reset()
+    );
+  }, [membershipOptionId, discountId, dispatch, submitSignUpAction, turnstileToken]);
 
   React.useEffect(() => {
     if (!isRequesting && error?.match(new RegExp(EmailExistsError))) {
@@ -211,6 +220,13 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
                     address: SignUpFields.street.name,
                     email: SignUpFields.email.name,
                   }}
+                />
+              </Grid>
+
+              <Grid size={{ xs: 12 }}>
+                <TurnstileWidget
+                  ref={turnstileWidget}
+                  onTokenChange={setTurnstileToken}
                 />
               </Grid>
             </Grid>

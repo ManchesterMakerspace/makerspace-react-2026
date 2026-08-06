@@ -38,6 +38,10 @@ import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
 import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
 import SlackInviteButton from 'ui/member/SlackInviteButton';
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
+import {
+  MemberProvisioning,
+  ProvisioningStatusChip,
+} from 'ui/member/ProvisioningStatus';
 
 
 const getCsrfToken = (): string => {
@@ -97,6 +101,7 @@ const MemberProfile: React.FC = () => {
     canManageBilling,
     canManageShopFees,
     canManageCheckoutApprovers,
+    canViewAuditLog,
   } = useCapabilities();
 
   const {
@@ -193,6 +198,7 @@ const MemberProfile: React.FC = () => {
   }
 
   const memberSubscription = getDetailsForMember(member);
+  const provisioning = (member as Member & { provisioning?: MemberProvisioning }).provisioning;
   const memberDisplayName = `${member.firstname} ${member.lastname}`;
   const memberTitle = (member as any).slack?.url
     ? <a href={(member as any).slack.url}>{memberDisplayName}</a>
@@ -202,9 +208,35 @@ const MemberProfile: React.FC = () => {
     !isOwnProfile &&
     member.status === "revoked" &&
     !!(member as any).slackManualDeactivationRequired;
+  const expiringPaymentCardTypes = (member as any).expiringPaymentCardTypes as string | undefined;
+  const showExpiringPaymentWarning =
+    !!expiringPaymentCardTypes && (isOwnProfile || canManageBilling);
+  const paymentMethodsPath = `${Routing.Settings.replace(Routing.PathPlaceholder.MemberId, member.id)}/${SubRoutes.PaymentMethods}`;
 
   return (
     <>
+      {showExpiringPaymentWarning && (
+        <div
+          id="member-expiring-payment-method-warning"
+          role="alert"
+          style={{
+            color: "#b00020",
+            fontWeight: 700,
+            border: "2px solid #b00020",
+            borderRadius: 4,
+            marginBottom: 16,
+            padding: "12px 16px",
+          }}
+        >
+          {isOwnProfile ? (
+            <Link to={paymentMethodsPath} style={{ color: "inherit", textDecoration: "underline" }}>
+              Your {expiringPaymentCardTypes.toLowerCase()} payment card(s) expire this month
+            </Link>
+          ) : (
+            <span>{memberDisplayName}&apos;s {expiringPaymentCardTypes} payment card(s) expire this month.</span>
+          )}
+        </div>
+      )}
       {showManualSlackDeactivationWarning && (
         <div
           id="member-slack-manual-deactivation-warning"
@@ -242,8 +274,8 @@ const MemberProfile: React.FC = () => {
             <AccessCardForm memberId={memberId} key="card-form"/>,
             <AdminChangePasswordModal member={member} key="change-password"/>,
             <HouseholdModal member={member} key="household" onUpdate={refreshMember}/>,
-            <GoogleDriveInviteButton member={member} key='google-drive-invite' />,
-            <SlackInviteButton member={member} key='slack-invite' />,
+            <GoogleDriveInviteButton member={member} key='google-drive-invite' onProvisioned={refreshMember} />,
+            <SlackInviteButton member={member} key='slack-invite' onProvisioned={refreshMember} />,
             ...((member as any).totpEnabled ? [
               <Reset2FAButton key="reset-2fa" memberId={memberId} onReset={refreshMember} />
             ] : [])
@@ -274,6 +306,16 @@ const MemberProfile: React.FC = () => {
             <KeyValueItem  label="Membership Expiration">
               <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
             </KeyValueItem>
+            {canViewAuditLog && provisioning && (
+              <>
+                <KeyValueItem label="Slack Provisioning">
+                  <ProvisioningStatusChip kind="slack" provisioning={provisioning} />
+                </KeyValueItem>
+                <KeyValueItem label="Google Drive Access">
+                  <ProvisioningStatusChip kind="drive" provisioning={provisioning} />
+                </KeyValueItem>
+              </>
+            )}
             <KeyValueItem label="Membership Status">
               <Link to={`/members/${memberId}/checkin-activity`} style={{ textDecoration: "none", color: "inherit" }}>
                 <MemberStatusLabel id="member-detail-status" member={member} />

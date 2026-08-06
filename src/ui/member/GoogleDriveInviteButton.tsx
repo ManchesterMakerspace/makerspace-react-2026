@@ -4,6 +4,7 @@ import Tooltip from "@mui/material/Tooltip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Snackbar from "@mui/material/Snackbar";
 import { Member } from "makerspace-ts-api-client";
+import { MemberProvisioning } from "ui/member/ProvisioningStatus";
 
 // Google "G" logo SVG — official brand colors
 const GoogleIcon: React.FC = () => (
@@ -17,9 +18,11 @@ const GoogleIcon: React.FC = () => (
 
 interface Props {
   member: Member;
+  onProvisioned?: () => void;
 }
 
-const GoogleDriveInviteButton: React.FC<Props> = ({ member }) => {
+const GoogleDriveInviteButton: React.FC<Props> = (props) => {
+  const { member, onProvisioned } = props;
   const [loading,  setLoading]  = React.useState(false);
   const [success,  setSuccess]  = React.useState(false);
   const [error,    setError]    = React.useState<string | null>(null);
@@ -42,6 +45,7 @@ const GoogleDriveInviteButton: React.FC<Props> = ({ member }) => {
       });
       if (res.ok) {
         setSuccess(true);
+        onProvisioned?.();
       } else {
         const body = await res.json().catch(() => ({}));
         setError(body?.message || "Failed to send Drive invite.");
@@ -53,14 +57,20 @@ const GoogleDriveInviteButton: React.FC<Props> = ({ member }) => {
     }
   };
 
+  const provisioning = (member as Member & { provisioning?: MemberProvisioning }).provisioning;
+  const activationBlocked = provisioning ? !provisioning.activationEligible : false;
+  const tooltip = activationBlocked
+    ? "Google Drive access requires a future expiration, a usable fob, and an allowed member status"
+    : `Confirm Google Drive access for ${member.email}`;
+
   return (
     <>
-      <Tooltip title={`Re-send Google Drive invite to ${member.email}`}>
+      <Tooltip title={tooltip}>
         <span>
           <Button
             key="google-drive-invite"
             variant="outlined"
-            disabled={loading}
+            disabled={loading || activationBlocked}
             onClick={handleInvite}
             style={{ marginRight: ".25em" }}
             startIcon={loading
