@@ -37,6 +37,7 @@ import ReservationSettingsFields, { ReservationSettingsValue } from "./Reservati
 const rowId = (t: Tool) => t.id;
 
 const normalizedName = (value: string) => value.trim().toLowerCase();
+const normalizedChannel = (value: string) => value.replace(/^#+/, "");
 
 const duplicateToolName = (tools: Tool[], name: string, shopId: string, excludeId?: string) => {
   const target = normalizedName(name);
@@ -82,6 +83,8 @@ interface AddToolModalProps {
 
 const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
+  const [wikiUrl, setWikiUrl] = React.useState("");
+  const [gdriveId, setGdriveId] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
@@ -110,7 +113,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -133,6 +136,16 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="Wiki URL" value={wikiUrl}
+            onChange={e => setWikiUrl(e.target.value)}
+            helperText="Optional. Defaults to WIKI_URL/workshops/shop-slug#tool-slug." />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth label="GDrive ID" value={gdriveId}
+            onChange={e => setGdriveId(e.target.value)}
+            helperText="Optional Google Drive folder ID." />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
             value={description} onChange={e => setDescription(e.target.value)} />
         </Grid>
@@ -146,11 +159,11 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField fullWidth label="Announce Channel" placeholder="name or ID"
-            value={announceChannel} onChange={e => setAnnounceChannel(e.target.value)} />
+            value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField fullWidth label="Users Channel" placeholder="name or ID"
-            value={usersChannel} onChange={e => setUsersChannel(e.target.value)} />
+            value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))} />
         </Grid>
         {availablePrereqs.length > 0 && (
           <Grid size={{ xs: 12 }}>
@@ -190,6 +203,8 @@ interface EditToolRowProps {
 
 const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
+  const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
+  const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
   const [description, setDescription] = React.useState(tool.description || "");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
@@ -229,7 +244,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     }
 
     setLocalError("");
-    onSave(tool.id, { name: trimmedName, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
+    onSave(tool.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
   };
 
   return (
@@ -238,9 +253,13 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
         placeholder="Tool name" autoFocus />
       <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
         placeholder="Description" />
-      <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(e.target.value)}
+      <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
+        placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
+      <TextField size="small" value={gdriveId} onChange={e => setGdriveId(e.target.value)}
+        placeholder="GDrive ID" style={{ gridColumn: "1 / -1" }} />
+      <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))}
         placeholder="Announce channel" />
-      <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(e.target.value)}
+      <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))}
         placeholder="Users channel" />
       <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />} label="Hidden" />
       <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />} label="Announce" />

@@ -41,6 +41,11 @@ export interface SlackSettings {
   slack_channel_admin: string;
   slack_channel_logs: string;
   volunteer_pending_slack_channel: string;
+  channel_cache: {
+    available: boolean;
+    total_channels: number | null;
+    last_updated_at: string | null;
+  };
 }
 
 export interface VolunteerSettings {
@@ -61,6 +66,10 @@ export interface TotpSettings {
   require_totp_rm: boolean;
 }
 
+export interface ReservationSettings {
+  reservation_token: string;
+}
+
 export interface SystemConfigData {
   flags: {
     slack_sync_enabled: boolean;
@@ -74,6 +83,7 @@ export interface SystemConfigData {
   slack: SlackSettings;
   volunteer: VolunteerSettings;
   totp: TotpSettings;
+  reservation: ReservationSettings;
 }
 
 export type TemplateStatusValue =
@@ -121,7 +131,12 @@ export const updateSystemFlag = (key: string, value: boolean) =>
 
 export const updateSystemSetting = ({ key, value }: { key: string; value: string }) =>
   buildResponse<{ key: string; value: string }>(
-    api.put('/api/admin/system_configs/update_setting', { key, value })
+    api.put('/api/admin/system_configs/update_setting', {
+      key,
+      value: key.startsWith('slack_channel_') || key === 'volunteer_pending_slack_channel'
+        ? value.trim().replace(/^#+/, '')
+        : value
+    })
   );
 
 export const runSystemJob = ({ key }: { key: string }) =>

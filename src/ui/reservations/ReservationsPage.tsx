@@ -12,21 +12,39 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Slider from "@mui/material/Slider";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import {
   approveReservation, cancelManagedReservation, cancelReservation, createManagedReservation,
   createReservation, denyReservation,
-  getReservationAvailability, getReservationCatalog, listManagedReservations, listReservations,
+  getReservationAvailability, getReservationBlackouts, getReservationCatalog,
+  listManagedReservations, listReservations,
   previewManagedReservation, previewManagedReservationCreation, previewReservation,
   previewReservationUpdate,
   updateManagedReservation, updateReservation
 } from "api/reservations";
-import { Reservation, ReservationCatalog, ReservationInput, ReservationPreview } from "app/entities/reservation";
+import {
+  Reservation, ReservationBlackoutOccurrence, ReservationCatalog,
+  ReservationInput, ReservationPreview
+} from "app/entities/reservation";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
-import { reservationShopOptions } from "./reservationForm";
+import {
+  reservationCatalogDefaults, reservationShopOptions
+} from "./reservationForm";
+import ApprovalDetails from "./ApprovalDetails";
+import ReservationBlackouts from "./ReservationBlackouts";
+import DayAgenda from "./DayAgenda";
 import { isReservationCreationEligible } from "./eligibility";
+import ShopManager from "ui/toolCheckouts/ShopManager";
+import ToolManager from "ui/toolCheckouts/ToolManager";
+import { useCapabilities } from "app/permissions";
+import { memberIsResourceManager } from "ui/member/utils";
+import {
+  buildReservationPageTabs, groupMemberReservations, ReservationPageTabKey
+} from "./reservationPageTabs";
 
 const ZONE = "America/New_York";
 const nextWholeHour = () => moment.tz(ZONE).add(1, "hour").startOf("hour");
@@ -49,6 +67,7 @@ const ReservationTitle: React.FC<{ reservation: Reservation }> = ({ reservation 
 
 const ReservationsPage: React.FC = () => {
   const { currentUser } = useAuthState();
+  const capabilities = useCapabilities();
   const initialStart = React.useMemo(nextWholeHour, []);
   const [catalog, setCatalog] = React.useState<ReservationCatalog>({ shops: [], tools: [] });
   const [shopId, setShopId] = React.useState("");
@@ -60,6 +79,8 @@ const ReservationsPage: React.FC = () => {
   const [durationHours, setDurationHours] = React.useState(1);
   const [preview, setPreview] = React.useState<ReservationPreview | null>(null);
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
+  const [blackoutOccurrences, setBlackoutOccurrences] =
+    React.useState<ReservationBlackoutOccurrence[]>([]);
   const [mine, setMine] = React.useState<Reservation[]>([]);
   const [managed, setManaged] = React.useState<Reservation[]>([]);
   const [editing, setEditing] = React.useState<Reservation | null>(null);
@@ -70,11 +91,28 @@ const ReservationsPage: React.FC = () => {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const [activeTab, setActiveTab] = React.useState<ReservationPageTabKey>("new");
   const previewRequestGeneration = React.useRef(0);
+  const handledEditId = React.useRef("");
 
   const canCreateReservation = isReservationCreationEligible(currentUser);
   const isManager = !!(currentUser.isAdmin || currentUser.isBoardMember ||
     (currentUser.isResourceManager && (currentUser.resourceManagerShopIds || []).length));
+  const managesCheckoutShops = memberIsResourceManager(currentUser) &&
+    (currentUser.resourceManagerShopIds || []).length > 0;
+  const canManageShopTools = managesCheckoutShops || capabilities.canManageCheckoutApprovers;
+  const pageTabs = buildReservationPageTabs({
+    canManageReservations: isManager,
+    canManageBlackouts: isManager,
+    canManageShops: canManageShopTools,
+    canManageTools: canManageShopTools,
+  });
+  const pageTabSignature = pageTabs.map(tab => tab.key).join(",");
+
+  React.useEffect(() => {
+    if (!pageTabs.some(tab => tab.key === activeTab)) setActiveTab("new");
+  }, [activeTab, pageTabSignature]);
+
   const canUseCreateUi = canCreateReservation;
   const managedShopIds = currentUser.resourceManagerShopIds || [];
   const availableShops = reservationShopOptions({
@@ -114,13 +152,17 @@ const ReservationsPage: React.FC = () => {
   };
 
   const loadReservations = React.useCallback(async () => {
-    const [availabilityResult, mineResult] = await Promise.all([
+    const [availabilityResult, mineResult, blackoutResult] = await Promise.all([
       canUseCreateUi
         ? getReservationAvailability({ date, shopId: shopId || undefined })
         : Promise.resolve({ data: [] as Reservation[] }),
-      listReservations({ mine: true })
+      listReservations({ mine: true }),
+      canUseCreateUi && shopId
+        ? getReservationBlackouts({ date, shopId })
+        : Promise.resolve({ data: [] as ReservationBlackoutOccurrence[] })
     ]);
     if (availabilityResult.data) setReservations(availabilityResult.data);
+    if (blackoutResult.data) setBlackoutOccurrences(blackoutResult.data);
     if (mineResult.data) setMine(mineResult.data);
     if (isManager) {
       const [futureResult, cancelledResult] = await Promise.all([
@@ -140,10 +182,14 @@ const ReservationsPage: React.FC = () => {
     getReservationCatalog().then(result => {
       if (result.data) {
         setCatalog(result.data);
-        const first = result.data.shops[0];
-        if (first) {
-          setShopId(first.id);
-          setScope(first.reservable ? "shop" : "tools");
+        const defaults = reservationCatalogDefaults(
+          result.data,
+          window.location.search
+        );
+        if (defaults) {
+          setShopId(defaults.shopId);
+          setScope(defaults.scope);
+          setToolIds(defaults.toolIds);
         }
       } else {
         setError(result.error?.message || "Unable to load reservable resources.");
@@ -252,8 +298,14 @@ const ReservationsPage: React.FC = () => {
     setSuccess(
       creating
         ? `Reservation "${savedReservation?.title || input.title}" was created successfully` +
-          `${savedReservation?.status ? ` with status ${savedReservation.status}` : ""}.`
-        : `Reservation "${savedReservation?.title || input.title}" was updated successfully.`
+          `${savedReservation?.status ? ` with status ${savedReservation.status}` : ""}.` +
+          `${savedReservation?.approvalDetails?.length
+            ? ` ${savedReservation.approvalDetails.map(detail => detail.message).join(" ")}`
+            : ""}`
+        : `Reservation "${savedReservation?.title || input.title}" was updated successfully.` +
+          `${savedReservation?.approvalDetails?.length
+            ? ` ${savedReservation.approvalDetails.map(detail => detail.message).join(" ")}`
+            : ""}`
     );
     await loadReservations();
   };
@@ -273,7 +325,21 @@ const ReservationsPage: React.FC = () => {
     setDate(moment(reservation.startAt).tz(ZONE).format("YYYY-MM-DD"));
     setStartTime(moment(reservation.startAt).tz(ZONE).format("HH:mm"));
     setDurationHours(moment(reservation.endAt).diff(moment(reservation.startAt), "minutes") / 60);
+    setActiveTab("new");
   };
+
+  React.useEffect(() => {
+    const requestedEditId =
+      new URLSearchParams(window.location.search).get("edit") || "";
+    if (!requestedEditId || handledEditId.current === requestedEditId) return;
+
+    const reservation = mine.find(item => item.id === requestedEditId);
+    if (!reservation) return;
+
+    handledEditId.current = requestedEditId;
+    edit(reservation);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [mine]);
 
   const cancel = async (id: string) => {
     setError("");
@@ -299,14 +365,12 @@ const ReservationsPage: React.FC = () => {
     else await loadReservations();
   };
 
-  const upcomingReservations = mine.filter(item =>
-    ["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()));
-  const reservationHistory = mine.filter(item => !upcomingReservations.includes(item)).reverse();
+  const memberReservations = groupMemberReservations(mine);
   const pendingManaged = managed.filter(item => item.status === "pending");
+  const upcomingManaged = managed.filter(item =>
+    item.status === "approved" && moment(item.endAt).isAfter(moment()));
   const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
-  const slots = Array.from({ length: 48 }, (_, index) => moment.tz(date, ZONE).startOf("day").add(index * 30, "minutes"));
-
   if (loading) return <Grid container justifyContent="center"><CircularProgress /></Grid>;
 
   return (
@@ -315,18 +379,32 @@ const ReservationsPage: React.FC = () => {
         <Typography variant="h5">Reservations</Typography>
         <Typography color="textSecondary">Reserve a shop or checked-out tools in 30-minute increments.</Typography>
       </Grid>
+      <Grid size={{ xs: 12, lg: 10 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, value) => setActiveTab(value as ReservationPageTabKey)}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="Reservation sections"
+        >
+          {pageTabs.map(tab => (
+            <Tab key={tab.key} id={`reservations-tab-${tab.key}`}
+              value={tab.key} label={tab.label} />
+          ))}
+        </Tabs>
+      </Grid>
       {error && <Grid size={{ xs: 12, lg: 10 }}><Alert severity="error" onClose={() => setError("")}>{error}</Alert></Grid>}
       {success && <Grid size={{ xs: 12, lg: 10 }}>
         <Alert severity="success" onClose={() => setSuccess("")}>{success}</Alert>
       </Grid>}
-      {!canCreateReservation && <Grid size={{ xs: 12, lg: 10 }}>
+      {activeTab === "new" && !canCreateReservation && <Grid size={{ xs: 12, lg: 10 }}>
         <Alert severity="info">
           Your membership is inactive or expired. You may cancel your existing reservations,
           but cannot create or edit reservations.
         </Alert>
       </Grid>}
 
-      {canUseCreateUi && <><Grid size={{ xs: 12, md: 5, lg: 4 }}>
+      {activeTab === "new" && canUseCreateUi && <><Grid size={{ xs: 12, md: 5, lg: 4 }}>
         <Paper style={{ padding: 20 }}>
           <Typography variant="h6">{editing ? "Edit Reservation" : "New Reservation"}</Typography>
           <Grid container spacing={2} style={{ marginTop: 4 }}>
@@ -431,7 +509,9 @@ const ReservationsPage: React.FC = () => {
               </Alert>
             </Grid>
             {preview && <Grid size={{ xs: 12 }}>
-              {preview.requiresApproval && <Alert severity="warning">This reservation will require approval.</Alert>}
+              {preview.requiresApproval && !preview.approvalDetails?.length &&
+                <Alert severity="warning">This reservation will require approval.</Alert>}
+              {preview.requiresApproval && <ApprovalDetails details={preview.approvalDetails} />}
               {preview.missingPrerequisites.length > 0 &&
                 <Alert severity="error" style={{ marginTop: 6 }}>
                   Missing checkouts: {preview.missingPrerequisites.map(tool => tool.name).join(", ")}
@@ -445,46 +525,25 @@ const ReservationsPage: React.FC = () => {
               </Button>
               {editing && <Button onClick={() => resetForm()}>Cancel Edit</Button>}
             </Grid>
-            {success && !editing && <Grid size={{ xs: 12 }}>
-              <Alert severity="success" onClose={() => setSuccess("")}>
-                {success}
-              </Alert>
-            </Grid>}
           </Grid>
         </Paper>
       </Grid>
 
       <Grid size={{ xs: 12, md: 7, lg: 6 }}>
-        <Paper style={{ padding: 16, maxHeight: 650, overflowY: "auto" }}>
-          <Typography variant="h6">Day Agenda</Typography>
-          {slots.map(slot => {
-            const active = reservations.filter(item =>
-              moment(item.startAt).isBefore(slot.clone().add(30, "minutes")) &&
-              moment(item.endAt).isAfter(slot));
-            return <div key={slot.toISOString()} style={{ display: "grid", gridTemplateColumns: "75px 1fr",
-              minHeight: 38, borderTop: "1px solid #eee", padding: "5px 0" }}>
-              <Typography variant="caption">{slot.format("HH:mm")}</Typography>
-              <div>{active.map(item => <Chip key={item.id}
-                label={<>
-                  <ReservationTitle reservation={item} />
-                  {` — ${item.memberName} · ${item.toolNames?.join(", ") || item.shopName} · ${moment(item.startAt).tz(ZONE).format("HH:mm")}–${moment(item.endAt).tz(ZONE).format("HH:mm")} · ${item.status}`}
-                </>}
-                color={statusColor(item.status)} size="small" style={{ margin: 2 }} />)}</div>
-            </div>;
-          })}
-        </Paper>
+        <DayAgenda date={date} reservations={reservations} blackouts={blackoutOccurrences} />
       </Grid></>}
 
-      <Grid size={{ xs: 12, lg: 10 }}>
+      {activeTab === "mine" && <Grid size={{ xs: 12, lg: 10 }}>
         <Typography variant="h6">My Reservations</Typography>
         <Typography variant="subtitle2" style={{ marginTop: 8 }}>Upcoming</Typography>
-        {upcomingReservations.length === 0 && <Typography color="textSecondary">No upcoming reservations.</Typography>}
-        {upcomingReservations.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+        {memberReservations.upcoming.length === 0 && <Typography color="textSecondary">No upcoming reservations.</Typography>}
+        {memberReservations.upcoming.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <Grid container alignItems="center" spacing={1}>
             <Grid size={{ xs: 12, sm: 7 }}>
               <strong><ReservationTitle reservation={item} /></strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
               <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
+              {item.status === "pending" && <ApprovalDetails details={item.approvalDetails} compact />}
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               {["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()) && <>
@@ -494,9 +553,26 @@ const ReservationsPage: React.FC = () => {
             </Grid>
           </Grid>
         </Paper>)}
-        <Typography variant="subtitle2" style={{ marginTop: 16 }}>History</Typography>
-        {reservationHistory.length === 0 && <Typography color="textSecondary">No reservation history.</Typography>}
-        {reservationHistory.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+        <Typography variant="subtitle2" style={{ marginTop: 16 }}>Pending Approval</Typography>
+        {memberReservations.pending.length === 0 && <Typography color="textSecondary">No reservations pending approval.</Typography>}
+        {memberReservations.pending.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+          <strong><ReservationTitle reservation={item} /></strong>{" "}
+          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Typography variant="body2">
+            {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
+          </Typography>
+          <ApprovalDetails details={item.approvalDetails} compact />
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            {canCreateReservation && <Button size="small" onClick={() => edit(item)}>Edit</Button>}
+            <Button size="small" color="secondary" onClick={() => cancel(item.id)}>Cancel</Button>
+          </div>
+        </Paper>)}
+
+        <Typography variant="subtitle2" style={{ marginTop: 16 }}>Cancelled</Typography>
+        {memberReservations.cancelled.length === 0 &&
+          <Typography color="textSecondary">No cancelled or denied upcoming reservations.</Typography>}
+        {memberReservations.cancelled.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <strong><ReservationTitle reservation={item} /></strong>{" "}
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
@@ -504,17 +580,32 @@ const ReservationsPage: React.FC = () => {
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
           </Typography>
         </Paper>)}
-      </Grid>
+      </Grid>}
 
-      {isManager && <Grid size={{ xs: 12, lg: 10 }}>
-        {canCreateReservation && <>
-          <Typography variant="h6">Pending Approval</Typography>
+      {activeTab === "history" && <Grid size={{ xs: 12, lg: 10 }}>
+        <Typography variant="h6">Reservation History</Typography>
+        {memberReservations.history.length === 0 &&
+          <Typography color="textSecondary">No past reservations.</Typography>}
+        {memberReservations.history.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+          <strong><ReservationTitle reservation={item} /></strong>{" "}
+          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Typography variant="body2">
+            {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
+          </Typography>
+        </Paper>)}
+      </Grid>}
+
+      {isManager && activeTab === "managed" && <Grid size={{ xs: 12, lg: 10 }}>
+          <Typography variant="h6">Reservations In My Shops</Typography>
+          <Typography variant="subtitle2" style={{ marginTop: 8 }}>Pending Approval</Typography>
           {pendingManaged.length === 0 && <Typography color="textSecondary">No pending reservations in your managed shops.</Typography>}
           {pendingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
                 <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")}</Typography>
+                <ApprovalDetails details={item.approvalDetails} compact />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <Button size="small" color="primary" onClick={() => decide(item.id, true)}>Approve</Button>
@@ -524,14 +615,32 @@ const ReservationsPage: React.FC = () => {
               </Grid>
             </Grid>
           </Paper>)}
+          <Typography variant="subtitle2" style={{ marginTop: 16 }}>Upcoming Approved</Typography>
+          {upcomingManaged.length === 0 &&
+            <Typography color="textSecondary">No upcoming approved reservations in your managed shops.</Typography>}
+          {upcomingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
+            <Grid container alignItems="center">
+              <Grid size={{ xs: 12, sm: 8 }}>
+                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
+                <Typography variant="body2">
+                  {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}
+                  {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–
+                  {moment(item.endAt).tz(ZONE).format("HH:mm")}
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <Button size="small" onClick={() => edit(item, true)}>Edit</Button>
+                <Button size="small" onClick={() => managerCancel(item.id)}>Cancel</Button>
+              </Grid>
+            </Grid>
+          </Paper>)}
           {failedManaged.length > 0 && <>
-            <Typography variant="h6" style={{ marginTop: 18 }}>Calendar Sync Warnings</Typography>
+            <Typography variant="subtitle2" style={{ marginTop: 18 }}>Calendar Sync Warnings</Typography>
             {failedManaged.map(item => <Alert key={item.id} severity="warning" style={{ marginTop: 8 }}>
               <strong><ReservationTitle reservation={item} /></strong>: {item.calendarSyncError || "Calendar synchronization failed."}
             </Alert>)}
           </>}
-        </>}
-        <Typography variant="h6" style={{ marginTop: 18 }}>Cancelled in Managed Shops</Typography>
+        <Typography variant="subtitle2" style={{ marginTop: 18 }}>Cancelled</Typography>
         {cancelledManaged.length === 0 &&
           <Typography color="textSecondary">No cancelled reservations in your managed shops.</Typography>}
         {cancelledManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
@@ -544,6 +653,16 @@ const ReservationsPage: React.FC = () => {
           </Typography>
         </Paper>)}
       </Grid>}
+
+      {isManager && activeTab === "blackouts" && <Grid size={{ xs: 12, lg: 10 }}>
+        <ReservationBlackouts />
+      </Grid>}
+
+      {canManageShopTools && activeTab === "manageShops" &&
+        <Grid size={{ xs: 12, lg: 10 }}><ShopManager /></Grid>}
+
+      {canManageShopTools && activeTab === "manageTools" &&
+        <Grid size={{ xs: 12, lg: 10 }}><ToolManager /></Grid>}
     </Grid>
   );
 };

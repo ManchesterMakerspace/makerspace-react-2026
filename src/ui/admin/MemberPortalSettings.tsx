@@ -53,11 +53,12 @@ import {
 } from 'api/systemConfig';
 import { useCapabilities } from 'app/permissions';
 
-type TabKey = 'slack' | 'volunteer' | 'jobs' | 'security' | 'templates';
+type TabKey = 'slack' | 'volunteer' | 'reservations' | 'jobs' | 'security' | 'templates';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'slack',     label: 'Slack' },
   { key: 'volunteer', label: 'Volunteer' },
+  { key: 'reservations', label: 'Reservations' },
   { key: 'jobs',      label: 'Jobs' },
   { key: 'security',  label: 'Security' },
   { key: 'templates', label: 'Templates' },
@@ -66,6 +67,7 @@ const TABS: { key: TabKey; label: string }[] = [
 const JOB_LABELS: Record<string, string> = {
   slack_sync:      'Slack User Sync',
   slack_profile_sync: 'Slack Profile Sync',
+  slack_channel_cache: 'Slack Channel Cache',
   member_review:   'Member Review',
   invoice_review:  'Invoice Review',
   garbage_collect: 'Garbage Collector',
@@ -77,6 +79,7 @@ const JOB_LABELS: Record<string, string> = {
 const JOB_DESCRIPTIONS: Record<string, string> = {
   slack_sync:      'Bulk syncs Slack workspace users to member records by matching email. Use Run Now after onboarding a batch of new members.',
   slack_profile_sync: 'Updates the Slack profile status field for members whose memberships expired since the last sync.',
+  slack_channel_cache: 'Clears and rebuilds the Redis cache of public Slack channel IDs, topics, and purposes.',
   member_review:   'Reviews membership statuses and sends a weekly summary report to Slack.',
   invoice_review:  'Reviews invoice statuses, flags past due accounts, and reports to the treasurer channel.',
   garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month.',
@@ -272,6 +275,7 @@ const SlackTab: React.FC<SlackTabProps> = ({
   config, onFlagToggle, onSettingSave, togglingFlag, savingKey, onRunJob, runningJob, jobMessage
 }) => {
   const slackSyncJob = config.jobs.find(j => j.key === 'slack_sync');
+  const slackCacheJob = config.jobs.find(j => j.key === 'slack_channel_cache');
 
   return (
     <Grid container spacing={3}>
@@ -325,6 +329,61 @@ const SlackTab: React.FC<SlackTabProps> = ({
               onSave={onSettingSave}
               saving={savingKey === 'volunteer_pending_slack_channel'}
             />
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Slack public-channel cache */}
+      <Grid size={{ xs: 12 }}>
+        <Card>
+          <CardHeader
+            title='Slack Channel Cache'
+            subheader='Redis cache of public Slack channel IDs, topics, and purposes.'
+          />
+          <Divider />
+          <CardContent>
+            <Grid container alignItems='center' spacing={2}>
+              <Grid size={{ xs: 12, sm: 3 }}>
+                <Typography variant='caption' color='textSecondary'>Channels cached</Typography>
+                <Typography variant='body1'>
+                  {config.slack.channel_cache.available
+                    ? config.slack.channel_cache.total_channels
+                    : 'Unavailable'}
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4 }}>
+                <Typography variant='caption' color='textSecondary'>Last update</Typography>
+                <Typography variant='body2'>
+                  {formatDate(config.slack.channel_cache.last_updated_at)}
+                </Typography>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 5 }}>
+                <Button
+                  variant='outlined'
+                  color='primary'
+                  startIcon={runningJob === 'slack_channel_cache'
+                    ? <CircularProgress size={14} />
+                    : <PlayArrowIcon />}
+                  disabled={!!runningJob}
+                  onClick={() => onRunJob('slack_channel_cache')}
+                >
+                  Clear and Rebuild Cache
+                </Button>
+                {slackCacheJob?.last_run_status === 'failure' && (
+                  <Chip
+                    icon={<ErrorIcon />}
+                    label='Last rebuild failed'
+                    size='small'
+                    style={{ marginLeft: 8, backgroundColor: '#ffebee', color: '#c62828' }}
+                  />
+                )}
+                {jobMessage['slack_channel_cache'] && (
+                  <Typography variant='caption' color='textSecondary' display='block' style={{ marginTop: 4 }}>
+                    {jobMessage['slack_channel_cache']}
+                  </Typography>
+                )}
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       </Grid>
@@ -546,6 +605,34 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
             value={config.volunteer.volunteer_bounty_token}
             onSave={onSettingSave}
             saving={savingKey === 'volunteer_bounty_token'}
+          />
+        </CardContent>
+      </Card>
+    </Grid>
+  </Grid>
+);
+
+const ReservationsTab: React.FC<{
+  config: SystemConfigData;
+  onSettingSave: (key: string, value: string) => Promise<void>;
+  savingKey: string | null;
+}> = ({ config, onSettingSave, savingKey }) => (
+  <Grid container spacing={3}>
+    <Grid size={{ xs: 12 }}>
+      <Card>
+        <CardHeader
+          title='Public Reservation Agenda'
+          subheader='Optional token protection for the public 24-hour shop and tool agenda.'
+        />
+        <Divider />
+        <CardContent>
+          <SettingRow
+            label='Reservation Token'
+            description='When nonblank, append this value as ?token=... to /reservations/agenda. Leave blank for public access.'
+            settingKey='reservation_token'
+            value={config.reservation.reservation_token}
+            onSave={onSettingSave}
+            saving={savingKey === 'reservation_token'}
           />
         </CardContent>
       </Card>
@@ -938,6 +1025,8 @@ const MemberPortalSettings: React.FC = () => {
         setConfig({ ...config, slack: { ...config.slack, [key]: value } });
       } else if (key.startsWith('volunteer_')) {
         setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
+      } else if (key === 'reservation_token') {
+        setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
       }
     }
     setSavingKey(null);
@@ -1014,6 +1103,13 @@ const MemberPortalSettings: React.FC = () => {
             onFlagToggle={handleFlagToggle}
             onSettingSave={handleSettingSave}
             togglingFlag={togglingFlag}
+            savingKey={savingKey}
+          />
+        )}
+        {activeTab === 'reservations' && (
+          <ReservationsTab
+            config={config}
+            onSettingSave={handleSettingSave}
             savingKey={savingKey}
           />
         )}

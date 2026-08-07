@@ -86,4 +86,3 @@ describe("GoogleDriveInviteButton", () => {
     expect(onProvisioned).toHaveBeenCalledTimes(1);
   });
 });
-

@@ -161,9 +161,12 @@ interface Props {
   preselectedMember?: { id: string; name: string };
   isAdmin: boolean;
   isResourceManager: boolean;
+  memberView?: boolean;
 }
 
-const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourceManager }) => {
+const CheckoutRoster: React.FC<Props> = ({
+  preselectedMember, isAdmin, isResourceManager, memberView = false
+}) => {
   const { currentUser } = useAuthState();
   const [shopFilter,         setShopFilter]         = React.useState("");
   const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
@@ -172,7 +175,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
   const [unmetPrerequisites, setUnmetPrerequisites] = React.useState<string[]>([]);
   const [selectedId,         setSelectedId]         = React.useState<string | undefined>(undefined);
 
-  const canManage = isAdmin || isResourceManager;
+  const canManage = !memberView && (isAdmin || isResourceManager);
 
   const checkoutParams = {
     ...(preselectedMember && { memberId: preselectedMember.id }),
@@ -191,6 +194,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
     ...(shopFilter && { shopId: shopFilter }),
     ...(activeFilter === "active"  && { active: true }),
     ...(activeFilter === "revoked" && { active: false }),
+    ...(memberView && { active: true, includeHidden: true }),
   };
   const memberRead = useReadTransaction(listMemberCheckouts, memberParams, canManage,
     `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${activeFilter}`);
@@ -254,7 +258,11 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
       cell: (row: ToolCheckout) => (
         <div>
           <Typography variant="body2">{row.toolName}</Typography>
-          <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
+          <Typography variant="caption" color="textSecondary">
+            {row.shopWikiUrl
+              ? <a href={row.shopWikiUrl} target="_blank" rel="noopener noreferrer">{row.shopName}</a>
+              : row.shopName}
+          </Typography>
         </div>
       ),
     },
@@ -286,9 +294,13 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
         <Grid size={{ xs: 12 }}>
           <Grid container justifyContent="space-between" alignItems="center">
             <div>
-              <Typography variant="h6">Tool Checkout Roster</Typography>
+              <Typography variant="h6">
+                {memberView ? "My Active Tool Checkouts" : "Tool Checkout Roster"}
+              </Typography>
               <Typography variant="body2" color="textSecondary">
-                All member tool checkouts across all shops.
+                {memberView
+                  ? "All of your active tool checkouts, including hidden tools."
+                  : "All member tool checkouts across all shops."}
               </Typography>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -338,7 +350,7 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
           {(shops as Shop[]).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
       </Grid>
-      <Grid size={{ xs: 12, sm: 4 }}>
+      {!memberView && <Grid size={{ xs: 12, sm: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Status</FormLabel>
         <Select native fullWidth value={activeFilter}
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
@@ -346,14 +358,14 @@ const CheckoutRoster: React.FC<Props> = ({ preselectedMember, isAdmin, isResourc
           <option value="revoked">Revoked only</option>
           <option value="all">All</option>
         </Select>
-      </Grid>
+      </Grid>}
 
       {loadError && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError} /></Grid>}
 
       <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="checkout-roster-table"
-          title={preselectedMember ? "Tool Checkouts" : "All Checkouts"}
+          title={memberView ? "Active Checkouts" : preselectedMember ? "Tool Checkouts" : "All Checkouts"}
           loading={isRequesting}
           data={checkouts as ToolCheckout[]}
           error={loadError}
