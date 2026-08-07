@@ -39,6 +39,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
 import RequestCheckoutModal from "./RequestCheckoutModal";
 import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
+import { workshopReservationRows } from "./workshopReservations";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -359,22 +360,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
     else load();
   };
 
-  const rows = [
-    ...reservations.filter(reservation =>
-      moment(reservation.endAt).isAfter(moment())
-    ).map(reservation => ({
-      kind: "reservation" as const,
-      startAt: reservation.startAt,
-      reservation
-    })),
-    ...blackouts.filter(blackout =>
-      moment(blackout.endAt).isAfter(moment())
-    ).map(blackout => ({
-      kind: "blackout" as const,
-      startAt: blackout.startAt,
-      blackout
-    }))
-  ].sort((left, right) => left.startAt.localeCompare(right.startAt));
+  const rows = workshopReservationRows(reservations, blackouts);
 
   return (
     <Grid container spacing={2}>

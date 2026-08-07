@@ -31,7 +31,9 @@ import { Shop, Tool } from "app/entities/toolCheckout";
 import moment from "ui/utils/moment";
 import { useAuthState } from "ui/reducer/hooks";
 import MemberSearchInput from "ui/common/MemberSearchInput";
-import { reservationShopOptions } from "./reservationForm";
+import {
+  reservationCatalogDefaults, reservationShopOptions
+} from "./reservationForm";
 import ApprovalDetails from "./ApprovalDetails";
 import ReservationBlackouts from "./ReservationBlackouts";
 import DayAgenda from "./DayAgenda";
@@ -180,25 +182,14 @@ const ReservationsPage: React.FC = () => {
     getReservationCatalog().then(result => {
       if (result.data) {
         setCatalog(result.data);
-        const query = new URLSearchParams(window.location.search);
-        const requestedShopId = query.get("shop");
-        const requestedToolId = query.get("tool");
-        const requestedTool = result.data.tools.find(tool =>
-          tool.id === requestedToolId &&
-          (!requestedShopId || tool.shopId === requestedShopId)
+        const defaults = reservationCatalogDefaults(
+          result.data,
+          window.location.search
         );
-        const first = result.data.shops.find(shop =>
-          shop.id === (requestedShopId || requestedTool?.shopId)
-        ) ||
-          result.data.shops[0];
-        if (first) {
-          setShopId(first.id);
-          if (requestedTool && requestedTool.shopId === first.id) {
-            setScope("tools");
-            setToolIds([requestedTool.id]);
-          } else {
-            setScope(first.reservable ? "shop" : "tools");
-          }
+        if (defaults) {
+          setShopId(defaults.shopId);
+          setScope(defaults.scope);
+          setToolIds(defaults.toolIds);
         }
       } else {
         setError(result.error?.message || "Unable to load reservable resources.");

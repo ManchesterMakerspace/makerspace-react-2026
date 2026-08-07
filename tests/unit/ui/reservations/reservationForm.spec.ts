@@ -1,4 +1,6 @@
-import { reservationShopOptions } from "ui/reservations/reservationForm";
+import {
+  reservationCatalogDefaults, reservationShopOptions
+} from "ui/reservations/reservationForm";
 
 const shops = [
   { id: "managed", name: "Managed Shop" },
@@ -34,5 +36,27 @@ describe("reservationShopOptions", () => {
       editingManaged: true,
       isAdmin: true,
     })).map(shop => shop.id)).toEqual(["managed", "unmanaged"]);
+  });
+});
+
+describe("reservationCatalogDefaults", () => {
+  const catalog = {
+    shops: [
+      { id: "first", name: "First", reservable: true },
+      { id: "edited", name: "Edited", reservable: false },
+    ],
+    tools: [
+      { id: "tool", name: "Tool", shopId: "edited" },
+    ],
+  } as any;
+
+  it("does not initialize form resources for edit deep links", () => {
+    expect(reservationCatalogDefaults(catalog, "?edit=reservation-1"))
+      .toBeNull();
+  });
+
+  it("still initializes workshop reservation links", () => {
+    expect(reservationCatalogDefaults(catalog, "?shop=edited&tool=tool"))
+      .toEqual({ shopId: "edited", scope: "tools", toolIds: ["tool"] });
   });
 });
