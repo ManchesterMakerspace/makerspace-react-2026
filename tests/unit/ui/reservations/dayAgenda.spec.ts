@@ -1,4 +1,4 @@
-import { positionReservations } from "ui/reservations/DayAgenda";
+import { daySlotCount, positionReservations } from "ui/reservations/DayAgenda";
 import { Reservation } from "app/entities/reservation";
 
 const reservation = (
@@ -44,5 +44,24 @@ describe("DayAgenda positioning", () => {
 
     expect(result.lanes).toBe(2);
     expect(result.items.find(item => item.reservation.id === "later")?.lane).toBe(0);
+  });
+
+  it("uses the actual number of half-hours in DST transition days", () => {
+    expect(daySlotCount("2026-03-08")).toBe(46);
+    expect(daySlotCount("2026-11-01")).toBe(50);
+    expect(daySlotCount("2026-07-28")).toBe(48);
+  });
+
+  it("keeps late reservations on the fall-back day", () => {
+    const result = positionReservations([
+      reservation(
+        "late",
+        "2026-11-02T04:00:00Z",
+        "2026-11-02T04:30:00Z"
+      )
+    ], "2026-11-01");
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({ startRow: 48, endRow: 49 });
   });
 });

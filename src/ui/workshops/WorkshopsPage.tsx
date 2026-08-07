@@ -20,7 +20,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool, createToolCheckoutRequest
+  adminCreateShop, adminCreateTool
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -37,6 +37,8 @@ import { Routing } from "app/constants";
 import FormModal from "ui/common/FormModal";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
+import RequestCheckoutModal from "./RequestCheckoutModal";
+import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -171,38 +173,6 @@ const AddToolModal: React.FC<{
             onChange={event => setUsersChannel(normalizeChannel(event.target.value))} />
         </Grid>
       </Grid>
-    </FormModal>
-  );
-};
-
-const RequestCheckoutModal: React.FC<{
-  tool: WorkshopTool | null;
-  onClose: () => void;
-  onCreated: () => void;
-}> = ({ tool, onClose, onCreated }) => {
-  const [note, setNote] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!tool) return;
-    setSaving(true);
-    const result = await createToolCheckoutRequest({
-      body: { toolId: tool.id, note }
-    });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onCreated();
-  };
-
-  return (
-    <FormModal id="workshops-request-checkout" isOpen={!!tool}
-      title={`Request Checkout: ${tool?.name || ""}`}
-      closeHandler={onClose} onSubmit={submit} submitText="Submit Request"
-      loading={saving} error={error}>
-      <TextField fullWidth label="Note" value={note}
-        onChange={event => setNote(event.target.value)}
-        inputProps={{ maxLength: 128 }} multiline rows={2} />
     </FormModal>
   );
 };
@@ -651,7 +621,7 @@ const WorkshopsPage: React.FC = () => {
             {tab === "documentation" && workshop.gdriveId &&
               <iframe
                 title={`${workshop.name} documentation`}
-                src={`https://drive.google.com/u/1/embeddedfolderview?id=${encodeURIComponent(workshop.gdriveId)}`}
+                src={googleDriveEmbeddedFolderUrl(workshop.gdriveId)}
                 style={{ width: "100%", height: "70vh", border: 0 }}
               />}
             {tab === "volunteer" &&

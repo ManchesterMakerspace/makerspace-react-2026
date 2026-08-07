@@ -15,13 +15,21 @@ interface PositionedReservation {
   lane: number;
 }
 
-const gridRows = (startAt: string, endAt: string, date: string) => {
+const dayGrid = (date: string) => {
   const dayStart = moment.tz(date, ZONE).startOf("day");
   const dayEnd = dayStart.clone().add(1, "day");
+  const slotCount = dayEnd.diff(dayStart, "minutes") / 30;
+  return { dayStart, dayEnd, slotCount };
+};
+
+const daySlotCount = (date: string) => dayGrid(date).slotCount;
+
+const gridRows = (startAt: string, endAt: string, date: string) => {
+  const { dayStart, dayEnd, slotCount } = dayGrid(date);
   const start = moment.max(moment(startAt).tz(ZONE), dayStart);
   const end = moment.min(moment(endAt).tz(ZONE), dayEnd);
   const startRow = Math.max(0, Math.floor(start.diff(dayStart, "minutes") / 30));
-  const endRow = Math.min(48, Math.ceil(end.diff(dayStart, "minutes") / 30));
+  const endRow = Math.min(slotCount, Math.ceil(end.diff(dayStart, "minutes") / 30));
   return { startRow, endRow: Math.max(startRow + 1, endRow) };
 };
 
@@ -29,10 +37,11 @@ const positionReservations = (
   reservations: Reservation[],
   date: string
 ): { items: PositionedReservation[]; lanes: number } => {
+  const slotCount = daySlotCount(date);
   const laneEnds: number[] = [];
   const items = reservations
     .map(reservation => ({ reservation, ...gridRows(reservation.startAt, reservation.endAt, date) }))
-    .filter(item => item.startRow < 48 && item.endRow > 0)
+    .filter(item => item.startRow < slotCount && item.endRow > 0)
     .sort((left, right) => left.startRow - right.startRow || left.endRow - right.endRow)
     .map(item => {
       let lane = laneEnds.findIndex(endRow => endRow <= item.startRow);
@@ -60,11 +69,12 @@ const DayAgenda: React.FC<{
     () => positionReservations(reservations, date),
     [reservations, date]
   );
+  const slotCount = React.useMemo(() => daySlotCount(date), [date]);
   const slots = React.useMemo(
-    () => Array.from({ length: 48 }, (_, index) =>
+    () => Array.from({ length: slotCount }, (_, index) =>
       moment.tz(date, ZONE).startOf("day").add(index * 30, "minutes")
     ),
-    [date]
+    [date, slotCount]
   );
 
   return (
@@ -85,7 +95,7 @@ const DayAgenda: React.FC<{
         </div>
         <div style={{
           display: "grid",
-          gridTemplateRows: `repeat(48, ${ROW_HEIGHT}px)`,
+          gridTemplateRows: `repeat(${slotCount}, ${ROW_HEIGHT}px)`,
           gridTemplateColumns: `repeat(${positioned.lanes}, minmax(0, 1fr))`,
           position: "relative",
           backgroundImage: `repeating-linear-gradient(to bottom, transparent 0, transparent ${ROW_HEIGHT - 1}px, #e4e4e4 ${ROW_HEIGHT - 1}px, #e4e4e4 ${ROW_HEIGHT}px)`,
@@ -154,5 +164,5 @@ const DayAgenda: React.FC<{
   );
 };
 
-export { gridRows, positionReservations };
+export { daySlotCount, gridRows, positionReservations };
 export default DayAgenda;
