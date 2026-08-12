@@ -734,6 +734,37 @@ const TotpToggle: React.FC<TotpToggleProps> = ({ label, description, flagKey, va
   </Grid>
 );
 
+const MaintenanceToggle: React.FC<{
+  value: boolean;
+  onToggle: (key: string, value: boolean) => Promise<void>;
+  saving: boolean;
+}> = ({ value, onToggle, saving }) => (
+  <Grid size={{ xs: 12 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '12px 0' }}>
+      <div style={{ flex: 1, paddingRight: 16 }}>
+        <Typography variant='body1'><strong>Lock Out New Signups</strong></Typography>
+        <Typography variant='body2' color='textSecondary'>
+          While enabled, new/unauthenticated visitors are redirected to a maintenance page instead
+          of the signup form, and the signup API rejects new registrations. Members who already
+          created an account and are mid-signup are not affected.
+        </Typography>
+      </div>
+      <FormControlLabel
+        control={
+          <Switch
+            checked={value}
+            onChange={e => onToggle('signup_lockout_enabled', e.target.checked)}
+            disabled={saving}
+            color='warning'
+          />
+        }
+        label={value ? 'Locked' : 'Open'}
+        labelPlacement='start'
+      />
+    </div>
+  </Grid>
+);
+
 const SecurityTab: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving]   = React.useState(false);
@@ -742,18 +773,21 @@ const SecurityTab: React.FC = () => {
     require_totp_admin: false,
     require_totp_board: false,
     require_totp_rm:    false,
+    signup_lockout_enabled: false,
   });
 
   React.useEffect(() => {
     getSystemConfigs()
       .then(result => {
         const totp = (result as any)?.data?.totp;
-        if (totp) {
-          setFlags({
-            require_totp_admin: !!totp.require_totp_admin,
-            require_totp_board: !!totp.require_totp_board,
-            require_totp_rm:    !!totp.require_totp_rm,
-          });
+        const systemFlags = (result as any)?.data?.flags;
+        if (totp || systemFlags) {
+          setFlags(prev => ({
+            require_totp_admin: totp ? !!totp.require_totp_admin : prev.require_totp_admin,
+            require_totp_board: totp ? !!totp.require_totp_board : prev.require_totp_board,
+            require_totp_rm:    totp ? !!totp.require_totp_rm    : prev.require_totp_rm,
+            signup_lockout_enabled: systemFlags ? !!systemFlags.signup_lockout_enabled : prev.signup_lockout_enabled,
+          }));
         }
         setLoading(false);
       })
@@ -810,6 +844,16 @@ const SecurityTab: React.FC = () => {
         description='Resource manager accounts must have two-factor authentication enabled.'
         flagKey='require_totp_rm'
         value={flags.require_totp_rm}
+        onToggle={handleToggle}
+        saving={saving}
+      />
+
+      <Grid size={{ xs: 12 }}><Divider style={{ margin: '16px 0' }} /></Grid>
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h6' gutterBottom>Maintenance</Typography>
+      </Grid>
+      <MaintenanceToggle
+        value={flags.signup_lockout_enabled}
         onToggle={handleToggle}
         saving={saving}
       />
