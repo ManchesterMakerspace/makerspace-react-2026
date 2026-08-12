@@ -28,3 +28,7 @@ export const cancelMemberSubscription = (email: string): void => {
 export const seedVolunteerCredits = (email: string, count: number = 1): void => {
   runRailsCmd(`bundle exec rake "db:seed_volunteer_credits[${email},${count}]"`);
 };
+
+export const setSignupLockout = (enabled: boolean): void => {
+  runRailsCmd(`bundle exec rake "db:set_signup_lockout[${enabled}]"`);
+};
