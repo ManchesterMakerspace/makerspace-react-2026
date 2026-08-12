@@ -3,7 +3,7 @@ import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { buildTestMember, newVisa, newMastercard, adminMember } from '../fixtures/testData';
-import { createRejectCard } from '../fixtures/seed';
+import { createRejectCard, setSignupLockout } from '../fixtures/seed';
 
 test.describe('Signup catalog and feedback', () => {
   test('Landing page uses the signup-eligible invoice options endpoint', async ({ page }) => {
@@ -326,5 +326,53 @@ test.describe('Admin creates member with complimentary membership', () => {
     await member.submitFobModal();
 
     await member.verifyMembershipStatus('Active');
+  });
+});
+
+// ── Test: Signup maintenance lockout ───────────────────────────────────────────
+
+test.describe('Signup maintenance lockout', () => {
+  test.beforeAll(async () => {
+    setSignupLockout(true);
+  });
+
+  test.afterAll(async () => {
+    setSignupLockout(false);
+  });
+
+  test('Unauthenticated visitor hitting /signup sees the maintenance page', async ({ page }) => {
+    await page.goto('/signup');
+
+    await expect(page.getByText(/currently in maintenance mode/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('link', { name: /email us/i })).toHaveAttribute(
+      'href',
+      /^mailto:contact@manchestermakerspace\.org/
+    );
+  });
+
+  test('The signup API rejects new registrations while locked', async ({ page, request }) => {
+    const member = buildTestMember('lockedout');
+
+    const response = await request.post('/api/members', {
+      data: {
+        firstname: member.firstname,
+        lastname:  member.lastname,
+        email:     member.email,
+        password:  member.password,
+      },
+    });
+
+    expect(response.status()).toBe(403);
+  });
+
+  test('Landing page CTA routes into the gated /signup route, not the live form', async ({ page }) => {
+    await page.goto('/');
+    const row = page.getByRole('row', { name: /one month/i });
+    await row.waitFor({ timeout: 15_000 });
+    await row.getByRole('button', { name: 'Sign Up' }).click();
+
+    await expect(page).toHaveURL(/\/signup/);
+    await expect(page.getByText(/currently in maintenance mode/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('textbox', { name: 'First Name' })).not.toBeVisible();
   });
 });

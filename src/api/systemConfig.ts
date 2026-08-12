@@ -78,6 +78,7 @@ export interface SystemConfigData {
     require_totp_admin: boolean;
     require_totp_board: boolean;
     require_totp_rm: boolean;
+    signup_lockout_enabled: boolean;
   };
   jobs: JobStatus[];
   slack: SlackSettings;
