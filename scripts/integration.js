@@ -22,34 +22,51 @@ const railsRepo = {
 
 const waitForUrl = (url, timeoutMs = 25000, intervalMs = 2500) => {
   const deadline = Date.now() + timeoutMs;
+  let attempt = 0;
 
   return new Promise((resolve, reject) => {
     const retryOrReject = (error) => {
-      if (Date.now() >= deadline) {
+      attempt += 1;
+      const remainingMs = deadline - Date.now();
+      if (remainingMs <= 0) {
         reject(error);
         return;
       }
 
-      setTimeout(check, intervalMs);
+      console.log(`[waitForUrl] attempt ${attempt} failed (${error.message}); retrying ${url}...`);
+      setTimeout(check, Math.min(intervalMs, remainingMs));
     };
 
     const check = () => {
+      // A response of any kind (including redirects) proves the server is up;
+      // only treat client/server error statuses as "not ready yet".
+      let settled = false;
+      const settleOnce = (fn) => (...args) => {
+        if (settled) return;
+        settled = true;
+        fn(...args);
+      };
+
       const request = http.get(url, (response) => {
         response.resume();
 
-        if (response.statusCode >= 200 && response.statusCode < 300) {
-          resolve();
+        if (response.statusCode >= 200 && response.statusCode < 400) {
+          settleOnce(resolve)();
           return;
         }
 
-        retryOrReject(new Error(`${url} returned HTTP ${response.statusCode}`));
+        settleOnce(retryOrReject)(new Error(`${url} returned HTTP ${response.statusCode}`));
       });
 
-      request.on("error", (error) => {
+      request.on("error", settleOnce((error) => {
         retryOrReject(error);
-      });
+      }));
 
       request.setTimeout(intervalMs, () => {
+        // Don't rely solely on destroy() surfacing an 'error' event — force
+        // the retry/reject explicitly so a socket that hangs without
+        // emitting 'error' can't stall the whole check indefinitely.
+        settleOnce(retryOrReject)(new Error(`${url} timed out after ${intervalMs}ms`));
         request.destroy();
       });
     };
@@ -142,6 +159,7 @@ const integrationTest = async () => {
       console.log(`Starting test`);
       runCmd(`RAILS_DIR=${railsFolder} PORT=3035 yarn e2e`, reactLogs, endProcess);
     };
+    const reactPort = 3035;
     const startReact = () => {
       const railsUrl = `http://localhost:${port}`;
       console.log(`Waiting on ${railsUrl}`);
@@ -150,10 +168,14 @@ const integrationTest = async () => {
           process.chdir(reactFolder);
           console.log(`Starting React`);
           runCmd(`yarn start`, reactLogs);
-          setTimeout(startTest, 32 * 1000);
+
+          const reactUrl = `http://localhost:${reactPort}`;
+          console.log(`Waiting on ${reactUrl}`);
+          return waitForUrl(reactUrl, 60000);
         })
+        .then(startTest)
         .catch((error) => {
-          console.error(`Timed out waiting on ${railsUrl}`, error);
+          console.error(`Timed out waiting on Rails or React to start`, error);
           endProcess(1);
         });
     };
