@@ -115,18 +115,33 @@ const SettingRow: React.FC<SettingRowProps> = ({
   label, description, settingKey, value, onSave, saving,
   inputType = 'text', min, max, suffix
 }) => {
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft]     = React.useState(value);
+  const [editing, setEditing]                  = React.useState(false);
+  const [draft, setDraft]                      = React.useState(value);
+  const [validationError, setValidationError]  = React.useState('');
 
   React.useEffect(() => { setDraft(value); }, [value]);
 
   const handleSave = async () => {
+    if (inputType === 'number') {
+      const parsed = Number(draft);
+      const isWholeNumber = Number.isFinite(parsed) && Number.isInteger(parsed);
+      if (!isWholeNumber || (min !== undefined && parsed < min) || (max !== undefined && parsed > max)) {
+        setValidationError(
+          min !== undefined && max !== undefined
+            ? `Enter a whole number between ${min} and ${max}.`
+            : 'Enter a valid whole number.'
+        );
+        return;
+      }
+    }
+    setValidationError('');
     await onSave(settingKey, draft);
     setEditing(false);
   };
 
   const handleCancel = () => {
     setDraft(value);
+    setValidationError('');
     setEditing(false);
   };
 
@@ -140,30 +155,36 @@ const SettingRow: React.FC<SettingRowProps> = ({
       </Grid>
       <Grid size={{ xs: 12, sm: 8 }}>
         {editing ? (
-          <TextField
-            type={inputType}
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            size='small'
-            variant='outlined'
-            fullWidth
-            disabled={saving}
-            slotProps={{
-              htmlInput: { min, max, step: inputType === 'number' ? 1 : undefined },
-              input: {
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <IconButton size='small' onClick={handleSave} disabled={saving}>
-                      {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
-                    </IconButton>
-                    <IconButton size='small' onClick={handleCancel} disabled={saving}>
-                      <CancelIcon fontSize='small' />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <>
+            <TextField
+              type={inputType}
+              value={draft}
+              onChange={e => { setDraft(e.target.value); setValidationError(''); }}
+              size='small'
+              variant='outlined'
+              fullWidth
+              disabled={saving}
+              error={!!validationError}
+              slotProps={{
+                htmlInput: { min, max, step: inputType === 'number' ? 1 : undefined },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <IconButton size='small' onClick={handleSave} disabled={saving}>
+                        {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
+                      </IconButton>
+                      <IconButton size='small' onClick={handleCancel} disabled={saving}>
+                        <CancelIcon fontSize='small' />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            {validationError && (
+              <Typography variant='caption' color='error'>{validationError}</Typography>
+            )}
+          </>
         ) : (
           <Grid container alignItems='center' spacing={1}>
             <Grid>
@@ -875,7 +896,6 @@ const SecurityTab: React.FC<SecurityTabProps> = ({
       />
     </Grid>
   );
-};
 
 // ── Templates Tab ──────────────────────────────────────────────────────────────
 
@@ -1035,7 +1055,8 @@ const TemplatesTab: React.FC = () => {
         </DialogActions>
       </Dialog>
     </Grid>
-);
+  );
+};
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
