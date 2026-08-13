@@ -1160,15 +1160,10 @@
   resolved "https://registry.yarnpkg.com/@braintree/sanitize-url/-/sanitize-url-7.0.4.tgz#a7ddd6d55dfb89e341f5684c9717ee24fef62301"
   integrity sha512-hPYRrKFoI+nuckPgDJfyYAkybFvheo4usS0Vw0HNAe+fmGBQA5Az37b/yStO284atBoqqdOUhKJ3d9Zw3PQkcQ==
 
-"@braintree/uuid@2.0.0":
+"@braintree/uuid@2.0.0", "@braintree/uuid@^2.0.0":
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@braintree/uuid/-/uuid-2.0.0.tgz#48828e192fef1b6fe6ecd4b97ce9f54063367d5c"
   integrity sha512-4pv311AIfmU57aUh1w0SvtT5g8O+chQmetpMDoeLAGQzGMqp/eQA9YlHLR1/4xt6kpVgUMqG3ooJDijG69HB1Q==
-
-"@braintree/uuid@^1.0.0":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@braintree/uuid/-/uuid-1.0.1.tgz#b03b46555c2339c8ad18469aff1689aad5089213"
-  integrity sha512-Tgu5GoODkf4oj4aLlVIapEPEfjitIHrg5ftqY6pa5Ghr4ZUA9XtZIIZ6ZPdP9x8/X0lt/FB8tRq83QuCQCwOrA==
 
 "@braintree/wrap-promise@2.1.0":
   version "2.1.0"
@@ -3661,10 +3656,10 @@ braces@^3.0.3:
   dependencies:
     fill-range "^7.1.1"
 
-braintree-web@^3.143.0:
-  version "3.143.0"
-  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.143.0.tgz#74aaecb415005de5c263fde6ba4ce8368aea2534"
-  integrity sha512-09jPd9s9gpLNjAUjUQ02E8TodR/kYcMpJGGZlgLn4EihR7YQh3xeedEPCDrpwRzFI4Q7a6i9LPWkYyVh1Kr8Ow==
+braintree-web@^3.144.0:
+  version "3.144.0"
+  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.144.0.tgz#f0db3904b87115f37b78a181551e2f637d7675d2"
+  integrity sha512-jYQAcqtH12XBN9laa347gkhJZel2q8Hrd3TUa3tc0IFSNwrMK/SN75m3GtRgfCf9AzHr628HcOb9O9vae+lujA==
   dependencies:
     "@braintree/asset-loader" "2.0.3"
     "@braintree/browser-detection" "2.1.0"
@@ -3677,7 +3672,7 @@ braintree-web@^3.143.0:
     "@paypal/fastlane-sdk-loader" "1.2.1"
     card-validator "10.0.3"
     credit-card-type "10.2.0"
-    framebus "6.0.3"
+    framebus "6.1.0"
     inject-stylesheet "7.0.0"
     promise-polyfill "8.2.3"
     restricted-input "4.0.3"
@@ -4711,12 +4706,12 @@ forwarded@0.2.0:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.2.0.tgz#2269936428aad4c15c7ebe9779a84bf0b2a81811"
   integrity sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==
 
-framebus@6.0.3:
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/framebus/-/framebus-6.0.3.tgz#3117932b2aa9c78552f5f351bed7fc81466dee96"
-  integrity sha512-G/N2p+kFZ1xPBge7tbtTq2KcTR1kSKs1rVbTqH//WdtvJSexS33fsTTOq3yfUWvUczqhujyaFc+omawC9YyRBg==
+framebus@6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/framebus/-/framebus-6.1.0.tgz#71bed3a0b6d6ccb24312c89bea968bdff8f25fc3"
+  integrity sha512-duaN1OV9gU0yDeEqiJaHs/130e8KXatX2yxTzBheR8UK1pFgxMUknhFS2FEIJRGbsEiXPTHsXC6+gfvJHvie6w==
   dependencies:
-    "@braintree/uuid" "^1.0.0"
+    "@braintree/uuid" "^2.0.0"
 
 fresh@^2.0.0:
   version "2.0.0"
