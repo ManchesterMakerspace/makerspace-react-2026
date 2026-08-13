@@ -15,6 +15,7 @@ import {
 import { loadClientConfig } from 'api/clientConfig';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
+const PROVIDER_KEYS: readonly ProviderKey[] = ['google', 'apple', 'github', 'microsoft'];
 
 type FirebaseAuthType = 'popup' | 'redirect';
 
@@ -107,6 +108,16 @@ const providerFor = (provider: ProviderKey): AuthProvider => {
 
 /** Start the configured popup flow, or stage the provider for the redirect callback. */
 export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void | string> => {
+  if (!initializer) {
+    // Popup mode needs to open synchronously within the click's transient user
+    // activation window. Calling this without preloading first re-adds the
+    // async gap (config fetch + SDK init) that popup blockers key off of —
+    // callers must invoke preloadFirebaseAuth() from an earlier lifecycle hook.
+    console.warn(
+      '[Firebase Auth] initiateProviderSignIn called before preloadFirebaseAuth() completed; ' +
+      'the browser may block the popup because Firebase was not preloaded ahead of the click.'
+    );
+  }
   const { auth, authType } = await initializeFirebase();
   console.info('[Firebase Auth] Starting provider authentication', { provider, authType });
 
@@ -142,7 +153,7 @@ export const completeProviderSignIn = async (): Promise<string> => {
   }
 
   console.info('[Firebase Auth] No redirect credential returned', { pendingProvider, redirectStarted });
-  if (!pendingProvider || !['google', 'apple', 'github', 'microsoft'].includes(pendingProvider)) {
+  if (!pendingProvider || !PROVIDER_KEYS.includes(pendingProvider)) {
     throw new Error('No Firebase sign-in redirect found. Please try signing in again.');
   }
 
@@ -153,7 +164,14 @@ export const completeProviderSignIn = async (): Promise<string> => {
       hasExpectedUser: !!redirectUserUid,
     });
     await auth.authStateReady();
-    if (auth.currentUser && redirectUserUid && auth.currentUser.uid === redirectUserUid) {
+    // Only treat this as a mismatch when both UIDs are known and disagree — the
+    // REDIRECT_USER_UID_KEY marker can fail to persist across the redirect round
+    // trip in storage-partitioned browsers (Safari ITP, Brave) even though
+    // Firebase's own persisted currentUser rehydrated correctly. In that case
+    // auth.currentUser is still the authoritative signal, so trust it.
+    const uidKnownAndMismatched =
+      !!redirectUserUid && !!auth.currentUser && auth.currentUser.uid !== redirectUserUid;
+    if (auth.currentUser && !uidKnownAndMismatched) {
       const idToken = await auth.currentUser.getIdToken();
       console.info('[Firebase Auth] ID token recovered from restored user', { pendingProvider });
       return idToken;
@@ -163,11 +181,9 @@ export const completeProviderSignIn = async (): Promise<string> => {
       pendingProvider,
       hasExpectedUser: !!redirectUserUid,
       hasCurrentUser: !!auth.currentUser,
-      currentUserMatches: !!auth.currentUser && auth.currentUser.uid === redirectUserUid,
+      uidKnownAndMismatched,
     });
-    sessionStorage.removeItem(PENDING_PROVIDER_KEY);
-    sessionStorage.removeItem(REDIRECT_STARTED_KEY);
-    sessionStorage.removeItem(REDIRECT_USER_UID_KEY);
+    clearProviderSignInState();
     throw new Error('Firebase sign-in returned without a credential. Please try signing in again.');
   }
 
@@ -190,8 +206,15 @@ export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
   clearProviderSignInState();
-  const { auth } = await initializeFirebase();
-  // Ensure persisted credentials have been restored before attempting logout.
-  await auth.authStateReady();
-  await signOut(auth);
+  try {
+    const { auth } = await initializeFirebase();
+    // Ensure persisted credentials have been restored before attempting logout.
+    await auth.authStateReady();
+    await signOut(auth);
+  } catch (error) {
+    // Local session state is already cleared above; a failure to reach
+    // Firebase (network/config error) must not block the app's own logout —
+    // every caller shouldn't have to remember to .catch() this itself.
+    console.warn('[Firebase Auth] Failed to sign out of Firebase; local session state was still cleared', error);
+  }
 };

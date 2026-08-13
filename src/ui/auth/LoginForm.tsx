@@ -107,7 +107,7 @@ class LoginForm extends React.Component<Props, State> {
       this.setState({ firebaseLoading: false });
     } catch (err) {
       console.error('[Firebase Auth] Firebase preload failed', err);
-      const message = (err && (err as any).message) || 'Sign in is unavailable. Please try again.';
+      const message = err instanceof Error ? err.message : 'Sign in is unavailable. Please try again.';
       this.setState({ firebaseLoading: false, firebaseError: message });
     }
   }
@@ -135,7 +135,7 @@ class LoginForm extends React.Component<Props, State> {
       }
     } catch (err) {
       console.error('[Firebase Auth] Provider authentication failed', err);
-      const message = (err && (err as any).message) || 'Sign in failed. Please try again.';
+      const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
       this.setState({ firebaseError: message, firebaseLoading: false });
     }
     // Note: firebaseLoading stays true until redirect — intentional
