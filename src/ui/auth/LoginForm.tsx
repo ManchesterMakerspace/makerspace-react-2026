@@ -1,6 +1,5 @@
 // @ts-nocheck
 import * as React from "react";
-import { useNavigate } from 'react-router-dom';
 import { connect } from "react-redux";
 
 import TextField from "@mui/material/TextField";
@@ -28,6 +27,7 @@ import {
   signInWithGitHub,
   signInWithMicrosoft,
 } from "ui/auth/firebase";
+import { withRouter } from "ui/utils/withRouter";
 
 const formPrefix = "request-password-reset";
 const passwordFields = {
@@ -40,7 +40,9 @@ const passwordFields = {
   },
 }
 
-interface OwnProps {}
+interface OwnProps {
+  history: { push: (location: string) => void };
+}
 interface DispatchProps {
   loginUser: (authForm: AuthForm) => Promise<void>;
   firebaseLogin: (idToken: string) => Promise<void>;
@@ -331,13 +333,24 @@ const mapStateToProps = (
 
 const mapDispatchToProps = (
   dispatch: ScopedThunkDispatch
-): DispatchProps => {
+): Omit<DispatchProps, 'pushLocation'> => {
   return {
     loginUser: (authForm) => dispatch(loginUserAction(authForm)),
     firebaseLogin: (idToken) => dispatch(firebaseLoginAction(idToken)),
     totpLoginSuccess: (member) => dispatch(totpLoginSuccessAction(member)),
-    pushLocation: (location) => navigate(location),
     clearTotpRequired: () => dispatch({ type: AuthAction.ClearTotpRequired }),
   };
 }
-export default connect(mapStateToProps, mapDispatchToProps)(LoginForm);
+
+const mergeProps = (
+  stateProps: StateProps,
+  dispatchProps: Omit<DispatchProps, 'pushLocation'>,
+  ownProps: OwnProps
+): Props => ({
+  ...stateProps,
+  ...dispatchProps,
+  ...ownProps,
+  pushLocation: (location: string) => ownProps.history.push(location),
+});
+
+export default withRouter(connect(mapStateToProps, mapDispatchToProps, mergeProps)(LoginForm));
