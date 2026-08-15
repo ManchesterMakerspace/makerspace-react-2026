@@ -85,6 +85,10 @@ export interface SystemConfigData {
   volunteer: VolunteerSettings;
   totp: TotpSettings;
   reservation: ReservationSettings;
+  security: {
+    devise_timeout_minutes: string;
+    mongo_cache_ttl_hours: string;
+  };
 }
 
 export type TemplateStatusValue =
