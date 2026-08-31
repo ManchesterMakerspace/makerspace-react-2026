@@ -28,6 +28,7 @@ interface Props<T> {
   onSort?: (columnName: string) => void;
   onSelect?: (rowId: string, selected: boolean) => void;
   onSelectAll?: () => void;
+  isRowSelectable?: (row: T) => boolean;
 }
 
 interface State {
@@ -79,7 +80,8 @@ class TableContainer<T> extends React.Component<Props<T>, State> {
       orderBy,
       onSearchEnter,
       error,
-      onPageChange
+      onPageChange,
+      isRowSelectable
     } = this.props;
     const itemsPerPage = this.state.itemsPerPage || defaultItemsPerPage;
 
@@ -112,6 +114,7 @@ class TableContainer<T> extends React.Component<Props<T>, State> {
             orderBy={orderBy}
             rowId={rowId}
             onSelect={onSelect}
+            isRowSelectable={isRowSelectable}
             onSort={onSort}
             onSelectAll={onSelectAll}
             error={error}

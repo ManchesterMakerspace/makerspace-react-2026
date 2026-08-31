@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { Link } from "react-router-dom";
+import Button from "@mui/material/Button";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
 import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
@@ -323,6 +324,12 @@ const MemberProfile: React.FC = () => {
             </KeyValueItem>
             {billingEnabled && <KeyValueItem label="Membership Type">
               <span id="member-detail-type" style={{ marginRight: "1em" }}>{memberSubscription.type}</span>
+                {isOwnProfile && !member.subscriptionId && (
+                  <Button component={Link} variant="contained" color="primary" size="small"
+                    to={`${Routing.Settings.replace(Routing.PathPlaceholder.MemberId, member.id)}/${SubRoutes.Subscriptions}`}>
+                    Create Subscription
+                  </Button>
+                )}
                 {member.subscriptionId && (
                   <span style={{ display: "inline-block", marginRight: "1em" }}>
                     {isOwnProfile && (

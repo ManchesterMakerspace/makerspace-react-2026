@@ -34,6 +34,7 @@ interface Props<T> {
   loading?: boolean;
   onSelectAll?: () => void;
   onSelect?: (id: string, direction: boolean) => void;
+  isRowSelectable?: (row: T) => boolean;
   rowId: (row: T) => string;
   onSort?: (property: string) => void;
 }
@@ -120,6 +121,7 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
       columns,
       error,
       onSelect,
+      isRowSelectable,
     } = this.props;
 
     return (
@@ -171,6 +173,7 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
               color="primary"
               checked={checked}
               onChange={checkHandler}
+              disabled={isRowSelectable ? !isRowSelectable(row) : false}
             />
           </TableCell>
         )

@@ -69,6 +69,10 @@ export const transactionStatuses = {
 
 const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> = ({ close, onChange }) => {
   const { params, setParam } = useQueryContext();
+  const [dateDrafts, setDateDrafts] = React.useState(() => ({
+    startDate: toDatePicker(params.startDate) || "",
+    endDate: toDatePicker(params.endDate) || "",
+  }));
 
   const setType =  React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,12 +99,24 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
       close();
     }, [setParam, onChange, close, params]);
 
-  const onDateChange = React.useCallback((param: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = event.currentTarget;
+  const applyDate = React.useCallback((param: "startDate" | "endDate", value: string) => {
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) return;
     setParam(param, dateToMidnight(value));
     onChange();
     close();
   }, [setParam, onChange, close]);
+
+  const onDateChange = React.useCallback((param: "startDate" | "endDate") => (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.currentTarget;
+    setDateDrafts(current => ({ ...current, [param]: value }));
+    // Native pickers dispatch a plain change event after a numbered day is
+    // selected. Keyboard input dispatches an InputEvent and waits for Enter.
+    if (typeof InputEvent === "undefined" || !(event.nativeEvent instanceof InputEvent)) applyDate(param, value);
+  }, [applyDate]);
+
+  const onDateKeyDown = React.useCallback((param: "startDate" | "endDate") => (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") applyDate(param, event.currentTarget.value);
+  }, [applyDate]);
 
   const onCheckboxChange = React.useCallback((param: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = event.currentTarget;
@@ -157,11 +173,12 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Transaction Start Due</FormLabel>
           <TextField
-              value={toDatePicker(params.startDate)}
+              value={dateDrafts.startDate}
               name="start-date-filter"
               id="start-date-filter"
               type="date"
               onChange={onDateChange("startDate")}
+              onKeyDown={onDateKeyDown("startDate")}
             />
         </FormControl>
       </Grid>
@@ -169,11 +186,12 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
         <FormControl component="fieldset">
           <FormLabel component="legend">Filter by Transaction End Due</FormLabel>
           <TextField
-              value={toDatePicker(params.endDate)}
+              value={dateDrafts.endDate}
               name="end-date-filter"
               id="end-date-filter"
               type="date"
               onChange={onDateChange("endDate")}
+              onKeyDown={onDateKeyDown("endDate")}
             />
         </FormControl>
       </Grid>

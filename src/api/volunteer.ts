@@ -18,8 +18,11 @@ const buildResponse = async <T>(
       response: { ...axiosResponse, headers: wrapHeaders(axiosResponse.headers) },
     } as ApiDataResponse<T>;
   } catch (err) {
+    const responseError = err.response?.data?.error;
     const error = err.response
-      ? err.response.data?.error || { message: err.response.data?.message || err.message }
+      ? typeof responseError === 'string'
+        ? { message: responseError }
+        : responseError || { message: err.response.data?.message || (typeof err.response.data === 'string' ? err.response.data : err.message) }
       : { message: err.message };
     return { error, response: err.response } as unknown as ApiErrorResponse;
   }

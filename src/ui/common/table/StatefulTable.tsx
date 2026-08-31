@@ -17,6 +17,7 @@ interface Props<Ids, Resp> {
   totalItems?: number;
   selectedIds: Ids;
   setSelectedIds: (ids: Ids) => void;
+  isRowSelectable?: (row: Resp) => boolean;
 }
 
 const StatefulTable: React.FC<Props<unknown, unknown>> = ({
@@ -31,6 +32,7 @@ const StatefulTable: React.FC<Props<unknown, unknown>> = ({
   selectedIds,
   setSelectedIds,
   totalItems,
+  isRowSelectable,
 }) => {
 
   const {
@@ -103,6 +105,7 @@ const StatefulTable: React.FC<Props<unknown, unknown>> = ({
       rowId={rowId}
       onPageChange={onPageChange}
       onSelect={setSelectedIds && onSelect}
+      isRowSelectable={isRowSelectable}
       onSelectAll={Array.isArray(selectedIds) && setSelectedIds && onSelectAll}
       onSearchEnter={renderSearch && search}
     />

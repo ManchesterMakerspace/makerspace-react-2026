@@ -129,6 +129,10 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
   const availableTools = (availableRead.data || []) as Tool[];
+  const pendingToolIds = React.useMemo(() => new Set(requests.map(request => request.toolId)), [requests]);
+  const canRequestTool = React.useCallback((tool: Tool) =>
+    !!tool.requestable && !pendingToolIds.has(tool.id) && !tool.unmetPrerequisiteNames?.length,
+  [pendingToolIds]);
   const selectedRequest = requests.find(r => r.id === selectedRequestId);
   const selectedTool = availableTools.find(t => t.id === selectedToolId);
 
@@ -196,7 +200,11 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
     },
     {
       id: "requestable", label: "Status",
-      cell: row => row.requestable ? <Chip size="small" color="primary" label="Requestable" /> : <Chip size="small" label="Prerequisites needed" />,
+      cell: row => pendingToolIds.has(row.id)
+        ? <Chip size="small" color="success" label="Request Pending" />
+        : row.unmetPrerequisiteNames?.length || !row.requestable
+          ? <Chip size="small" label="Missing Prereq" />
+          : <Chip size="small" color="primary" label="Send Request" clickable onClick={() => setRequestTarget(row)} />,
     },
   ];
 
@@ -246,7 +254,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
           <Grid size={{ xs: 12 }}>
             <Grid container justifyContent="space-between" alignItems="center">
               <Typography variant="h6">Available Tools</Typography>
-              {selectedTool?.requestable && (
+              {selectedTool && canRequestTool(selectedTool) && (
                 <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setRequestTarget(selectedTool)}>
                   Request Checkout
                 </Button>
@@ -258,7 +266,8 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
               loading={availableRead.isRequesting} data={availableTools}
               error={availableRead.error} columns={toolColumns} rowId={toolRowId}
               totalItems={extractTotalItems(availableRead.response)}
-              selectedIds={selectedToolId} setSelectedIds={setSelectedToolId} renderSearch={true} />
+              selectedIds={selectedToolId} setSelectedIds={setSelectedToolId} renderSearch={true}
+              isRowSelectable={canRequestTool} />
           </Grid>
         </>
       )}
