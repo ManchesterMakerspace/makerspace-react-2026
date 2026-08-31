@@ -324,7 +324,7 @@ const MemberProfile: React.FC = () => {
             </KeyValueItem>
             {billingEnabled && <KeyValueItem label="Membership Type">
               <span id="member-detail-type" style={{ marginRight: "1em" }}>{memberSubscription.type}</span>
-                {isOwnProfile && !member.subscriptionId && (
+                {isOwnProfile && !member.subscriptionId && memberSubscription.allowMod && (
                   <Button component={Link} variant="contained" color="primary" size="small"
                     to={`${Routing.Settings.replace(Routing.PathPlaceholder.MemberId, member.id)}/${SubRoutes.Subscriptions}`}>
                     Create Subscription

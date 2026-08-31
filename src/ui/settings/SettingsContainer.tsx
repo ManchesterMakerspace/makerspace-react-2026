@@ -77,7 +77,7 @@ const SettingsContainer: React.FC = () => {
               <ListItemButton selected={selectedIndex === 2} onClick={onSelectItem(2, "payment-methods")}>
                 <ListItemText id="settings-payment-methods" primary="Payment Methods" />
               </ListItemButton>
-              {isOwnAccount && (
+              {isOwnAccount && !!member.customerId && (
                 <ListItemButton onClick={() => navigate(`/members/${currentUserId}/transactions`)}>
                   <ListItemText id="settings-transactions" primary="Transactions" />
                 </ListItemButton>
