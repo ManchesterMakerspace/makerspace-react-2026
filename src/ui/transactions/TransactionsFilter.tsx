@@ -73,6 +73,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
     startDate: toDatePicker(params.startDate) || "",
     endDate: toDatePicker(params.endDate) || "",
   }));
+  const keyboardEditingDate = React.useRef({ startDate: false, endDate: false });
 
   const setType =  React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,14 +110,20 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
   const onDateChange = React.useCallback((param: "startDate" | "endDate") => (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.currentTarget;
     setDateDrafts(current => ({ ...current, [param]: value }));
-    // Native pickers dispatch a plain change event after a numbered day is
-    // selected. Keyboard input dispatches an InputEvent and waits for Enter.
-    if (typeof InputEvent === "undefined" || !(event.nativeEvent instanceof InputEvent)) applyDate(param, value);
+    if (!keyboardEditingDate.current[param]) applyDate(param, value);
   }, [applyDate]);
 
   const onDateKeyDown = React.useCallback((param: "startDate" | "endDate") => (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") applyDate(param, event.currentTarget.value);
+    if (event.key === "Enter") {
+      applyDate(param, event.currentTarget.value);
+    } else if (event.key !== "Tab" && event.key !== "Escape") {
+      keyboardEditingDate.current[param] = true;
+    }
   }, [applyDate]);
+
+  const onDatePointerDown = React.useCallback((param: "startDate" | "endDate") => () => {
+    keyboardEditingDate.current[param] = false;
+  }, []);
 
   const onCheckboxChange = React.useCallback((param: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = event.currentTarget;
@@ -179,6 +186,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
               type="date"
               onChange={onDateChange("startDate")}
               onKeyDown={onDateKeyDown("startDate")}
+              onPointerDown={onDatePointerDown("startDate")}
             />
         </FormControl>
       </Grid>
@@ -192,6 +200,7 @@ const TransactionFilters: React.FC<{ close: () => void, onChange: () => void }> 
               type="date"
               onChange={onDateChange("endDate")}
               onKeyDown={onDateKeyDown("endDate")}
+              onPointerDown={onDatePointerDown("endDate")}
             />
         </FormControl>
       </Grid>
