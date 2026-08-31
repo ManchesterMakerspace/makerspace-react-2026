@@ -129,10 +129,9 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
   const availableTools = (availableRead.data || []) as Tool[];
-  const pendingToolIds = React.useMemo(() => new Set(requests.map(request => request.toolId)), [requests]);
   const canRequestTool = React.useCallback((tool: Tool) =>
-    !!tool.requestable && !pendingToolIds.has(tool.id) && !tool.unmetPrerequisiteNames?.length,
-  [pendingToolIds]);
+    !!tool.requestable && !tool.requestPending && !tool.unmetPrerequisiteNames?.length,
+  []);
   const selectedRequest = requests.find(r => r.id === selectedRequestId);
   const selectedTool = availableTools.find(t => t.id === selectedToolId);
 
@@ -200,7 +199,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
     },
     {
       id: "requestable", label: "Status",
-      cell: row => pendingToolIds.has(row.id)
+      cell: row => row.requestPending
         ? <Chip size="small" color="success" label="Request Pending" />
         : row.unmetPrerequisiteNames?.length || !row.requestable
           ? <Chip size="small" label="Missing Prereq" />

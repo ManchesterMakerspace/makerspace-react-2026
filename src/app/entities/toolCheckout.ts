@@ -44,6 +44,7 @@ export interface Tool {
   unmetPrerequisiteIds?: string[];
   unmetPrerequisiteNames?: string[];
   requestable?: boolean;
+  requestPending?: boolean;
   reservable?: boolean;
   maxConcurrentReservations?: number;
   reservationHorizonDays?: number;

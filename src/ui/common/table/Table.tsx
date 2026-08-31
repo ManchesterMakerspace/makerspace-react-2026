@@ -151,6 +151,7 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
       rowId,
       selectedIds,
       onSelect,
+      isRowSelectable,
     } = this.props;
 
     if (!Array.isArray(data) || !data.length) { return this.noDataRow(); }
