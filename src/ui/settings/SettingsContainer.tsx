@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -23,6 +23,7 @@ export enum SubRoutes {
   Profile = "profile",
   Subscriptions = "subscriptions",
   PaymentMethods = "payment-methods",
+  Transactions = "transactions",
   Security = "security",
 }
 
@@ -31,6 +32,8 @@ const SettingsContainer: React.FC = () => {
   const billingEnabled = !!permissions[Whitelists.billing];
   const { memberId: routeMemberId, resource } = useParams<{ memberId: string, resource: string }>();
   const targetMemberId = routeMemberId || currentUserId;
+  const navigate = useNavigate();
+  const isOwnAccount = targetMemberId === currentUserId;
 
   const [selectedIndex, setIndex] = React.useState(0);
   const {
@@ -74,6 +77,11 @@ const SettingsContainer: React.FC = () => {
               <ListItemButton selected={selectedIndex === 2} onClick={onSelectItem(2, "payment-methods")}>
                 <ListItemText id="settings-payment-methods" primary="Payment Methods" />
               </ListItemButton>
+              {isOwnAccount && !!member.customerId && (
+                <ListItemButton onClick={() => navigate(`/members/${currentUserId}/transactions`)}>
+                  <ListItemText id="settings-transactions" primary="Transactions" />
+                </ListItemButton>
+              )}
             </>
           )}
           <ListItemButton selected={selectedIndex === 3} onClick={onSelectItem(3, "security")}>
