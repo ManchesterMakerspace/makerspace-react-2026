@@ -8,8 +8,8 @@ import { Column } from "ui/common/table/Table";
 import { timeToDate, dateToMidnight } from "ui/utils/timeToDate";
 import RefundTransactionModal from "ui/transactions/RefundTransactionModal";
 import { numberAsCurrency } from "ui/utils/numberAsCurrency";
-import { renderTransactionStatus, getTransactionDescription, writeReport } from "ui/transactions/utils";
-import { Member, Transaction, adminListTransaction, listTransactions } from "makerspace-ts-api-client";
+import { renderTransactionStatus, getTransactionDescription, populatedTransactionNumberParams, writeReport } from "ui/transactions/utils";
+import { Member, Transaction, makeRequest } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
 import { useCapabilities } from "app/permissions";
 import { useQueryContext, withQueryContext } from "../common/Filters/QueryContext";
@@ -84,6 +84,14 @@ const rowId = (sub: Transaction) => sub.id;
 const discountIdParam = "discountId";
 const transactionStatusParam = "transactionStatus";
 
+// The generated API client predates the amount and result-limit query parameters,
+// so pass the complete filter object through instead of allowing it to discard them.
+const adminListTransaction = (params: Record<string, unknown>) =>
+  makeRequest<Transaction[]>("GET", "/admin/billing/transactions", params);
+
+const listTransactions = (params: Record<string, unknown>) =>
+  makeRequest<Transaction[]>("GET", "/billing/transactions", params);
+
 const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
   const [selectedId, setSelectedId] = React.useState<string>();
 
@@ -94,7 +102,7 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
 
   const { canRefundTransactions: isAdmin } = useCapabilities();
   const {
-    params: { pageNum, order, orderBy, ...restParams },
+    params: { pageNum, order, orderBy, minAmount, maxAmount, limit, ...restParams },
     changePage
   } = useQueryContext({
     startDate: dateToMidnight(moment().subtract(2, "months").valueOf()),
@@ -106,10 +114,15 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
     discountId: initialDiscountId ? [initialDiscountId] : []
   });
 
+  const transactionParams = {
+    ...restParams,
+    ...populatedTransactionNumberParams({ minAmount, maxAmount, limit }),
+  };
+
   const adminResponse = useReadTransaction(
     adminListTransaction,
     {
-      ...restParams,
+      ...transactionParams,
       ...member && member.customerId && { customerId: member.customerId }
     },
     !isAdmin
@@ -117,7 +130,7 @@ const TransactionsTable: React.FC<{ member?: Member }> = ({ member }) => {
 
   const baseResponse = useReadTransaction(
     listTransactions,
-    { ...restParams },
+    transactionParams,
     isAdmin
   );
 
