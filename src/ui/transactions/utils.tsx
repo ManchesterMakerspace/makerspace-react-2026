@@ -53,6 +53,12 @@ export const getTransactionDescription = (transaction: Transaction) => {
 
 type CsvValue = string | number | null | undefined;
 
+export const populatedTransactionNumberParams = ({ minAmount, maxAmount, limit }: Record<string, unknown>) => ({
+  ...(typeof minAmount === "number" && Number.isFinite(minAmount) && { minAmount }),
+  ...(typeof maxAmount === "number" && Number.isFinite(maxAmount) && { maxAmount }),
+  ...(typeof limit === "number" && Number.isFinite(limit) && { limit }),
+});
+
 const sumColumn = (data: Array<CsvValue[]>, index: number) => {
   return data.reduce((total, row) => {
     return total + (Number(row[index]) || 0);

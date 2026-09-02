@@ -1,5 +1,5 @@
 import { Transaction } from "makerspace-ts-api-client";
-import { buildTransactionReport, escapeCsvValue } from "ui/transactions/utils";
+import { buildTransactionReport, escapeCsvValue, populatedTransactionNumberParams } from "ui/transactions/utils";
 
 describe("transaction CSV reports", () => {
   it("escapes commas, quotes, and line breaks", () => {
@@ -26,5 +26,24 @@ describe("transaction CSV reports", () => {
     expect(report).toContain('"gateway_rejected","risk_threshold","Laser, large","Rental"');
     expect(report.endsWith("\r\n")).toBe(true);
     expect(report.replace(/\r\n/g, "")).not.toContain("\n");
+  });
+});
+
+describe("transaction number filters", () => {
+  it("omits unpopulated amount and limit parameters", () => {
+    expect(populatedTransactionNumberParams({})).toEqual({});
+    expect(populatedTransactionNumberParams({
+      minAmount: undefined,
+      maxAmount: "",
+      limit: Number.NaN,
+    })).toEqual({});
+  });
+
+  it("includes only populated numeric parameters", () => {
+    expect(populatedTransactionNumberParams({
+      minAmount: 0,
+      maxAmount: 100.50,
+      limit: 250,
+    })).toEqual({ minAmount: 0, maxAmount: 100.50, limit: 250 });
   });
 });
