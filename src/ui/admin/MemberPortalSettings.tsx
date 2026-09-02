@@ -105,21 +105,43 @@ interface SettingRowProps {
   value: string;
   onSave: (key: string, value: string) => Promise<void>;
   saving: boolean;
+  inputType?: React.HTMLInputTypeAttribute;
+  min?: number;
+  max?: number;
+  suffix?: string;
 }
 
-const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey, value, onSave, saving }) => {
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft]     = React.useState(value);
+const SettingRow: React.FC<SettingRowProps> = ({
+  label, description, settingKey, value, onSave, saving,
+  inputType = 'text', min, max, suffix
+}) => {
+  const [editing, setEditing]                  = React.useState(false);
+  const [draft, setDraft]                      = React.useState(value);
+  const [validationError, setValidationError]  = React.useState('');
 
   React.useEffect(() => { setDraft(value); }, [value]);
 
   const handleSave = async () => {
+    if (inputType === 'number') {
+      const parsed = Number(draft);
+      const isWholeNumber = Number.isFinite(parsed) && Number.isInteger(parsed);
+      if (!isWholeNumber || (min !== undefined && parsed < min) || (max !== undefined && parsed > max)) {
+        setValidationError(
+          min !== undefined && max !== undefined
+            ? `Enter a whole number between ${min} and ${max}.`
+            : 'Enter a valid whole number.'
+        );
+        return;
+      }
+    }
+    setValidationError('');
     await onSave(settingKey, draft);
     setEditing(false);
   };
 
   const handleCancel = () => {
     setDraft(value);
+    setValidationError('');
     setEditing(false);
   };
 
@@ -133,33 +155,41 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
       </Grid>
       <Grid size={{ xs: 12, sm: 8 }}>
         {editing ? (
-          <TextField
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            size='small'
-            variant='outlined'
-            fullWidth
-            disabled={saving}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position='end'>
-                    <IconButton size='small' onClick={handleSave} disabled={saving}>
-                      {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
-                    </IconButton>
-                    <IconButton size='small' onClick={handleCancel} disabled={saving}>
-                      <CancelIcon fontSize='small' />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
+          <>
+            <TextField
+              type={inputType}
+              value={draft}
+              onChange={e => { setDraft(e.target.value); setValidationError(''); }}
+              size='small'
+              variant='outlined'
+              fullWidth
+              disabled={saving}
+              error={!!validationError}
+              slotProps={{
+                htmlInput: { min, max, step: inputType === 'number' ? 1 : undefined },
+                input: {
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      <IconButton size='small' onClick={handleSave} disabled={saving}>
+                        {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
+                      </IconButton>
+                      <IconButton size='small' onClick={handleCancel} disabled={saving}>
+                        <CancelIcon fontSize='small' />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+            {validationError && (
+              <Typography variant='caption' color='error'>{validationError}</Typography>
+            )}
+          </>
         ) : (
           <Grid container alignItems='center' spacing={1}>
             <Grid>
               <Typography variant='body2' style={{ fontFamily: 'monospace' }}>
-                {value || <span style={{ color: '#999' }}>not set</span>}
+                {value ? `${value}${suffix ? ` ${suffix}` : ''}` : <span style={{ color: '#999' }}>not set</span>}
               </Typography>
             </Grid>
             <Grid>
@@ -765,55 +795,63 @@ const MaintenanceToggle: React.FC<{
   </Grid>
 );
 
-const SecurityTab: React.FC = () => {
-  const [loading, setLoading] = React.useState(true);
-  const [saving, setSaving]   = React.useState(false);
-  const [error, setError]     = React.useState('');
-  const [flags, setFlags]     = React.useState({
-    require_totp_admin: false,
-    require_totp_board: false,
-    require_totp_rm:    false,
-    signup_lockout_enabled: false,
-  });
+interface SecurityTabProps {
+  config: SystemConfigData;
+  onFlagToggle: (key: string, current: boolean) => void;
+  onSettingSave: (key: string, value: string) => Promise<void>;
+  togglingFlag: string | null;
+  savingKey: string | null;
+}
 
-  React.useEffect(() => {
-    getSystemConfigs()
-      .then(result => {
-        const totp = (result as any)?.data?.totp;
-        const systemFlags = (result as any)?.data?.flags;
-        if (totp || systemFlags) {
-          setFlags(prev => ({
-            require_totp_admin: totp ? !!totp.require_totp_admin : prev.require_totp_admin,
-            require_totp_board: totp ? !!totp.require_totp_board : prev.require_totp_board,
-            require_totp_rm:    totp ? !!totp.require_totp_rm    : prev.require_totp_rm,
-            signup_lockout_enabled: systemFlags ? !!systemFlags.signup_lockout_enabled : prev.signup_lockout_enabled,
-          }));
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setError('Failed to load security settings.');
-        setLoading(false);
-      });
-  }, []);
-
-  const handleToggle = async (key: string, value: boolean) => {
-    setSaving(true);
-    setError('');
-    try {
-      await updateSystemFlag(key, value);
-      setFlags(prev => ({ ...prev, [key]: value }));
-    } catch {
-      setError('Failed to save setting.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) return <CircularProgress />;
-
-  return (
+const SecurityTab: React.FC<SecurityTabProps> = ({
+  config, onFlagToggle, onSettingSave, togglingFlag, savingKey
+}) => (
     <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}>
+        <Card>
+          <CardHeader
+            title='Mongo Cache'
+            subheader='Controls how long Mongo-backed reference data remains in Redis.'
+          />
+          <Divider />
+          <CardContent>
+            <SettingRow
+              label='Mongo Cache TTL'
+              description='Allowed range: 1–24 hours; default: 8. Rails writes invalidate affected entries immediately.'
+              settingKey='mongo_cache_ttl_hours'
+              value={config.security?.mongo_cache_ttl_hours ?? '8'}
+              onSave={onSettingSave}
+              saving={savingKey === 'mongo_cache_ttl_hours'}
+              inputType='number'
+              min={1}
+              max={24}
+              suffix='hours'
+            />
+          </CardContent>
+        </Card>
+      </Grid>
+      <Grid size={{ xs: 12 }}>
+        <Card>
+          <CardHeader
+            title='Session Timeout'
+            subheader='Controls how long an inactive member session stays signed in.'
+          />
+          <Divider />
+          <CardContent>
+            <SettingRow
+              label='Idle Session Timeout'
+              description='Whole number of minutes of inactivity before Devise signs a member out; default: 30.'
+              settingKey='devise_timeout_minutes'
+              value={config.security?.devise_timeout_minutes ?? '30'}
+              onSave={onSettingSave}
+              saving={savingKey === 'devise_timeout_minutes'}
+              inputType='number'
+              min={1}
+              suffix='minutes'
+            />
+          </CardContent>
+        </Card>
+      </Grid>
       <Grid size={{ xs: 12 }}>
         <Typography variant='h6' gutterBottom>Two-Factor Authentication Enforcement</Typography>
         <Typography variant='body2' color='textSecondary' style={{ marginBottom: 16 }}>
@@ -822,30 +860,29 @@ const SecurityTab: React.FC = () => {
           All members can optionally enable 2FA from their Account Settings → Security tab.
         </Typography>
       </Grid>
-      {error && <Grid size={{ xs: 12 }}><Typography color='error'>{error}</Typography></Grid>}
       <TotpToggle
         label='Require 2FA for Admins'
         description='Admin accounts must have two-factor authentication enabled.'
         flagKey='require_totp_admin'
-        value={flags.require_totp_admin}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_admin}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_admin)}
+        saving={togglingFlag === 'require_totp_admin'}
       />
       <TotpToggle
         label='Require 2FA for Board Members'
         description='Board member accounts must have two-factor authentication enabled.'
         flagKey='require_totp_board'
-        value={flags.require_totp_board}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_board}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_board)}
+        saving={togglingFlag === 'require_totp_board'}
       />
       <TotpToggle
         label='Require 2FA for Resource Managers'
         description='Resource manager accounts must have two-factor authentication enabled.'
         flagKey='require_totp_rm'
-        value={flags.require_totp_rm}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.require_totp_rm}
+        onToggle={(key) => onFlagToggle(key, config.flags.require_totp_rm)}
+        saving={togglingFlag === 'require_totp_rm'}
       />
 
       <Grid size={{ xs: 12 }}><Divider style={{ margin: '16px 0' }} /></Grid>
@@ -853,13 +890,12 @@ const SecurityTab: React.FC = () => {
         <Typography variant='h6' gutterBottom>Maintenance</Typography>
       </Grid>
       <MaintenanceToggle
-        value={flags.signup_lockout_enabled}
-        onToggle={handleToggle}
-        saving={saving}
+        value={config.flags.signup_lockout_enabled}
+        onToggle={(key) => onFlagToggle(key, config.flags.signup_lockout_enabled)}
+        saving={togglingFlag === 'signup_lockout_enabled'}
       />
     </Grid>
   );
-};
 
 // ── Templates Tab ──────────────────────────────────────────────────────────────
 
@@ -1030,6 +1066,7 @@ const MemberPortalSettings: React.FC = () => {
   const [config, setConfig]             = React.useState<SystemConfigData | null>(null);
   const [loading, setLoading]           = React.useState(true);
   const [error, setError]               = React.useState<string | null>(null);
+  const [actionError, setActionError]   = React.useState<string | null>(null);
   const [togglingFlag, setTogglingFlag] = React.useState<string | null>(null);
   const [savingKey, setSavingKey]       = React.useState<string | null>(null);
   const [runningJob, setRunningJob]     = React.useState<string | null>(null);
@@ -1052,29 +1089,40 @@ const MemberPortalSettings: React.FC = () => {
   const handleFlagToggle = React.useCallback(async (key: string, current: boolean) => {
     setTogglingFlag(key);
     const { error: err } = await updateSystemFlag(key, !current);
-    if (!err && config) {
-      setConfig({
-        ...config,
-        flags: { ...config.flags, [key]: !current },
-      });
+    if (err) {
+      setActionError('Failed to update setting. Please try again.');
+    } else {
+      setActionError(null);
+      // Functional update: two toggles started in quick succession must not
+      // let the second overwrite the first with a stale `config` snapshot.
+      setConfig(prev => prev ? { ...prev, flags: { ...prev.flags, [key]: !current } } : prev);
     }
     setTogglingFlag(null);
-  }, [config]);
+  }, []);
 
   const handleSettingSave = React.useCallback(async (key: string, value: string) => {
     setSavingKey(key);
     const { error: err } = await updateSystemSetting({ key, value });
-    if (!err && config) {
-      if (key.startsWith('slack_channel') || key === 'volunteer_pending_slack_channel') {
-        setConfig({ ...config, slack: { ...config.slack, [key]: value } });
-      } else if (key.startsWith('volunteer_')) {
-        setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
-      } else if (key === 'reservation_token') {
-        setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
-      }
+    if (err) {
+      setActionError('Failed to save setting. Please try again.');
+    } else {
+      setActionError(null);
+      setConfig(prev => {
+        if (!prev) return prev;
+        if (key.startsWith('slack_channel') || key === 'volunteer_pending_slack_channel') {
+          return { ...prev, slack: { ...prev.slack, [key]: value } };
+        } else if (key.startsWith('volunteer_')) {
+          return { ...prev, volunteer: { ...prev.volunteer, [key]: value } };
+        } else if (key === 'reservation_token') {
+          return { ...prev, reservation: { ...prev.reservation, [key]: value } };
+        } else if (key === 'mongo_cache_ttl_hours' || key === 'devise_timeout_minutes') {
+          return { ...prev, security: { ...prev.security, [key]: value } };
+        }
+        return prev;
+      });
     }
     setSavingKey(null);
-  }, [config]);
+  }, []);
 
   const handleRunJob = React.useCallback(async (jobKey: string) => {
     setRunningJob(jobKey);
@@ -1112,6 +1160,12 @@ const MemberPortalSettings: React.FC = () => {
           Manage portal configuration. Changes take effect immediately.
         </Typography>
       </Grid>
+
+      {actionError && (
+        <Grid size={{ xs: 12 }}>
+          <Alert severity='error' onClose={() => setActionError(null)}>{actionError}</Alert>
+        </Grid>
+      )}
 
       <Grid size={{ xs: 12 }}>
         <Tabs
@@ -1157,7 +1211,15 @@ const MemberPortalSettings: React.FC = () => {
             savingKey={savingKey}
           />
         )}
-        {activeTab === 'security' && <SecurityTab />}
+        {activeTab === 'security' && (
+          <SecurityTab
+            config={config}
+            onFlagToggle={handleFlagToggle}
+            onSettingSave={handleSettingSave}
+            togglingFlag={togglingFlag}
+            savingKey={savingKey}
+          />
+        )}
         {activeTab === 'templates' && canViewPortalSettings && <TemplatesTab />}
         {activeTab === 'jobs' && (
           <JobsTab
