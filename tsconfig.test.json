@@ -14,6 +14,13 @@
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
+    // Explicitly false: TypeScript 6 changed the default from false to
+    // true. Matches the same deliberate choice in tsconfig.base.json —
+    // this codebase has never been checked against strict mode. Without
+    // this, ts-jest silently type-checks under full strict mode by
+    // accident, which this file's missing override let happen since the
+    // TS6 upgrade.
+    "strict": false,
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
