@@ -141,6 +141,7 @@ export const buildTransactionReport = (transactions: Transaction[]) => {
     ]),
     [],
     ["TOTAL:", ...new Array(amountColumn - 1).fill(undefined), sumColumn(transactionRows, amountColumn),
+      ...new Array(headerRow.length - amountColumn - 1).fill(undefined),
       ...(maxDiscounts ? maxDiscountArray.map((_, index) => {
         if (index % 2) {
           return sumColumn(transactionRows, headerRow.length + index);

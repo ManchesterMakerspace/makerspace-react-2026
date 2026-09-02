@@ -27,6 +27,28 @@ describe("transaction CSV reports", () => {
     expect(report.endsWith("\r\n")).toBe(true);
     expect(report.replace(/\r\n/g, "")).not.toContain("\n");
   });
+
+  it("aligns discount totals with their discount amount headers", () => {
+    const transaction = {
+      id: "transaction-1",
+      customerDetails: {},
+      memberName: "Jane Doe",
+      createdAt: "2026-01-02T03:04:05.000Z",
+      amount: "20.00",
+      status: "settled",
+      discounts: [{ name: "Member discount", amount: "5.00" }],
+    } as unknown as Transaction;
+
+    const reportRows = buildTransactionReport([transaction]).split("\r\n");
+    const headers = reportRows.find(row => row.startsWith('"ID"'))!.split(",");
+    const totals = reportRows.find(row => row.startsWith('"TOTAL:"'))!.split(",");
+    const discountAmountColumn = headers.indexOf('"Discount 1 Amount"');
+
+    expect(discountAmountColumn).toBeGreaterThan(-1);
+    expect(totals).toHaveLength(headers.length);
+    expect(totals[discountAmountColumn]).toBe('"5"');
+    expect(totals[headers.indexOf('"Gateway Rejection Reason"')]).toBe('""');
+  });
 });
 
 describe("transaction number filters", () => {
