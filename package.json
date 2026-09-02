@@ -11,7 +11,7 @@
     "@mui/material": "^9.2.0",
     "@redux-devtools/extension": "^4.0.0",
     "awesome-debounce-promise": "^2.1.0",
-    "axios": "^1.18.1",
+    "axios": "^1.20.0",
     "braintree-web": "^3.144.0",
     "firebase": "^12.17.1",
     "lodash-es": "^4.17.21",
