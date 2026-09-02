@@ -44,3 +44,26 @@ jobs:
 
       - name: Run tests
         run: yarn test --passWithNoTests
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Advisory only for now: there's a known backlog of pre-existing type
+      # errors (tracked separately) that hasn't been triaged yet. Once that's
+      # cleared, remove continue-on-error so this becomes a real, required gate.
+      - name: Run tsc --noEmit
+        run: yarn typecheck
+        continue-on-error: true

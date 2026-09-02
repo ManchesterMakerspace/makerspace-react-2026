@@ -72,7 +72,8 @@
     "open": "yarn start --open",
     "build": "cross-env NODE_ENV=production webpack --config prod.config.js && node scripts/build_rails_manifest.js",
     "test": "jest --no-cache",
-    "test-watch": "yarn test --watch"
+    "test-watch": "yarn test --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.test.json --ignoreDeprecations 6.0"
   },
   "jest": {
     "collectCoverage": false,
