@@ -36,6 +36,24 @@ const ViewTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transact
           closeHandler={closeModal}
           title={getTransactionDescription(transaction)}
         >
+          <KeyValueItem label="Transaction ID">
+            <span id="view-transaction-id">{transaction.id}</span>
+          </KeyValueItem>
+          {transaction.customerDetails?.id && <KeyValueItem label="Customer ID">
+            <span id="view-transaction-customer-id">{transaction.customerDetails.id}</span>
+          </KeyValueItem>}
+          <KeyValueItem label="Status">
+            <span id="view-transaction-status">{transaction.status}</span>
+          </KeyValueItem>
+          {transaction.gatewayRejectionReason && <KeyValueItem label="Gateway Rejection Reason">
+            <span id="view-transaction-gateway-rejection-reason">{transaction.gatewayRejectionReason}</span>
+          </KeyValueItem>}
+          {transaction.invoice?.name && <KeyValueItem label="Invoice Name">
+            <span id="view-transaction-invoice-name">{transaction.invoice.name}</span>
+          </KeyValueItem>}
+          {transaction.invoice?.resourceClass && <KeyValueItem label="Invoice Resource Class">
+            <span id="view-transaction-invoice-resource-class">{transaction.invoice.resourceClass}</span>
+          </KeyValueItem>}
           {transaction.invoice ?
             <DocumentInternalFrame id="view-transaction-frame" style={{ width: "100%" }} src={buildReceiptUrl(transaction.invoice.id, isAdmin)} />
           : (<>
