@@ -6,6 +6,7 @@
     "outDir": "dist",
     "paths": {
       "*": [
+        "*",
         "src/*"
       ]
     },
@@ -33,7 +34,7 @@
       "es2020"
     ],
     "module": "commonjs",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "sourceMap": true,
     "target": "es2017",
     "jsx": "react",
@@ -42,7 +43,8 @@
       "src/app/typings"
     ],
     "types": [
-      "jest"
+      "jest",
+      "react"
     ],
     "resolveJsonModule": true
   },
