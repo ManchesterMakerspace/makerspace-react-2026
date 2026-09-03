@@ -60,7 +60,7 @@ const CreditCardFields: FormFields = {
 
 class CreditCardForm extends React.Component<Props, State> {
   private formRef: Form;
-  private setFormRef = (ref: Form) => this.formRef = ref;
+  private setFormRef = (ref: Form) => { this.formRef = ref; };
 
   constructor(props: Props) {
     super(props);

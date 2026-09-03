@@ -10,7 +10,7 @@ import Form from "../common/Form";
 
 const RenewRental: React.FC<{ rental: Rental, onRenew: () => void }> = ({ rental = {} as Rental, onRenew }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const formRef = React.useRef<RenewalForm>();
+  const formRef = React.useRef<RenewalForm>(null);
 
   const onSuccess = React.useCallback(({ reset }) => {
     closeModal();

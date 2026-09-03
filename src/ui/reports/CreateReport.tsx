@@ -15,7 +15,7 @@ interface Props {
 }
 const CreateReport: React.FC<Props> = ({ onCreate }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const formRef = React.useRef<ReportForm>();
+  const formRef = React.useRef<ReportForm>(null);
   const { currentUser: { id: currentUserId, earnedMembershipId } } = useAuthState();
 
   const {

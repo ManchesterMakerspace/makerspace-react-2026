@@ -9,7 +9,7 @@ import RentalForm from "./RentalForm";
 
 const CreateRental: React.FC<{ member?: Member; onCreate: (id: string) => void }> = ({ member, onCreate }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const formRef = React.useRef<RentalForm>();
+  const formRef = React.useRef<RentalForm>(null);
 
   const onSuccess = React.useCallback(
     ({ response }) => {

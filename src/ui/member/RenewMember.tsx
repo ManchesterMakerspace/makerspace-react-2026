@@ -10,7 +10,7 @@ import Form from "../common/Form";
 
 const RenewMember: React.FC<{ member: Member | MemberSummary, onRenew: () => void }> = ({ member = {} as MemberSummary, onRenew }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const formRef = React.useRef<RenewalForm>();
+  const formRef = React.useRef<RenewalForm>(null);
 
   const onSuccess = React.useCallback(({ reset }) => {
     closeModal();
