@@ -8,6 +8,7 @@ export interface TestMember {
   phone:     string;
   address: {
     street:     string;
+    unit?:      string;
     city:       string;
     state:      string;
     postalCode: string;
