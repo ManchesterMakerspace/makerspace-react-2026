@@ -261,7 +261,7 @@ const WorkshopTools: React.FC<{
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
               {tool.prerequisiteNames.length > 0 &&
-                <Typography variant="caption" display="block">
+                <Typography variant="caption" style={{ display: "block" }}>
                   Checkout prerequisites: {tool.prerequisiteNames.join(", ")}
                 </Typography>}
 
@@ -312,7 +312,7 @@ const WorkshopTools: React.FC<{
                   Request Checkout
                 </Button>}
               {tool.reservationAvailable &&
-                <Button size="small" variant="contained" component={Link}
+                <Button size="small" variant="contained" component={Link as React.ElementType}
                   to={`${Routing.Reservations}?shop=${workshop.id}&tool=${tool.id}`}>
                   Reserve
                 </Button>}
@@ -370,7 +370,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
           slotProps={{ inputLabel: { shrink: true } }} />
       </Grid>
       <Grid size={{ xs: 12, sm: 7 }} style={{ textAlign: "right" }}>
-        <Button component={Link} to={`${Routing.Reservations}?shop=${workshop.id}`}
+        <Button component={Link as React.ElementType} to={`${Routing.Reservations}?shop=${workshop.id}`}
           variant="contained">Make a Reservation</Button>
       </Grid>
       {error && <Grid size={{ xs: 12 }}><Alert severity="error">{error}</Alert></Grid>}
@@ -407,7 +407,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
               </Grid>
               {row.reservation.memberId === currentUser.id &&
                 <Grid style={{ display: "flex", gap: 6 }}>
-                  <Button size="small" startIcon={<EditIcon />} component={Link}
+                  <Button size="small" startIcon={<EditIcon />} component={Link as React.ElementType}
                     to={`${Routing.Reservations}?edit=${row.reservation.id}`}>
                     Edit
                   </Button>
@@ -446,7 +446,7 @@ const WorkshopVolunteer: React.FC<{
       <Grid container justifyContent="space-between" alignItems="center">
         <Typography variant="h6">Available Bounty Tasks</Typography>
         {workshop.canCreateVolunteerTask &&
-          <Button component={Link}
+          <Button component={Link as React.ElementType}
             to={`${Routing.Volunteer}?shop=${workshop.id}&createTask=true`}
             variant="contained" startIcon={<AddIcon />}>
             Create Bounty Task
@@ -484,11 +484,11 @@ const WorkshopVolunteer: React.FC<{
               <Chip size="small" label={`${task.creditValue} credits`} />
               <Typography variant="body2">{task.description}</Typography>
               {task.prerequisiteToolNames.length > 0 &&
-                <Typography variant="caption" display="block">
+                <Typography variant="caption" style={{ display: "block" }}>
                   Prerequisites: {task.prerequisiteToolNames.join(", ")}
                 </Typography>}
               {!task.eligible && task.missingPrerequisiteToolNames.length > 0 &&
-                <Typography variant="caption" display="block">
+                <Typography variant="caption" style={{ display: "block" }}>
                   Missing checkouts: {task.missingPrerequisiteToolNames.join(", ")}
                 </Typography>}
             </Grid>

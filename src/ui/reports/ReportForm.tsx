@@ -158,7 +158,7 @@ export class ReportForm extends React.Component<OwnProps> {
                     requirement={baseReq}
                     reportRequirement={isReportRequirement(requirement) && requirement}
                     index={index}
-                    ref={(ref) => this.reportRequirementRefs[index] = ref}
+                    ref={(ref) => { this.reportRequirementRefs[index] = ref; }}
                   />
               </>
             )

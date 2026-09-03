@@ -11,7 +11,7 @@ import MemberForm from "./MemberForm";
 const CreateMember: React.FC<{ onCreate: (id: string) => void }> = ({ onCreate }) => {
   const { isOpen, openModal, closeModal } = useModal();
   const { canCreateMembers } = useCapabilities();
-  const formRef = React.useRef<MemberForm>();
+  const formRef = React.useRef<MemberForm>(null);
 
   const onSuccess = React.useCallback(({ response }) => {
     onCreate(response.data.id);

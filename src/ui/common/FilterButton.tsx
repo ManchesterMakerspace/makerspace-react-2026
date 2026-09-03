@@ -4,7 +4,7 @@ import Button from "@mui/material/Button";
 import Drawer from "@mui/material/Drawer";
 import useModal from "../hooks/useModal";
 
-const FilterButton: React.FC<{ label?: string, children(close: () => void): React.ReactChild }> = ({ children, label = "Filters" }) => {
+const FilterButton: React.FC<{ label?: string, children(close: () => void): React.ReactNode }> = ({ children, label = "Filters" }) => {
   const { isOpen, openModal, closeModal } = useModal();
 
   return (

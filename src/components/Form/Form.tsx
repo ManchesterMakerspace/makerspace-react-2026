@@ -24,7 +24,7 @@ interface Props<V> {
   loading?: boolean;
   error?: string;
   style?: { [key: string]: string };
-  children: React.ReactChild | React.ReactChild[];
+  children: React.ReactNode;
   hoistContext?(context: FormContext): void;
   className?: string;
 }

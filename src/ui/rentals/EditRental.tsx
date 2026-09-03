@@ -14,7 +14,7 @@ interface Props {
 
 const EditRental: React.FC<Props> = ({ rental, onUpdate }) => {
   const { isOpen, openModal, closeModal } = useModal();
-  const formRef = React.useRef<RentalForm>();
+  const formRef = React.useRef<RentalForm>(null);
   const onSuccess = React.useCallback(
     ({ reset }) => {
       onUpdate();

@@ -1,7 +1,7 @@
 /**
  * Main injection point for application. Webpacker compiles everything in this folder by default.
  */
-import 'assets/application';
+import 'assets/application.scss';
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
 import { applyMiddleware, compose, createStore, Store } from 'redux';

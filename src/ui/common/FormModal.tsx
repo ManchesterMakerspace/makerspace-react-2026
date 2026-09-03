@@ -39,7 +39,7 @@ const FormModal = (props: FormModalProps) => {
       scroll={"body"}
     >
       <Form
-        ref={formRef}
+        ref={(ref) => { formRef?.(ref); }}
         id={id}
         title={title}
         onCancel={closeHandler}

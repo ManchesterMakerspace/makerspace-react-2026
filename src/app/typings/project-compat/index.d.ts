@@ -13,6 +13,17 @@ declare module 'react' {
   }
 }
 
+// @types/react 19 moved the JSX namespace to React.JSX and dropped the
+// global ambient JSX namespace. This restores it so existing code that
+// references bare JSX.Element / JSX.IntrinsicElements (the pre-19 pattern,
+// used throughout this codebase) keeps working without a mass rename.
+declare global {
+  namespace JSX {
+    type Element = React.JSX.Element;
+    type IntrinsicElements = React.JSX.IntrinsicElements;
+  }
+}
+
 declare module '*.json' {
   const value: any;
   export default value;
