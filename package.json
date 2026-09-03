@@ -3,6 +3,12 @@
   "version": "0.1.1",
   "license": "MIT",
   "description": "React UI for the makerspace interface",
+  "resolutions": {
+    "fast-uri": "^3.1.6",
+    "postcss": "^8.5.23",
+    "js-yaml": "^3.15.1",
+    "browserslist": "^4.28.7"
+  },
   "main": "index.js",
   "dependencies": {
     "@emotion/react": "^11.0.0",
