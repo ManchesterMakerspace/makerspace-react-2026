@@ -32,7 +32,7 @@ const ReservationSettingsFields: React.FC<{
 }> = ({ value, onChange, tools = [], lockedToolId }) => {
   const set = (field: keyof ReservationSettingsValue, next: any) =>
     onChange({ ...value, [field]: next });
-  const selected = Array.from(value.reservationPrerequisiteToolIds || []);
+  const selected: string[] = Array.from(value.reservationPrerequisiteToolIds || []);
   const effectiveSelected = lockedToolId ? Array.from(new Set([...selected, lockedToolId])) : selected;
   const toggle = (id: string) => {
     if (id === lockedToolId) return;
