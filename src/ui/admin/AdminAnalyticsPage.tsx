@@ -149,7 +149,7 @@ const MemberGrowthTab: React.FC = () => {
               <Line
                 type='monotone'
                 dataKey='count'
-                name='Active Members'
+                name='Activated Members'
                 stroke='#1565c0'
                 dot={{ r: 3 }}
                 strokeWidth={2}
