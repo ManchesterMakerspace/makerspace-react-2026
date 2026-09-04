@@ -128,9 +128,9 @@ const MemberGrowthTab: React.FC = () => {
 
       {/* Active member count over time */}
       <Grid size={{ xs: 12 }}>
-        <Typography variant='h6'>Active Member Count Over Time</Typography>
+        <Typography variant='h6'>Activated Member Count Over Time</Typography>
         <Typography variant='caption' color='textSecondary' style={{ display: 'block', marginBottom: 8 }}>
-          Members with an unexpired membership and active status, tracked monthly.
+          Members with an unexpired membership and activated fob, tracked monthly.
         </Typography>
         {loaded && active.length === 0 && (
           <EmptyChart message='No snapshot data available for this range. The daily snapshot job must have run to populate this chart.' />
