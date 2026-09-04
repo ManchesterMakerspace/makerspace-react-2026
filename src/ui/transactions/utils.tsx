@@ -4,6 +4,12 @@ import StatusLabel from "ui/common/StatusLabel";
 import { Transaction, TransactionStatusEnum } from "makerspace-ts-api-client";
 
 export const renderTransactionStatus = (transaction: Transaction) => {
+  // Valid status strings are:
+  //       authorizing, authorized, gateway_rejected, failed, processor_declined
+  //       settled, settlement_failed, submitted_for_settlement, and voided.
+  //
+  // See https://developer.paypal.com/braintree/articles/get-started/transaction-lifecycle
+  //
   let label = "Pending";
   let color = Status.Info;
   switch (transaction.status) {
@@ -11,6 +17,11 @@ export const renderTransactionStatus = (transaction: Transaction) => {
       color = Status.Success;
       label = "Successful";
       break;
+    case "settling" as TransactionStatusEnum:
+      color = Status.Info;
+      label = "Pending Settlement";
+      break;
+    case "authorizing" as TransactionStatusEnum:
     case "submitted_for_settlement" as TransactionStatusEnum:
       color = Status.Warn;
       label = "Pending";
@@ -20,6 +31,7 @@ export const renderTransactionStatus = (transaction: Transaction) => {
     case TransactionStatusEnum.SettlementDeclined:
     case TransactionStatusEnum.GatewayRejected:
     case TransactionStatusEnum.Voided:
+    case "settlement_failed" as TransactionStatusEnum:
       color = Status.Danger;
       label = "Failed";
       break;
