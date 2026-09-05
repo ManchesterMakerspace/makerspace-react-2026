@@ -209,7 +209,7 @@ const rowId = (member: MemberSummary) => member.id;
 const MembersList: React.FC = () => {
   const [selectedId, setSelectedId] = React.useState<string>();
   const navigate = useNavigate();
-  const { params, setParam } = useQueryContext({ currentMembers: true });
+  const { params, setParam } = useQueryContext();
   useAuthState(); // required for auth context
   const caps = useCapabilities();
   const canViewAll = caps.canViewAllMembers;
@@ -267,4 +267,8 @@ const MembersList: React.FC = () => {
   );
 };
 
-export default withQueryContext(MembersList);
+export default withQueryContext(MembersList, {
+  currentMembers: false,
+  orderBy: 'startDate',
+  order: SortDirection.Desc,
+});
