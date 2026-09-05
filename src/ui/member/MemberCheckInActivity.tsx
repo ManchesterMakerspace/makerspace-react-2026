@@ -19,12 +19,12 @@ import useReadTransaction from "ui/hooks/useReadTransaction";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { timeToDate } from "ui/utils/timeToDate";
+import { getCheckInTimestamp } from "ui/member/checkInTimestamp";
 
 interface CheckInRecord {
   _id?: string;
-  timeOf?: number;
+  timeOf?: string | Date;
   time?: number;
-  dateOf?: Date;
   validity?: string;
   where?: string;
   [key: string]: any;
@@ -136,9 +136,8 @@ const MemberCheckInActivity: React.FC = () => {
           allRecords = allRecords.map((record) => {
             const filtered: CheckInRecord = {};
             if (record._id) filtered._id = record._id;
-            if (record.timeOf) filtered.timeOf = record.timeOf;
-            if (record.time) filtered.time = record.time;
-            if (record.dateOf) filtered.dateOf = record.dateOf;
+            if (record.timeOf !== undefined) filtered.timeOf = record.timeOf;
+            if (record.time !== undefined) filtered.time = record.time;
             if (record.validity) filtered.validity = record.validity;
             if (record.where) filtered.where = record.where;
             return filtered;
@@ -179,25 +178,10 @@ const MemberCheckInActivity: React.FC = () => {
     );
   }
 
-  // Checkin timestamps may be stored as either seconds or milliseconds since
-  // epoch, inconsistently, per record — mirrors CheckinTimeHelper on the
-  // backend. For any date between 1970 and ~2286, seconds values fall in
-  // 10^9..10^10 and ms values fall in 10^12..10^13 — a clean 1000x gap with
-  // no overlap, so this threshold reliably distinguishes them.
-  const SECONDS_MS_THRESHOLD = 10_000_000_000;
-  const normalizeToMs = (raw: number): number =>
-    raw > SECONDS_MS_THRESHOLD ? raw : raw * 1000;
-
   // Format timestamp
   const formatTimestamp = (record: CheckInRecord): string => {
-    if (record.dateOf) {
-      return timeToDate(new Date(record.dateOf).getTime());
-    }
-    const rawTime = record.timeOf || record.time;
-    if (rawTime) {
-      return timeToDate(normalizeToMs(rawTime));
-    }
-    return "-";
+    const timestamp = getCheckInTimestamp(record);
+    return timestamp === undefined ? "-" : timeToDate(timestamp);
   };
 
   // Filter out empty/zero/negative values
@@ -270,7 +254,7 @@ const MemberCheckInActivity: React.FC = () => {
                 {records.map((record, idx) => {
                   const visibleFields = Object.entries(record)
                     .filter(([key, value]) => {
-                      if (key === "_id" || key === "timeOf" || key === "time" || key === "dateOf" || key === "validity" || key === "where") {
+                      if (key === "_id" || key === "timeOf" || key === "time" || key === "validity" || key === "where") {
                         return false;
                       }
                       return shouldDisplay(value);
