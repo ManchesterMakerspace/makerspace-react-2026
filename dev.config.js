@@ -110,7 +110,6 @@ module.exports = env => ({
       context: ["/api"],
       target: "http://localhost:3002"
     }],
-    https: false,
     port: 3035,
     headers: { "Access-Control-Allow-Origin": "*" }
   },

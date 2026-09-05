@@ -79,15 +79,17 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <div className="root">
         <Header />
-        {attemptingLogin ?
-          <LoadingOverlay id="body" />
-          : (currentUserId
-              ? <PrivateRouting
-                  permissions={permissions}
-                  currentUserId={currentUserId}
-                />
-              : <PublicRouting />)
-        }
+        <div style={{ padding: "0 12px" }}>
+          {attemptingLogin ?
+            <LoadingOverlay id="body" />
+            : (currentUserId
+                ? <PrivateRouting
+                    permissions={permissions}
+                    currentUserId={currentUserId}
+                  />
+                : <PublicRouting />)
+          }
+        </div>
       <Footer />
       </div>
     </ErrorBoundary>
