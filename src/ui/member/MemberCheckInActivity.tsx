@@ -191,6 +191,13 @@ const MemberCheckInActivity: React.FC = () => {
     return true;
   };
 
+  // Fields already shown in their own column, plus raw identifiers not
+  // meaningful to a human reader (uid is a card identifier, not a name).
+  const HIDDEN_DETAIL_FIELDS = new Set(["_id", "timeOf", "time", "validity", "where", "uid"]);
+  const DETAIL_FIELD_LABELS: Record<string, string> = {
+    holder: "Card Holder",
+  };
+
   return (
     <Grid container spacing={2} style={{ padding: "16px" }}>
       <Grid size={{ xs: 12 }}>
@@ -253,12 +260,7 @@ const MemberCheckInActivity: React.FC = () => {
               <TableBody>
                 {records.map((record, idx) => {
                   const visibleFields = Object.entries(record)
-                    .filter(([key, value]) => {
-                      if (key === "_id" || key === "timeOf" || key === "time" || key === "validity" || key === "where") {
-                        return false;
-                      }
-                      return shouldDisplay(value);
-                    });
+                    .filter(([key, value]) => !HIDDEN_DETAIL_FIELDS.has(key) && shouldDisplay(value));
 
                   return (
                     <TableRow key={idx}>
@@ -269,7 +271,7 @@ const MemberCheckInActivity: React.FC = () => {
                             <div>
                               {visibleFields.map(([key, value]) => (
                                 <div key={key} style={{ fontSize: "0.85em", marginBottom: "4px" }}>
-                                  <strong>{key}:</strong> {String(value)}
+                                  <strong>{DETAIL_FIELD_LABELS[key] ?? key}:</strong> {String(value)}
                                 </div>
                               ))}
                               {record.validity && (
