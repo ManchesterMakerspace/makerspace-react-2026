@@ -31,7 +31,10 @@ interface Household {
   groupName: string;
   groupRep: string;
   expiry: number;
-  primaryMember: HouseholdMember;
+  // The backend resolves this from a stored primary-member reference on the
+  // group record, which can dangle on legacy household data — null means the
+  // referenced member no longer exists, not a loading/error state.
+  primaryMember: HouseholdMember | null;
   secondaryMembers: HouseholdMember[];
 }
 
@@ -260,6 +263,21 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
             </Grid>
           )}
 
+          {/* Member has a groupName but the referenced group itself doesn't
+              exist (e.g. a stale/legacy value with no matching Group record
+              at all) — the fetch fails and neither the "create" nor "exists"
+              branch above applies. FormModal/Form's own error display is
+              gated behind form.isDirty, which never becomes true here since
+              there's no editable field, so without this the modal would
+              silently show nothing but its title. */}
+          {isInHousehold && !household && !loading && error && (
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12 }}>
+                <ErrorMessage id="household-not-found-error" error={error} />
+              </Grid>
+            </Grid>
+          )}
+
           {/* Household exists */}
           {household && (
             <Grid container spacing={2}>
@@ -269,10 +287,17 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                 <Typography variant="subtitle2" gutterBottom>Primary Member</Typography>
                 <List dense>
                   <ListItem>
-                    <ListItemText
-                      primary={`${household.primaryMember.firstname} ${household.primaryMember.lastname}`}
-                      secondary={household.primaryMember.email}
-                    />
+                    {household.primaryMember ? (
+                      <ListItemText
+                        primary={`${household.primaryMember.firstname} ${household.primaryMember.lastname}`}
+                        secondary={household.primaryMember.email}
+                      />
+                    ) : (
+                      <ListItemText
+                        primary="Primary member no longer exists"
+                        secondary="This household's primary member record could not be found."
+                      />
+                    )}
                   </ListItem>
                 </List>
               </Grid>
