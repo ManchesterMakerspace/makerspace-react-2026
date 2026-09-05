@@ -10,7 +10,9 @@ const SECONDS_MS_THRESHOLD = 10_000_000_000;
 export const getCheckInTimestamp = (record: TimestampRecord): number | undefined => {
   if (record.timeOf !== undefined && record.timeOf !== null) {
     const timestamp = new Date(record.timeOf).getTime();
-    return Number.isFinite(timestamp) ? timestamp : undefined;
+    if (Number.isFinite(timestamp)) {
+      return timestamp;
+    }
   }
 
   if (typeof record.time !== "number" || !Number.isFinite(record.time) || record.time <= 0) {

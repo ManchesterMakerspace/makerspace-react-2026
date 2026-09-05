@@ -16,6 +16,13 @@ describe("getCheckInTimestamp", () => {
     expect(getCheckInTimestamp({ time })).toBe(expected);
   });
 
+  it.each(["", "not-an-iso-date", new Date(Number.NaN)])(
+    "falls back to legacy time when timeOf is invalid: %s",
+    (timeOf) => {
+      expect(getCheckInTimestamp({ timeOf, time: 1688426197 })).toBe(1688426197000);
+    },
+  );
+
   it.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     "rejects invalid legacy time %s",
     (time) => {
