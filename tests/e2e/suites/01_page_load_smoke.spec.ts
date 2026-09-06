@@ -287,7 +287,15 @@ test.describe('Admin pages load', () => {
   test('Portal settings — Slack tab', async ({ page }) => {
     await page.goto('/admin/system-settings');
     await page.waitForLoadState('networkidle');
-    await page.getByRole('tab', { name: /slack/i }).click();
+    await page.getByRole('tab', { name: 'Slack', exact: true }).click();
+    await page.waitForTimeout(1000);
+    await assertNocrash(page);
+  });
+
+  test('Portal settings — Slack Identity Conflicts tab', async ({ page }) => {
+    await page.goto('/admin/system-settings');
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('tab', { name: 'Slack Identity Conflicts' }).click();
     await page.waitForTimeout(1000);
     await assertNocrash(page);
   });
