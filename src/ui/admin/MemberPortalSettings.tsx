@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as React from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   Typography,
   Grid,
@@ -39,7 +39,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import RestoreIcon from '@mui/icons-material/Restore';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 
-import { useNavigate } from 'react-router-dom';
 import { Routing } from 'app/constants';
 import {
   getSystemConfigs,
@@ -77,18 +76,22 @@ const JOB_LABELS: Record<string, string> = {
   db_backup:       'Database Backup',
   card_expiration_check: 'Card on File Expiration Check',
   reservation_canvas_rebuild: 'Reservation Canvas Rebuild',
+  member_provisioning_reconciliation: 'Member Provisioning Reconciliation',
+  volunteer_event_reminder: 'Volunteer Event Reminders',
 };
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
   slack_sync:      'Bulk syncs Slack workspace users to member records by matching email. Use Run Now after onboarding a batch of new members.',
   slack_profile_sync: 'Updates the Slack profile status field for members whose memberships expired since the last sync.',
-  slack_channel_cache: 'Clears and rebuilds the Redis cache of public Slack channel IDs, topics, and purposes.',
+  slack_channel_cache: 'Clears and rebuilds the Redis cache of public Slack channel IDs, topics, and purposes. Runs monthly, on the configured day, via a daily scheduled check.',
   member_review:   'Reviews membership statuses and sends a weekly summary report to Slack.',
   invoice_review:  'Reviews invoice statuses, flags past due accounts, and reports to the treasurer channel.',
-  garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month.',
+  garbage_collect: 'Cleans up old Redis invoicing cache keys from the previous month. Runs monthly, on the configured day, via a daily scheduled check.',
   db_backup:       'Backs up the MongoDB database to Google Drive.',
-  card_expiration_check: 'Finds active members with payment cards expiring this month, caches the results, and sends Slack notifications.',
+  card_expiration_check: 'Finds active members with payment cards expiring this month, caches the results, and sends Slack notifications. Runs monthly, on the configured day, via a daily scheduled check.',
   reservation_canvas_rebuild: "Rebuilds today's and tomorrow's Slack reservation canvases and refreshes owner access.",
+  member_provisioning_reconciliation: 'Reconciles Slack/Google Drive provisioning state for all initialized members. Runs hourly.',
+  volunteer_event_reminder: 'Sends reminder notifications for upcoming volunteer events. Runs daily.',
 };
 
 const formatDate = (dateStr: string | null): string => {
@@ -657,10 +660,49 @@ interface JobsTabProps {
   onRunJob: (key: string) => void;
   runningJob: string | null;
   jobMessage: Record<string, string>;
+  onSettingSave: (key: string, value: string) => Promise<void>;
+  savingKey: string | null;
 }
 
-const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMessage }) => (
+const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMessage, onSettingSave, savingKey }) => (
   <Grid container spacing={2}>
+    <Grid size={{ xs: 12 }}>
+      <Card variant='outlined'>
+        <CardHeader
+          title='Monthly Job Schedule'
+          subheader="Heroku Scheduler has no monthly option, so these jobs run daily and only do real work on the day of month set here. Run Now always runs immediately regardless of this setting."
+        />
+        <Divider />
+        <CardContent>
+          <SettingRow
+            label='Slack Channel Cache refresh day'
+            description='Day of month (1-31)'
+            settingKey='channel_cache_refresh_day'
+            value={config.job_schedule.channel_cache_refresh_day}
+            onSave={onSettingSave}
+            saving={savingKey === 'channel_cache_refresh_day'}
+          />
+          <Divider style={{ margin: '8px 0' }} />
+          <SettingRow
+            label='Card Expiration Check day'
+            description='Day of month (1-31)'
+            settingKey='card_expiration_check_day'
+            value={config.job_schedule.card_expiration_check_day}
+            onSave={onSettingSave}
+            saving={savingKey === 'card_expiration_check_day'}
+          />
+          <Divider style={{ margin: '8px 0' }} />
+          <SettingRow
+            label='Garbage Collector day'
+            description='Day of month (1-31)'
+            settingKey='garbage_collect_day'
+            value={config.job_schedule.garbage_collect_day}
+            onSave={onSettingSave}
+            saving={savingKey === 'garbage_collect_day'}
+          />
+        </CardContent>
+      </Card>
+    </Grid>
     {config.jobs.filter(j => j.key !== 'slack_sync').map((job: JobStatus) => (
       <Grid size={{ xs: 12 }} key={job.key}>
         <Card variant='outlined'>
@@ -1082,6 +1124,8 @@ const MemberPortalSettings: React.FC = () => {
         setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
       } else if (key === 'reservation_token') {
         setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
+      } else if (key.endsWith('_day')) {
+        setConfig({ ...config, job_schedule: { ...config.job_schedule, [key]: value } });
       }
     }
     setSavingKey(null);
@@ -1177,6 +1221,8 @@ const MemberPortalSettings: React.FC = () => {
             onRunJob={handleRunJob}
             runningJob={runningJob}
             jobMessage={jobMessage}
+            onSettingSave={handleSettingSave}
+            savingKey={savingKey}
           />
         )}
       </Grid>

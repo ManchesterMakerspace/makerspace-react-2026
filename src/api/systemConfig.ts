@@ -70,6 +70,15 @@ export interface ReservationSettings {
   reservation_token: string;
 }
 
+/** Day-of-month (1-31, as a string) each "monthly" job actually does real
+ *  work on -- Heroku Scheduler only supports daily cadence, so these jobs
+ *  run daily and no-op except on their configured day. */
+export interface JobScheduleSettings {
+  channel_cache_refresh_day: string;
+  card_expiration_check_day: string;
+  garbage_collect_day: string;
+}
+
 export interface SystemConfigData {
   flags: {
     slack_sync_enabled: boolean;
@@ -85,6 +94,7 @@ export interface SystemConfigData {
   volunteer: VolunteerSettings;
   totp: TotpSettings;
   reservation: ReservationSettings;
+  job_schedule: JobScheduleSettings;
 }
 
 export type TemplateStatusValue =
