@@ -30,6 +30,7 @@ export namespace Routing {
   export const Analytics = '/admin/analytics';
   export const Volunteer = '/volunteer';
   export const SystemSettings = '/admin/system-settings';
+  export const SlackIdentityConflicts = '/admin/slack-identity-conflicts';
   export const AuditLog = '/admin/audit-log';
   export const Checkout = '/checkout';
   export const Receipt = `${Checkout}/receipt/${PathPlaceholder.InvoiceId}`;
