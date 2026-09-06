@@ -120,7 +120,7 @@ const EditShopModal: React.FC<{
   onUpdated: () => void;
 }> = ({ workshop, onClose, onUpdated }) => {
   const [name, setName] = React.useState(workshop.name);
-  const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrl || "");
+  const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(workshop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(workshop.slackChannel || "");
   const [saving, setSaving] = React.useState(false);
@@ -151,7 +151,8 @@ const EditShopModal: React.FC<{
       <Grid size={{ xs: 12 }}><TextField fullWidth required label="Shop Name" value={name}
         onChange={event => setName(event.target.value)} autoFocus /></Grid>
       <Grid size={{ xs: 12 }}><TextField fullWidth label="Wiki URL" value={wikiUrl}
-        onChange={event => setWikiUrl(event.target.value)} /></Grid>
+        onChange={event => setWikiUrl(event.target.value)}
+        helperText="Leave blank to use the generated workshop URL." /></Grid>
       <Grid size={{ xs: 12 }}><TextField fullWidth label="GDrive ID" value={gdriveId}
         onChange={event => setGdriveId(event.target.value)} /></Grid>
       <Grid size={{ xs: 12 }}><TextField fullWidth label="Slack Channel" value={slackChannel}
