@@ -30,6 +30,7 @@ const ToolCheckoutsPage = lazyRoute(() => import(/* webpackChunkName: "admin-too
 const ReservationsPage = lazyRoute(() => import(/* webpackChunkName: "member-reservations", webpackPrefetch: true */ 'ui/reservations/ReservationsPage'));
 const WorkshopsPage = lazyRoute(() => import(/* webpackChunkName: "member-workshops", webpackPrefetch: true */ 'ui/workshops/WorkshopsPage'));
 const MemberPortalSettings = lazyRoute(() => import(/* webpackChunkName: "admin-portal-settings", webpackPrefetch: true */ 'ui/admin/MemberPortalSettings'));
+const SlackIdentityConflictsPage = lazyRoute(() => import(/* webpackChunkName: "admin-slack-identity-conflicts" */ 'ui/admin/SlackIdentityConflictsPage'));
 const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-volunteer", webpackPrefetch: true */ 'ui/volunteer/AdminVolunteerPage'));
 const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
 const AuditLogPage = lazyRoute(() => import(/* webpackChunkName: "admin-audit-log", webpackPrefetch: true */ 'ui/auditLog/AuditLogPage'));
@@ -91,6 +92,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}
+      {caps.canViewPortalSettings && <Route path={Routing.SlackIdentityConflicts} element={<SlackIdentityConflictsPage />} />}
       {caps.canViewAuditLog      && <Route path={Routing.AuditLog}         element={<AuditLogPage />} />}
       {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
       {billingEnabled && <Route path={Routing.Receipt} element={<Receipt />} />}
