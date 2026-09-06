@@ -1,5 +1,6 @@
 // @ts-nocheck
 import * as React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Typography,
   Grid,
@@ -51,12 +52,18 @@ import {
   runExternalTemplateAction,
   ExternalTemplateStatus,
 } from 'api/systemConfig';
+import {
+  getSlackIdentityConflicts,
+  resolveSlackIdentityConflict,
+  SlackIdentityConflict,
+} from 'api/slackIdentityConflicts';
 import { useCapabilities } from 'app/permissions';
 
-type TabKey = 'slack' | 'volunteer' | 'reservations' | 'jobs' | 'security' | 'templates';
+type TabKey = 'slack' | 'slack_conflicts' | 'volunteer' | 'reservations' | 'jobs' | 'security' | 'templates';
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'slack',     label: 'Slack' },
+  { key: 'slack_conflicts', label: 'Slack Identity Conflicts' },
   { key: 'volunteer', label: 'Volunteer' },
   { key: 'reservations', label: 'Reservations' },
   { key: 'jobs',      label: 'Jobs' },
@@ -269,10 +276,12 @@ interface SlackTabProps {
   onRunJob: (key: string) => void;
   runningJob: string | null;
   jobMessage: Record<string, string>;
+  onNavigateToConflicts: () => void;
 }
 
 const SlackTab: React.FC<SlackTabProps> = ({
-  config, onFlagToggle, onSettingSave, togglingFlag, savingKey, onRunJob, runningJob, jobMessage
+  config, onFlagToggle, onSettingSave, togglingFlag, savingKey, onRunJob, runningJob, jobMessage,
+  onNavigateToConflicts
 }) => {
   const slackSyncJob = config.jobs.find(j => j.key === 'slack_sync');
   const slackCacheJob = config.jobs.find(j => j.key === 'slack_channel_cache');
@@ -394,24 +403,29 @@ const SlackTab: React.FC<SlackTabProps> = ({
           <CardHeader title='Slack User Sync' subheader='Sync Slack workspace users to member records.' />
           <Divider />
           <CardContent>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={config.flags.slack_sync_enabled}
-                  onChange={() => onFlagToggle('slack_sync_enabled', config.flags.slack_sync_enabled)}
-                  disabled={togglingFlag === 'slack_sync_enabled'}
-                  color='primary'
-                />
-              }
-              label={
-                <span>
-                  <Typography variant='body1' component='span'>Enable Scheduled Sync</Typography>
-                  <Typography variant='body2' color='textSecondary' component='p'>
-                    When enabled, syncs run on demand. Use Run Now below for a full workspace sync.
-                  </Typography>
-                </span>
-              }
-            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={config.flags.slack_sync_enabled}
+                    onChange={() => onFlagToggle('slack_sync_enabled', config.flags.slack_sync_enabled)}
+                    disabled={togglingFlag === 'slack_sync_enabled'}
+                    color='primary'
+                  />
+                }
+                label={
+                  <span>
+                    <Typography variant='body1' component='span'>Enable Scheduled Sync</Typography>
+                    <Typography variant='body2' color='textSecondary' component='p'>
+                      When enabled, syncs run on demand. Use Run Now below for a full workspace sync.
+                    </Typography>
+                  </span>
+                }
+              />
+              <Button variant='outlined' size='small' onClick={onNavigateToConflicts} style={{ marginTop: 8, whiteSpace: 'nowrap' }}>
+                Resolve Slack Conflicts
+              </Button>
+            </div>
             <Divider style={{ margin: '12px 0' }} />
             <FormControlLabel
               control={
@@ -1022,6 +1036,132 @@ const TemplatesTab: React.FC = () => {
   );
 };
 
+// ── Slack Identity Conflicts Tab ────────────────────────────────────────────────
+
+const SlackConflictsTab: React.FC = () => {
+  const [conflicts, setConflicts] = React.useState<SlackIdentityConflict[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [resolving, setResolving] = React.useState<string | null>(null);
+  const [error, setError] = React.useState('');
+  const [confirmTarget, setConfirmTarget] = React.useState<SlackIdentityConflict | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    setError('');
+    const result = await getSlackIdentityConflicts();
+    if (result.error) {
+      setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to load Slack identity conflicts.');
+    } else {
+      setConflicts(result.data?.conflicts || []);
+    }
+    setLoading(false);
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  const confirmResolve = async () => {
+    if (!confirmTarget) return;
+    setResolving(confirmTarget.slack_id);
+    setError('');
+    const result = await resolveSlackIdentityConflict({
+      slackId: confirmTarget.slack_id,
+      memberId: confirmTarget.member_id,
+    });
+    if (result.error) {
+      setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to resolve this conflict.');
+    } else {
+      setConflicts(current => current.filter(c => c.slack_id !== confirmTarget.slack_id));
+    }
+    setResolving(null);
+    setConfirmTarget(null);
+  };
+
+  if (loading) return <CircularProgress />;
+
+  return (
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h6'>Slack Identity Conflicts</Typography>
+        <Typography variant='body2' color='textSecondary'>
+          A member with two Slack accounts sharing the same email can only have one linked at a time.
+          The sync skips the conflicting one instead of failing — resolve it here by choosing which
+          Slack account should stay linked to the member.
+        </Typography>
+      </Grid>
+      {error && <Grid size={{ xs: 12 }}><Alert severity='error'>{error}</Alert></Grid>}
+      {conflicts.length === 0 && (
+        <Grid size={{ xs: 12 }}>
+          <Typography color='textSecondary'>No Slack identity conflicts right now.</Typography>
+        </Grid>
+      )}
+      {conflicts.map(conflict => (
+        <Grid size={{ xs: 12 }} key={conflict.slack_id}>
+          <Card variant='outlined'>
+            <CardContent>
+              <Typography variant='body1' gutterBottom>
+                <strong><Link to={`/members/${conflict.member_id}`}>{conflict.member_name}</Link></strong>
+              </Typography>
+              <Grid container spacing={2} alignItems='center'>
+                <Grid size={{ xs: 12, sm: 5 }}>
+                  <Chip size='small' label='Currently linked' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', marginBottom: 4 }} />
+                  <Typography variant='body2'>{conflict.conflicting_slack_name || '(no name)'}</Typography>
+                  <Typography variant='caption' color='textSecondary'>{conflict.conflicting_slack_email}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 5 }}>
+                  <Chip size='small' label='Not linked (conflict)' style={{ backgroundColor: '#ffebee', color: '#c62828', marginBottom: 4 }} />
+                  <Typography variant='body2'>{conflict.slack_name || '(no name)'}</Typography>
+                  <Typography variant='caption' color='textSecondary'>{conflict.slack_email}</Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 2 }}>
+                  <Button
+                    size='small'
+                    variant='outlined'
+                    color='primary'
+                    disabled={!!resolving}
+                    startIcon={resolving === conflict.slack_id ? <CircularProgress size={14} /> : null}
+                    onClick={() => setConfirmTarget(conflict)}
+                  >
+                    Link this one
+                  </Button>
+                </Grid>
+              </Grid>
+              <Typography variant='caption' color='textSecondary' style={{ marginTop: 8, display: 'block' }}>
+                If "{conflict.conflicting_slack_name}" is the account that should stay linked instead,
+                resolve this by deactivating the duplicate Slack account directly in Slack — it will drop
+                off this list automatically once it's no longer active.
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      ))}
+
+      <Dialog open={!!confirmTarget} onClose={() => !resolving && setConfirmTarget(null)}>
+        <DialogTitle>Switch linked Slack account?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will unlink <strong>{confirmTarget?.conflicting_slack_name}</strong> ({confirmTarget?.conflicting_slack_email})
+            from <strong>{confirmTarget?.member_name}</strong> and link{' '}
+            <strong>{confirmTarget?.slack_name}</strong> ({confirmTarget?.slack_email}) instead. The unlinked
+            account will not be offered again.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button disabled={!!resolving} onClick={() => setConfirmTarget(null)}>Cancel</Button>
+          <Button
+            color='primary'
+            variant='contained'
+            disabled={!!resolving}
+            startIcon={resolving ? <CircularProgress size={14} /> : null}
+            onClick={confirmResolve}
+          >
+            Switch
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Grid>
+  );
+};
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const MemberPortalSettings: React.FC = () => {
@@ -1139,8 +1279,10 @@ const MemberPortalSettings: React.FC = () => {
             onRunJob={handleRunJob}
             runningJob={runningJob}
             jobMessage={jobMessage}
+            onNavigateToConflicts={() => setActiveTab('slack_conflicts')}
           />
         )}
+        {activeTab === 'slack_conflicts' && <SlackConflictsTab />}
         {activeTab === 'volunteer' && (
           <VolunteerTab
             config={config}
