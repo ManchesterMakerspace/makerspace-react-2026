@@ -1141,9 +1141,14 @@ const SlackConflictsTab: React.FC = () => {
           <DialogContentText>
             This will unlink <strong>{confirmTarget?.conflicting_slack_name}</strong> ({confirmTarget?.conflicting_slack_email})
             from <strong>{confirmTarget?.member_name}</strong> and link{' '}
-            <strong>{confirmTarget?.slack_name}</strong> ({confirmTarget?.slack_email}) instead. The unlinked
-            account will not be offered again.
+            <strong>{confirmTarget?.slack_name}</strong> ({confirmTarget?.slack_email}) instead.
           </DialogContentText>
+          <Alert severity='warning' style={{ marginTop: 12 }}>
+            This cannot be undone from this screen. {confirmTarget?.conflicting_slack_name} will be
+            permanently unlinked and will not be offered again or reconnected automatically — only a
+            developer with direct database access could reverse it. Make sure{' '}
+            {confirmTarget?.slack_name} is the account this member actually uses before continuing.
+          </Alert>
         </DialogContent>
         <DialogActions>
           <Button disabled={!!resolving} onClick={() => setConfirmTarget(null)}>Cancel</Button>

@@ -30,6 +30,11 @@ const EmailChangeNoticeModal: React.FC<EmailChangeNoticeModalProps> = ({ open, o
       <DialogContentText>
         Contact a board member to process a new Slack/Google Drive invite for your new email address.
       </DialogContentText>
+      <DialogContentText style={{ marginTop: 12 }}>
+        Your previous Slack account link has been permanently deactivated and will not reconnect
+        automatically, even if you change your email back — a board member will need to send a fresh
+        invite under the new address.
+      </DialogContentText>
     </DialogContent>
     <DialogActions>
       <Button
