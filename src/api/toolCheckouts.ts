@@ -78,7 +78,9 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
     reservation_horizon_days: body.reservationHorizonDays,
     max_reservation_duration_hours: body.maxReservationDurationHours,
     reservation_requires_approval: body.reservationRequiresApproval,
-    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
+    ...(body.reservationPrerequisiteToolIds !== undefined && {
+      reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds,
+    }),
     color_id: body.colorId,
   }));
 

@@ -3,12 +3,11 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import { contactMailto as buildContactMailto } from "ui/common/contact";
 
 const logoUrl = "/assets/FilledLaserableLogo.svg";
 
-const contactMailto =
-  "mailto:contact@manchestermakerspace.org?subject=" +
-  encodeURIComponent("Notify me when signup reopens");
+const contactMailto = buildContactMailto("Notify me when signup reopens");
 
 /**
  * Shown in place of the signup workflow when the "Lock Out New Signups"
