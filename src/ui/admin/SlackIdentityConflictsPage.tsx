@@ -19,15 +19,19 @@ import {
 import {
   getSlackIdentityConflicts,
   resolveSlackIdentityConflict,
+  dismissSlackIdentityConflict,
   SlackIdentityConflict,
 } from 'api/slackIdentityConflicts';
+
+type ConflictAction = 'link' | 'keep';
+type ConfirmTarget = { conflict: SlackIdentityConflict; action: ConflictAction };
 
 const SlackIdentityConflictsPage: React.FC = () => {
   const [conflicts, setConflicts] = React.useState<SlackIdentityConflict[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [resolving, setResolving] = React.useState<string | null>(null);
   const [error, setError] = React.useState('');
-  const [confirmTarget, setConfirmTarget] = React.useState<SlackIdentityConflict | null>(null);
+  const [confirmTarget, setConfirmTarget] = React.useState<ConfirmTarget | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -45,16 +49,23 @@ const SlackIdentityConflictsPage: React.FC = () => {
 
   const confirmResolve = async () => {
     if (!confirmTarget) return;
-    setResolving(confirmTarget.slack_id);
+    const { conflict, action } = confirmTarget;
+    setResolving(conflict.slack_id);
     setError('');
-    const result = await resolveSlackIdentityConflict({
-      slackId: confirmTarget.slack_id,
-      memberId: confirmTarget.member_id,
-    });
+
+    const result = action === 'link'
+      ? await resolveSlackIdentityConflict({ slackId: conflict.slack_id, memberId: conflict.member_id })
+      : await dismissSlackIdentityConflict({
+          slackId: conflict.slack_id,
+          memberId: conflict.member_id,
+          slackEmail: conflict.slack_email,
+          slackName: conflict.slack_name,
+        });
+
     if (result.error) {
       setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to resolve this conflict.');
     } else {
-      setConflicts(current => current.filter(c => c.slack_id !== confirmTarget.slack_id));
+      setConflicts(current => current.filter(c => c.slack_id !== conflict.slack_id));
     }
     setResolving(null);
     setConfirmTarget(null);
@@ -85,55 +96,78 @@ const SlackIdentityConflictsPage: React.FC = () => {
               <Typography variant='body1' gutterBottom>
                 <strong><Link to={`/members/${conflict.member_id}`}>{conflict.member_name}</Link></strong>
               </Typography>
-              <Grid container spacing={2} alignItems='center'>
-                <Grid size={{ xs: 12, sm: 5 }}>
+              <Grid container spacing={2} alignItems='flex-start'>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Chip size='small' label='Currently linked' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', marginBottom: 4 }} />
                   <Typography variant='body2'>{conflict.conflicting_slack_name || '(no name)'}</Typography>
-                  <Typography variant='caption' color='textSecondary'>{conflict.conflicting_slack_email}</Typography>
+                  <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{conflict.conflicting_slack_email}</Typography>
+                  <Button
+                    size='small'
+                    variant='outlined'
+                    disabled={!!resolving}
+                    startIcon={resolving === conflict.slack_id ? <CircularProgress size={14} /> : null}
+                    style={{ marginTop: 8 }}
+                    onClick={() => setConfirmTarget({ conflict, action: 'keep' })}
+                  >
+                    Keep this one
+                  </Button>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 5 }}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Chip size='small' label='Not linked (conflict)' style={{ backgroundColor: '#ffebee', color: '#c62828', marginBottom: 4 }} />
                   <Typography variant='body2'>{conflict.slack_name || '(no name)'}</Typography>
-                  <Typography variant='caption' color='textSecondary'>{conflict.slack_email}</Typography>
-                </Grid>
-                <Grid size={{ xs: 12, sm: 2 }}>
+                  <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{conflict.slack_email}</Typography>
                   <Button
                     size='small'
                     variant='outlined'
                     color='primary'
                     disabled={!!resolving}
                     startIcon={resolving === conflict.slack_id ? <CircularProgress size={14} /> : null}
-                    onClick={() => setConfirmTarget(conflict)}
+                    style={{ marginTop: 8 }}
+                    onClick={() => setConfirmTarget({ conflict, action: 'link' })}
                   >
                     Link this one
                   </Button>
                 </Grid>
               </Grid>
-              <Typography variant='caption' color='textSecondary' style={{ marginTop: 8, display: 'block' }}>
-                If "{conflict.conflicting_slack_name}" is the account that should stay linked instead,
-                resolve this by deactivating the duplicate Slack account directly in Slack — it will drop
-                off this list automatically once it's no longer active.
-              </Typography>
             </CardContent>
           </Card>
         </Grid>
       ))}
 
       <Dialog open={!!confirmTarget} onClose={() => !resolving && setConfirmTarget(null)}>
-        <DialogTitle>Switch linked Slack account?</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            This will unlink <strong>{confirmTarget?.conflicting_slack_name}</strong> ({confirmTarget?.conflicting_slack_email})
-            from <strong>{confirmTarget?.member_name}</strong> and link{' '}
-            <strong>{confirmTarget?.slack_name}</strong> ({confirmTarget?.slack_email}) instead.
-          </DialogContentText>
-          <Alert severity='warning' style={{ marginTop: 12 }}>
-            This cannot be undone from this screen. {confirmTarget?.conflicting_slack_name} will be
-            permanently unlinked and will not be offered again or reconnected automatically — only a
-            developer with direct database access could reverse it. Make sure{' '}
-            {confirmTarget?.slack_name} is the account this member actually uses before continuing.
-          </Alert>
-        </DialogContent>
+        {confirmTarget?.action === 'link' ? (
+          <>
+            <DialogTitle>Switch linked Slack account?</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                This will unlink <strong>{confirmTarget.conflict.conflicting_slack_name}</strong> ({confirmTarget.conflict.conflicting_slack_email})
+                from <strong>{confirmTarget.conflict.member_name}</strong> and link{' '}
+                <strong>{confirmTarget.conflict.slack_name}</strong> ({confirmTarget.conflict.slack_email}) instead.
+              </DialogContentText>
+              <Alert severity='warning' style={{ marginTop: 12 }}>
+                This cannot be undone from this screen. {confirmTarget.conflict.conflicting_slack_name} will be
+                permanently unlinked and will not be offered again or reconnected automatically — only a
+                developer with direct database access could reverse it. Make sure{' '}
+                {confirmTarget.conflict.slack_name} is the account this member actually uses before continuing.
+              </Alert>
+            </DialogContent>
+          </>
+        ) : confirmTarget?.action === 'keep' ? (
+          <>
+            <DialogTitle>Dismiss the duplicate account?</DialogTitle>
+            <DialogContent>
+              <DialogContentText>
+                <strong>{confirmTarget.conflict.member_name}</strong> will keep{' '}
+                <strong>{confirmTarget.conflict.conflicting_slack_name}</strong> ({confirmTarget.conflict.conflicting_slack_email}) linked.{' '}
+                <strong>{confirmTarget.conflict.slack_name}</strong> ({confirmTarget.conflict.slack_email}) will be dismissed as a duplicate.
+              </DialogContentText>
+              <Alert severity='warning' style={{ marginTop: 12 }}>
+                This cannot be undone from this screen. {confirmTarget.conflict.slack_name} will be permanently
+                dismissed and will not be offered or linked again — no action in Slack itself is needed either way.
+              </Alert>
+            </DialogContent>
+          </>
+        ) : null}
         <DialogActions>
           <Button disabled={!!resolving} onClick={() => setConfirmTarget(null)}>Cancel</Button>
           <Button
@@ -143,7 +177,7 @@ const SlackIdentityConflictsPage: React.FC = () => {
             startIcon={resolving ? <CircularProgress size={14} /> : null}
             onClick={confirmResolve}
           >
-            Switch
+            {confirmTarget?.action === 'link' ? 'Switch' : 'Dismiss'}
           </Button>
         </DialogActions>
       </Dialog>

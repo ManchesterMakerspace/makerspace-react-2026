@@ -48,3 +48,12 @@ export const resolveSlackIdentityConflict = ({ slackId, memberId }: { slackId: s
   buildResponse<{ message: string; member_id: string }>(
     api.post('/api/admin/slack_identity_conflicts/reassign', { slack_id: slackId, member_id: memberId })
   );
+
+export const dismissSlackIdentityConflict = ({
+  slackId, memberId, slackEmail, slackName
+}: { slackId: string; memberId: string; slackEmail?: string; slackName?: string }) =>
+  buildResponse<{ message: string; member_id: string }>(
+    api.post('/api/admin/slack_identity_conflicts/dismiss', {
+      slack_id: slackId, member_id: memberId, slack_email: slackEmail, slack_name: slackName
+    })
+  );
