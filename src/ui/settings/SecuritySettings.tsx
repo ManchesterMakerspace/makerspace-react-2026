@@ -15,6 +15,7 @@ import ChangePasswordForm from 'ui/member/ChangePasswordForm';
 import { useAuthState } from 'ui/reducer/hooks';
 import { useDispatch } from 'react-redux';
 import { Action as AuthAction } from 'ui/auth/constants';
+import { contactMailto } from 'ui/common/contact';
 
 type EnrollStep = 'idle' | 'qr' | 'verify' | 'done';
 
@@ -271,6 +272,17 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
           memberCity={currentUser.address?.city}
           memberAddress={currentUser.address?.street}
         />
+      </Grid>
+      <Grid size={{ xs: 12 }}>
+        <Divider />
+      </Grid>
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h5' gutterBottom>Have a security concern?</Typography>
+        <Typography variant='body1'>
+          Having trouble using our software? Please don&apos;t hesitate to{' '}
+          <a href={contactMailto('Digital makerspace help requested')}>contact us.</a>{' '}
+          You can also email <a href='mailto:board@manchestermakerspace.org'>board@</a> to contact the board directly with any private concerns or bug reports.
+        </Typography>
       </Grid>
     </Grid>
   );

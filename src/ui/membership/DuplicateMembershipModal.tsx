@@ -13,6 +13,7 @@ import { useUUID } from "../hooks/useUUID";
 import { Link } from "@mui/material";
 import { Routing } from "app/constants";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
+import { contactMailto } from "ui/common/contact";
 
 const DuplicateMembershipModal: React.FC = () => {
   const uuid = useUUID();
@@ -94,7 +95,7 @@ const DuplicateMembershipModal: React.FC = () => {
           Would you like to view your pending membership dues?
         </Grid>
         <Grid size={{ xs: 12 }}>
-          If you're having trouble with your dues, please don't hesitate to <a href="mailto:contact@manchestermakerspace.org">contact us</a>.
+          If you're having trouble with your dues, please don't hesitate to <a href={contactMailto()}>contact us</a>.
         </Grid>
       </Grid>
     </FormModal>

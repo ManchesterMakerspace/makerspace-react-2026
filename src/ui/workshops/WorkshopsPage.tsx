@@ -20,7 +20,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool
+  adminCreateShop, adminCreateTool, adminUpdateShop
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -112,6 +112,53 @@ const AddShopModal: React.FC<{
       </Grid>
     </FormModal>
   );
+};
+
+const EditShopModal: React.FC<{
+  workshop: Workshop;
+  onClose: () => void;
+  onUpdated: () => void;
+}> = ({ workshop, onClose, onUpdated }) => {
+  const [name, setName] = React.useState(workshop.name);
+  const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrlOverride || "");
+  const [gdriveId, setGdriveId] = React.useState(workshop.gdriveId || "");
+  const [slackChannel, setSlackChannel] = React.useState(workshop.slackChannel || "");
+  const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState("");
+
+  const submit = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    const result = await adminUpdateShop({
+      id: workshop.id,
+      body: {
+        name: name.trim(),
+        wikiUrlOverride: wikiUrl,
+        gdriveId,
+        slackChannel,
+        disabled: workshop.disabled,
+      }
+    });
+    setSaving(false);
+    if (result.error) setError(result.error.message);
+    else onUpdated();
+  };
+
+  return <FormModal id="workshops-edit-shop" isOpen title={`Edit ${workshop.name}`}
+    closeHandler={onClose} onSubmit={submit} submitText="Save"
+    loading={saving} error={error}>
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12 }}><TextField fullWidth required label="Shop Name" value={name}
+        onChange={event => setName(event.target.value)} autoFocus /></Grid>
+      <Grid size={{ xs: 12 }}><TextField fullWidth label="Wiki URL" value={wikiUrl}
+        onChange={event => setWikiUrl(event.target.value)}
+        helperText="Leave blank to use the generated workshop URL." /></Grid>
+      <Grid size={{ xs: 12 }}><TextField fullWidth label="GDrive ID" value={gdriveId}
+        onChange={event => setGdriveId(event.target.value)} /></Grid>
+      <Grid size={{ xs: 12 }}><TextField fullWidth label="Slack Channel" value={slackChannel}
+        onChange={event => setSlackChannel(normalizeChannel(event.target.value))} /></Grid>
+    </Grid>
+  </FormModal>;
 };
 
 const AddToolModal: React.FC<{
@@ -518,6 +565,7 @@ const WorkshopsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [addOpen, setAddOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -599,7 +647,13 @@ const WorkshopsPage: React.FC = () => {
           </Tabs>
 
           <div style={{ marginTop: 18 }}>
-            {tab === "details" && <WorkshopDetails workshop={workshop} />}
+            {tab === "details" && <>
+              {data.canAddShop && <Button startIcon={<EditIcon />} variant="outlined"
+                onClick={() => setEditOpen(true)} style={{ marginBottom: 14 }}>
+                Edit
+              </Button>}
+              <WorkshopDetails workshop={workshop} />
+            </>}
             {tab === "tools" &&
               <WorkshopTools workshop={workshop} onRefresh={load} />}
             {tab === "reservations" &&
@@ -620,6 +674,9 @@ const WorkshopsPage: React.FC = () => {
         onClose={() => setAddOpen(false)}
         onCreated={() => { setAddOpen(false); load(); }}
       />}
+      {editOpen && workshop && <EditShopModal workshop={workshop}
+        onClose={() => setEditOpen(false)}
+        onUpdated={() => { setEditOpen(false); load(); }} />}
     </Grid>
   );
 };

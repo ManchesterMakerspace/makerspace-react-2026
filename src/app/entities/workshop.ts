@@ -71,6 +71,7 @@ export interface Workshop {
   id: string;
   name: string;
   wikiUrl: string;
+  wikiUrlOverride?: string;
   gdriveId?: string;
   slackChannel?: string;
   slackChannelDetails?: SlackChannelDetails;

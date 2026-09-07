@@ -4,6 +4,7 @@ import { connect } from "react-redux";
 import { ScopedThunkDispatch } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
 import { getClientConfig } from "api/clientConfig";
+import { contactMailto } from "ui/common/contact";
 
 interface DispatchProps {
   logout: () => Promise<void>;
@@ -33,7 +34,7 @@ const linkStyle: React.CSSProperties = {
   justifyContent: "center",
 };
 
-const mailtoHref = `mailto:${"contact@manchestermakerspace.org"}?subject=${encodeURIComponent("Member Portal assistance request")}`;
+const mailtoHref = contactMailto("Member Portal assistance request");
 
 const FooterBase: React.FC<Props> = ({ logout }) => {
   const [wikiUrl, setWikiUrl] = React.useState("");
