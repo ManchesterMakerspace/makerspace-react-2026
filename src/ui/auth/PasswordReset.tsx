@@ -1,8 +1,8 @@
 // @ts-nocheck
 import * as React from "react";
-import { useNavigate } from 'react-router-dom';
 import { connect } from "react-redux";
 import { RouteComponentProps } from "react-router-dom";
+import { withRouter } from "ui/utils/withRouter";
 
 import TextField from "@mui/material/TextField";
 import Grid from "@mui/material/Grid";
@@ -164,12 +164,13 @@ class PasswordReset extends React.Component<Props, State> {
 }
 
 const mapDispatchToProps = (
-  dispatch: ScopedThunkDispatch
+  dispatch: ScopedThunkDispatch,
+  ownProps: OwnProps
 ): DispatchProps => {
   return {
     attemptLogin: async () => dispatch(await loginUserAction()),
-    goToRoot: () => navigate(Routing.Root)
+    goToRoot: () => ownProps.history.push(Routing.Root)
   };
 }
 
-export default connect(null, mapDispatchToProps)(PasswordReset);
+export default withRouter(connect(null, mapDispatchToProps)(PasswordReset));
