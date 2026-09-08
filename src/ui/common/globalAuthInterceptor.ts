@@ -15,7 +15,15 @@ let fetchInterceptorRegistered = false;
 let globalDispatch: Function | null = null;
 
 const FIREBASE_CALLBACK_PATH = '/auth/callback';
-const publicPaths = [Routing.Login, Routing.SignUp, Routing.PasswordReset, FIREBASE_CALLBACK_PATH];
+// Static prefix of Routing.RentalSpotDeepLink (`${Rentals}/spots/${PathPlaceholder.SpotId}`)
+// -- a visitor with no session must be able to view this public deep-link
+// page without the routine "am I logged in?" 401 bouncing them to /login
+// before React Router ever renders it.
+const RENTAL_SPOT_DEEP_LINK_PREFIX = `${Routing.Rentals}/spots/`;
+const publicPaths = [
+  Routing.Login, Routing.SignUp, Routing.PasswordReset, FIREBASE_CALLBACK_PATH,
+  RENTAL_SPOT_DEEP_LINK_PREFIX,
+];
 
 // A 401 is an expected, locally handled result while establishing a session.
 // Treating it as an expired session interrupts OAuth callbacks (App's session
