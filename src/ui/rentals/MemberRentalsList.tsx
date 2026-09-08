@@ -58,19 +58,20 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   const { params, changePage } = useQueryContext();
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageRentals } = useCapabilities();
-  const asAdmin = canManageRentals && currentUserId !== member.id;
+  const memberLoaded = !!member.id;
+  const asAdmin = memberLoaded && canManageRentals && currentUserId !== member.id;
   const memberName = [member.firstname, member.lastname].filter(Boolean).join(" ") || "this member";
 
   const adminRentalsResponse = useReadTransaction(
     adminListRentals,
     { ...params, memberId: member.id },
-    !asAdmin,
+    !asAdmin || !memberLoaded,
     "member-rentals-list-admin",
   );
   const memberRentalsResponse = useReadTransaction(
     listRentals,
     { ...params },
-    asAdmin,
+    asAdmin || !memberLoaded,
     "member-rentals-list",
   );
   const { isRequesting, data: rentals = [], response, refresh, error } = asAdmin
