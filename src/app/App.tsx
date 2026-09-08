@@ -36,6 +36,17 @@ const App: React.FC = () => {
   const { current: initialSearch } = React.useRef(search);
   const { current: initialHash } = React.useRef(hash);
 
+  // Persist ?redirect= across LoginForm's own post-login navigate to
+  // Routing.Members, which fires (and clears the query string) before this
+  // effect below runs.
+  const redirectParamRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const redirect = new URLSearchParams(search).get('redirect');
+    if (redirect) {
+      redirectParamRef.current = redirect;
+    }
+  }, [search]);
+
   // Attempt login on mount except when going to password reset
   React.useEffect(() => {
     if (initialPath !== Routing.PasswordReset) {
@@ -59,7 +70,16 @@ const App: React.FC = () => {
     if (!error && !isRequesting && !authSettled) {
       loginAttempted && setAttemptingLogin(false);
       if (currentUserId) {
-        if (
+        // Explicit redirect target (e.g. /login?redirect=/rentals/spots/abc123)
+        // takes priority — captured via redirectParamRef while /login was
+        // still active, since LoginForm's own pushLocation(Routing.Members)
+        // clears the query string before this effect runs.
+        const redirectParam = redirectParamRef.current;
+
+        if (redirectParam) {
+          redirectParamRef.current = null;
+          navigate(decodeURIComponent(redirectParam));
+        } else if (
             initialPath &&
             initialPath !== Routing.Root && // Don't nav to initial if initial is root
             !publicPaths.some(path => initialPath.startsWith(path)) // or initial is a public path

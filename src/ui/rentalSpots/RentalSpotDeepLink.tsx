@@ -19,6 +19,7 @@ import useRentalEligibility from "ui/rentals/useRentalEligibility";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { getRentalSpot, createRental } from "api/rentals";
 import { useAuthState } from "ui/reducer/hooks";
+import { buildProfileRouting } from "ui/member/utils";
 
 const infoBoxStyle: React.CSSProperties = {
   padding: "10px 14px", backgroundColor: "#e3f2fd",
@@ -133,7 +134,13 @@ const RentalSpotDeepLink: React.FC = () => {
           <Typography variant="body2" style={warningBoxStyle}>
             This spot is currently unavailable — it may already be rented.
           </Typography>
-          <Link component={RouterLink} to={Routing.Rentals}>Browse available rentals</Link>
+          <Button
+            id="rental-deep-link-pick-available"
+            variant="contained" color="primary"
+            onClick={() => navigate(`${buildProfileRouting(currentUser.id)}/rentals`)}
+          >
+            Click here to pick an available rental
+          </Button>
         </Grid>
       )}
 

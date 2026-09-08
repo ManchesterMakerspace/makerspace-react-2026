@@ -36,6 +36,13 @@ const RentalSpotPublicInfo: React.FC = () => {
     getRentalSpotPublic, { id: spotId }, !spotId, `rental-spot-public-${spotId}`
   );
 
+  // After login, return here so RentalSpotDeepLink (authenticated) renders —
+  // it has the correct rent/pick-an-available-rental actions for this spot.
+  const goToLogin = React.useCallback(() => {
+    const deepLinkPath = Routing.RentalSpotDeepLink.replace(Routing.PathPlaceholder.SpotId, spotId);
+    navigate(`${Routing.Login}?redirect=${encodeURIComponent(deepLinkPath)}`);
+  }, [navigate, spotId]);
+
   if (loading) {
     return (
       <Grid container spacing={2} style={{ padding: 24 }}>
@@ -107,11 +114,11 @@ const RentalSpotPublicInfo: React.FC = () => {
         <Button
           id="rental-public-signin"
           variant="contained" color="primary"
-          onClick={() => navigate(Routing.Login)}
+          onClick={goToLogin}
         >
           {spot.available
-            ? "Sign in to rent this spot"
-            : "Sign in to see available rentals"}
+            ? `Click here to rent this ${spot.number}`
+            : "Click here to pick an available rental"}
         </Button>
       </Grid>
 
