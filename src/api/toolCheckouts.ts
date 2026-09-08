@@ -137,6 +137,11 @@ export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> 
 export const adminDeleteTool = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/tools/${id}`));
 
+// Separate from adminUpdateTool: any checkout approver for this tool may set
+// notes, not just shop managers/admins -- see #189.
+export const adminUpdateToolNotes = ({ id, notes }: { id: string; notes: string }) =>
+  buildResponse<Tool>(api.patch(`/api/admin/tools/${id}/notes`, { notes }));
+
 const tableParams = (params?: any) => ({
   ...(params?.orderBy && { order_by: params.orderBy }),
   ...(params?.order && { order: params.order }),

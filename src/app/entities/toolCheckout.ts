@@ -33,6 +33,10 @@ export interface Tool {
   wikiUrlOverride?: string;
   gdriveId?: string;
   description?: string;
+  // Sensitive (e.g. lock combo) -- only present when the API includes it for
+  // this viewer (privileged, a checkout approver for the tool, or a member
+  // with an active checkout on it).
+  notes?: string;
   disabled?: boolean;
   announce?: boolean;
   announceChannel?: string;
@@ -74,6 +78,8 @@ export interface ToolCheckout {
   approvedById?: string;
   approvedByName?: string;
   active: boolean;
+  // Only present while the checkout is active and approved -- see Tool.notes.
+  toolNotes?: string;
 }
 
 export interface CheckoutApprover {

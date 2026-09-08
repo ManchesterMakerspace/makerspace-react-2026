@@ -7,8 +7,10 @@ import Select from "@mui/material/Select";
 import FormLabel from "@mui/material/FormLabel";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
+import Tooltip from "@mui/material/Tooltip";
 import BlockIcon from "@mui/icons-material/Block";
 import AddIcon from "@mui/icons-material/Add";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -257,7 +259,14 @@ const CheckoutRoster: React.FC<Props> = ({
       defaultSortDirection: SortDirection.Asc,
       cell: (row: ToolCheckout) => (
         <div>
-          <Typography variant="body2">{row.toolName}</Typography>
+          <Typography variant="body2" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            {row.toolName}
+            {row.toolNotes && (
+              <Tooltip title={row.toolNotes}>
+                <InfoOutlinedIcon fontSize="small" color="action" style={{ verticalAlign: "middle" }} />
+              </Tooltip>
+            )}
+          </Typography>
           <Typography variant="caption" color="textSecondary">
             {row.shopWikiUrl
               ? <a href={row.shopWikiUrl} target="_blank" rel="noopener noreferrer">{row.shopName}</a>
