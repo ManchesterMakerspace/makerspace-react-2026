@@ -159,13 +159,13 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
       <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="flex-end" alignItems="center" style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
-            {selectedRental && isCancellable && (
+            {!asAdmin && selectedRental && isCancellable && (
               <Button variant="outlined" color="secondary"
                 onClick={() => openCancel(selectedRental)}>
                 Cancel Rental
               </Button>
             )}
-            {selectedRental && isVacating && (
+            {!asAdmin && selectedRental && isVacating && (
               <Button variant="outlined" color="secondary"
                 onClick={() => openMarkVacated(selectedRental)}>
                 Mark Vacated
