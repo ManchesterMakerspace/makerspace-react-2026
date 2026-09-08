@@ -120,7 +120,18 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
-  const [reservation, setReservation] = React.useState<ReservationSettingsValue>(shop);
+  // Only the reservation-specific fields -- seeding this from the full shop
+  // object let its name/wikiUrlOverride/gdriveId/slackChannel/colorId leak
+  // in, which then silently overwrote whatever the user just edited via the
+  // trailing `...reservation` spread in submit() below.
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
+    reservable: shop.reservable,
+    maxConcurrentReservations: shop.maxConcurrentReservations,
+    reservationHorizonDays: shop.reservationHorizonDays,
+    maxReservationDurationHours: shop.maxReservationDurationHours,
+    reservationRequiresApproval: shop.reservationRequiresApproval,
+    reservationPrerequisiteToolIds: shop.reservationPrerequisiteToolIds,
+  });
 
   const submit = () => {
     const trimmedName = name.trim();

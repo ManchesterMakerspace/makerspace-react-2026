@@ -212,7 +212,18 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
   const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
   const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
   const [localError, setLocalError] = React.useState("");
-  const [reservation, setReservation] = React.useState<ReservationSettingsValue>(tool);
+  // Only the reservation-specific fields -- seeding this from the full tool
+  // object let its name/description/gdriveId/announce*/etc. leak in, which
+  // then silently overwrote whatever the user just edited via the trailing
+  // `...reservation` spread in submit() below.
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
+    reservable: tool.reservable,
+    maxConcurrentReservations: tool.maxConcurrentReservations,
+    reservationHorizonDays: tool.reservationHorizonDays,
+    maxReservationDurationHours: tool.maxReservationDurationHours,
+    reservationRequiresApproval: tool.reservationRequiresApproval,
+    reservationPrerequisiteToolIds: tool.reservationPrerequisiteToolIds,
+  });
 
   const availablePrereqs = tools.filter(t => t.shopId === tool.shopId && t.id !== tool.id);
   const togglePrereq = (id: string) => {
