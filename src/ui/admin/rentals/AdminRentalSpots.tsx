@@ -11,8 +11,10 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import QrCodeIcon from "@mui/icons-material/QrCode";
 
 import { Routing } from "app/constants";
+import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -52,6 +54,7 @@ const AdminRentalSpots: React.FC = () => {
   const [isEditing,    setIsEditing]    = React.useState(false);
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
   const [linkCopied,   setLinkCopied]   = React.useState(false);
+  const [qrSpotNumber, setQrSpotNumber] = React.useState<string | null>(null);
   const { params, changePage } = useQueryContext();
 
   const copyDeepLink = React.useCallback((spotNumber: string) => {
@@ -151,6 +154,10 @@ const AdminRentalSpots: React.FC = () => {
                 <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
                   onClick={() => copyDeepLink(selectedSpot.number)}>
                   {linkCopied ? "Copied!" : "Copy Link"}
+                </Button>
+                <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
+                  onClick={() => setQrSpotNumber(selectedSpot.number)}>
+                  QR Code
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => openEdit(selectedSpot)}>
@@ -270,6 +277,8 @@ const AdminRentalSpots: React.FC = () => {
           </>
         )}
       </FormModal>
+
+      <RentalSpotQrCodeModal spotNumber={qrSpotNumber} onClose={() => setQrSpotNumber(null)} />
     </Grid>
   );
 };
