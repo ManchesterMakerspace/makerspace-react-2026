@@ -112,4 +112,7 @@ const ReportsTable: React.FC<{ earnedMembershipId: string }> = ({ earnedMembersh
   )
 }
 
-export default withQueryContext(ReportsTable);
+export default withQueryContext(ReportsTable, {
+  orderBy: "date",
+  order: SortDirection.Desc,
+});

@@ -8,7 +8,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Tooltip from "@mui/material/Tooltip";
-import { Rental, listRentals, Member } from "makerspace-ts-api-client";
+import { Rental, listRentals, adminListRentals, Member } from "makerspace-ts-api-client";
 
 import StatefulTable from "ui/common/table/StatefulTable";
 import { SortDirection } from "ui/common/table/constants";
@@ -23,6 +23,8 @@ import { cancelRental, markRentalVacated } from "api/rentals";
 import { RentalStatus, RentalStatusDisplay } from "app/entities/rentalSpot";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
+import { useAuthState } from "ui/reducer/hooks";
+import { useCapabilities } from "app/permissions";
 
 const rowId = (rental: Rental) => rental.id;
 
@@ -54,10 +56,25 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   const [modalMode,    setModalMode]    = React.useState<ModalMode>("cancel");
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
   const { params, changePage } = useQueryContext();
+  const { currentUser: { id: currentUserId } } = useAuthState();
+  const { canManageRentals } = useCapabilities();
+  const asAdmin = canManageRentals && currentUserId !== member.id;
 
-  const { isRequesting, data: rentals = [], response, refresh, error } = useReadTransaction(
-    listRentals, { ...params }, undefined, "member-rentals-list"
+  const adminRentalsResponse = useReadTransaction(
+    adminListRentals,
+    { ...params, memberId: member.id },
+    !asAdmin,
+    "member-rentals-list-admin",
   );
+  const memberRentalsResponse = useReadTransaction(
+    listRentals,
+    { ...params },
+    asAdmin,
+    "member-rentals-list",
+  );
+  const { isRequesting, data: rentals = [], response, refresh, error } = asAdmin
+    ? adminRentalsResponse
+    : memberRentalsResponse;
 
   const selectedRental = (rentals as Rental[]).find(r => r.id === selectedId);
   const selectedStatus = selectedRental ? (selectedRental as any).status as RentalStatus : null;
