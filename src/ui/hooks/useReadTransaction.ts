@@ -18,10 +18,22 @@ const useReadTransaction = <Args, Resp>(
   delay?: boolean,
   key?: string, // Can pass optional key to make transaction distinct in store
   refreshOnMount?: boolean,
+  refetchOnFocus?: boolean, // Re-fetch when the tab/window regains focus, to catch changes made elsewhere (another tab, a server-side side effect) while this view sat open
 ): ReadTransaction<Args, Resp> => {
   const [state, dispatch] = useApiState<Resp>(buildQueryString(transaction, args, key as any));
   const [force, setForce] = React.useState(false);
   const refresh = React.useCallback(() => setForce(prevState => !prevState), []);
+
+  React.useEffect(() => {
+    if (!refetchOnFocus) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        refresh();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [refetchOnFocus, refresh]);
 
   const getCurrentState = React.useCallback(() => {
     const apiKey = buildQueryString(transaction, args, key as any);

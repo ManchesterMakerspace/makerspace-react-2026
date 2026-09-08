@@ -56,12 +56,12 @@ const SubscriptionDetails: React.FC<Props> = ({ subscriptionId, onLoad }) => {
   React.useEffect(() => setIsMounted(true), []);
   const [wasCancelled, setWasCancelled] = React.useState(false);
 
-  const { 
-    isRequesting: subscriptionLoading, 
-    data: subscription = {} as Subscription, 
-    error: subError, 
-    refresh: reloadSubscription 
-  } = useReadTransaction(getSubscription, { id: subscriptionId }, !subscriptionId);
+  const {
+    isRequesting: subscriptionLoading,
+    data: subscription = {} as Subscription,
+    error: subError,
+    refresh: reloadSubscription
+  } = useReadTransaction(getSubscription, { id: subscriptionId }, !subscriptionId, undefined, undefined, true);
   const dispatch = useDispatch();
 
   React.useEffect(() => {
