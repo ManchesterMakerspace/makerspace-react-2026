@@ -30,7 +30,7 @@ import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
   listManagedShops, listTools,
-  adminCreateTool, adminUpdateTool, adminDeleteTool,
+  adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 
@@ -303,6 +303,60 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
   );
 };
 
+// ── NotesCell ─────────────────────────────────────────────────────────────────
+// Separate from EditToolRow/adminUpdateTool: a checkout approver for this
+// tool may set notes (e.g. lock combo) even if they can't edit anything
+// else about the tool -- see #189. `tool.notes` is only present at all when
+// the backend has decided this viewer may see it.
+
+interface NotesCellProps {
+  tool: Tool;
+  onSaved: () => void;
+}
+
+const NotesCell: React.FC<NotesCellProps> = ({ tool, onSaved }) => {
+  const [editing, setEditing] = React.useState(false);
+  const [value, setValue] = React.useState(tool.notes || "");
+  const { call: saveNotes, isRequesting, error } = useWriteTransaction(adminUpdateToolNotes, () => {
+    setEditing(false);
+    onSaved();
+  });
+
+  if (tool.notes === undefined && !editing) {
+    return <Typography variant="caption" color="textSecondary">—</Typography>;
+  }
+
+  if (!editing) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <Typography variant="body2" style={{ whiteSpace: "pre-wrap" }}>{tool.notes || "None"}</Typography>
+        <Tooltip title="Edit notes">
+          <IconButton size="small" onClick={() => { setValue(tool.notes || ""); setEditing(true); }}>
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 4 }}>
+      <TextField size="small" multiline value={value} autoFocus
+        placeholder="e.g. lock combo" onChange={e => setValue(e.target.value)} />
+      <Tooltip title="Save"><span>
+        <IconButton size="small" color="primary" disabled={isRequesting}
+          onClick={() => saveNotes({ id: tool.id, notes: value })}>
+          <SaveIcon fontSize="small" />
+        </IconButton>
+      </span></Tooltip>
+      <Tooltip title="Cancel">
+        <IconButton size="small" onClick={() => setEditing(false)}><CancelIcon fontSize="small" /></IconButton>
+      </Tooltip>
+      {error && <ErrorMessage error={error} />}
+    </div>
+  );
+};
+
 // ── DeleteToolModal ───────────────────────────────────────────────────────────
 
 interface DeleteToolModalProps {
@@ -339,9 +393,12 @@ const ToolManager: React.FC = () => {
     useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
   const { data: allTools = [], refresh: refreshAllTools } =
     useReadTransaction(listTools, {}, undefined, "tools-all-validation");
-  const manageableShopIds = new Set((shops as Shop[]).map(shop => shop.id));
-  const manageableTools = (tools as Tool[]).filter(tool => manageableShopIds.has(tool.shopId));
-  const allManageableTools = (allTools as Tool[]).filter(tool => manageableShopIds.has(tool.shopId));
+  // GET /api/admin/tools is already correctly scoped server-side (shop
+  // manager, or a checkout approver's specific tool_ids) -- do not re-filter
+  // against listManagedShops here, which only covers actual shop managers
+  // and would otherwise hide tools for a tool-only (non-shop) approver (#189).
+  const manageableTools = tools as Tool[];
+  const allManageableTools = allTools as Tool[];
 
   const refreshRef = React.useRef(refresh);
   const refreshAllToolsRef = React.useRef(refreshAllTools);
@@ -349,6 +406,11 @@ const ToolManager: React.FC = () => {
   React.useEffect(() => { refreshAllToolsRef.current = refreshAllTools; }, [refreshAllTools]);
 
   const selectedTool = manageableTools.find(t => t.id === selectedId);
+  // Full edit/delete stays restricted to actual shop managers -- a tool-only
+  // checkout approver can only reach the Notes field (see NotesCell), since
+  // the backend rejects any other field change from them (#189).
+  const managedShopIds = new Set((shops as Shop[]).map(s => s.id));
+  const canFullyManageSelected = !!selectedTool && managedShopIds.has(selectedTool.shopId);
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
@@ -410,6 +472,12 @@ const ToolManager: React.FC = () => {
         </span>
       ),
     },
+    {
+      id: "notes", label: "Notes",
+      cell: (row: Tool) => editingId === row.id ? null : (
+        <NotesCell tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />
+      ),
+    },
   ];
 
   return (
@@ -423,7 +491,7 @@ const ToolManager: React.FC = () => {
             </Typography>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            {selectedTool && !editingId && (
+            {selectedTool && !editingId && canFullyManageSelected && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => setEditingId(selectedTool.id)}>
