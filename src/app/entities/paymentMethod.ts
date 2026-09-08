@@ -13,6 +13,11 @@ export interface VenmoAccount extends PaymentMethod {
   venmoUserId?: string;
 }
 
+export interface PaymentMethodCancellationImpact {
+  membership: boolean;
+  rentalCount: number;
+}
+
 export const isCreditCard = (paymentMethod: any): paymentMethod is CreditCard => {
   return paymentMethod.paymentType === PaymentMethodType.CreditCard;
 };
