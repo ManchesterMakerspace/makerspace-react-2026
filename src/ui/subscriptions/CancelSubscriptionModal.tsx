@@ -35,10 +35,16 @@ const CancelSubscriptionModal: React.FC<Props> = ({ subscription, onSuccess }) =
     onSuccess();
   });
 
+  // Blocks submission only while the impact check is genuinely still in
+  // flight -- not when it's resolved with an error. `impact` alone can't
+  // tell those two apart (both leave it null), which meant a subscription
+  // whose impact check errored (e.g. a resource lookup mismatch) could
+  // never be cancelled at all: Submit would silently no-op forever with no
+  // feedback, even though the error is already shown to the user above.
   const onSubmit = React.useCallback(() => {
-    if (!isRental && !impact) return;
+    if (!isRental && impactLoading) return;
     call({ id: subscription.id });
-  }, [call, subscription.id, isRental, impact]);
+  }, [call, subscription.id, isRental, impactLoading]);
 
   React.useEffect(() => {
     if (!isOpen || isRental) {
