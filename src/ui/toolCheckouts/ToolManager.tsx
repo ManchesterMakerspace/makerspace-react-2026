@@ -196,7 +196,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
 interface EditToolRowProps {
   tool: Tool;
   tools: Tool[];
-  onSave: (id: string, body: Partial<Tool>) => void;
+  onSave: (id: string, body: Partial<Tool>, notes?: string) => void;
   onCancel: () => void;
   saving: boolean;
 }
@@ -211,6 +211,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
   const [announce, setAnnounce] = React.useState(!!tool.announce);
   const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
   const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
+  const [notes, setNotes] = React.useState(tool.notes || "");
   const [localError, setLocalError] = React.useState("");
   // Only the reservation-specific fields -- seeding this from the full tool
   // object let its name/description/gdriveId/announce*/etc. leak in, which
@@ -255,7 +256,11 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     }
 
     setLocalError("");
-    onSave(tool.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation });
+    onSave(
+      tool.id,
+      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
+      notes !== (tool.notes || "") ? notes : undefined
+    );
   };
 
   return (
@@ -268,6 +273,11 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
         placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
       <TextField size="small" value={gdriveId} onChange={e => setGdriveId(e.target.value)}
         placeholder="GDrive ID" style={{ gridColumn: "1 / -1" }} />
+      {tool.notes !== undefined && (
+        <TextField size="small" multiline value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Notes (e.g. lock combo) -- only shown to approvers and active checkouts"
+          style={{ gridColumn: "1 / -1" }} />
+      )}
       <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))}
         placeholder="Announce channel" />
       <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))}
@@ -433,10 +443,16 @@ const ToolManager: React.FC = () => {
   const { call: createTool, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateTool, onSuccess);
   const { call: updateTool, isRequesting: updating, error: updateError } = useWriteTransaction(adminUpdateTool, onSuccess);
   const { call: deleteTool, isRequesting: deleting, error: deleteError } = useWriteTransaction(adminDeleteTool, onSuccess);
+  // Notes go through their own endpoint even from the full edit form, since
+  // the backend permits a tool-only checkout approver to set them without
+  // shop-manage rights over anything else (#189) -- there's no reason to
+  // fire this second call unless the notes field actually changed.
+  const { call: saveToolNotes, error: notesError } = useWriteTransaction(adminUpdateToolNotes, onSuccess);
 
-  const handleSave = React.useCallback((id: string, body: Partial<Tool>) => {
+  const handleSave = React.useCallback((id: string, body: Partial<Tool>, notes?: string) => {
     updateTool({ id, body });
-  }, [updateTool]);
+    if (notes !== undefined) saveToolNotes({ id, notes });
+  }, [updateTool, saveToolNotes]);
 
   const handleCancel = React.useCallback(() => {
     setEditingId(null);
@@ -531,7 +547,7 @@ const ToolManager: React.FC = () => {
         </Select>
       </Grid>
 
-      {(loadError || updateError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError} /></Grid>}
+      {(loadError || updateError || notesError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError || notesError} /></Grid>}
 
       <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable

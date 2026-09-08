@@ -39,7 +39,7 @@ const ToolCheckoutsPage: React.FC = () => {
   }, [defaultTab, userSelectedTab]);
 
   const tabs: { key: TabKey; label: string; adminOnly?: boolean }[] = [
-    { key: "active", label: "Active" },
+    { key: "active", label: "My Checkouts" },
     { key: "requests", label: "Requests" },
     { key: "roster", label: "Checkout Roster", adminOnly: true },
     { key: "shops", label: "Shops", adminOnly: true },
