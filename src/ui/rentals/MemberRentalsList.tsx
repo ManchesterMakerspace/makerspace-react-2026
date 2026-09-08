@@ -59,6 +59,7 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   const { currentUser: { id: currentUserId } } = useAuthState();
   const { canManageRentals } = useCapabilities();
   const asAdmin = canManageRentals && currentUserId !== member.id;
+  const memberName = [member.firstname, member.lastname].filter(Boolean).join(" ") || "this member";
 
   const adminRentalsResponse = useReadTransaction(
     adminListRentals,
@@ -152,30 +153,30 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
 
   const expiryDisplay = cancelTarget?.expiration
     ? timeToDate(cancelTarget.expiration)
-    : "the end of your current rental period";
+    : asAdmin ? "the end of the current rental period" : "the end of your current rental period";
 
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="flex-end" alignItems="center" style={{ marginBottom: 8 }}>
           <div style={{ display: "flex", gap: 8 }}>
-            {!asAdmin && selectedRental && isCancellable && (
+            {selectedRental && isCancellable && (
               <Button variant="outlined" color="secondary"
                 onClick={() => openCancel(selectedRental)}>
-                Cancel Rental
+                {asAdmin ? `Cancel Rental for ${memberName}` : "Cancel Rental"}
               </Button>
             )}
-            {!asAdmin && selectedRental && isVacating && (
+            {selectedRental && isVacating && (
               <Button variant="outlined" color="secondary"
                 onClick={() => openMarkVacated(selectedRental)}>
-                Mark Vacated
+                {asAdmin ? `Mark Vacated for ${memberName}` : "Mark Vacated"}
               </Button>
             )}
           </div>
         </Grid>
 
         <StatefulTable
-          id="member-rentals-table" title="My Rentals"
+          id="member-rentals-table" title={asAdmin ? `Rentals for ${memberName}` : "My Rentals"}
           loading={isRequesting} data={Object.values(rentals)} error={error}
           totalItems={extractTotalItems(response)}
           selectedIds={selectedId} setSelectedIds={setSelectedId}
@@ -185,13 +186,19 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
 
       {/* Cancel — Step 1 */}
       <Dialog open={!!cancelTarget && modalMode === "cancel" && cancelStep === "confirm"} onClose={closeModal}>
-        <DialogTitle>Cancel Rental</DialogTitle>
+        <DialogTitle>{asAdmin ? `Cancel Rental for ${memberName}` : "Cancel Rental"}</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            Are you sure you want to cancel your rental of <strong>{cancelTarget?.number}</strong>?
+            {asAdmin ? (
+              <>Are you sure you want to cancel rental <strong>{cancelTarget?.number}</strong> for <strong>{memberName}</strong>?</>
+            ) : (
+              <>Are you sure you want to cancel your rental of <strong>{cancelTarget?.number}</strong>?</>
+            )}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            No further charges will be made after your current rental period ends.
+            {asAdmin
+              ? `No further charges will be made to ${memberName} after the current rental period ends.`
+              : "No further charges will be made after your current rental period ends."}
           </Typography>
           <ErrorMessage error={activeError} />
         </DialogContent>
@@ -205,16 +212,20 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
 
       {/* Cancel — Step 2 */}
       <Dialog open={!!cancelTarget && modalMode === "cancel" && cancelStep === "vacated"} onClose={closeModal}>
-        <DialogTitle>Have You Vacated Your Rental?</DialogTitle>
+        <DialogTitle>{asAdmin ? `Has ${memberName} Vacated This Rental?` : "Have You Vacated Your Rental?"}</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            Have you already removed your belongings from rental <strong>{cancelTarget?.number}</strong>?
+            {asAdmin ? (
+              <>Has <strong>{memberName}</strong> already removed their belongings from rental <strong>{cancelTarget?.number}</strong>?</>
+            ) : (
+              <>Have you already removed your belongings from rental <strong>{cancelTarget?.number}</strong>?</>
+            )}
           </Typography>
           <Typography variant="body2" style={{ marginTop: "8px", padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
-            <strong>Yes</strong> — Your rental will end immediately and the space will be available for other members.
+            <strong>Yes</strong> — {asAdmin ? "The rental" : "Your rental"} will end immediately and the space will be available for other members.
           </Typography>
           <Typography variant="body2" style={{ marginTop: "8px", padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
-            <strong>No</strong> — Your rental will remain active until <strong>{expiryDisplay}</strong>. Please ensure you have vacated by then.
+            <strong>No</strong> — {asAdmin ? "The rental" : "Your rental"} will remain active until <strong>{expiryDisplay}</strong>. Please ensure {asAdmin ? `${memberName} has` : "you have"} vacated by then.
           </Typography>
           <ErrorMessage error={activeError} />
         </DialogContent>
@@ -226,20 +237,24 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
           </Button>
           <Button variant="contained" color="secondary" disabled={isRequesting2}
             onClick={() => handleVacated(true)}>
-            {isRequesting2 ? "Processing..." : "Yes, I Have Vacated"}
+            {isRequesting2 ? "Processing..." : asAdmin ? "Yes, They Have Vacated" : "Yes, I Have Vacated"}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Mark Vacated */}
       <Dialog open={!!cancelTarget && modalMode === "mark_vacated"} onClose={closeModal}>
-        <DialogTitle>Mark Rental as Vacated</DialogTitle>
+        <DialogTitle>{asAdmin ? `Mark Rental as Vacated for ${memberName}` : "Mark Rental as Vacated"}</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
-            Have you removed all your belongings from rental <strong>{cancelTarget?.number}</strong>?
+            {asAdmin ? (
+              <>Are you sure <strong>{memberName}</strong> has removed all belongings from rental <strong>{cancelTarget?.number}</strong>?</>
+            ) : (
+              <>Have you removed all your belongings from rental <strong>{cancelTarget?.number}</strong>?</>
+            )}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            Confirming will immediately end your rental and return the space to the available pool.
+            Confirming will immediately end {asAdmin ? `${memberName}'s rental` : "your rental"} and return the space to the available pool.
           </Typography>
           <ErrorMessage error={activeError} />
         </DialogContent>
@@ -247,7 +262,7 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
           <Button onClick={closeModal} disabled={isRequesting2}>Cancel</Button>
           <Button variant="contained" color="secondary" disabled={isRequesting2}
             onClick={handleMarkVacated}>
-            {isRequesting2 ? "Processing..." : "Yes, I Have Vacated"}
+            {isRequesting2 ? "Processing..." : asAdmin ? "Confirm Member Has Vacated" : "Yes, I Have Vacated"}
           </Button>
         </DialogActions>
       </Dialog>
