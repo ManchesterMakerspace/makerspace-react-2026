@@ -12,9 +12,10 @@ import { AnyPaymentMethod } from "app/entities/paymentMethod";
 interface Props {
   subscription: Subscription;
   onSuccess?(): void;
+  label?: string;
 }
 
-const ChangePaymentMethodModal: React.FC<Props> = ({ subscription: { id: subscriptionId, paymentMethodToken } = {} }) => {
+const ChangePaymentMethodModal: React.FC<Props> = ({ subscription: { id: subscriptionId, paymentMethodToken } = {}, onSuccess, label }) => {
   const { isOpen, openModal, closeModal } = useModal();
   const [paymentMethodId, setPaymentMethodId] = React.useState<string>(paymentMethodToken);
 
@@ -24,6 +25,7 @@ const ChangePaymentMethodModal: React.FC<Props> = ({ subscription: { id: subscri
 
   const { isRequesting, error, call } = useWriteTransaction(updateSubscription, () => {
     closeModal();
+    onSuccess && onSuccess();
   });
 
   const onSubmit = React.useCallback(async () => {
@@ -45,7 +47,7 @@ const ChangePaymentMethodModal: React.FC<Props> = ({ subscription: { id: subscri
         color="primary"
         variant="contained"
         disabled={isRequesting || !!error}
-        label="Change Payment Method"
+        label={label || "Change Payment Method"}
         onClick={openModal}
       />
       {isOpen && (
