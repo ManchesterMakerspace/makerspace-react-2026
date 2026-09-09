@@ -37,6 +37,7 @@ import MemberCheckInActivity from "ui/member/MemberCheckInActivity";
 import MemberEmailLogTab from "ui/member/MemberEmailLogTab";
 import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
 import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
+import GoogleDriveProvisioningBlockToggle from 'ui/member/GoogleDriveProvisioningBlockToggle';
 import SlackInviteButton from 'ui/member/SlackInviteButton';
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 import {
@@ -276,6 +277,7 @@ const MemberProfile: React.FC = () => {
             <AdminChangePasswordModal member={member} key="change-password"/>,
             <HouseholdModal member={member} key="household" onUpdate={refreshMember}/>,
             <GoogleDriveInviteButton member={member} key='google-drive-invite' onProvisioned={refreshMember} />,
+            <GoogleDriveProvisioningBlockToggle member={member} key='google-drive-block-toggle' onUpdated={refreshMember} />,
             <SlackInviteButton member={member} key='slack-invite' onProvisioned={refreshMember} />,
             ...((member as any).totpEnabled ? [
               <Reset2FAButton key="reset-2fa" memberId={memberId} onReset={refreshMember} />
