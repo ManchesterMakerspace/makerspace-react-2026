@@ -55,7 +55,7 @@ const parseStart = (date: string, time: string) => moment.tz(
   ZONE
 );
 const statusColor = (status: string): "default" | "primary" | "warning" | "success" | "error" =>
-  status === "pending" ? "warning" : status === "approved" ? "success" : status === "denied" ? "error" : "default";
+  (status === "pending" || status === "unpaid") ? "warning" : status === "approved" ? "success" : status === "denied" ? "error" : "default";
 
 const ReservationTitle: React.FC<{ reservation: Reservation }> = ({ reservation }) => (
   reservation.calendarHtmlLink
@@ -76,6 +76,10 @@ const ReservationsPage: React.FC = () => {
   const [title, setTitle] = React.useState("");
   const [date, setDate] = React.useState(initialStart.format("YYYY-MM-DD"));
   const [startTime, setStartTime] = React.useState(initialStart.format("HH:mm"));
+  const [fullDayChoice, setFullDayChoice] = React.useState(false);
+  const [endDate, setEndDate] = React.useState(initialStart.clone().add(1, "day").format("YYYY-MM-DD"));
+  const [feeAccepted, setFeeAccepted] = React.useState("");
+  const [previewRevision, setPreviewRevision] = React.useState(0);
   const [durationHours, setDurationHours] = React.useState(1);
   const [preview, setPreview] = React.useState<ReservationPreview | null>(null);
   const [reservations, setReservations] = React.useState<Reservation[]>([]);
@@ -141,12 +145,29 @@ const ReservationsPage: React.FC = () => {
   const previewMaximum = preview?.maximumDurationHours;
   const effectiveMaximum = previewMaximum === undefined ? configuredMaximum : previewMaximum;
   const sliderMaximum = Math.max(0.5, effectiveMaximum);
-  const startMoment = parseStart(date, startTime);
+  const selectedResources = scope === "shop" ? (selectedShop ? [selectedShop] : []) : selectedTools;
+  const bypassBookingNotice = currentUser.isAdmin || currentUser.isBoardMember ||
+    (currentUser.isResourceManager && managedShopIds.includes(shopId));
+  const noticeHours = bypassBookingNotice ? 0 : Math.max(0, ...selectedResources.map(resource => resource.minimumAdvanceNoticeHours ?? 2));
+  const prohibitSameDay = !bypassBookingNotice && selectedResources.some(resource => resource.prohibitSameDayReservations);
+  const noticeCutoff = moment.tz(ZONE).add(noticeHours, "hours");
+  noticeCutoff.minutes(Math.floor(noticeCutoff.minutes() / 30) * 30).seconds(0).milliseconds(0);
+  const requiresFullDay = scope === "shop" ? !!selectedShop?.reservationFullDay : selectedTools.some(tool => tool.reservationFullDay);
+  const fullDay = requiresFullDay || (resourceConfiguredMaximum >= 24 && fullDayChoice);
+  React.useEffect(() => {
+    if (!fullDay || editing) return;
+    const tomorrow = moment().tz(ZONE).add(1, "day").format("YYYY-MM-DD");
+    const nextDate = date < tomorrow ? tomorrow : date;
+    if (date !== nextDate) setDate(nextDate);
+    if (endDate <= nextDate) setEndDate(moment.tz(nextDate, ZONE).add(1, "day").format("YYYY-MM-DD"));
+  }, [fullDay, date, endDate, editing?.id]);
+  const startMoment = parseStart(date, fullDay ? "00:00" : startTime);
   const validStart = startMoment.isValid();
-  const endMoment = validStart ? startMoment.clone().add(durationHours, "hours") : null;
+  const endMoment = validStart ? (fullDay ? parseStart(endDate, "00:00") : startMoment.clone().add(durationHours, "hours")) : null;
   const usesMeridiem = /\b(am|pm)\b/i.test(startTime);
   const input: ReservationInput = {
-    title, shopId, reservationScope: scope, toolIds,
+    title, shopId, reservationScope: scope, toolIds, fullDay,
+    feeConfirmation: feeAccepted || undefined,
     startAt: validStart ? startMoment.toISOString() : "",
     endAt: endMoment ? endMoment.toISOString() : ""
   };
@@ -229,6 +250,7 @@ const ReservationsPage: React.FC = () => {
         : await previewReservation({ body: input });
       if (previewRequestGeneration.current === requestGeneration) {
         setPreview(result.data || null);
+        if (result.error) setError(result.error.message);
       }
     }, 250);
     return () => {
@@ -238,15 +260,18 @@ const ReservationsPage: React.FC = () => {
       }
     };
   }, [canUseCreateUi, creatingForMember, targetMemberId, validStart, title, shopId, scope,
-      toolIds.join(","), date, startTime, durationHours, editingManaged, editing?.id]);
+      toolIds.join(","), date, startTime, durationHours, fullDay, endDate, editingManaged, editing?.id, previewRevision]);
+
+  React.useEffect(() => { setFeeAccepted(""); }, [title, shopId, scope, toolIds.join(","), date, startTime, durationHours, fullDay, endDate, targetMemberId, editing?.id]);
 
   React.useEffect(() => {
+    if (fullDay) return;
     if (effectiveMaximum < 0.5 && durationHours !== 0.5) {
       setDurationHours(0.5);
     } else if (effectiveMaximum >= 0.5 && durationHours > effectiveMaximum) {
       setDurationHours(Math.floor(effectiveMaximum * 2) / 2);
     }
-  }, [effectiveMaximum, durationHours]);
+  }, [effectiveMaximum, durationHours, fullDay]);
 
   const toggleTool = (id: string) =>
     setToolIds(value => value.includes(id) ? value.filter(item => item !== id) : [...value, id]);
@@ -263,6 +288,9 @@ const ReservationsPage: React.FC = () => {
     setShopId(resetShop?.id || "");
     setScope(resetShop?.reservable ? "shop" : "tools");
     setToolIds([]);
+    setFullDayChoice(false);
+    setFeeAccepted("");
+    setEndDate(nextStart.clone().add(1, "day").format("YYYY-MM-DD"));
     setDate(nextStart.format("YYYY-MM-DD"));
     setStartTime(nextStart.format("HH:mm"));
     setDurationHours(1);
@@ -272,6 +300,10 @@ const ReservationsPage: React.FC = () => {
   };
 
   const submit = async () => {
+    if ((preview?.feeTotal || 0) > 0 && feeAccepted !== preview?.feeConfirmation) {
+      setFeeAccepted(preview?.feeConfirmation || "");
+      return;
+    }
     const creating = !editing;
     setSaving(true);
     setError("");
@@ -285,6 +317,8 @@ const ReservationsPage: React.FC = () => {
         : await createReservation({ body: input });
     setSaving(false);
     if (result.error) {
+      setFeeAccepted("");
+      setPreviewRevision(value => value + 1);
       setError(
         result.error.message ||
         result.response?.data?.message ||
@@ -318,6 +352,8 @@ const ReservationsPage: React.FC = () => {
     setTargetMemberId("");
     setEditing(reservation);
     setEditingManaged(managedEdit);
+    setFullDayChoice(!!reservation.fullDay);
+    setEndDate(moment(reservation.endAt).tz(ZONE).format("YYYY-MM-DD"));
     setTitle(reservation.title);
     setShopId(reservation.shopId);
     setScope(reservation.reservationScope);
@@ -366,9 +402,9 @@ const ReservationsPage: React.FC = () => {
   };
 
   const memberReservations = groupMemberReservations(mine);
-  const pendingManaged = managed.filter(item => item.status === "pending");
+  const pendingManaged = managed.filter(item => item.status === "pending" || (item.status === "unpaid" && item.approvalReasons.length > 0));
   const upcomingManaged = managed.filter(item =>
-    item.status === "approved" && moment(item.endAt).isAfter(moment()));
+    (item.status === "approved" || item.status === "unpaid") && moment(item.endAt).isAfter(moment()));
   const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
   if (loading) return <Grid container justifyContent="center"><CircularProgress /></Grid>;
@@ -467,12 +503,35 @@ const ReservationsPage: React.FC = () => {
                 })}
               </div>
             </Grid>}
+            {(resourceConfiguredMaximum >= 24 || requiresFullDay) && <Grid size={{ xs: 12 }}>
+              <FormControlLabel label="Full day" control={<Checkbox checked={fullDay} disabled={requiresFullDay}
+                onChange={event => {
+                  setFullDayChoice(event.target.checked);
+                  const next = moment.tz(date, ZONE).isAfter(moment().tz(ZONE), "day") ? moment.tz(date, ZONE) : moment().tz(ZONE).add(1, "day");
+                  setDate(next.format("YYYY-MM-DD"));
+                  setEndDate(next.clone().add(1, "day").format("YYYY-MM-DD"));
+                }} />} />
+            </Grid>}
+            {!bypassBookingNotice && selectedResources.length > 0 && <Grid size={{ xs: 12 }}>
+              <Alert severity="info">
+                Minimum advance notice: {noticeHours} hours (rounded down to a 30-minute interval).
+                {prohibitSameDay ? " Same day reservations are prohibited." : ""}
+                {" Earliest start under these rules: "}{(prohibitSameDay && noticeCutoff.isSame(moment.tz(ZONE), "day")
+                  ? moment.tz(ZONE).add(1, "day").startOf("day") : noticeCutoff).format("MMM D, YYYY HH:mm")}
+              </Alert>
+            </Grid>}
             <Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth type="date" label="Start date" value={date}
                 onChange={event => setDate(event.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }} />
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: (fullDay || (!editing && prohibitSameDay)) ? moment().tz(ZONE).add(1, "day").format("YYYY-MM-DD") : undefined } }} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
+            {fullDay && <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField fullWidth type="date" label="End date (exclusive)" value={endDate}
+                onChange={event => setEndDate(event.target.value)}
+                helperText="Ends at midnight on this date. Select the next date for one full day."
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { min: moment.tz(date, ZONE).add(1, "day").format("YYYY-MM-DD") } }} />
+            </Grid>}
+            {!fullDay && <><Grid size={{ xs: 12, sm: 6 }}>
               <TextField fullWidth label="Start time" value={startTime}
                 onChange={event => setStartTime(event.target.value)}
                 placeholder="09:00"
@@ -498,6 +557,7 @@ const ReservationsPage: React.FC = () => {
                 marks={sliderMaximum <= 12}
                 onChange={(_, value) => setDurationHours(value as number)} />
             </Grid>
+            </>}
             <Grid size={{ xs: 12 }}>
               <Alert severity={effectiveMaximum < 0.5 ? "warning" : "info"}>
                 {endMoment
@@ -509,6 +569,13 @@ const ReservationsPage: React.FC = () => {
               </Alert>
             </Grid>
             {preview && <Grid size={{ xs: 12 }}>
+              {preview.feeWarning && <Alert severity="warning">{preview.feeWarning}</Alert>}
+              {(preview.feeTotal || 0) > 0 && <Alert severity="warning">
+                Reservation fee: ${Number(preview.feeTotal).toFixed(2)}.
+                {preview.feeLines?.map((fee, i) => <div key={i}>{fee.resourceName}: {fee.units} × {fee.name} (${Number(fee.unitAmount).toFixed(2)}) = ${Number(fee.amount).toFixed(2)}</div>)}
+                {preview.requiresApproval && <div>The invoice will be issued only after RM approval.</div>}
+                {feeAccepted && <strong>Click again to approve this fee and save. Payment is due four hours before the reservation starts. Existing paid charges are credited; existing unpaid invoices remain payable.</strong>}
+              </Alert>}
               {preview.requiresApproval && !preview.approvalDetails?.length &&
                 <Alert severity="warning">This reservation will require approval.</Alert>}
               {preview.requiresApproval && <ApprovalDetails details={preview.approvalDetails} />}
@@ -521,7 +588,7 @@ const ReservationsPage: React.FC = () => {
             </Grid>}
             <Grid size={{ xs: 12 }} style={{ display: "flex", gap: 8 }}>
               <Button variant="contained" disabled={saving || !preview?.eligible} onClick={submit}>
-                {saving ? "Saving…" : editing ? "Save Changes" : "Reserve"}
+                {saving ? "Saving…" : feeAccepted && (preview?.feeTotal || 0) > 0 ? `Approve $${Number(preview?.feeTotal).toFixed(2)} and save` : editing ? "Save Changes" : "Reserve"}
               </Button>
               {editing && <Button onClick={() => resetForm()}>Cancel Edit</Button>}
             </Grid>
@@ -542,11 +609,11 @@ const ReservationsPage: React.FC = () => {
             <Grid size={{ xs: 12, sm: 7 }}>
               <strong><ReservationTitle reservation={item} /></strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
-              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
+              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
               {item.status === "pending" && <ApprovalDetails details={item.approvalDetails} compact />}
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              {["pending", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()) && <>
+              {["pending", "unpaid", "approved"].includes(item.status) && moment(item.endAt).isAfter(moment()) && <>
                 {canCreateReservation && <Button size="small" onClick={() => edit(item)}>Edit</Button>}
                 <Button size="small" color="secondary" onClick={() => cancel(item.id)}>Cancel</Button>
               </>}
@@ -603,8 +670,9 @@ const ReservationsPage: React.FC = () => {
           {pendingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
-                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
-                <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("HH:mm")}</Typography>
+                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
+                <Chip label={item.status} color={statusColor(item.status)} size="small" />
+                <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}</Typography>
                 <ApprovalDetails details={item.approvalDetails} compact />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -615,17 +683,18 @@ const ReservationsPage: React.FC = () => {
               </Grid>
             </Grid>
           </Paper>)}
-          <Typography variant="subtitle2" style={{ marginTop: 16 }}>Upcoming Approved</Typography>
+          <Typography variant="subtitle2" style={{ marginTop: 16 }}>Upcoming Reservations</Typography>
           {upcomingManaged.length === 0 &&
-            <Typography color="textSecondary">No upcoming approved reservations in your managed shops.</Typography>}
+            <Typography color="textSecondary">No upcoming reservations in your managed shops.</Typography>}
           {upcomingManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
-                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}
+                <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
+                <Chip label={item.status} color={statusColor(item.status)} size="small" />
                 <Typography variant="body2">
                   {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}
                   {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–
-                  {moment(item.endAt).tz(ZONE).format("HH:mm")}
+                  {moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}
                 </Typography>
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

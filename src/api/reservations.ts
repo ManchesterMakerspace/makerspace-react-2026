@@ -33,6 +33,8 @@ const wrap = async <T>(request: Promise<any>) => {
 };
 
 const body = (input: ReservationInput) => ({
+  full_day: input.fullDay,
+  fee_confirmation: input.feeConfirmation,
   title: input.title,
   shop_id: input.shopId,
   reservation_scope: input.reservationScope,

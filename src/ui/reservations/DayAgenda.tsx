@@ -58,7 +58,7 @@ const positionReservations = (
 };
 
 const statusColor = (status: string): "warning" | "success" | "default" =>
-  status === "pending" ? "warning" : status === "approved" ? "success" : "default";
+  (status === "pending" || status === "unpaid") ? "warning" : status === "approved" ? "success" : "default";
 
 const DayAgenda: React.FC<{
   date: string;

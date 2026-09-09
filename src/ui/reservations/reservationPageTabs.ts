@@ -50,7 +50,7 @@ export const groupMemberReservations = (
   const terminalStatuses = new Set(["cancelled", "denied"]);
 
   return {
-    upcoming: future.filter(item => item.status === "approved"),
+    upcoming: future.filter(item => (item.status === "approved" || item.status === "unpaid")),
     pending: future.filter(item => item.status === "pending"),
     cancelled: future.filter(item => terminalStatuses.has(item.status)),
     history: reservations

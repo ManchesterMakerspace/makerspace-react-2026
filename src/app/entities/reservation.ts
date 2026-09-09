@@ -1,6 +1,6 @@
 import { Shop, Tool } from "./toolCheckout";
 
-export type ReservationStatus = "pending" | "approved" | "denied" | "cancelled";
+export type ReservationStatus = "pending" | "unpaid" | "approved" | "denied" | "cancelled";
 export type ReservationScope = "shop" | "tools";
 
 export interface ReservationApprovalDetail {
@@ -20,6 +20,8 @@ export interface Reservation {
   reservationScope: ReservationScope;
   toolIds: string[];
   toolNames: string[];
+  fullDay?: boolean;
+  invoice?: string;
   startAt: string;
   endAt: string;
   status: ReservationStatus;
@@ -48,11 +50,17 @@ export interface ReservationInput {
   shopId: string;
   reservationScope: ReservationScope;
   toolIds: string[];
+  fullDay?: boolean;
+  feeConfirmation?: string;
   startAt: string;
   endAt: string;
 }
 
 export interface ReservationPreview {
+  feeLines?: Array<{ resourceName: string; name: string; units: number; unitAmount: number; amount: number }>;
+  feeWarning?: string;
+  feeTotal?: number;
+  feeConfirmation?: string;
   eligible: boolean;
   errors: string[];
   conflicts: string[];
@@ -93,6 +101,9 @@ export interface ReservationBlackoutInput {
 export interface ReservationBlackoutOccurrence {
   blackoutId: string;
   title: string;
+  fullDay?: boolean;
+  feeConfirmation?: string;
+  invoice?: string;
   startAt: string;
   endAt: string;
 }

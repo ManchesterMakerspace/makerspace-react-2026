@@ -20,7 +20,7 @@ const ZONE = "America/New_York";
 const statusColor = (
   status: string
 ): "default" | "warning" | "success" | "error" =>
-  status === "pending"
+  (status === "pending" || status === "unpaid")
     ? "warning"
     : status === "approved"
       ? "success"
@@ -118,7 +118,7 @@ const MemberReservationsTab: React.FC<Props> = ({ member }) => {
   }, [isOwnProfile, member.id]);
 
   const upcoming = reservations.filter(reservation =>
-    ["pending", "approved"].includes(reservation.status) &&
+    ["pending", "unpaid", "approved"].includes(reservation.status) &&
     moment(reservation.endAt).isAfter(moment())
   );
   const history = reservations
