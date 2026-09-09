@@ -5,7 +5,7 @@ import { createRoot, Root } from "react-dom/client";
 jest.mock("api/reservations", () => ({
   getReservationCatalog: jest.fn(), getReservationAvailability: jest.fn(),
   getReservationBlackouts: jest.fn(), listReservations: jest.fn(),
-  listManagedReservations: jest.fn(), previewReservation: jest.fn(), createReservation: jest.fn(),
+  listManagedReservations: jest.fn(), previewReservationUpdate: jest.fn(), previewReservation: jest.fn(), createReservation: jest.fn(),
 }));
 jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({
   currentUser: { id: "member", status: "activeMember", expirationTime: 4102444800000 }
@@ -18,6 +18,10 @@ jest.mock("ui/toolCheckouts/ToolManager", () => () => null);
 jest.mock("ui/reservations/ReservationBlackouts", () => () => null);
 jest.mock("ui/reservations/DayAgenda", () => () => null);
 
+jest.mock("api/shopFees", () => ({ listShopFeeItems: jest.fn() }));
+import { listShopFeeItems } from "api/shopFees";
+import ReservationSettingsFields from "ui/toolCheckouts/ReservationSettingsFields";
+import MemberReservationsTab from "ui/reservations/MemberReservationsTab";
 import * as api from "api/reservations";
 import ReservationsPage from "ui/reservations/ReservationsPage";
 
@@ -52,6 +56,7 @@ describe("reservation fee confirmation and full-day dates", () => {
     act(() => root.unmount());
     container.remove();
     jest.useRealTimers();
+    window.history.replaceState({}, "", "/");
   });
 
   const button = (text: string) => Array.from(container.querySelectorAll("button"))
@@ -66,6 +71,63 @@ describe("reservation fee confirmation and full-day dates", () => {
     });
     await act(async () => { jest.advanceTimersByTime(300); });
   };
+
+  it("shows approval explanations on unpaid member reservations", async () => {
+    (api.listReservations as jest.Mock).mockResolvedValue({ data: [{
+      id: "booking", memberId: "member", title: "Project", status: "unpaid", shopName: "Shop",
+      startAt: "2026-09-10T04:00:00Z", endAt: "2026-09-11T04:00:00Z",
+      approvalReasons: ["resource_requires_approval"],
+      approvalDetails: [{ code: "resource_requires_approval", message: "Manager approval is still required" }]
+    }] });
+    await act(async () => root.render(<MemberReservationsTab member={{ id: "member" } as any} />));
+    expect(container.textContent).toContain("Manager approval is still required");
+  });
+
+  it("preserves an existing full-day booking after the configured maximum is reduced", async () => {
+    window.history.replaceState({}, "", "/?edit=booking");
+    window.scrollTo = jest.fn();
+    (api.getReservationCatalog as jest.Mock).mockResolvedValue({ data: {
+      shops: [{ id: "shop", name: "Shop", reservable: true, maxReservationDurationHours: 8 }], tools: []
+    } });
+    (api.listReservations as jest.Mock).mockResolvedValue({ data: [{
+      id: "booking", memberId: "member", title: "Project", status: "approved", shopId: "shop", fullDay: true,
+      reservationScope: "shop", toolIds: [], approvalReasons: [],
+      startAt: "2026-09-10T04:00:00Z", endAt: "2026-09-11T04:00:00Z"
+    }] });
+    (api.previewReservationUpdate as jest.Mock).mockResolvedValue({ data: preview });
+    await prepare();
+    expect(container.textContent).not.toContain("Start time");
+    expect(container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(true);
+    expect(api.previewReservationUpdate).toHaveBeenLastCalledWith({ id: "booking", body: expect.objectContaining({
+      fullDay: true, startAt: "2026-09-10T04:00:00.000Z", endAt: "2026-09-11T04:00:00.000Z"
+    }) });
+  });
+
+  it("disables adding fees while loading and enables it after a fee arrives", async () => {
+    let resolve: (value: any) => void = () => {};
+    (listShopFeeItems as jest.Mock).mockReturnValue(new Promise(done => { resolve = done; }));
+    const change = jest.fn();
+    await act(async () => root.render(<ReservationSettingsFields value={{ reservable: true }} onChange={change} />));
+    expect(button("Add duration-based fee").disabled).toBe(true);
+    await act(async () => resolve({ data: [{ id: "fee", name: "Fee", amount: 10, disabled: false }] }));
+    await act(async () => button("Add duration-based fee").click());
+    expect(change).toHaveBeenCalledWith(expect.objectContaining({ durationFees: [expect.objectContaining({ invoiceOptionId: "fee" })] }));
+  });
+
+  it("keeps adding disabled for empty or disabled-only fee catalogs", async () => {
+    (listShopFeeItems as jest.Mock).mockResolvedValue({ data: [{ id: "fee", disabled: true, amount: 10 }] });
+    await act(async () => root.render(<ReservationSettingsFields value={{ reservable: true }} onChange={jest.fn()} />));
+    expect(button("Add duration-based fee").disabled).toBe(true);
+  });
+
+  it("offers retry after a failed fee catalog load", async () => {
+    (listShopFeeItems as jest.Mock).mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({ data: [{ id: "fee", name: "Fee", amount: 10 }] });
+    await act(async () => root.render(<ReservationSettingsFields value={{ reservable: true }} onChange={jest.fn()} />));
+    expect(button("Add duration-based fee").disabled).toBe(true);
+    await act(async () => button("Retry").click());
+    expect(button("Add duration-based fee").disabled).toBe(false);
+  });
 
   it("forces full day on, hides times, and sends future midnight boundaries", async () => {
     await prepare();

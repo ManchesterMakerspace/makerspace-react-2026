@@ -153,7 +153,7 @@ const ReservationsPage: React.FC = () => {
   const noticeCutoff = moment.tz(ZONE).add(noticeHours, "hours");
   noticeCutoff.minutes(Math.floor(noticeCutoff.minutes() / 30) * 30).seconds(0).milliseconds(0);
   const requiresFullDay = scope === "shop" ? !!selectedShop?.reservationFullDay : selectedTools.some(tool => tool.reservationFullDay);
-  const fullDay = requiresFullDay || (resourceConfiguredMaximum >= 24 && fullDayChoice);
+  const fullDay = requiresFullDay || ((resourceConfiguredMaximum >= 24 || !!editing?.fullDay) && fullDayChoice);
   React.useEffect(() => {
     if (!fullDay || editing) return;
     const tomorrow = moment().tz(ZONE).add(1, "day").format("YYYY-MM-DD");
@@ -504,7 +504,7 @@ const ReservationsPage: React.FC = () => {
                 })}
               </div>
             </Grid>}
-            {(resourceConfiguredMaximum >= 24 || requiresFullDay) && <Grid size={{ xs: 12 }}>
+            {(resourceConfiguredMaximum >= 24 || requiresFullDay || editing?.fullDay) && <Grid size={{ xs: 12 }}>
               <FormControlLabel label="Full day" control={<Checkbox checked={fullDay} disabled={requiresFullDay}
                 onChange={event => {
                   setFullDayChoice(event.target.checked);

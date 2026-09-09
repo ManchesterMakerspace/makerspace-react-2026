@@ -41,15 +41,20 @@ const ReservationSettingsFields: React.FC<{
 }> = ({ value, onChange, tools = [], lockedToolId }) => {
   const [fees, setFees] = React.useState<ShopFeeItem[]>([]);
   const [feeError, setFeeError] = React.useState("");
+  const [feeLoadRevision, setFeeLoadRevision] = React.useState(0);
   React.useEffect(() => {
     let active = true;
+    setFees([]);
+    setFeeError("");
     listShopFeeItems().then(result => {
       if (!active) return;
-      if ("data" in result) setFees((result.data || []).filter(fee => !fee.disabled));
+      if ("data" in result) setFees((result.data || []).filter(fee => !fee.disabled && Number(fee.amount) > 0));
       else setFeeError("Unable to load shop fees. Please retry before adding a duration fee.");
+    }).catch(() => {
+      if (active) setFeeError("Unable to load shop fees. Please retry before adding a duration fee.");
     });
     return () => { active = false; };
-  }, []);
+  }, [feeLoadRevision]);
   const rules = value.durationFees || [];
   const updateRule = (index: number, patch: Partial<DurationFee>) =>
     onChange({ ...value, durationFees: rules.map((rule, i) => i === index ? { ...rule, ...patch } : rule) });
@@ -109,7 +114,7 @@ const ReservationSettingsFields: React.FC<{
               })} />} />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            {feeError && <Alert severity="warning">{feeError}</Alert>}
+            {feeError && <Alert severity="warning" action={<Button onClick={() => setFeeLoadRevision(value => value + 1)}>Retry</Button>}>{feeError}</Alert>}
             {rules.map((rule, index) => <div key={index} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
               <TextField select label="Shop fee" value={rule.invoiceOptionId} style={{ minWidth: 200 }}
                 onChange={event => updateRule(index, { invoiceOptionId: event.target.value })}>
@@ -129,7 +134,7 @@ const ReservationSettingsFields: React.FC<{
               </>}
               <Button color="error" onClick={() => set("durationFees", rules.filter((_, i) => i !== index))}>Delete duration-based fee</Button>
             </div>)}
-            <Button onClick={() => set("durationFees", [...rules, { invoiceOptionId: fees[0]?.id || "", minimumHours: 4, maximumHours: 4, fullDay: false }])}>
+            <Button disabled={fees.length === 0} onClick={() => set("durationFees", [...rules, { invoiceOptionId: fees[0]?.id || "", minimumHours: 4, maximumHours: 4, fullDay: false }])}>
               Add duration-based fee
             </Button>
             <Typography variant="caption" style={{ display: "block" }}>Only the longest applicable duration fee per resource applies. Partial units round up; 12 hours at $10 per 4 hours costs $30.</Typography>

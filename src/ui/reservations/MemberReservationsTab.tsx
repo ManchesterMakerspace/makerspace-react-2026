@@ -67,7 +67,7 @@ const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
         {moment(reservation.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} ·{" "}
         {resources}
       </Typography>
-      {reservation.status === "pending" && (
+      {reservation.approvalReasons.length > 0 && (
         <ApprovalDetails details={reservation.approvalDetails} compact />
       )}
     </Paper>
