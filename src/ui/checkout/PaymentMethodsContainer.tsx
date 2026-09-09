@@ -13,11 +13,12 @@ import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { AnyPaymentMethod } from "app/entities/paymentMethod";
 import Form from "ui/common/Form";
-import ButtonRow, { ActionButton, ActionButtonProps } from "ui/common/ButtonRow";
+import ButtonRow, { ActionButtonProps } from "ui/common/ButtonRow";
 import PaymentMethodComponent from "ui/checkout/PaymentMethod";
-import { listPaymentMethods, isApiErrorResponse, deletePaymentMethod } from "makerspace-ts-api-client";
+import { listPaymentMethods, isApiErrorResponse, deletePaymentMethod, Subscription } from "makerspace-ts-api-client";
 import { getPaymentMethodCancellationImpact } from "api/paymentMethods";
 import { PaymentMethodCancellationImpact } from "app/entities/paymentMethod";
+import ChangePaymentMethodModal from "ui/membership/ChangePaymentMethodModal";
 
 interface OwnProps {
   onPaymentMethodChange?: (paymentMethod: AnyPaymentMethod) => void;
@@ -137,16 +138,33 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
                   {" "}This cannot be undone.
                 </Typography>
                 <Typography gutterBottom>
-                  To keep that subscription active instead, add a new payment method and switch your
-                  subscription to it first, then come back and delete this one.
+                  To keep {[
+                    deleteImpact.membership && "your membership",
+                    deleteImpact.rentalCount > 0 &&
+                      `${deleteImpact.rentalCount} rental${deleteImpact.rentalCount === 1 ? "" : "s"}`
+                  ].filter(Boolean).join(" and ")} active instead, switch it to a different payment
+                  method below, then come back and delete this one.
                 </Typography>
-                <ActionButton
-                  id="delete-payment-method-add-new-instead"
-                  color="primary"
-                  variant="outlined"
-                  label="Add New Payment Method Instead"
-                  onClick={() => { this.closeDeleteModal(); this.addNewPaymentMethod(); }}
-                />
+                <Grid container spacing={1} id="delete-payment-method-switch-actions">
+                  {deleteImpact.membershipSubscriptionId && (
+                    <Grid size={{ xs: 12 }}>
+                      <ChangePaymentMethodModal
+                        subscription={{ id: deleteImpact.membershipSubscriptionId, paymentMethodToken: selectedPaymentMethodId } as Subscription}
+                        label="Switch Membership's Payment Method"
+                        onSuccess={this.refreshDeleteImpact}
+                      />
+                    </Grid>
+                  )}
+                  {deleteImpact.rentalSubscriptionIds.map((subscriptionId, index) => (
+                    <Grid size={{ xs: 12 }} key={subscriptionId}>
+                      <ChangePaymentMethodModal
+                        subscription={{ id: subscriptionId, paymentMethodToken: selectedPaymentMethodId } as Subscription}
+                        label={`Switch Rental${deleteImpact.rentalSubscriptionIds.length > 1 ? ` #${index + 1}` : ""}'s Payment Method`}
+                        onSuccess={this.refreshDeleteImpact}
+                      />
+                    </Grid>
+                  ))}
+                </Grid>
               </>
             ) : (
               <Typography gutterBottom>
@@ -162,12 +180,17 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
     );
   };
 
-  private openDeleteModal = () => {
-    this.setState({ openDeleteModal: true, deleteImpact: null, deleteImpactLoading: true });
+  private refreshDeleteImpact = () => {
     const { selectedPaymentMethodId } = this.state;
+    this.setState({ deleteImpactLoading: true });
     getPaymentMethodCancellationImpact({ id: selectedPaymentMethodId }).then(result => {
       this.setState({ deleteImpact: result.data || null, deleteImpactLoading: false });
     });
+  };
+
+  private openDeleteModal = () => {
+    this.setState({ openDeleteModal: true, deleteImpact: null });
+    this.refreshDeleteImpact();
   };
   private closeDeleteModal = () => this.setState({ openDeleteModal: false });
 
