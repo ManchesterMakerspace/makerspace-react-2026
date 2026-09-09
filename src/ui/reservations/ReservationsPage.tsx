@@ -404,7 +404,8 @@ const ReservationsPage: React.FC = () => {
   const memberReservations = groupMemberReservations(mine);
   const pendingManaged = managed.filter(item => item.status === "pending" || (item.status === "unpaid" && item.approvalReasons.length > 0));
   const upcomingManaged = managed.filter(item =>
-    (item.status === "approved" || item.status === "unpaid") && moment(item.endAt).isAfter(moment()));
+    (item.status === "approved" || (item.status === "unpaid" && item.approvalReasons.length === 0)) &&
+    moment(item.endAt).isAfter(moment()));
   const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
   if (loading) return <Grid container justifyContent="center"><CircularProgress /></Grid>;
