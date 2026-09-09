@@ -15,9 +15,11 @@ interface Props<Ids, Resp> {
   title?: string;
   renderSearch?: boolean;
   totalItems?: number;
-  selectedIds: Ids;
-  setSelectedIds: (ids: Ids) => void;
+  selectedIds?: Ids;
+  setSelectedIds?: (ids: Ids) => void;
   isRowSelectable?: (row: Resp) => boolean;
+  expandedRowId?: string;
+  renderExpandedContent?: (row: Resp) => JSX.Element | null;
 }
 
 const StatefulTable: React.FC<Props<unknown, unknown>> = ({
@@ -33,6 +35,8 @@ const StatefulTable: React.FC<Props<unknown, unknown>> = ({
   setSelectedIds,
   totalItems,
   isRowSelectable,
+  expandedRowId,
+  renderExpandedContent,
 }) => {
 
   const {
@@ -108,6 +112,8 @@ const StatefulTable: React.FC<Props<unknown, unknown>> = ({
       isRowSelectable={isRowSelectable}
       onSelectAll={Array.isArray(selectedIds) && setSelectedIds && onSelectAll}
       onSearchEnter={renderSearch && search}
+      expandedRowId={expandedRowId}
+      renderExpandedContent={renderExpandedContent}
     />
   )
 }

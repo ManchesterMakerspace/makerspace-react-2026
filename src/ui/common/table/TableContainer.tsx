@@ -29,6 +29,8 @@ interface Props<T> {
   onSelect?: (rowId: string, selected: boolean) => void;
   onSelectAll?: () => void;
   isRowSelectable?: (row: T) => boolean;
+  expandedRowId?: string;
+  renderExpandedContent?: (row: T) => JSX.Element | null;
 }
 
 interface State {
@@ -81,7 +83,9 @@ class TableContainer<T> extends React.Component<Props<T>, State> {
       onSearchEnter,
       error,
       onPageChange,
-      isRowSelectable
+      isRowSelectable,
+      expandedRowId,
+      renderExpandedContent
     } = this.props;
     const itemsPerPage = this.state.itemsPerPage || defaultItemsPerPage;
 
@@ -119,6 +123,8 @@ class TableContainer<T> extends React.Component<Props<T>, State> {
             onSelectAll={onSelectAll}
             error={error}
             loading={loading}
+            expandedRowId={expandedRowId}
+            renderExpandedContent={renderExpandedContent}
           >
           </Table>
           {totalItems > itemsPerPage && onPageChange && <TablePagination

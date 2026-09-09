@@ -1,6 +1,5 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
-import Collapse from '@mui/material/Collapse';
 
 import { AuditLog } from 'api/auditLogs';
 import { adminListAuditLogs } from 'api/auditLogs';
@@ -98,8 +97,10 @@ const AuditLogsTable: React.FC = () => {
     },
   ];
 
-  // Inject expanded detail rows after each matching row
-  const dataWithExpansions = React.useMemo(() => data, [data]);
+  const renderExpandedContent = React.useCallback(
+    (log: AuditLog) => <AuditLogDetail log={log} />,
+    []
+  );
 
   return (
     <>
@@ -109,24 +110,14 @@ const AuditLogsTable: React.FC = () => {
         id='audit-logs-table'
         title='Audit Log'
         loading={isRequesting}
-        data={dataWithExpansions}
+        data={data}
         error={error}
         columns={columns}
         rowId={rowId}
         totalItems={extractTotalItems(response)}
-        selectedIds={expandedId}
-        setSelectedIds={handleSelect}
+        expandedRowId={expandedId}
+        renderExpandedContent={renderExpandedContent}
       />
-
-      {/* Render detail expansion below the table for the selected row */}
-      {expandedId && (() => {
-        const log = data.find(l => l.id === expandedId);
-        return log ? (
-          <Collapse in={true} timeout='auto' unmountOnExit>
-            <AuditLogDetail log={log} />
-          </Collapse>
-        ) : null;
-      })()}
     </>
   );
 };

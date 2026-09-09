@@ -8,6 +8,7 @@ import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import Typography from '@mui/material/Typography';
+import Collapse from '@mui/material/Collapse';
 
 import { SortDirection } from 'ui/common/table/constants';
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -37,6 +38,11 @@ interface Props<T> {
   isRowSelectable?: (row: T) => boolean;
   rowId: (row: T) => string;
   onSort?: (property: string) => void;
+  // Renders extra content directly beneath a specific row, in its own
+  // full-width table row -- for a "show detail" expansion that should
+  // appear where the row is, not appended after the whole table.
+  expandedRowId?: string;
+  renderExpandedContent?: (row: T) => JSX.Element | null;
 }
 
 class EnhancedTable<T> extends React.Component<Props<T>, {}> {
@@ -144,10 +150,29 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
     )
   }
 
+  private getExpandedRow = (row: T, tableRowId: string, colSpan: number) => {
+    const { expandedRowId, renderExpandedContent, rowId } = this.props;
+    if (!renderExpandedContent || rowId(row) !== expandedRowId) { return null; }
+
+    const content = renderExpandedContent(row);
+    if (!content) { return null; }
+
+    return (
+      <TableRow key={`${tableRowId}-detail`} id={`${tableRowId}-detail-row`}>
+        <TableCell colSpan={colSpan} style={{ paddingTop: 0, paddingBottom: 0 }}>
+          <Collapse in={true} timeout="auto" unmountOnExit>
+            {content}
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    );
+  }
+
   private getBodyRows = () => {
     const {
       id: tableId,
       data,
+      columns,
       rowId,
       selectedIds,
       onSelect,
@@ -181,10 +206,13 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
       }
 
       return (
-        <TableRow key={tableRowId} id={`${tableRowId}-row`}>
-          {checkbox}
-          {this.getBodyCells(row)}
-        </TableRow>
+        <React.Fragment key={tableRowId}>
+          <TableRow id={`${tableRowId}-row`}>
+            {checkbox}
+            {this.getBodyCells(row)}
+          </TableRow>
+          {this.getExpandedRow(row, tableRowId, columns.length + (checkbox ? 1 : 0))}
+        </React.Fragment>
       )
     });
   }
