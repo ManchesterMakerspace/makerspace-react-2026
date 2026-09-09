@@ -157,6 +157,11 @@ export const membershipDetails = {
     description: "Membership covered under a household subscription. Expiration follows the primary member's subscription.",
     type: "Household Membership",
     allowMod: false,
+  },
+  householdPrimary: {
+    description: "This is a household membership. As the primary member, your subscription's expiration covers your linked household members. Contact an admin to make changes to the household.",
+    type: "Household Membership (Primary)",
+    allowMod: false,
   }
 }
 
@@ -165,7 +170,7 @@ export const getDetailsForMember = (member: Partial<Member>) => {
   if ((member as any).groupName && (member as any).householdRole === "secondary") {
     details = membershipDetails.household;
   } else if ((member as any).groupName && (member as any).householdRole === "primary") {
-    details = membershipDetails.household;
+    details = membershipDetails.householdPrimary;
   } else if (member.subscription && !member.subscriptionId) {
     details = membershipDetails.paypal;
   } else if (member.subscriptionId) {
