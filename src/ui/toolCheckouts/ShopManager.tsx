@@ -248,7 +248,7 @@ const ShopManager: React.FC = () => {
       id: "slackChannel", label: "Slack Channel",
       cell: (row: Shop) => (
         <span style={{ color: row.slackChannel ? "inherit" : "#aaa" }}>
-          {row.slackChannel ? `#${row.slackChannel}` : "Not configured"}
+          {row.slackChannel ? `#${row.slackChannel.replace(/^#+/, "")}` : "Not configured"}
         </span>
       ),
     },
