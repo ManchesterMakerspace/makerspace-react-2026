@@ -46,13 +46,14 @@ describe("member reservation grouping", () => {
       reservation("approved", "approved", future),
       reservation("unpaid", "unpaid", future),
       reservation("pending", "pending", future),
+      { ...reservation("unpaid-approval", "unpaid", future), approvalReasons: ["resource_requires_approval"] },
       reservation("cancelled", "cancelled", future),
       reservation("denied", "denied", future),
       reservation("past", "approved", past),
     ], now);
 
     expect(grouped.upcoming.map(item => item.id)).toEqual(["approved", "unpaid"]);
-    expect(grouped.pending.map(item => item.id)).toEqual(["pending"]);
+    expect(grouped.pending.map(item => item.id)).toEqual(["pending", "unpaid-approval"]);
     expect(grouped.cancelled.map(item => item.id)).toEqual(["cancelled", "denied"]);
     expect(grouped.history.map(item => item.id)).toEqual(["past"]);
   });
