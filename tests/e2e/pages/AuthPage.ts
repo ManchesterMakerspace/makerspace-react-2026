@@ -69,6 +69,14 @@ export class AuthPage {
     }
     await logoutLink.click();
     await this.page.waitForURL(/\/$|\/login/, { timeout: 15_000 });
+    // A request still in flight from the page just logged out of can resolve
+    // with a 401 after this URL match, and globalAuthInterceptor answers that
+    // with its own hard `window.location.href` redirect to /login. Wait for
+    // whatever navigation just landed to fully settle so that redirect can't
+    // still be in progress when the caller's next page.goto('/login') runs —
+    // two navigations to the same URL otherwise race and Playwright reports
+    // the second as "interrupted by another navigation".
+    await this.page.waitForLoadState('domcontentloaded');
   }
 
   async navigateViaMenu(linkName: string): Promise<void> {
