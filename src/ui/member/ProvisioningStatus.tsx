@@ -20,6 +20,7 @@ export type SlackProvisioningStatus =
 export type GoogleDriveProvisioningStatus =
   | 'unknown'
   | 'blocked'
+  | 'permanently_failed'
   | 'pending_activation'
   | 'not_provisioned'
   | 'partial'
@@ -42,6 +43,8 @@ export interface MemberProvisioning {
     status: GoogleDriveProvisioningStatus;
     resourcesAccessConfirmedAt?: string | null;
     transferAccessConfirmedAt?: string | null;
+    provisioningBlockedAt?: string | null;
+    provisioningBlockedReason?: string | null;
   };
 }
 
@@ -64,6 +67,7 @@ const SLACK_LABELS: Record<SlackProvisioningStatus, string> = {
 const DRIVE_LABELS: Record<GoogleDriveProvisioningStatus, string> = {
   unknown: 'Google Drive access has not been reconciled',
   blocked: 'Google Drive provisioning is blocked by member status',
+  permanently_failed: 'Google Drive provisioning is blocked and will not retry automatically',
   pending_activation: 'Waiting for a future expiration and usable fob',
   not_provisioned: 'Member is activated but Google Drive access is not confirmed',
   partial: 'Only one of the two Google Drive permissions is confirmed',
@@ -75,7 +79,10 @@ const statusIcon = (status: string) => {
   if (status === 'full_member' || status === 'complete') {
     return <CheckCircleIcon fontSize='small' color='success' style={{ verticalAlign: 'middle' }} />;
   }
-  if (status.startsWith('manual_') || status === 'failed' || status === 'not_invited' || status === 'blocked') {
+  if (
+    status.startsWith('manual_') || status === 'failed' || status === 'not_invited' ||
+    status === 'blocked' || status === 'permanently_failed'
+  ) {
     return <ErrorIcon fontSize='small' color='error' style={{ verticalAlign: 'middle' }} />;
   }
   if (status === 'invite_pending' || status === 'guest' || status === 'pending_activation' || status === 'partial') {
@@ -113,9 +120,16 @@ export const SlackProvisioningIcon: React.FC<{
   return <Tooltip title={label}>{statusIcon(status)}</Tooltip>;
 };
 
+const driveLabel = (googleDrive: MemberProvisioning['googleDrive']) => {
+  const label = DRIVE_LABELS[googleDrive.status];
+  return googleDrive.status === 'permanently_failed' && googleDrive.provisioningBlockedReason
+    ? `${label}: ${googleDrive.provisioningBlockedReason}`
+    : label;
+};
+
 export const DriveProvisioningIcon: React.FC<{ provisioning: MemberProvisioning }> = ({ provisioning }) => {
   const status = provisioning.googleDrive.status;
-  return <Tooltip title={DRIVE_LABELS[status]}>{statusIcon(status)}</Tooltip>;
+  return <Tooltip title={driveLabel(provisioning.googleDrive)}>{statusIcon(status)}</Tooltip>;
 };
 
 export const ProvisioningStatusChip: React.FC<{
@@ -125,10 +139,10 @@ export const ProvisioningStatusChip: React.FC<{
   const status = kind === 'slack'
     ? provisioning.slack.status
     : provisioning.googleDrive.status;
-  const label = kind === 'slack' ? SLACK_LABELS[status as SlackProvisioningStatus] : DRIVE_LABELS[status as GoogleDriveProvisioningStatus];
+  const label = kind === 'slack' ? SLACK_LABELS[status as SlackProvisioningStatus] : driveLabel(provisioning.googleDrive);
   const color = status === 'full_member' || status === 'complete'
     ? 'success'
-    : status.startsWith('manual_') || status === 'failed' || status === 'blocked'
+    : status.startsWith('manual_') || status === 'failed' || status === 'blocked' || status === 'permanently_failed'
       ? 'error'
       : 'warning';
 
