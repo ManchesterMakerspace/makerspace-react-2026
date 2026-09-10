@@ -33,6 +33,7 @@ import {
 } from "api/rentals";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 const rowId = (spot: RentalSpot) => spot.id;
 
@@ -120,7 +121,7 @@ const AdminRentalSpots: React.FC = () => {
     {
       id: "billing", label: "Billing Plan",
       cell: (row: RentalSpot) => row.invoiceOptionName
-        ? `${row.invoiceOptionName} ($${row.invoiceOptionAmount})`
+        ? `${row.invoiceOptionName} (${formatBillingAmount(row.invoiceOptionAmount, row.invoiceOptionQuantity, !!row.invoiceOptionPlanId)})`
         : <Typography variant="caption" color="textSecondary">Not set</Typography>,
     },
     {

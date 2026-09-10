@@ -1,11 +1,12 @@
 export interface RentalType {
-  id:                  string;
-  displayName:         string;
-  active:              boolean;
-  invoiceOptionId:     string | null;
-  invoiceOptionName:   string | null;
-  invoiceOptionAmount: number | null;
-  invoiceOptionPlanId: string | null;
+  id:                    string;
+  displayName:           string;
+  active:                boolean;
+  invoiceOptionId:       string | null;
+  invoiceOptionName:     string | null;
+  invoiceOptionAmount:   number | null;
+  invoiceOptionQuantity: number | null;
+  invoiceOptionPlanId:   string | null;
 }
 
 export interface RentalSpot {
@@ -23,6 +24,7 @@ export interface RentalSpot {
   invoiceOptionId:       string | null;
   invoiceOptionName:     string | null;
   invoiceOptionAmount:   number | null;
+  invoiceOptionQuantity: number | null;
   invoiceOptionPlanId:   string | null;
 }
 
@@ -38,6 +40,8 @@ export interface RentalSpotPublic {
   available:             boolean;
   invoiceOptionName:     string | null;
   invoiceOptionAmount:   number | null;
+  invoiceOptionQuantity: number | null;
+  invoiceOptionPlanId:   string | null;
 }
 
 export enum RentalStatus {

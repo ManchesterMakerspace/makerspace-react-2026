@@ -21,6 +21,7 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import useRentalEligibility from "ui/rentals/useRentalEligibility";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { listRentalSpots, listRentalTypes, createRental } from "api/rentals";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 interface Props {
   member:          Member;
@@ -142,7 +143,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                 ...(typeRentals as RentalSpot[]).map((rental: RentalSpot) => (
                   <MenuItem key={rental.id} value={rental.id} style={{ paddingLeft: "24px" }}>
                     {rental.number} — {rental.location}
-                    {rental.invoiceOptionAmount != null && ` ($${rental.invoiceOptionAmount}/mo)`}
+                    {rental.invoiceOptionAmount != null && ` (${formatBillingAmount(rental.invoiceOptionAmount, rental.invoiceOptionQuantity, !!rental.invoiceOptionPlanId)})`}
                     {rental.requiresApproval && " ⏳ Approval required"}
                   </MenuItem>
                 ))
@@ -163,7 +164,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                       <Typography variant="body2"><strong>Description:</strong> {selectedRental.description}</Typography>
                     )}
                     {selectedRental.invoiceOptionAmount != null && (
-                      <Typography variant="body2"><strong>Cost:</strong> ${selectedRental.invoiceOptionAmount}/mo</Typography>
+                      <Typography variant="body2"><strong>Cost:</strong> {formatBillingAmount(selectedRental.invoiceOptionAmount, selectedRental.invoiceOptionQuantity, !!selectedRental.invoiceOptionPlanId)}</Typography>
                     )}
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
@@ -228,7 +229,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                 )}
                 {selectedRental.invoiceOptionAmount != null && (
                   <Typography variant="body2" gutterBottom>
-                    <strong>Cost:</strong> ${selectedRental.invoiceOptionAmount}/mo
+                    <strong>Cost:</strong> {formatBillingAmount(selectedRental.invoiceOptionAmount, selectedRental.invoiceOptionQuantity, !!selectedRental.invoiceOptionPlanId)}
                   </Typography>
                 )}
               </Grid>
