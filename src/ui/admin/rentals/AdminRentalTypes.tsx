@@ -30,6 +30,7 @@ import { Routing } from "app/constants";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { formatBillingAmount } from "ui/utils/billingInterval";
+import { withCurrentOptionIncluded } from "ui/utils/selectableInvoiceOptions";
 
 const rowId = (t: RentalType) => t.id;
 const emptyType = (): Partial<RentalType> => ({ displayName: "", active: true, invoiceOptionId: null });
@@ -49,9 +50,31 @@ const AdminRentalTypes: React.FC = () => {
 
   const { data: invoiceOptions = [] } = useReadTransaction(
     listInvoiceOptions,
-    { types: [InvoiceableResource.Rental] },
+    { types: [InvoiceableResource.Rental], onlyEnabled: true },
     undefined,
     "rental-invoice-options-for-types"
+  );
+
+  // The active-only list above won't include a type's current plan once that
+  // plan is disabled -- keep it selectable (labeled) so editing doesn't look
+  // like the plan silently reset to "None".
+  const selectableInvoiceOptions: InvoiceOption[] = React.useMemo(
+    () => withCurrentOptionIncluded(invoiceOptions as InvoiceOption[], {
+      id: editTarget.invoiceOptionId,
+      name: editTarget.invoiceOptionName,
+      amount: editTarget.invoiceOptionAmount,
+      quantity: editTarget.invoiceOptionQuantity,
+      planId: editTarget.invoiceOptionPlanId,
+      resourceClass: InvoiceableResource.Rental,
+    }),
+    [
+      invoiceOptions,
+      editTarget.invoiceOptionId,
+      editTarget.invoiceOptionName,
+      editTarget.invoiceOptionAmount,
+      editTarget.invoiceOptionQuantity,
+      editTarget.invoiceOptionPlanId,
+    ]
   );
 
   const { isRequesting, data: rentalTypes = [], response, refresh, error } = useReadTransaction(
@@ -178,7 +201,7 @@ const AdminRentalTypes: React.FC = () => {
               <FormLabel component="legend" style={{ marginBottom: "8px" }}>
                 Billing Plan (Invoice Option)
               </FormLabel>
-              {(invoiceOptions as InvoiceOption[]).length === 0 ? (
+              {selectableInvoiceOptions.length === 0 ? (
                 <Typography variant="body2" style={warningBoxStyle}>
                   No rental invoice options found.{" "}
                   <Link to={billingPath}>Create one in Billing Options →</Link>
@@ -189,7 +212,7 @@ const AdminRentalTypes: React.FC = () => {
                   onChange={e => setField("invoiceOptionId", (e.target as HTMLSelectElement).value || null)}
                 >
                   <option value="">None (set up later)</option>
-                  {(invoiceOptions as InvoiceOption[]).map((opt: InvoiceOption) => (
+                  {selectableInvoiceOptions.map((opt: InvoiceOption) => (
                     <option key={opt.id} value={opt.id}>
                       {opt.name} — {formatBillingAmount(opt.amount, opt.quantity, !!opt.planId)}
                     </option>
