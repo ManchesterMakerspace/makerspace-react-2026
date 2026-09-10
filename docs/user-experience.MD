@@ -77,14 +77,20 @@ Manchester Makerspace red-brown `secondary` palette:
 | Text secondary | `rgba(0, 0, 0, 0.54)` | Supporting and filled-field labels |
 | Divider/input border | `rgba(0, 0, 0, 0.26)` | Legacy input rules |
 | Surface | `#FFFFFF` | Papers, cards, forms, and notifications |
-| Error | `#f44336` / MUI `error` | Invalid fields and errors |
-| Warning | `#ff9800` / MUI `warning` | Warnings and attention states |
-| Success | `#4caf50` / MUI `success` | Successful/active states |
+| Error main | `#d32f2f` | MUI `error.main`; invalid fields, failures, and destructive states |
+| Warning main | `#ed6c02` | MUI `warning.main`; warnings and attention states |
+| Info main | `#0288d1` | MUI `info.main`; neutral informational states |
+| Success main | `#2e7d32` | MUI `success.main`; successful and active states |
 | Informational blue | `#2196F3` | Legacy focused fields and promotion border |
 
 Neutral surfaces also use MUI's default grey scale. Existing overlays use
 translucent black or grey, such as `rgba(0, 0, 0, 0.35)` for a modal backdrop
 and `rgba(200, 200, 200, 0.5)` for loading.
+
+Individual legacy components also use `#f44336`, `#ff9800`, and `#4caf50` as
+error, warning, and success swatches. These literals are implementation-specific
+exceptions, not the resolved MUI semantic palette; new UI should use the theme
+roles listed above.
 
 Some domain-specific or third-party visuals intentionally retain their own
 colors: admin/board/resource-manager role badges (red, purple, and blue), Google
@@ -100,8 +106,10 @@ For new work:
    actions only where that matches the surrounding established UI. Prefer
    MUI `error` for unambiguously destructive or failed states.
 3. Never communicate status by color alone; pair it with text and/or an icon.
-4. Maintain WCAG 2.1 AA contrast for text and interactive states, including
-   focus, hover, selected, disabled, and error states.
+4. Maintain WCAG 2.1 AA contrast for text and enabled interactive states,
+   including focus, hover, selected, and error states. Inactive controls are
+   exempt from the WCAG contrast criteria and may retain MUI's default
+   reduced-opacity disabled styling.
 5. Keep official third-party brand colors isolated to that provider's mark or
    branded control.
 
