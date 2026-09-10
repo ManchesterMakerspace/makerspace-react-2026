@@ -101,6 +101,9 @@
       ]
     },
     "testRegex": "/tests/unit/.*\\.spec\\.(j|t)sx?$",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!lodash-es)"
+    ],
     "moduleNameMapper": {
       "^(api|app|ui|documents|components|pages|hooks)[/](.*)$": "<rootDir>/src/$1/$2"
     },
