@@ -39,7 +39,7 @@ class FirebaseCallback extends React.Component<Props, State> {
       const idToken = await completeProviderSignIn();
       await this.props.firebaseLogin(idToken);
       clearProviderSignInState();
-      this.props.navigate(Routing.Members);
+      this.props.navigate(Routing.Login);
     } catch (err: unknown) {
       console.error('[Firebase Auth] Redirect callback failed', err);
       const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';

@@ -127,6 +127,11 @@ export const sessionLoginUserAction = (): ThunkAction<Promise<void>, {}, {}, Any
     body: JSON.stringify({}),
   });
 
+  if (res.status === 202) {
+    dispatch({ type: AuthAction.TotpRequired });
+    return;
+  }
+
   if (!res.ok) {
     // Not signed in — silently fail (expected on fresh page load)
     dispatch({ type: AuthAction.AuthUserFailure, error: undefined });

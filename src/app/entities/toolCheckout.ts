@@ -38,6 +38,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  open?: boolean;
   id: string;
   name: string;
   wikiUrl: string;

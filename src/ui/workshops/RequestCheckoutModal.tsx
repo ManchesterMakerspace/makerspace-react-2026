@@ -1,4 +1,5 @@
 import * as React from "react";
+import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
 
 import { createToolCheckoutRequest } from "api/toolCheckouts";
@@ -35,6 +36,7 @@ const RequestCheckoutModal: React.FC<{
       title={`Request Checkout: ${tool?.name || ""}`}
       closeHandler={onClose} onSubmit={submit} submitText="Submit Request"
       loading={saving} error={error}>
+      {!!tool?.unmetPrerequisiteNames?.length && <Alert severity="warning">Recommended checkouts: {tool.unmetPrerequisiteNames.join(", ")}</Alert>}
       <TextField fullWidth label="Note" value={note}
         onChange={event => setNote(event.target.value)}
         slotProps={{ htmlInput: { maxLength: 128 } }} multiline rows={2} />

@@ -1,3 +1,4 @@
+import CheckoutRequestPage from "ui/workshops/CheckoutRequestPage";
 import * as React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
@@ -88,6 +89,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canManageShopFees    && <Route path={Routing.ShopFees}         element={<ShopFeesPage />} />}
       <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />
       <Route path={Routing.Reservations} element={<ReservationsPage />} />
+      <Route path="/tools/:id/request-checkout" element={<CheckoutRequestPage />} />
       <Route path={Routing.Workshops} element={<WorkshopsPage />} />
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}

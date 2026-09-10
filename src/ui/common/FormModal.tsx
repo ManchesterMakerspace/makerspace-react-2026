@@ -30,6 +30,7 @@ const FormModal = (props: FormModalProps) => {
 
   return (
     <Dialog
+      aria-label={title}
       className={formDialogClass}
       sx={{ "& .MuiDialog-paperScrollPaper": { overflow: "visible" } }}
       fullWidth={true}

@@ -87,6 +87,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
   const [gdriveId, setGdriveId] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
+  const [open, setOpen] = React.useState(false);
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
   const [disabled, setDisabled] = React.useState(false);
   const [announce, setAnnounce] = React.useState(false);
@@ -113,7 +114,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, prerequisiteIds, disabled, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -150,7 +151,8 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
             value={description} onChange={e => setDescription(e.target.value)} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
-          <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />}
+          <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
+      <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />}
             label="Hidden" />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -206,6 +208,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
   const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
   const [description, setDescription] = React.useState(tool.description || "");
+  const [open, setOpen] = React.useState(!!tool.open);
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
   const [announce, setAnnounce] = React.useState(!!tool.announce);
@@ -262,7 +265,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     setLocalError("");
     onSave(
       tool.id,
-      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
+      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
       notes !== (tool.notes || "") ? notes : undefined
     );
   };
@@ -286,6 +289,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
         placeholder="Announce channel" />
       <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))}
         placeholder="Users channel" />
+      <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
       <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />} label="Hidden" />
       <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />} label="Announce" />
       <div style={{ gridColumn: "1 / -1" }}>
