@@ -18,7 +18,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 import ErrorMessage from "ui/common/ErrorMessage";
-import { timeToDate } from "ui/utils/timeToDate";
+import { timeToDateAndTime } from "ui/utils/timeToDate";
 import { getCheckInTimestamp } from "ui/member/checkInTimestamp";
 
 interface CheckInRecord {
@@ -181,7 +181,7 @@ const MemberCheckInActivity: React.FC = () => {
   // Format timestamp
   const formatTimestamp = (record: CheckInRecord): string => {
     const timestamp = getCheckInTimestamp(record);
-    return timestamp === undefined ? "-" : timeToDate(timestamp);
+    return timestamp === undefined ? "-" : timeToDateAndTime(timestamp);
   };
 
   // Filter out empty/zero/negative values

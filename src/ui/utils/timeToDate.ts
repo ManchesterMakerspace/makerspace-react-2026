@@ -8,6 +8,14 @@ export const timeToDate = (time: number | string | Date) => {
   return time && moment.tz(time, defaultTZ).format('DD MMM YYYY');
 };
 
+// Same as timeToDate, but includes time of day (12-hour clock) -- use this
+// instead of timeToDate for values that represent a specific moment/event
+// (audit log entries, check-ins, transactions, etc.) rather than a calendar
+// date (expirations, due dates), where time-of-day isn't meaningful.
+export const timeToDateAndTime = (time: number | string | Date) => {
+  return time && moment.tz(time, defaultTZ).format('DD MMM YYYY, h:mm A');
+};
+
 // Format ms since epoch to string to that is supported by HTML5 date picker
 export const toDatePicker = (time: number | string | Date) => {
   return time && moment.tz(time, defaultTZ).format('YYYY-MM-DD');
