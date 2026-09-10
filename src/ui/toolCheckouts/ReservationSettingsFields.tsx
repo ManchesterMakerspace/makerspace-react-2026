@@ -8,11 +8,20 @@ import Tooltip from "@mui/material/Tooltip";
 import Chip from "@mui/material/Chip";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import Typography from "@mui/material/Typography";
-import { Tool } from "app/entities/toolCheckout";
+import Button from "@mui/material/Button";
+import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
+import { listShopFeeItems } from "api/shopFees";
+import { ShopFeeItem } from "app/entities/shopFee";
+import { DurationFee, Tool } from "app/entities/toolCheckout";
 import { togglePrerequisiteToolId } from "./reservationPrerequisites";
 
 export interface ReservationSettingsValue {
   reservable?: boolean;
+  minimumAdvanceNoticeHours?: number;
+  prohibitSameDayReservations?: boolean;
+  reservationFullDay?: boolean;
+  durationFees?: DurationFee[];
   maxConcurrentReservations?: number;
   reservationHorizonDays?: number;
   maxReservationDurationHours?: number;
@@ -30,6 +39,25 @@ const ReservationSettingsFields: React.FC<{
   tools?: Tool[];
   lockedToolId?: string;
 }> = ({ value, onChange, tools = [], lockedToolId }) => {
+  const [fees, setFees] = React.useState<ShopFeeItem[]>([]);
+  const [feeError, setFeeError] = React.useState("");
+  const [feeLoadRevision, setFeeLoadRevision] = React.useState(0);
+  React.useEffect(() => {
+    let active = true;
+    setFees([]);
+    setFeeError("");
+    listShopFeeItems().then(result => {
+      if (!active) return;
+      if ("data" in result) setFees((result.data || []).filter(fee => !fee.disabled && Number(fee.amount) > 0));
+      else setFeeError("Unable to load shop fees. Please retry before adding a duration fee.");
+    }).catch(() => {
+      if (active) setFeeError("Unable to load shop fees. Please retry before adding a duration fee.");
+    });
+    return () => { active = false; };
+  }, [feeLoadRevision]);
+  const rules = value.durationFees || [];
+  const updateRule = (index: number, patch: Partial<DurationFee>) =>
+    onChange({ ...value, durationFees: rules.map((rule, i) => i === index ? { ...rule, ...patch } : rule) });
   const set = (field: keyof ReservationSettingsValue, next: any) =>
     onChange({ ...value, [field]: next });
   const selected: string[] = Array.from(value.reservationPrerequisiteToolIds || []);
@@ -62,10 +90,54 @@ const ReservationSettingsFields: React.FC<{
               onChange={event => set("reservationHorizonDays", Number(event.target.value))} />
           </Grid>
           <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField fullWidth type="number" label="Minimum advance notice (hours)"
+              value={value.minimumAdvanceNoticeHours ?? 2}
+              slotProps={{ htmlInput: { min: 0, step: 0.5 } }}
+              onChange={event => set("minimumAdvanceNoticeHours", Number(event.target.value))} />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel label="Prohibit same day reservations" control={<Checkbox
+              checked={!!value.prohibitSameDayReservations}
+              onChange={event => set("prohibitSameDayReservations", event.target.checked)} />} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField fullWidth type="number" label="Maximum duration (hours)"
               value={value.maxReservationDurationHours ?? 8}
-              slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }}
+              slotProps={{ htmlInput: { min: value.reservationFullDay ? 24 : 0.5, step: value.reservationFullDay ? 24 : 0.5 } }}
               onChange={event => set("maxReservationDurationHours", Number(event.target.value))} />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <FormControlLabel label="Minimum reservation duration: full day"
+              control={<Checkbox checked={!!value.reservationFullDay} onChange={event => onChange({ ...value,
+                reservationFullDay: event.target.checked,
+                maxReservationDurationHours: event.target.checked ? Math.max(24, Math.ceil((value.maxReservationDurationHours || 24) / 24) * 24) : value.maxReservationDurationHours
+              })} />} />
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            {feeError && <Alert severity="warning" action={<Button onClick={() => setFeeLoadRevision(value => value + 1)}>Retry</Button>}>{feeError}</Alert>}
+            {rules.map((rule, index) => <div key={index} style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+              <TextField select label="Shop fee" value={rule.invoiceOptionId} style={{ minWidth: 200 }}
+                onChange={event => updateRule(index, { invoiceOptionId: event.target.value })}>
+                {!fees.some(fee => fee.id === rule.invoiceOptionId) && rule.invoiceOptionId &&
+                  <MenuItem value={rule.invoiceOptionId}>Unavailable fee — select a replacement</MenuItem>}
+                {fees.map(fee => <MenuItem key={fee.id} value={fee.id}>{fee.name} (${Number(fee.amount).toFixed(2)})</MenuItem>)}
+              </TextField>
+              <FormControlLabel label="Full day" control={<Checkbox checked={rule.fullDay}
+                onChange={event => updateRule(index, { fullDay: event.target.checked })} />} />
+              {!rule.fullDay && <>
+                <TextField type="number" label="Minimum hours" value={rule.minimumHours}
+                  slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }}
+                  onChange={event => updateRule(index, { minimumHours: Number(event.target.value) })} />
+                <TextField type="number" label="Maximum hours per fee unit" value={rule.maximumHours}
+                  slotProps={{ htmlInput: { min: rule.minimumHours, step: 0.5 } }}
+                  onChange={event => updateRule(index, { maximumHours: Number(event.target.value) })} />
+              </>}
+              <Button color="error" onClick={() => set("durationFees", rules.filter((_, i) => i !== index))}>Delete duration-based fee</Button>
+            </div>)}
+            <Button disabled={fees.length === 0} onClick={() => set("durationFees", [...rules, { invoiceOptionId: fees[0]?.id || "", minimumHours: 4, maximumHours: 4, fullDay: false }])}>
+              Add duration-based fee
+            </Button>
+            <Typography variant="caption" style={{ display: "block" }}>Only the longest applicable duration fee per resource applies. Partial units round up; 12 hours at $10 per 4 hours costs $30.</Typography>
           </Grid>
           <Grid size={{ xs: 12 }}>
             <FormControlLabel

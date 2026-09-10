@@ -1,3 +1,10 @@
+export interface DurationFee {
+  invoiceOptionId: string;
+  minimumHours: number;
+  maximumHours: number;
+  fullDay: boolean;
+}
+
 export interface Shop {
   id: string;
   name: string;
@@ -10,6 +17,10 @@ export interface Shop {
   reservable: boolean;
   maxConcurrentReservations: number;
   reservationHorizonDays: number;
+  minimumAdvanceNoticeHours?: number;
+  prohibitSameDayReservations?: boolean;
+  reservationFullDay?: boolean;
+  durationFees?: DurationFee[];
   maxReservationDurationHours: number;
   reservationRequiresApproval: boolean;
   reservationPrerequisiteToolIds: string[];
@@ -52,6 +63,10 @@ export interface Tool {
   reservable?: boolean;
   maxConcurrentReservations?: number;
   reservationHorizonDays?: number;
+  minimumAdvanceNoticeHours?: number;
+  prohibitSameDayReservations?: boolean;
+  reservationFullDay?: boolean;
+  durationFees?: DurationFee[];
   maxReservationDurationHours?: number;
   reservationRequiresApproval?: boolean;
   reservationPrerequisiteToolIds?: string[];
