@@ -11,6 +11,7 @@ import { Routing } from "app/constants";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { getRentalSpotPublic } from "api/rentals";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 const infoBoxStyle: React.CSSProperties = {
   padding: "10px 14px", backgroundColor: "#e3f2fd",
@@ -90,7 +91,7 @@ const RentalSpotPublicInfo: React.FC = () => {
             <Typography variant="body2"><strong>Description:</strong> {spot.description}</Typography>
           )}
           {spot.invoiceOptionAmount != null && (
-            <Typography variant="body2"><strong>Cost:</strong> ${spot.invoiceOptionAmount}/mo</Typography>
+            <Typography variant="body2"><strong>Cost:</strong> {formatBillingAmount(spot.invoiceOptionAmount, spot.invoiceOptionQuantity, !!spot.invoiceOptionPlanId)}</Typography>
           )}
           {spot.requiresApproval && (
             <Typography variant="body2"><strong>Note:</strong> This rental requires admin approval before it becomes active.</Typography>

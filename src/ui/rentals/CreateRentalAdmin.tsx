@@ -14,6 +14,7 @@ import FormModal from "ui/common/FormModal";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { adminListRentalSpots } from "api/rentals";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 interface Props {
   member?:  Member;
@@ -146,7 +147,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
                 ...(typeSpots as RentalSpot[]).map((spot: RentalSpot) => (
                   <MenuItem key={spot.id} value={spot.id} style={{ paddingLeft: "24px" }}>
                     {spot.number} — {spot.location}
-                    {spot.invoiceOptionAmount != null && ` ($${spot.invoiceOptionAmount}/mo)`}
+                    {spot.invoiceOptionAmount != null && ` (${formatBillingAmount(spot.invoiceOptionAmount, spot.invoiceOptionQuantity, !!spot.invoiceOptionPlanId)})`}
                     {!spot.available && " (unavailable)"}
                   </MenuItem>
                 ))
@@ -166,7 +167,7 @@ const CreateRentalAdmin: React.FC<Props> = ({ member, onCreate }) => {
                 )}
                 {selectedSpot.invoiceOptionAmount != null && (
                   <Typography variant="body2">
-                    <strong>Billing:</strong> ${selectedSpot.invoiceOptionAmount}/mo — {selectedSpot.invoiceOptionName}
+                    <strong>Billing:</strong> {formatBillingAmount(selectedSpot.invoiceOptionAmount, selectedSpot.invoiceOptionQuantity, !!selectedSpot.invoiceOptionPlanId)} — {selectedSpot.invoiceOptionName}
                   </Typography>
                 )}
               </div>

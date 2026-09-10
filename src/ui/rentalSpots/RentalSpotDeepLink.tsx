@@ -20,6 +20,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { getRentalSpot, createRental } from "api/rentals";
 import { useAuthState } from "ui/reducer/hooks";
 import { buildProfileRouting } from "ui/member/utils";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 const infoBoxStyle: React.CSSProperties = {
   padding: "10px 14px", backgroundColor: "#e3f2fd",
@@ -155,7 +156,7 @@ const RentalSpotDeepLink: React.FC = () => {
                     <Typography variant="body2"><strong>Description:</strong> {spot.description}</Typography>
                   )}
                   {spot.invoiceOptionAmount != null && (
-                    <Typography variant="body2"><strong>Cost:</strong> ${spot.invoiceOptionAmount}/mo</Typography>
+                    <Typography variant="body2"><strong>Cost:</strong> {formatBillingAmount(spot.invoiceOptionAmount, spot.invoiceOptionQuantity, !!spot.invoiceOptionPlanId)}</Typography>
                   )}
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
@@ -210,7 +211,7 @@ const RentalSpotDeepLink: React.FC = () => {
                 </Typography>
                 {spot.invoiceOptionAmount != null && (
                   <Typography variant="body2" gutterBottom>
-                    <strong>Cost:</strong> ${spot.invoiceOptionAmount}/mo
+                    <strong>Cost:</strong> {formatBillingAmount(spot.invoiceOptionAmount, spot.invoiceOptionQuantity, !!spot.invoiceOptionPlanId)}
                   </Typography>
                 )}
               </Grid>

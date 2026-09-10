@@ -29,7 +29,7 @@ import {
 import { Routing } from "app/constants";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
-import { numberAsCurrency } from "ui/utils/numberAsCurrency";
+import { formatBillingAmount } from "ui/utils/billingInterval";
 
 const rowId = (t: RentalType) => t.id;
 const emptyType = (): Partial<RentalType> => ({ displayName: "", active: true, invoiceOptionId: null });
@@ -98,7 +98,7 @@ const AdminRentalTypes: React.FC = () => {
       id: "invoiceOption", label: "Billing Plan",
       cell: (row: RentalType) => {
         if (row.invoiceOptionName) {
-          return `${row.invoiceOptionName} (${numberAsCurrency(row.invoiceOptionAmount)}/mo)`;
+          return `${row.invoiceOptionName} (${formatBillingAmount(row.invoiceOptionAmount, row.invoiceOptionQuantity, !!row.invoiceOptionPlanId)})`;
         }
         return (
           <span style={{ color: "#f57c00" }}>
@@ -191,7 +191,7 @@ const AdminRentalTypes: React.FC = () => {
                   <option value="">None (set up later)</option>
                   {(invoiceOptions as InvoiceOption[]).map((opt: InvoiceOption) => (
                     <option key={opt.id} value={opt.id}>
-                      {opt.name} — {numberAsCurrency(opt.amount)}/mo
+                      {opt.name} — {formatBillingAmount(opt.amount, opt.quantity, !!opt.planId)}
                     </option>
                   ))}
                 </Select>
