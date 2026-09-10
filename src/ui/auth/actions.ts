@@ -103,7 +103,11 @@ export const loginUserAction = (
     }
   } else {
     const body = await res.json().catch(() => ({}));
-    dispatch({ type: AuthAction.AuthUserFailure, error: body?.error?.message || body?.message || 'Invalid email or password.' });
+    // Backend error responses are { error: "some string" } (the convention
+    // used almost everywhere in this API), not { error: { message } } --
+    // body?.error?.message never matched anything real and silently
+    // swallowed messages like "TOTP verification required.".
+    dispatch({ type: AuthAction.AuthUserFailure, error: body?.error || body?.message || 'Invalid email or password.' });
   }
 }
 
