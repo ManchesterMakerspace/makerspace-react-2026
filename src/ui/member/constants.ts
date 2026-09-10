@@ -177,7 +177,7 @@ export const getDetailsForMember = (member: Partial<Member>) => {
     details = membershipDetails.subscription;
   } else if (!member.expirationTime) {
     details = membershipDetails.none;
-  } else if (member.earnedMembershipId) {
+  } else if ((member as any).earnedMembershipActive) {
     details = membershipDetails.earnedMembership;
   }
   return details;

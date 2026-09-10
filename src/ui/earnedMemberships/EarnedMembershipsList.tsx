@@ -19,6 +19,8 @@ import EarnedMembershipForm from "ui/earnedMemberships/EarnedMembershipForm";
 import UpdateEarnedMembershipContainer, { UpdateMembershipRenderProps } from "ui/earnedMemberships/UpdateEarnedMembershipContainer";
 import { displayMemberExpiration } from "ui/member/utils";
 import MemberStatusLabel from "ui/member/MemberStatusLabel";
+import Chip from "@mui/material/Chip";
+import ErrorMessage from "ui/common/ErrorMessage";
 
 
 interface OwnProps extends RouteComponentProps<{}> {}
@@ -44,6 +46,7 @@ interface State {
   order: SortDirection;
   openCreateForm: boolean;
   openEditForm: boolean;
+  actionError: string;
 }
 
 const fields: Column<EarnedMembership>[] = [
@@ -70,6 +73,20 @@ const fields: Column<EarnedMembership>[] = [
       return <MemberStatusLabel member={member} />;
     }
   },
+  {
+    id: "emStatus",
+    label: "Earned Membership Status",
+    cell: (row: EarnedMembership) => {
+      const suspended = (row as any).status === "suspended";
+      return (
+        <Chip
+          size="small"
+          color={suspended ? "error" : "success"}
+          label={suspended ? "Suspended" : "Active"}
+        />
+      );
+    }
+  },
 ];
 
 class EarnedMembershipList extends React.Component<Props, State> {
@@ -83,6 +100,7 @@ class EarnedMembershipList extends React.Component<Props, State> {
       order: SortDirection.Asc,
       openCreateForm: false,
       openEditForm: false,
+      actionError: undefined,
     };
   }
 
@@ -143,8 +161,46 @@ class EarnedMembershipList extends React.Component<Props, State> {
     )
   }
 
-  private getActionButtons = () => {
+  private getCsrfToken = (): string => {
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  }
+
+  // No generated API client method yet for these new endpoints -- same
+  // direct-fetch pattern used elsewhere for a backend action that just
+  // shipped (e.g. GoogleDriveInviteButton).
+  private toggleSuspend = async () => {
+    const { memberships } = this.props;
     const { selectedId } = this.state;
+    const selectedMembership = memberships[selectedId] as any;
+    if (!selectedMembership) return;
+
+    const action = selectedMembership.status === "suspended" ? "reactivate" : "suspend";
+    this.setState({ actionError: undefined });
+    try {
+      const res = await fetch(`/api/admin/earned_memberships/${selectedId}/${action}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-XSRF-TOKEN": this.getCsrfToken(),
+        },
+      });
+      if (res.ok) {
+        this.getMemberships();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        this.setState({ actionError: body?.message || `Failed to ${action} membership.` });
+      }
+    } catch {
+      this.setState({ actionError: "Network error — please try again." });
+    }
+  }
+
+  private getActionButtons = () => {
+    const { memberships } = this.props;
+    const { selectedId } = this.state;
+    const selectedMembership = memberships[selectedId] as any;
+    const isSuspended = selectedMembership?.status === "suspended";
     return (
       <ButtonRow
         actionButtons={[{
@@ -159,6 +215,13 @@ class EarnedMembershipList extends React.Component<Props, State> {
           color: "default",
           onClick: this.openEditForm,
           label: "Edit Membership",
+          disabled: !selectedId
+        }, {
+          id: "membership-list-toggle-suspend",
+          variant: "outlined",
+          color: isSuspended ? "primary" : "secondary",
+          onClick: this.toggleSuspend,
+          label: isSuspended ? "Reactivate Membership" : "Suspend Membership",
           disabled: !selectedId
         }]}
       />
@@ -230,9 +293,9 @@ class EarnedMembershipList extends React.Component<Props, State> {
   // Only select one at a time
   private onSelect = (id: string, selected: boolean) => {
     if (selected) {
-      this.setState({ selectedId: id });
+      this.setState({ selectedId: id, actionError: undefined });
     } else {
-      this.setState({ selectedId: undefined });
+      this.setState({ selectedId: undefined, actionError: undefined });
     }
   }
 
@@ -249,6 +312,7 @@ class EarnedMembershipList extends React.Component<Props, State> {
       pageNum,
       order,
       orderBy,
+      actionError,
     } = this.state;
 
     return (
@@ -256,6 +320,7 @@ class EarnedMembershipList extends React.Component<Props, State> {
         <Grid size={{ xs: 12, md: 10 }}>
           <Grid style={{paddingTop: 20}}>
             {this.getActionButtons()}
+            <ErrorMessage id="membership-list-action-error" error={actionError} />
           </Grid>
           <TableContainer
             id="memberships-table"

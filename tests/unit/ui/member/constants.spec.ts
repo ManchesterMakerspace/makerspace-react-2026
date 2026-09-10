@@ -17,4 +17,32 @@ describe("getDetailsForMember", () => {
     const details = getDetailsForMember({ subscriptionId: "sub_123" } as any);
     expect(details.type).toEqual("Subscription");
   });
+
+  it("shows earned membership details only while it's active, not just present", () => {
+    const active = getDetailsForMember({
+      expirationTime: Date.now() + 1_000_000,
+      earnedMembershipId: "em-1",
+      earnedMembershipActive: true,
+    } as any);
+    expect(active.type).toEqual("Earned Membership");
+
+    // A suspended earned membership still has an id (history is preserved),
+    // but should no longer drive the self-service panel's framing -- see #257.
+    const suspended = getDetailsForMember({
+      expirationTime: Date.now() + 1_000_000,
+      earnedMembershipId: "em-1",
+      earnedMembershipActive: false,
+    } as any);
+    expect(suspended.type).not.toEqual("Earned Membership");
+  });
+
+  it("prefers a real subscription over a suspended earned membership's leftover id", () => {
+    const details = getDetailsForMember({
+      expirationTime: Date.now() + 1_000_000,
+      earnedMembershipId: "em-1",
+      earnedMembershipActive: false,
+      subscriptionId: "sub_123",
+    } as any);
+    expect(details.type).toEqual("Subscription");
+  });
 });
