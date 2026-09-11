@@ -1,3 +1,6 @@
+import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
+import QrCodeIcon from "@mui/icons-material/QrCode";
+import { useCapabilities } from "app/permissions";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
@@ -573,6 +576,8 @@ const WorkshopsPage: React.FC = () => {
   const [error, setError] = React.useState("");
   const [addOpen, setAddOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
+  const [qrOpen, setQrOpen] = React.useState(false);
+  const { canViewShopQrCodes } = useCapabilities();
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -655,10 +660,14 @@ const WorkshopsPage: React.FC = () => {
 
           <div style={{ marginTop: 18 }}>
             {tab === "details" && <>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
               {data.canAddShop && <Button startIcon={<EditIcon />} variant="outlined"
-                onClick={() => setEditOpen(true)} style={{ marginBottom: 14 }}>
+                onClick={() => setEditOpen(true)}>
                 Edit
               </Button>}
+              {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
+                onClick={() => setQrOpen(true)}>QR Code</Button>}
+              </div>
               <WorkshopDetails workshop={workshop} />
             </>}
             {tab === "tools" &&
@@ -681,6 +690,7 @@ const WorkshopsPage: React.FC = () => {
         onClose={() => setAddOpen(false)}
         onCreated={() => { setAddOpen(false); load(); }}
       />}
+      {qrOpen && workshop && <PublicCatalogQrCodeModal key={workshop.id} kind="shop" resource={workshop} onClose={() => setQrOpen(false)} />}
       {editOpen && workshop && <EditShopModal workshop={workshop}
         onClose={() => setEditOpen(false)}
         onUpdated={() => { setEditOpen(false); load(); }} />}

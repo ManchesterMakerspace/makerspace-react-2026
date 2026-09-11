@@ -52,11 +52,12 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
       if(shortGate) await shortGate;
       if(failShortcodes) return route.fulfill({status:503,contentType:'application/json',body:'{}'});
       const requested = route.request().postDataJSON().target_url;
-      assert([`/api/tool/${id}/public.html`, `/api/tool/${tool2}/public.html`, '/rentals/spots/2123456789abcdef01234567', '/rentals/spots/3123456789abcdef01234567'].includes(requested));
+      assert([`/api/tool/${id}/public.html`, `/api/tool/${tool2}/public.html`, '/api/shop/shop1/public.html', '/rentals/spots/2123456789abcdef01234567', '/rentals/spots/3123456789abcdef01234567'].includes(requested));
       body={code:'23456789AB',short_url:requested.startsWith('/rentals/') ? (requested.includes('3123456789abcdef01234567') ? 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AE' : 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD') : target(requested.includes(tool2) ? tool2 : id)};
     }
+    else if(pathname==='/api/workshops') body={canAddShop:true,workshops:[{id:'shop1',name:'Woodworking',resourceManagers:[],upcomingVolunteerEvents:[],volunteerTasks:[],tools:[]}]};
     else if(pathname.includes('/permissions')) body={};
-    else if(pathname==='/api/admin/shops') body=[{id:'shop1',name:'Woodworking'}];
+    else if(pathname==='/api/shops' || pathname==='/api/admin/shops') body=[{id:'shop1',name:'Woodworking'}];
     else if(pathname==='/api/admin/tools') body=[{id,name:'Table Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''},{id:tool2,name:'Band Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''}];
     else if(pathname==='/api/admin/rental_spots') body=[{id:'2123456789abcdef01234567',number:'A-01',location:'Shelf',active:true},{id:'3123456789abcdef01234567',number:'A-02',location:'Shelf',active:true}];
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
@@ -91,6 +92,7 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    assert((await page.evaluate(()=>window.copiedPng)).size>0);
    const bounds=await dialog.boundingBox();
    assert(bounds.x>=0 && bounds.x+bounds.width<=width);
+   await page.waitForTimeout(250); // Let the MUI transition settle for visual checks.
    await page.screenshot({path:path.join(root,`tmp/tool-qr-${width}.png`),fullPage:true});
    await dialog.getByRole('button',{name:'Close',exact:true}).click();
    await page.locator(`#tools-table-${tool2}-select`).check();
@@ -103,7 +105,7 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.getByRole('dialog').waitFor({state:'hidden'});
    failShortcodes=true;
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
-   const toolFallback=`http://127.0.0.1:8767/api/tool/${tool2}/public.html`;
+   const toolFallback=`https://public.example.test/api/tool/${tool2}/public.html`;
    await page.getByRole('dialog').getByRole('link',{name:toolFallback,exact:true}).waitFor();
    await page.getByRole('alert').filter({hasText:'This QR code uses the full link'}).waitFor();
    await page.getByRole('dialog').getByRole('link',{name:'download it as a PNG'}).waitFor();
@@ -111,6 +113,23 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.keyboard.press('Escape');
    await page.getByRole('dialog').waitFor({state:'hidden'});
    failShortcodes=false;
+   await page.getByRole('tab',{name:'Shops',exact:true}).click();
+   await page.locator('#shops-table-shop1-select').check();
+   await page.getByRole('button',{name:'QR Code',exact:true}).focus();
+   await page.keyboard.press('Enter');
+   await page.getByRole('dialog',{name:'QR Code — Woodworking'}).getByRole('link',{name:target(id),exact:true}).waitFor();
+   await page.waitForTimeout(250); // Let the MUI transition settle for visual checks.
+   await page.screenshot({path:path.join(root,`tmp/shop-qr-${width}.png`),fullPage:true});
+   await page.keyboard.press('Escape');
+   await page.goto('http://127.0.0.1:8767/workshops');
+   await page.getByRole('tab',{name:'Details',exact:true}).click();
+   await page.getByRole('button',{name:'QR Code',exact:true}).click();
+   await page.getByRole('dialog',{name:'QR Code — Woodworking'}).getByRole('link',{name:target(id),exact:true}).waitFor();
+   const shopBounds=await page.getByRole('dialog').boundingBox();
+   assert(shopBounds.x>=0 && shopBounds.x+shopBounds.width<=width);
+   await page.waitForTimeout(250); // Let the MUI transition settle for visual checks.
+   await page.screenshot({path:path.join(root,`tmp/workshop-qr-${width}.png`),fullPage:true});
+   await page.keyboard.press('Escape');
    // Rental labels share the same shortcode and fallback behavior.
    await page.goto('http://127.0.0.1:8767/admin/rentals');
    await page.getByRole('tab',{name:'Rental Spots',exact:true}).click();
@@ -135,6 +154,7 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.getByRole('alert').getByRole('link',{name:longUrl,exact:true}).waitFor();
    assert(await page.getByRole('alert').evaluate(alert=>!!(alert.compareDocumentPosition(document.querySelector('table')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Copy recovery must be above the rental table');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Rental fallback page must fit viewport");
+   await page.waitForTimeout(250); // Let the MUI transition settle for visual checks.
    await page.screenshot({path:path.join(root,`tmp/rental-link-fallback-${width}.png`),fullPage:true});
    await page.evaluate(()=>{window.failTextClipboard=true;});
    await page.getByRole('button',{name:'Copy Link',exact:true}).click();
@@ -173,6 +193,44 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    } else {
      console.log(`SKIP optional slow-request check at ${width}px (RUN_SLOW_REQUEST_TEST=1 to enable)`);
    }
+   await page.close();
+  }
+  for (const role of ['board_member', 'resource_manager', 'member']) {
+   const page=await browser.newPage({viewport:{width:600,height:900}});
+   await page.route('**/api/**', async route=>{
+    const pathname=new URL(route.request().url()).pathname;
+    let body=[];
+    if(pathname==='/api/config') body={app_domain:'public.example.test'};
+    else if(pathname==='/api/members/sign_in') body={id:'member1',email:'test@example.com',firstname:'Test',lastname:'User',role,status:'activeMember',isCheckoutApprover:role==='member',resourceManagerShopIds:[]};
+    else if(pathname==='/api/shops') body=[{id:'shop1',name:'Woodworking'}];
+    else if(pathname==='/api/admin/shops') body=role==='board_member'?[{id:'shop1',name:'Woodworking'}]:[];
+    else if(pathname==='/api/admin/tools') body=[{id,name:'Table Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''}];
+    else if(pathname==='/api/workshops') body={canAddShop:role==='board_member',workshops:[{id:'shop1',name:'Woodworking',resourceManagers:[],upcomingVolunteerEvents:[],volunteerTasks:[],tools:[]}]};
+    else if(pathname==='/api/shortcodes') body={code:'23456789AB',short_url:target(id)};
+    else if(pathname.includes('/permissions')) body={};
+    await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
+   });
+   await page.goto('http://127.0.0.1:8767/tool-checkouts');
+   if(role==='member') {
+    await page.getByRole('tab',{name:'Tools',exact:true}).click();
+    assert.equal(await page.getByRole('tab',{name:'Shops',exact:true}).count(),0);
+    await page.locator(`#tools-table-${id}-select`).check();
+   } else {
+    await page.getByRole('tab',{name:'Shops',exact:true}).click();
+    await page.locator('#shops-table-shop1-select').check();
+    if(role==='resource_manager') assert.equal(await page.getByRole('button',{name:'Edit',exact:true}).count(),0);
+   }
+   await page.getByRole('button',{name:'QR Code',exact:true}).click();
+   await page.getByRole('dialog').getByRole('link',{name:target(id),exact:true}).waitFor();
+   await page.keyboard.press('Escape');
+   await page.goto('http://127.0.0.1:8767/workshops');
+   await page.getByRole('tab',{name:'Details',exact:true}).click();
+   if(role==='member') assert.equal(await page.getByRole('button',{name:'QR Code',exact:true}).count(),0);
+   else {
+    await page.getByRole('button',{name:'QR Code',exact:true}).click();
+    await page.getByRole('dialog').getByRole('link',{name:target(id),exact:true}).waitFor();
+   }
+   console.log(`PASS QR permissions: ${role}`);
    await page.close();
   }
  } finally {await browser.close();server.close();}
