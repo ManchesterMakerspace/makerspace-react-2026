@@ -11,6 +11,24 @@ describe("checkout login destination", () => {
     clearCheckoutDestination();
     expect(checkoutDestination()).toBeNull();
   });
+  it("retains the validated target across Firebase callback reloads and the login handoff", () => {
+    const path = "/tools/0123456789abcdef01234567/request-checkout";
+    window.history.replaceState({}, "", `/login?return_to=${encodeURIComponent(path)}`);
+    expect(checkoutDestination()).toBe(path);
+    window.history.replaceState({}, "", "/auth/callback");
+    expect(checkoutDestination()).toBe(path);
+    expect(checkoutDestination()).toBe(path);
+    window.history.replaceState({}, "", `/login?return_to=${encodeURIComponent(path)}`);
+    expect(checkoutDestination()).toBe(path);
+    window.history.replaceState({}, "", "/members/abc/settings/security");
+    expect(checkoutDestination()).toBe(path);
+  });
+  it("rejects an invalid stored callback target", () => {
+    sessionStorage.setItem("checkout-return-to", "https://example.com");
+    window.history.replaceState({}, "", "/auth/callback");
+    expect(checkoutDestination()).toBeNull();
+    expect(sessionStorage.getItem("checkout-return-to")).toBeNull();
+  });
   it.each(["/", "/signup", "/workshops", "/login", "/login?redirect=%2Fworkshops"])("abandons a checkout target on %s", next => {
     const path = "/tools/0123456789abcdef01234567/request-checkout";
     window.history.replaceState({}, "", `/login?return_to=${encodeURIComponent(path)}`);

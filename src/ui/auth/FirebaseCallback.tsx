@@ -6,6 +6,7 @@ import Typography from '@mui/material/Typography';
 import Grid from "@mui/material/Grid";
 import { clearProviderSignInState, completeProviderSignIn } from 'ui/auth/firebase';
 import { firebaseLoginAction } from 'ui/auth/actions';
+import { checkoutDestination } from './checkoutDestination';
 import { Routing } from 'app/constants';
 import { ScopedThunkDispatch } from 'ui/reducer';
 
@@ -39,7 +40,8 @@ class FirebaseCallback extends React.Component<Props, State> {
       const idToken = await completeProviderSignIn();
       await this.props.firebaseLogin(idToken);
       clearProviderSignInState();
-      this.props.navigate(Routing.Login);
+      const destination = checkoutDestination();
+      this.props.navigate(destination ? `${Routing.Login}?return_to=${encodeURIComponent(destination)}` : Routing.Login);
     } catch (err: unknown) {
       console.error('[Firebase Auth] Redirect callback failed', err);
       const message = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
