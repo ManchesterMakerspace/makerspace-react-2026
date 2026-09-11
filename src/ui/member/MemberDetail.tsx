@@ -43,6 +43,7 @@ import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 import {
   MemberProvisioning,
   ProvisioningStatusChip,
+  SlackProvisioningIcon,
 } from 'ui/member/ProvisioningStatus';
 
 
@@ -297,7 +298,10 @@ const MemberProfile: React.FC = () => {
                   <>
                     <EmailStatusIcon mailtrap={(member as any).mailtrap} />
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      <SlackStatusIcon slack={(member as any).slack} />
+                      {provisioning
+                        ? <SlackProvisioningIcon provisioning={provisioning} fallbackLinkedName={(member as any).slack?.name} />
+                        : <SlackStatusIcon slack={(member as any).slack} />
+                      }
                       {(member as any).slack && (
                         <span style={{ fontSize: "0.8rem", color: "#555" }}>{(member as any).slack.name}</span>
                       )}
