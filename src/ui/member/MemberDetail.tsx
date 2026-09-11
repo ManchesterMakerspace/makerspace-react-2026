@@ -130,7 +130,7 @@ const MemberProfile: React.FC = () => {
     refresh: refreshMember,
     error: memberError,
     data: member = {} as Member
-  } = useReadTransaction(getMember, { id: memberId }, undefined, undefined, undefined, true);
+  } = useReadTransaction(getMember, { id: memberId });
 
   const [notification, setNotification] = React.useState<Notification>();
   React.useEffect(() => {
