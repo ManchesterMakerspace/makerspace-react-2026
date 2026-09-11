@@ -20,7 +20,7 @@ const server = http.createServer((req,res) => {
   if(file && fs.existsSync(file)) {
     res.setHeader('Content-Type', file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.svg')?'image/svg+xml':'text/html');
     res.end(fs.readFileSync(file));
-  } else {res.setHeader('Content-Type','text/html');res.end(html);}
+  } else {res.setHeader('Content-Type','text/html');res.end(url === '/L23456789AB' ? html.replace('<head>', `<head><meta name="shortcode-target" content="/tools/${id}/request-checkout">`) : html);}
 });
 (async()=>{
  await new Promise(resolve=>server.listen(8765,'127.0.0.1',resolve));
@@ -41,7 +41,7 @@ const server = http.createServer((req,res) => {
     else if(url.pathname.endsWith('/coreq.html')) body={tool:{id,name:'Saw',unmetPrerequisiteNames:[]},eligible:true};
     await route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
   });
-  await loginPage.goto(`http://127.0.0.1:8765/tools/${id}/request-checkout`);
+  await loginPage.goto('http://127.0.0.1:8765/L23456789AB');
   await loginPage.getByRole('button',{name:'Sign In',exact:true}).waitFor();
   assert(loginPage.url().includes('return_to='));
   await loginPage.getByRole('textbox',{name:'Email',exact:true}).fill('test@example.com');

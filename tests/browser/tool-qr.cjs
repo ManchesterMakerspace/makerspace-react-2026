@@ -24,7 +24,7 @@ const server = http.createServer((req,res) => {
 });
 const QRCode = require('qrcode');
 const tool2 = '1123456789abcdef01234567';
-const target = toolId => `https://public.example.test/api/tool/${toolId}/public.html`;
+const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "23456789AB" : "23456789AC"}`;
 (async()=>{
  await new Promise(resolve=>server.listen(8767,'127.0.0.1',resolve));
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined),headless:true});
@@ -32,21 +32,28 @@ const target = toolId => `https://public.example.test/api/tool/${toolId}/public.
   for(const width of [320,600,900,1440]) {
    const page=await browser.newPage({viewport:{width,height:900}});
    await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'clipboard',{value:{write:async items=>{
+    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{window.copiedText=value;},write:async items=>{
      if(window.failClipboard) throw new Error('Unsupported');
      const blob=await items[0].getType('image/png');
      window.copiedPng={type:blob.type,size:blob.size};
     }}});
    });
+   let failShortcodes=false;
    await page.route('**/api/**',async route=>{
     const pathname=new URL(route.request().url()).pathname;
     let body=[];
     if(pathname==='/api/config') body={wiki_url:'https://wiki.example.test',app_domain:'public.example.test'};
     else if(pathname==='/api/members/sign_in') body={id:'member1',email:'admin@example.com',firstname:'Test',lastname:'Admin',role:'admin',status:'activeMember'};
+    else if(pathname==='/api/shortcodes') {
+      if(failShortcodes) return route.fulfill({status:503,contentType:'application/json',body:'{}'});
+      const requested = route.request().postDataJSON().target_url;
+      assert([`/api/tool/${id}/public.html`, `/api/tool/${tool2}/public.html`, '/rentals/spots/2123456789abcdef01234567'].includes(requested));
+      body={code:'23456789AB',short_url:requested.startsWith('/rentals/') ? 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD' : target(requested.includes(tool2) ? tool2 : id)};
+    }
     else if(pathname.includes('/permissions')) body={};
     else if(pathname==='/api/admin/shops') body=[{id:'shop1',name:'Woodworking'}];
     else if(pathname==='/api/admin/tools') body=[{id,name:'Table Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''},{id:tool2,name:'Band Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''}];
-    else if(pathname==='/api/admin/rental_spots') body=[{id:'spot1',number:'A-01',location:'Shelf',active:true}];
+    else if(pathname==='/api/admin/rental_spots') body=[{id:'2123456789abcdef01234567',number:'A-01',location:'Shelf',active:true}];
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
    });
    await page.goto('http://127.0.0.1:8767/tool-checkouts');
@@ -56,7 +63,9 @@ const target = toolId => `https://public.example.test/api/tool/${toolId}/public.
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
    const dialog=page.getByRole('dialog',{name:'QR Code — Table Saw'});
    await dialog.getByRole('link',{name:target(id),exact:true}).waitFor();
-   const expected=QRCode.create(target(id)).modules;
+   const encoded=QRCode.create(target(id));
+   assert.equal(encoded.segments[0].mode.id,'Alphanumeric');
+   const expected=encoded.modules;
    const matches=await dialog.locator('canvas').evaluate((canvas,{size,data})=>{
     const pixels=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
     const scale=canvas.width/(size+4);
@@ -90,9 +99,16 @@ const target = toolId => `https://public.example.test/api/tool/${toolId}/public.
    // Regression: rental QR labels still use the original rental destination.
    await page.goto('http://127.0.0.1:8767/admin/rentals');
    await page.getByRole('tab',{name:'Rental Spots',exact:true}).click();
-   await page.locator('#admin-rental-spots-table-spot1-select').check();
+   await page.locator('#admin-rental-spots-table-2123456789abcdef01234567-select').check();
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
-   await page.getByRole('dialog',{name:'QR Code — A-01'}).getByRole('link',{name:'http://127.0.0.1:8767/rentals/spots/A-01',exact:true}).waitFor();
+   await page.getByRole('dialog',{name:'QR Code — A-01'}).getByRole('link',{name:'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD',exact:true}).waitFor();
+   await page.getByRole('button',{name:'Close',exact:true}).click();
+   await page.getByRole('button',{name:'Copy Link',exact:true}).click();
+   await page.waitForFunction(()=>window.copiedText==='HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD');
+   failShortcodes=true;
+   await page.getByRole('button',{name:'QR Code',exact:true}).click();
+   await page.getByRole('alert').filter({hasText:'Could not create the short link'}).waitFor();
+   assert.equal(await page.getByRole('dialog').locator('canvas').count(),0);
    console.log(`PASS ${width}px: selected tool, QR pixels/target, PNG, clipboard, close, tool switch, rental regression`);
    await page.close();
   }

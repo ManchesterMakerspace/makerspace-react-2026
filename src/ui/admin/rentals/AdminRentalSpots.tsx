@@ -1,3 +1,4 @@
+import { createShortLink } from "api/shortcodes";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -55,15 +56,20 @@ const AdminRentalSpots: React.FC = () => {
   const [isEditing,    setIsEditing]    = React.useState(false);
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
   const [linkCopied,   setLinkCopied]   = React.useState(false);
-  const [qrSpotNumber, setQrSpotNumber] = React.useState<string | null>(null);
+  const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
+  const [linkError, setLinkError] = React.useState("");
   const { params, changePage } = useQueryContext();
 
-  const copyDeepLink = React.useCallback((spotNumber: string) => {
-    const path = Routing.RentalSpotDeepLink.replace(Routing.PathPlaceholder.SpotId, spotNumber);
-    const url = `${window.location.origin}${path}`;
-    navigator.clipboard?.writeText(url);
-    setLinkCopied(true);
-    window.setTimeout(() => setLinkCopied(false), 2000);
+  const copyDeepLink = React.useCallback(async (spotId: string) => {
+    setLinkError("");
+    try {
+      const link = await createShortLink(`/rentals/spots/${spotId}`);
+      await navigator.clipboard.writeText(link.short_url);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setLinkError("Could not copy the short link. Open QR Code to view and copy the link.");
+    }
   }, []);
 
   const { data: rentalTypes = [] } = useReadTransaction(
@@ -153,11 +159,11 @@ const AdminRentalSpots: React.FC = () => {
             {selectedSpot && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
-                  onClick={() => copyDeepLink(selectedSpot.number)}>
+                  onClick={() => copyDeepLink(selectedSpot.id)}>
                   {linkCopied ? "Copied!" : "Copy Link"}
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
-                  onClick={() => setQrSpotNumber(selectedSpot.number)}>
+                  onClick={() => setQrSpot(selectedSpot)}>
                   QR Code
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
@@ -279,7 +285,8 @@ const AdminRentalSpots: React.FC = () => {
         )}
       </FormModal>
 
-      <RentalSpotQrCodeModal spotNumber={qrSpotNumber} onClose={() => setQrSpotNumber(null)} />
+      {linkError && <Typography role="alert" color="error">{linkError}</Typography>}
+      <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
     </Grid>
   );
 };
