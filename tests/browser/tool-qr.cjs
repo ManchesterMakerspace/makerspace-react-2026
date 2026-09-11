@@ -33,7 +33,11 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
   for(const width of [320,600,900,1440]) {
    const page=await browser.newPage({viewport:{width,height:900}});
    await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{if(window.failTextClipboard) throw new Error('Clipboard unavailable');window.copiedText=value;},write:async items=>{
+    document.addEventListener('click', () => {
+      window.copyGesture=true;
+      setTimeout(() => { window.copyGesture=false; }, 0);
+    }, true);
+    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{if(!window.copyGesture) throw new Error('Clipboard write lost the click gesture');if(window.failTextClipboard) throw new Error('Clipboard unavailable');window.copiedText=value;},write:async items=>{
      if(window.failClipboard) throw new Error('Unsupported');
      const blob=await items[0].getType('image/png');
      window.copiedPng={type:blob.type,size:blob.size};
@@ -201,21 +205,22 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
      try {
        failShortcodes=false;
        await page.evaluate(()=>{window.copiedText='';window.failTextClipboard=false;});
-       await page.locator('#admin-rental-spots-table-2123456789abcdef01234567-select').check();
        shortGate=new Promise(resolve=>{releaseShortcode=resolve;});
        const requestsBefore=shortRequests;
        await Promise.all([
          page.waitForRequest(request=>request.url().endsWith('/api/shortcodes')),
-         page.getByRole('button',{name:'Copy Link',exact:true}).click(),
+         page.locator('#admin-rental-spots-table-2123456789abcdef01234567-select').check(),
        ]);
-       const pending=page.getByRole('button',{name:'Copying…',exact:true});
+       const pending=page.getByRole('button',{name:'Loading link…',exact:true});
        assert(await pending.isDisabled());
        await pending.evaluate(button=>{button.click();button.click();});
        assert.equal(shortRequests,requestsBefore+1);
        await page.locator('#admin-rental-spots-table-3123456789abcdef01234567-select').check();
        releaseShortcode(); shortGate=null;
        await page.waitForFunction(()=>Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='Copy Link' && !button.disabled));
-       assert.equal(await page.evaluate(()=>window.copiedText),'','Changed selection must not copy a stale result');
+       assert.equal(await page.evaluate(()=>window.copiedText),'','Preloading must not write to the clipboard');
+       await page.getByRole('button',{name:'Copy Link',exact:true}).click();
+       await page.waitForFunction(()=>window.copiedText==='HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AE');
        console.log(`PASS optional slow-request check at ${width}px`);
      } catch (error) {
        console.warn(`WARN optional slow-request check at ${width}px: ${error.message}`);

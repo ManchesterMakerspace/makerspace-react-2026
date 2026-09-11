@@ -59,30 +59,44 @@ const AdminRentalSpots: React.FC = () => {
   const [linkError, setLinkError] = React.useState("");
   const [copyableLink, setCopyableLink] = React.useState("");
   const [copyingLink, setCopyingLink] = React.useState(false);
+  const [preparedLink, setPreparedLink] = React.useState<{ spotId: string; url: string; fallback: boolean } | null>(null);
+  const linkReady = preparedLink?.spotId === selectedId && !!preparedLink?.url;
   const copyPending = React.useRef(false);
   const selectedIdRef = React.useRef(selectedId);
   selectedIdRef.current = selectedId;
   const mounted = React.useRef(true);
   React.useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  React.useEffect(() => { setLinkError(""); setCopyableLink(""); setLinkCopied(false); }, [selectedId]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setPreparedLink(null);
+    setLinkError(""); setCopyableLink(""); setLinkCopied(false);
+    if (selectedId) {
+      const target = `/rentals/spots/${selectedId}`;
+      createShortLink(target).then(link => {
+        if (!cancelled) setPreparedLink({ spotId: selectedId, url: link.short_url, fallback: false });
+      }).catch(() => {
+        if (!cancelled) {
+          const url = `${window.location.origin}/rentals/spots/${encodeURIComponent(selectedId)}`;
+          setPreparedLink({ spotId: selectedId, url, fallback: true });
+          setCopyableLink(url);
+          setLinkError("Short link unavailable. Use the full link below.");
+        }
+      });
+    }
+    return () => { cancelled = true; };
+  }, [selectedId]);
   const { params, changePage } = useQueryContext();
 
   const copyDeepLink = React.useCallback(async (spotId: string) => {
-    if (copyPending.current) return;
+    if (copyPending.current || preparedLink?.spotId !== spotId) return;
+    const { url, fallback } = preparedLink;
     copyPending.current = true;
     setCopyingLink(true);
-    setLinkError(""); setLinkCopied(false); setCopyableLink("");
+    setLinkError(fallback ? "Short link unavailable. Use the full link below." : "");
+    setLinkCopied(false); setCopyableLink(url);
     const current = () => mounted.current && selectedIdRef.current === spotId;
-    let url = `${window.location.origin}/rentals/spots/${encodeURIComponent(spotId)}`;
     try {
-      try {
-        const link = await createShortLink(`/rentals/spots/${spotId}`);
-        url = link.short_url;
-      } catch {
-        if (current()) setLinkError("Short link unavailable. Use the full link below.");
-      }
-      if (!current()) return;
-      setCopyableLink(url);
+      // Invoke the clipboard during the click, before yielding to any promise.
       try {
         await navigator.clipboard.writeText(url);
         if (current()) {
@@ -96,7 +110,7 @@ const AdminRentalSpots: React.FC = () => {
       copyPending.current = false;
       if (mounted.current) setCopyingLink(false);
     }
-  }, []);
+  }, [preparedLink]);
 
   const { data: rentalTypes = [] } = useReadTransaction(
     adminListRentalTypes, {}, undefined, "admin-rental-types-for-spots"
@@ -185,8 +199,8 @@ const AdminRentalSpots: React.FC = () => {
             {selectedSpot && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
-                  disabled={copyingLink} aria-busy={copyingLink} onClick={() => copyDeepLink(selectedSpot.id)}>
-                  {copyingLink ? "Copying…" : linkCopied ? "Copied!" : "Copy Link"}
+                  disabled={!linkReady || copyingLink} aria-busy={!linkReady || copyingLink} onClick={() => copyDeepLink(selectedSpot.id)}>
+                  {!linkReady ? "Loading link…" : copyingLink ? "Copying…" : linkCopied ? "Copied!" : "Copy Link"}
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                   onClick={() => setQrSpot(selectedSpot)}>
