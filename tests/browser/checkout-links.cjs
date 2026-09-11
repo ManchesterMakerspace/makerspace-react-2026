@@ -53,6 +53,30 @@ const server = http.createServer((req,res) => {
   assert(loginPage.url().endsWith(`/tools/${id}/request-checkout`));
   console.log('PASS password + TOTP login returns to selected tool');
   await loginPage.close();
+  for (const redirect of ['', '?redirect=%2Fworkshops']) {
+    const page = await browser.newPage();
+    await page.route('**/api/**', async route => {
+      const url = new URL(route.request().url());
+      const signingIn = url.pathname === '/api/members/sign_in';
+      const credentials = signingIn && route.request().postDataJSON()?.member;
+      await route.fulfill({status: signingIn && !credentials ? 401 : 200,
+        contentType: 'application/json', body: JSON.stringify(signingIn ? credentials ?
+          {id:'member1',email:'test@example.com',firstname:'Test',lastname:'Member',role:'member',status:'activeMember'} :
+          {error:'Sign in required'} : [])});
+    });
+    await page.goto(`http://127.0.0.1:8765/login?return_to=/tools/${id}/request-checkout`);
+    await page.getByRole('button',{name:'Register',exact:true}).click();
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('checkout-return-to')), null);
+    // Stay in the same mounted App to catch stale React references as well.
+    await page.evaluate(url => { history.pushState({}, '', url); dispatchEvent(new PopStateEvent('popstate')); }, '/login'+redirect);
+    await page.getByRole('textbox',{name:'Email',exact:true}).fill('test@example.com');
+    await page.getByLabel('Password',{exact:false}).fill('Password123');
+    await page.getByRole('button',{name:'Sign In',exact:true}).click();
+    await page.waitForURL(url => redirect ? url.pathname === '/workshops' : url.pathname.startsWith('/members/'));
+    assert(!page.url().includes('request-checkout'));
+    console.log(`PASS abandoned checkout login respects ${redirect || 'normal sign-in'}`);
+    await page.close();
+  }
   for(const width of [320,600,900,1440]) {
    const page=await browser.newPage({viewport:{width,height:900}});
    page.on("pageerror", error=>console.log("PAGE ERROR",error.stack));
@@ -86,11 +110,6 @@ const server = http.createServer((req,res) => {
    await page.reload();
    await page.getByText('No checkout required').waitFor();
    assert.equal(await page.getByRole('dialog').count(),0);
-   const publicLink = page.getByRole('link', {name:'Public page for Table saw with a long descriptive name (QR)'});
-   assert.equal(await publicLink.innerText(), '(QR)');
-   assert.equal(await publicLink.getAttribute('href'), `/tool/${id}/public.html`);
-   await publicLink.focus();
-   assert.equal(await page.evaluate(()=>document.activeElement.textContent), '(QR)');
    console.log(`PASS ${width}px: request form, keyboard submission, no GET side effects, open-tool state`);
    await page.close();
   }

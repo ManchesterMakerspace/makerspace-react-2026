@@ -22,7 +22,7 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pathname, search, hash } = location;
-  const checkoutReturn = React.useRef(checkoutDestination());
+  const checkoutReturn = checkoutDestination();
   const dispatch = useDispatch();
 
   // Register global 401 interceptor once on mount
@@ -73,8 +73,8 @@ const App: React.FC = () => {
       loginAttempted && setAttemptingLogin(false);
       if (currentUserId) {
         if (totpEnrollmentRequired) return;
-        if (checkoutReturn.current && pathname !== checkoutReturn.current) {
-          window.location.assign(checkoutReturn.current);
+        if (checkoutReturn && pathname !== checkoutReturn) {
+          window.location.assign(checkoutReturn);
           return;
         }
         // Explicit redirect target (e.g. /login?redirect=/rentals/spots/abc123)
