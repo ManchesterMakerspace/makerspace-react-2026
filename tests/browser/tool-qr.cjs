@@ -176,10 +176,9 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.waitForFunction(()=>window.copiedText==='HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD');
    failShortcodes=true;
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
-   await page.getByRole('alert').filter({hasText:'This QR code uses the full link'}).waitFor();
-   await page.getByRole('dialog').getByRole('link',{name:'http://127.0.0.1:8767/rentals/spots/2123456789abcdef01234567',exact:true}).waitFor();
-   await page.getByRole('dialog').getByRole('link',{name:'download it as a PNG'}).waitFor();
-   assert.equal(await page.getByRole('dialog').locator('canvas').count(),1);
+   await page.getByRole('dialog').getByRole('alert').filter({hasText:'Cannot generate a QR code for localhost'}).waitFor();
+   assert.equal(await page.getByRole('dialog').locator('canvas').count(),0);
+   assert.equal(await page.getByRole('dialog').getByRole('link',{name:'download it as a PNG'}).count(),0);
    await page.getByRole('button',{name:'Close',exact:true}).click();
    await page.locator('#admin-rental-spots-table-3123456789abcdef01234567-select').check();
    failShortcodes=true;
