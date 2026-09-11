@@ -86,6 +86,11 @@ const server = http.createServer((req,res) => {
    await page.reload();
    await page.getByText('No checkout required').waitFor();
    assert.equal(await page.getByRole('dialog').count(),0);
+   const publicLink = page.getByRole('link', {name:'Public page for Table saw with a long descriptive name (QR)'});
+   assert.equal(await publicLink.innerText(), '(QR)');
+   assert.equal(await publicLink.getAttribute('href'), `/tool/${id}/public.html`);
+   await publicLink.focus();
+   assert.equal(await page.evaluate(()=>document.activeElement.textContent), '(QR)');
    console.log(`PASS ${width}px: request form, keyboard submission, no GET side effects, open-tool state`);
    await page.close();
   }

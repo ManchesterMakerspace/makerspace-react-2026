@@ -311,6 +311,7 @@ const WorkshopTools: React.FC<{
               <a href={tool.wikiUrl} target="_blank" rel="noopener noreferrer">
                 <strong>{tool.name}</strong>
               </a>{" "}
+              <a href={`/tool/${tool.id}/public.html`} aria-label={`Public page for ${tool.name} (QR)`}>(QR)</a>{" "}
               {tool.open && <Chip size="small" label="No checkout required" />}
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
