@@ -26,7 +26,6 @@ const CheckoutRequestPage: React.FC = () => {
     <Typography variant="h4" component="h1" gutterBottom>Request checkout</Typography>
     {error ? <Alert severity="error">{error}</Alert> : !context ? <CircularProgress aria-label="Loading tool" /> : <>
       <Typography variant="h5" component="h2">{context.tool.name}</Typography>
-      <a href={`/tool/${context.tool.id}/public.html`} aria-label={`Public page for ${context.tool.name} (QR)`}>(QR)</a>
       <Typography>{context.tool.description}</Typography>
       {created ? <Alert severity="success">Checkout request submitted.</Alert> : !context.eligible ?
         <Alert severity="info">{context.reason}</Alert> : <>

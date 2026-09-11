@@ -483,9 +483,7 @@ const ToolManager: React.FC = () => {
         ? <EditToolRow tool={row} tools={allManageableTools} onSave={handleSave} onCancel={handleCancel} saving={updating} />
         : (
           <div>
-            <Typography variant="body2"><strong>{row.name}</strong>{" "}
-              <a href={`/tool/${row.id}/public.html`} aria-label={`Public page for ${row.name} (QR)`}>(QR)</a>
-            </Typography>
+            <Typography variant="body2"><strong>{row.name}</strong></Typography>
             {row.description && <Typography variant="caption" color="textSecondary">{row.description}</Typography>}
           </div>
         ),
