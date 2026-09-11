@@ -1,3 +1,5 @@
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
 import { Link } from "react-router-dom";
 import Alert from "@mui/material/Alert";
@@ -166,6 +168,7 @@ const AddToolModal: React.FC<{
   onClose: () => void;
   onCreated: () => void;
 }> = ({ workshop, onClose, onCreated }) => {
+  const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -179,6 +182,7 @@ const AddToolModal: React.FC<{
     setSaving(true);
     const result = await adminCreateTool({
       body: {
+        open,
         name: name.trim(),
         shopId: workshop.id,
         wikiUrlOverride: wikiUrl,
@@ -199,6 +203,8 @@ const AddToolModal: React.FC<{
       closeHandler={onClose} onSubmit={submit} submitText="Add Tool"
       loading={saving} error={error}>
       <Grid container spacing={2}>
+        <Grid size={{ xs: 12 }}><FormControlLabel label="No checkout required"
+          control={<Checkbox checked={open} onChange={event => setOpen(event.target.checked)} />} /></Grid>
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Tool Name" value={name}
             onChange={event => setName(event.target.value)} autoFocus />
@@ -305,6 +311,7 @@ const WorkshopTools: React.FC<{
               <a href={tool.wikiUrl} target="_blank" rel="noopener noreferrer">
                 <strong>{tool.name}</strong>
               </a>{" "}
+              {tool.open && <Chip size="small" label="No checkout required" />}
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
               {tool.prerequisiteNames.length > 0 &&

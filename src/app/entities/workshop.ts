@@ -28,6 +28,7 @@ export interface WorkshopCheckoutRequest {
 }
 
 export interface WorkshopTool {
+  open?: boolean;
   id: string;
   name: string;
   wikiUrl: string;

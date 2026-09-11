@@ -92,7 +92,7 @@ const handle401 = (dispatch: Function | null = globalDispatch) => {
   const currentPath = window.location.pathname;
 
   if (shouldRedirectToLogin(currentPath)) {
-    window.location.href = Routing.Login;
+    window.location.href = Routing.Login + (/^\/tools\/[^/]+\/request-checkout$/.test(currentPath) ? `?return_to=${encodeURIComponent(currentPath)}` : "");
   }
 };
 

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { checkoutDestination } from "./checkoutDestination";
 import * as React from "react";
 import { connect } from "react-redux";
 
@@ -93,9 +94,12 @@ class LoginForm extends React.Component<Props, State> {
   }
 
   public async componentDidMount() {
+    checkoutDestination();
     const { auth, pushLocation } = this.props;
     if (auth) {
-      pushLocation(Routing.Members);
+      const destination = checkoutDestination();
+      if (destination) window.location.assign(destination);
+      else pushLocation(Routing.Members);
       return;
     }
 
@@ -116,7 +120,9 @@ class LoginForm extends React.Component<Props, State> {
     const { isRequesting: wasRequesting } = prevProps;
     const { isRequesting, auth, error, pushLocation, totpEnrollmentRequired, currentUserId } = this.props;
     if (wasRequesting && !isRequesting && !error && auth && !totpEnrollmentRequired) {
-      pushLocation(Routing.Members);
+      const destination = checkoutDestination();
+      if (destination) window.location.assign(destination);
+      else pushLocation(Routing.Members);
     }
     // Privileged member needs to enroll in TOTP — redirect to security settings
     if (totpEnrollmentRequired && !prevProps.totpEnrollmentRequired && auth) {

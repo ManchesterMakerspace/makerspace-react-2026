@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { checkoutDestination } from "ui/auth/checkoutDestination";
 import * as React from 'react';
 import { useNavigate, useLocation} from 'react-router-dom';
 import { useDispatch } from "react-redux";
@@ -21,6 +22,7 @@ const App: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { pathname, search, hash } = location;
+  const checkoutReturn = checkoutDestination();
   const dispatch = useDispatch();
 
   // Register global 401 interceptor once on mount
@@ -70,6 +72,11 @@ const App: React.FC = () => {
     if (!error && !isRequesting && !authSettled) {
       loginAttempted && setAttemptingLogin(false);
       if (currentUserId) {
+        if (totpEnrollmentRequired) return;
+        if (checkoutReturn && pathname !== checkoutReturn) {
+          window.location.assign(checkoutReturn);
+          return;
+        }
         // Explicit redirect target (e.g. /login?redirect=/rentals/spots/abc123)
         // takes priority — captured via redirectParamRef while /login was
         // still active, since LoginForm's own pushLocation(Routing.Members)
@@ -93,7 +100,7 @@ const App: React.FC = () => {
         setAuthSettled(true);
       }
     }
-  }, [isRequesting]);
+  }, [isRequesting, currentUserId, totpEnrollmentRequired]);
 
   return (
     <ErrorBoundary>

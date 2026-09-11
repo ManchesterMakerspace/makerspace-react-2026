@@ -1,5 +1,6 @@
 export interface ClientConfig {
   wiki_url: string;
+  app_domain?: string;
   firebase_api_key?: unknown;
   firebase_project_id?: unknown;
   firebase_auth_domain?: unknown;
