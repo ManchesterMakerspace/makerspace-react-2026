@@ -11,6 +11,8 @@ import FormLabel from "@mui/material/FormLabel";
 import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import QrCodeIcon from "@mui/icons-material/QrCode";
+import ToolQrCodeModal from "./ToolQrCodeModal";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -411,6 +413,7 @@ const DeleteToolModal: React.FC<DeleteToolModalProps> = ({ target, onClose, onDe
 // ── ToolManager ───────────────────────────────────────────────────────────────
 
 const ToolManager: React.FC = () => {
+  const [qrTool, setQrTool] = React.useState<Tool | null>(null);
   const [addOpen,      setAddOpen]      = React.useState(false);
   const [editingId,    setEditingId]    = React.useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = React.useState<Tool | null>(null);
@@ -527,7 +530,11 @@ const ToolManager: React.FC = () => {
               Manage tools within each shop. Tools with the same name in different shops are tracked independently.
             </Typography>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {selectedTool && !editingId && (
+              <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
+                onClick={() => setQrTool(selectedTool)}>QR Code</Button>
+            )}
             {selectedTool && !editingId && canFullyManageSelected && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
@@ -578,6 +585,8 @@ const ToolManager: React.FC = () => {
           loading={creating} error={createError}
         />
       )}
+
+      {qrTool && <ToolQrCodeModal key={qrTool.id} tool={qrTool} onClose={() => setQrTool(null)} />}
 
       <DeleteToolModal
         target={deleteTarget}
