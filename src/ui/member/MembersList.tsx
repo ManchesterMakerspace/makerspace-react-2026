@@ -221,7 +221,11 @@ const MembersList: React.FC = () => {
 
   const { isRequesting, data: members = [], response, refresh, error } = useReadTransaction(
     listMembers,
-    { ...params }
+    { ...params },
+    undefined,
+    undefined,
+    undefined,
+    true
   );
 
   const onRenew = React.useCallback(() => { refresh(); }, [refresh]);
