@@ -2,6 +2,8 @@ import * as React from "react";
 import { MemberStatus, MemberSummary } from "makerspace-ts-api-client";
 import { Status } from "ui/constants";
 import StatusLabel from "ui/common/StatusLabel";
+import Tooltip from "@mui/material/Tooltip";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 
 export const memberStatusLabelMap = {
   [MemberStatus.ActiveMember]: "Active",
@@ -10,7 +12,10 @@ export const memberStatusLabelMap = {
   [MemberStatus.Inactive]: "Inactive"
 };
 
-type MinProps = Pick<MemberSummary, "status" | "expirationTime"> & { subscriptionId?: string };
+type MinProps = Pick<MemberSummary, "status" | "expirationTime"> & {
+  subscriptionId?: string;
+  paidPendingStart?: boolean;
+};
 const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member, id }) => {
   const inactive = ![MemberStatus.ActiveMember, MemberStatus.NonMember].includes(member.status as MemberStatus);
   const current = member.expirationTime > Date.now();
@@ -33,7 +38,19 @@ const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member
     }
   }
 
-  return <StatusLabel id={id} label={label} color={statusColor} />;
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center" }}>
+      <StatusLabel id={id} label={label} color={statusColor} />
+      {member.paidPendingStart && (
+        <Tooltip title="Membership paid, pending membership start">
+          <AttachMoneyIcon
+            fontSize="small"
+            style={{ color: "#2e7d32", verticalAlign: "middle" }}
+          />
+        </Tooltip>
+      )}
+    </span>
+  );
 };
 
 export default MemberStatusLabel;
