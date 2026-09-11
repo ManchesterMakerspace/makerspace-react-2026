@@ -5,6 +5,7 @@ import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -19,7 +20,6 @@ import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
   listManagedShops, listShops, listTools, adminCreateShop, adminUpdateShop, adminDeleteShop,
@@ -211,18 +211,22 @@ const ShopManager: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = React.useState<Shop | null>(null);
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
-  const { isRequesting, data: shops = [], response, refresh, error: loadError } =
+  const { isRequesting, data: publicShops = [], refresh, error: loadError } =
     useReadTransaction(listShops, {}, undefined, "shops-list");
-  const { data: managedShops = [], refresh: refreshManaged } = useReadTransaction(listManagedShops, {}, undefined, "editable-shops-list");
+  const { data: managedShops = [], refresh: refreshManaged, error: managedError, isRequesting: loadingManaged } = useReadTransaction(listManagedShops, {}, undefined, "editable-shops-list");
   const { data: tools = [] } = useReadTransaction(listTools, {}, undefined, "shops-tools-list");
   const { canManageCheckoutApprovers, canViewShopQrCodes } = useCapabilities();
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = () => { refresh(); refreshManaged(); }; }, [refresh, refreshManaged]);
 
-  const selectedShop = (shops as Shop[]).find(s => s.id === selectedId);
-  const canEditSelected = selectedShop && (managedShops as Shop[]).some(s => s.id === selectedShop.id);
-  const editingShop = (shops as Shop[]).find(s => s.id === editingId);
+  // Keep management-only shops selectable and prefer their complete records.
+  const shops = React.useMemo(() => Array.from(new Map(
+    [...publicShops, ...managedShops].map((shop: Shop) => [shop.id, shop])
+  ).values()), [publicShops, managedShops]);
+  const selectedPublicShop = (publicShops as Shop[]).find(s => s.id === selectedId);
+  const selectedManagedShop = (managedShops as Shop[]).find(s => s.id === selectedId);
+  const editingShop = (managedShops as Shop[]).find(s => s.id === editingId);
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
@@ -284,16 +288,16 @@ const ShopManager: React.FC = () => {
             </Typography>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {selectedShop && canViewShopQrCodes && <Button variant="outlined" startIcon={<QrCodeIcon />}
-              onClick={() => setQrShop(selectedShop)}>QR Code</Button>}
-            {selectedShop && canEditSelected && !editingId && (
+            {selectedPublicShop && canViewShopQrCodes && <Button variant="outlined" startIcon={<QrCodeIcon />}
+              onClick={() => setQrShop(selectedPublicShop)}>QR Code</Button>}
+            {selectedManagedShop && !editingId && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
-                  onClick={() => setEditingId(selectedShop.id)}>
+                  onClick={() => setEditingId(selectedManagedShop.id)}>
                   Edit
                 </Button>
                 {canManageCheckoutApprovers && <Button variant="outlined" color="secondary" startIcon={<DeleteIcon />}
-                  onClick={() => setDeleteTarget(selectedShop)}>
+                  onClick={() => setDeleteTarget(selectedManagedShop)}>
                   Delete
                 </Button>}
               </>
@@ -306,13 +310,22 @@ const ShopManager: React.FC = () => {
         </Grid>
       </Grid>
 
+      {managedError && <Grid size={{ xs: 12 }}>
+        <Alert severity="error">
+          Could not load shop management settings. Edit and Delete are unavailable until this request succeeds.
+          <div>{managedError}</div>
+          <Button color="inherit" onClick={refreshManaged} disabled={loadingManaged}>
+            {loadingManaged ? "Retrying…" : "Retry management settings"}
+          </Button>
+        </Alert>
+      </Grid>}
       {(loadError || updateError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError} /></Grid>}
 
       <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
-          id="shops-table" title="Shops" loading={isRequesting}
-          data={shops as Shop[]} error={loadError} columns={columns}
-          rowId={rowId} totalItems={extractTotalItems(response)}
+          id="shops-table" title="Shops" loading={isRequesting || loadingManaged}
+          data={shops as Shop[]} columns={columns}
+          rowId={rowId} totalItems={shops.length}
           selectedIds={selectedId} setSelectedIds={handleSelectId}
           renderSearch={false}
         />

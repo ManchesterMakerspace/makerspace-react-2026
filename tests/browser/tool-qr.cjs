@@ -39,6 +39,9 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
      window.copiedPng={type:blob.type,size:blob.size};
     }}});
    });
+   let failManaged=false;
+   let savedShop;
+   const managedSettings={wikiUrlOverride:'https://wiki.example.test/wood',gdriveId:'private-drive',slackChannel:'shop-wood',colorId:'4',reservable:true,maxConcurrentReservations:3,reservationHorizonDays:21,maxReservationDurationHours:5,minimumAdvanceNoticeHours:4,prohibitSameDayReservations:true,reservationRequiresApproval:true,reservationPrerequisiteToolIds:[],durationFees:[]};
    let failShortcodes=false;
    let shortGate=null;
    let shortRequests=0;
@@ -57,7 +60,13 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
     }
     else if(pathname==='/api/workshops') body={canAddShop:true,workshops:[{id:'shop1',name:'Woodworking',resourceManagers:[],upcomingVolunteerEvents:[],volunteerTasks:[],tools:[]}]};
     else if(pathname.includes('/permissions')) body={};
-    else if(pathname==='/api/shops' || pathname==='/api/admin/shops') body=[{id:'shop1',name:'Woodworking'}];
+    else if(pathname==='/api/admin/google_calendar/colors') body={colors:[{id:'4',name:'Flamingo',backgroundColor:'#ff887c',foregroundColor:'#1d1d1d'}]};
+    else if(pathname==='/api/shops') body=[{id:'shop1',name:'Woodworking'},{id:'qr-only',name:'Public-only shop'}];
+    else if(pathname==='/api/admin/shops') {
+      if(failManaged) return route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Management storage offline'})});
+      body=[{id:'shop1',name:'Woodworking',...managedSettings},{id:'managed-only',name:'Management-only shop',...managedSettings}];
+    }
+    else if(pathname==='/api/admin/shops/shop1') {savedShop=route.request().postDataJSON();body={id:'shop1',name:'Woodworking',...managedSettings};}
     else if(pathname==='/api/admin/tools') body=[{id,name:'Table Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''},{id:tool2,name:'Band Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''}];
     else if(pathname==='/api/admin/rental_spots') body=[{id:'2123456789abcdef01234567',number:'A-01',location:'Shelf',active:true},{id:'3123456789abcdef01234567',number:'A-02',location:'Shelf',active:true}];
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
@@ -113,7 +122,33 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.keyboard.press('Escape');
    await page.getByRole('dialog').waitFor({state:'hidden'});
    failShortcodes=false;
+   failManaged=true;
    await page.getByRole('tab',{name:'Shops',exact:true}).click();
+   await page.getByRole('alert').filter({hasText:'Could not load shop management settings'}).waitFor();
+   await page.locator('#shops-table-shop1-select').check();
+   assert.equal(await page.getByRole('button',{name:'Edit',exact:true}).count(),0);
+   await page.screenshot({path:path.join(root,`tmp/shop-management-error-${width}.png`),fullPage:true});
+   failManaged=false;
+   await page.getByRole('button',{name:'Retry management settings',exact:true}).focus();
+   await page.keyboard.press('Enter');
+   await page.getByRole('button',{name:'Edit',exact:true}).waitFor();
+   assert.equal(await page.getByRole('alert').count(),0);
+   await page.getByRole('button',{name:'Edit',exact:true}).click();
+   const edit=page.getByRole('dialog',{name:'Edit Woodworking'});
+   assert.equal(await edit.getByRole('textbox',{name:'Wiki URL',exact:true}).inputValue(),managedSettings.wikiUrlOverride);
+   assert.equal(await edit.getByRole('textbox',{name:'GDrive ID',exact:true}).inputValue(),managedSettings.gdriveId);
+   assert.equal(await edit.getByRole('textbox',{name:'Slack Channel',exact:true}).inputValue(),managedSettings.slackChannel);
+   await edit.getByRole('button',{name:'Save Shop',exact:true}).click();
+   await edit.waitFor({state:'hidden'});
+   for(const [key,value] of Object.entries(managedSettings)) assert.deepStrictEqual(savedShop[key==='wikiUrlOverride'?'wiki_url':key.replace(/[A-Z]/g,letter=>'_'+letter.toLowerCase())],value,`Preserve managed ${key}`);
+   await page.locator('#shops-table-managed-only-select').check();
+   assert.equal(await page.getByRole('button',{name:'QR Code',exact:true}).count(),0);
+   await page.getByRole('button',{name:'Edit',exact:true}).click();
+   await page.getByRole('dialog',{name:'Edit Management-only shop'}).waitFor();
+   await page.keyboard.press('Escape');
+   await page.locator('#shops-table-qr-only-select').check();
+   assert.equal(await page.getByRole('button',{name:'Edit',exact:true}).count(),0);
+   assert.equal(await page.getByRole('button',{name:'Delete',exact:true}).count(),0);
    await page.locator('#shops-table-shop1-select').check();
    await page.getByRole('button',{name:'QR Code',exact:true}).focus();
    await page.keyboard.press('Enter');
