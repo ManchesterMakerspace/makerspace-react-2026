@@ -1,4 +1,5 @@
 // Run after npm run build: node tests/browser/tool-qr.cjs
+// Optional, warning-only slow-request check: set RUN_SLOW_REQUEST_TEST=1.
 // Uses mocked APIs and a disposable browser; no member data is changed.
 const { chromium } = require('playwright');
 const http = require('http');
@@ -32,28 +33,32 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
   for(const width of [320,600,900,1440]) {
    const page=await browser.newPage({viewport:{width,height:900}});
    await page.addInitScript(()=>{
-    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{window.copiedText=value;},write:async items=>{
+    Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{if(window.failTextClipboard) throw new Error('Clipboard unavailable');window.copiedText=value;},write:async items=>{
      if(window.failClipboard) throw new Error('Unsupported');
      const blob=await items[0].getType('image/png');
      window.copiedPng={type:blob.type,size:blob.size};
     }}});
    });
    let failShortcodes=false;
+   let shortGate=null;
+   let shortRequests=0;
    await page.route('**/api/**',async route=>{
     const pathname=new URL(route.request().url()).pathname;
     let body=[];
     if(pathname==='/api/config') body={wiki_url:'https://wiki.example.test',app_domain:'public.example.test'};
     else if(pathname==='/api/members/sign_in') body={id:'member1',email:'admin@example.com',firstname:'Test',lastname:'Admin',role:'admin',status:'activeMember'};
     else if(pathname==='/api/shortcodes') {
+      shortRequests++;
+      if(shortGate) await shortGate;
       if(failShortcodes) return route.fulfill({status:503,contentType:'application/json',body:'{}'});
       const requested = route.request().postDataJSON().target_url;
-      assert([`/api/tool/${id}/public.html`, `/api/tool/${tool2}/public.html`, '/rentals/spots/2123456789abcdef01234567'].includes(requested));
-      body={code:'23456789AB',short_url:requested.startsWith('/rentals/') ? 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD' : target(requested.includes(tool2) ? tool2 : id)};
+      assert([`/api/tool/${id}/public.html`, `/api/tool/${tool2}/public.html`, '/rentals/spots/2123456789abcdef01234567', '/rentals/spots/3123456789abcdef01234567'].includes(requested));
+      body={code:'23456789AB',short_url:requested.startsWith('/rentals/') ? (requested.includes('3123456789abcdef01234567') ? 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AE' : 'HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD') : target(requested.includes(tool2) ? tool2 : id)};
     }
     else if(pathname.includes('/permissions')) body={};
     else if(pathname==='/api/admin/shops') body=[{id:'shop1',name:'Woodworking'}];
     else if(pathname==='/api/admin/tools') body=[{id,name:'Table Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''},{id:tool2,name:'Band Saw',shopId:'shop1',shopName:'Woodworking',prerequisiteNames:[],prerequisiteIds:[],notes:''}];
-    else if(pathname==='/api/admin/rental_spots') body=[{id:'2123456789abcdef01234567',number:'A-01',location:'Shelf',active:true}];
+    else if(pathname==='/api/admin/rental_spots') body=[{id:'2123456789abcdef01234567',number:'A-01',location:'Shelf',active:true},{id:'3123456789abcdef01234567',number:'A-02',location:'Shelf',active:true}];
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
    });
    await page.goto('http://127.0.0.1:8767/tool-checkouts');
@@ -109,7 +114,52 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
    await page.getByRole('alert').filter({hasText:'Could not create the short link'}).waitFor();
    assert.equal(await page.getByRole('dialog').locator('canvas').count(),0);
+   await page.getByRole('button',{name:'Close',exact:true}).click();
+   await page.locator('#admin-rental-spots-table-3123456789abcdef01234567-select').check();
+   failShortcodes=true;
+   await page.getByRole('button',{name:'Copy Link',exact:true}).click();
+   const longUrl='http://127.0.0.1:8767/rentals/spots/3123456789abcdef01234567';
+   await page.waitForFunction(url=>window.copiedText===url,longUrl);
+   await page.getByRole('alert').getByRole('link',{name:longUrl,exact:true}).waitFor();
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Rental fallback page must fit viewport");
+   await page.screenshot({path:path.join(root,`tmp/rental-link-fallback-${width}.png`),fullPage:true});
+   await page.evaluate(()=>{window.failTextClipboard=true;});
+   await page.getByRole('button',{name:'Copy Link',exact:true}).click();
+   await page.getByRole('alert').filter({hasText:'Could not copy automatically'}).waitFor();
+   assert.equal(await page.getByRole('alert').getByRole('link').getAttribute('href'),longUrl);
    console.log(`PASS ${width}px: selected tool, QR pixels/target, PNG, clipboard, close, tool switch, rental regression`);
+   if (process.env.RUN_SLOW_REQUEST_TEST === '1') {
+     let releaseShortcode;
+     page.setDefaultTimeout(5000);
+     try {
+       failShortcodes=false;
+       await page.evaluate(()=>{window.copiedText='';window.failTextClipboard=false;});
+       await page.locator('#admin-rental-spots-table-2123456789abcdef01234567-select').check();
+       shortGate=new Promise(resolve=>{releaseShortcode=resolve;});
+       const requestsBefore=shortRequests;
+       await Promise.all([
+         page.waitForRequest(request=>request.url().endsWith('/api/shortcodes')),
+         page.getByRole('button',{name:'Copy Link',exact:true}).click(),
+       ]);
+       const pending=page.getByRole('button',{name:'Copying…',exact:true});
+       assert(await pending.isDisabled());
+       await pending.evaluate(button=>{button.click();button.click();});
+       assert.equal(shortRequests,requestsBefore+1);
+       await page.locator('#admin-rental-spots-table-3123456789abcdef01234567-select').check();
+       releaseShortcode(); shortGate=null;
+       await page.waitForFunction(()=>Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='Copy Link' && !button.disabled));
+       assert.equal(await page.evaluate(()=>window.copiedText),'','Changed selection must not copy a stale result');
+       console.log(`PASS optional slow-request check at ${width}px`);
+     } catch (error) {
+       console.warn(`WARN optional slow-request check at ${width}px: ${error.message}`);
+     } finally {
+       releaseShortcode?.();
+       shortGate=null;
+       await page.unrouteAll({behavior:'wait'}).catch(error=>console.warn(`WARN optional slow-request cleanup: ${error.message}`));
+     }
+   } else {
+     console.log(`SKIP optional slow-request check at ${width}px (RUN_SLOW_REQUEST_TEST=1 to enable)`);
+   }
    await page.close();
   }
  } finally {await browser.close();server.close();}

@@ -14,7 +14,6 @@ import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 
-import { Routing } from "app/constants";
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
@@ -58,17 +57,44 @@ const AdminRentalSpots: React.FC = () => {
   const [linkCopied,   setLinkCopied]   = React.useState(false);
   const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
   const [linkError, setLinkError] = React.useState("");
+  const [copyableLink, setCopyableLink] = React.useState("");
+  const [copyingLink, setCopyingLink] = React.useState(false);
+  const copyPending = React.useRef(false);
+  const selectedIdRef = React.useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const mounted = React.useRef(true);
+  React.useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  React.useEffect(() => { setLinkError(""); setCopyableLink(""); setLinkCopied(false); }, [selectedId]);
   const { params, changePage } = useQueryContext();
 
   const copyDeepLink = React.useCallback(async (spotId: string) => {
-    setLinkError("");
+    if (copyPending.current) return;
+    copyPending.current = true;
+    setCopyingLink(true);
+    setLinkError(""); setLinkCopied(false); setCopyableLink("");
+    const current = () => mounted.current && selectedIdRef.current === spotId;
+    let url = `${window.location.origin}/rentals/spots/${encodeURIComponent(spotId)}`;
     try {
-      const link = await createShortLink(`/rentals/spots/${spotId}`);
-      await navigator.clipboard.writeText(link.short_url);
-      setLinkCopied(true);
-      window.setTimeout(() => setLinkCopied(false), 2000);
-    } catch {
-      setLinkError("Could not copy the short link. Open QR Code to view and copy the link.");
+      try {
+        const link = await createShortLink(`/rentals/spots/${spotId}`);
+        url = link.short_url;
+      } catch {
+        if (current()) setLinkError("Short link unavailable. Use the full link below.");
+      }
+      if (!current()) return;
+      setCopyableLink(url);
+      try {
+        await navigator.clipboard.writeText(url);
+        if (current()) {
+          setLinkCopied(true);
+          window.setTimeout(() => { if (current()) setLinkCopied(false); }, 2000);
+        }
+      } catch {
+        if (current()) setLinkError("Could not copy automatically. Select and copy the link below.");
+      }
+    } finally {
+      copyPending.current = false;
+      if (mounted.current) setCopyingLink(false);
     }
   }, []);
 
@@ -155,12 +181,12 @@ const AdminRentalSpots: React.FC = () => {
       <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Rental Spots</Typography>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {selectedSpot && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
-                  onClick={() => copyDeepLink(selectedSpot.id)}>
-                  {linkCopied ? "Copied!" : "Copy Link"}
+                  disabled={copyingLink} aria-busy={copyingLink} onClick={() => copyDeepLink(selectedSpot.id)}>
+                  {copyingLink ? "Copying…" : linkCopied ? "Copied!" : "Copy Link"}
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                   onClick={() => setQrSpot(selectedSpot)}>
@@ -285,7 +311,12 @@ const AdminRentalSpots: React.FC = () => {
         )}
       </FormModal>
 
-      {linkError && <Typography role="alert" color="error">{linkError}</Typography>}
+      {linkError && <div role="alert">
+        <Typography color="error">{linkError}</Typography>
+        {copyableLink && <Typography sx={{ overflowWrap: "anywhere" }}>
+          <a href={copyableLink} target="_blank" rel="noopener noreferrer">{copyableLink}</a>
+        </Typography>}
+      </div>}
       <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
     </Grid>
   );
