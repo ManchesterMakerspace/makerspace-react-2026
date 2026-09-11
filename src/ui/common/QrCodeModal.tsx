@@ -14,10 +14,11 @@ interface Props {
   onClose: () => void;
   loading?: boolean;
   error?: string;
+  notice?: string;
 }
 
 // Canvas gives both rental and tool labels a real PNG for download/clipboard.
-const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClose, loading, error }) => {
+const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClose, loading, error, notice }) => {
   const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
   const [png, setPng] = React.useState("");
   const [copied, setCopied] = React.useState(false);
@@ -66,6 +67,7 @@ const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClos
           {png && <a href={png} download={filename}>download it as a PNG</a>}.
         </Typography>
       </>}
+      {notice && <Alert severity="warning" sx={{ mt: 1 }}>{notice}</Alert>}
       {(error || imageError) && <Alert severity="error" sx={{ mt: 1 }}>{error || imageError}</Alert>}
     </div>
   </FormModal>;

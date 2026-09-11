@@ -6,6 +6,6 @@ const RentalSpotQrCodeModal: React.FC<{
   onClose: () => void;
 }> = ({ spot, onClose }) => spot ? (
   <ShortLinkQrCodeModal key={spot.id} id="rental-spot-qr-code" title={`QR Code — ${spot.number}`}
-    target={`/rentals/spots/${spot.id}`} filename={`rental-spot-${spot.number}-qr.png`} onClose={onClose} />
+    target={`/rentals/spots/${spot.id}`} fallbackUrl={`${window.location.origin}/rentals/spots/${spot.id}`} filename={`rental-spot-${spot.number}-qr.png`} onClose={onClose} />
 ) : null;
 export default RentalSpotQrCodeModal;

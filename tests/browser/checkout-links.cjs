@@ -8,6 +8,8 @@ const assert = require('assert');
 const root = path.resolve(__dirname, '../..');
 fs.mkdirSync(path.join(root, 'tmp'), {recursive:true});
 const rails = path.resolve(root, '../makerspace-rails-2026');
+const shortcodeBootstrap = fs.readFileSync(path.join(rails,'app/views/layouts/application.html.erb'),'utf8')
+  .match(/<script id="shortcode-routing".*>\r?\n([\s\S]*?)<\/script>/)[1];
 const id = '0123456789abcdef01234567';
 const html = '<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" /><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/assets/makerspace-react.css"><script defer src="/assets/makerspace-react.js"></script></head><body></body></html>';
 const server = http.createServer((req,res) => {
@@ -20,7 +22,7 @@ const server = http.createServer((req,res) => {
   if(file && fs.existsSync(file)) {
     res.setHeader('Content-Type', file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript; charset=utf-8':file.endsWith('.svg')?'image/svg+xml':'text/html');
     res.end(fs.readFileSync(file));
-  } else {res.setHeader('Content-Type','text/html');res.end(url === '/L23456789AB' ? html.replace('<head>', `<head><meta name="shortcode-target" content="/tools/${id}/request-checkout">`) : html);}
+  } else {res.setHeader('Content-Type','text/html');res.end(url === '/L23456789AB' ? html.replace('<head>', `<head><meta name="shortcode-target" content="/tools/${id}/request-checkout"><script>${shortcodeBootstrap}</script>`) : html);}
 });
 (async()=>{
  await new Promise(resolve=>server.listen(8765,'127.0.0.1',resolve));
@@ -91,7 +93,7 @@ const server = http.createServer((req,res) => {
     else if(url.pathname==='/api/tool_checkout_requests') {posts++;body={id:'request1'};}
     await route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
    });
-   await page.goto(`http://127.0.0.1:8765/tools/${id}/request-checkout`);
+   await page.goto('http://127.0.0.1:8765/L23456789AB');
    await page.getByRole('dialog').waitFor().catch(async error=>{console.log('URL',page.url(),'BODY',await page.locator('body').innerText()); throw error;});
    assert.equal(posts,0,'GET must not submit');
    await page.getByRole('textbox',{name:'Note'}).focus();

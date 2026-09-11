@@ -207,6 +207,12 @@ const AdminRentalSpots: React.FC = () => {
             </Button>
           </div>
         </Grid>
+      {linkError && <div role="alert">
+        <Typography color="error">{linkError}</Typography>
+        {copyableLink && <Typography sx={{ overflowWrap: "anywhere" }}>
+          <a href={copyableLink} target="_blank" rel="noopener noreferrer">{copyableLink}</a>
+        </Typography>}
+      </div>}
       </Grid>
 
       <Grid size={{ xs: 12 }}>
@@ -311,12 +317,6 @@ const AdminRentalSpots: React.FC = () => {
         )}
       </FormModal>
 
-      {linkError && <div role="alert">
-        <Typography color="error">{linkError}</Typography>
-        {copyableLink && <Typography sx={{ overflowWrap: "anywhere" }}>
-          <a href={copyableLink} target="_blank" rel="noopener noreferrer">{copyableLink}</a>
-        </Typography>}
-      </div>}
       <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
     </Grid>
   );

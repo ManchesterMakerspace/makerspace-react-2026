@@ -101,7 +101,17 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.getByRole('alert').filter({hasText:'Download PNG'}).waitFor();
    await page.keyboard.press('Escape');
    await page.getByRole('dialog').waitFor({state:'hidden'});
-   // Regression: rental QR labels still use the original rental destination.
+   failShortcodes=true;
+   await page.getByRole('button',{name:'QR Code',exact:true}).click();
+   const toolFallback=`http://127.0.0.1:8767/api/tool/${tool2}/public.html`;
+   await page.getByRole('dialog').getByRole('link',{name:toolFallback,exact:true}).waitFor();
+   await page.getByRole('alert').filter({hasText:'This QR code uses the full link'}).waitFor();
+   await page.getByRole('dialog').getByRole('link',{name:'download it as a PNG'}).waitFor();
+   assert.equal(await page.getByRole('dialog').locator('canvas').count(),1);
+   await page.keyboard.press('Escape');
+   await page.getByRole('dialog').waitFor({state:'hidden'});
+   failShortcodes=false;
+   // Rental labels share the same shortcode and fallback behavior.
    await page.goto('http://127.0.0.1:8767/admin/rentals');
    await page.getByRole('tab',{name:'Rental Spots',exact:true}).click();
    await page.locator('#admin-rental-spots-table-2123456789abcdef01234567-select').check();
@@ -112,8 +122,10 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    await page.waitForFunction(()=>window.copiedText==='HTTPS://PUBLIC.EXAMPLE.TEST/L23456789AD');
    failShortcodes=true;
    await page.getByRole('button',{name:'QR Code',exact:true}).click();
-   await page.getByRole('alert').filter({hasText:'Could not create the short link'}).waitFor();
-   assert.equal(await page.getByRole('dialog').locator('canvas').count(),0);
+   await page.getByRole('alert').filter({hasText:'This QR code uses the full link'}).waitFor();
+   await page.getByRole('dialog').getByRole('link',{name:'http://127.0.0.1:8767/rentals/spots/2123456789abcdef01234567',exact:true}).waitFor();
+   await page.getByRole('dialog').getByRole('link',{name:'download it as a PNG'}).waitFor();
+   assert.equal(await page.getByRole('dialog').locator('canvas').count(),1);
    await page.getByRole('button',{name:'Close',exact:true}).click();
    await page.locator('#admin-rental-spots-table-3123456789abcdef01234567-select').check();
    failShortcodes=true;
@@ -121,6 +133,7 @@ const target = toolId => `HTTPS://PUBLIC.EXAMPLE.TEST/L${toolId === id ? "234567
    const longUrl='http://127.0.0.1:8767/rentals/spots/3123456789abcdef01234567';
    await page.waitForFunction(url=>window.copiedText===url,longUrl);
    await page.getByRole('alert').getByRole('link',{name:longUrl,exact:true}).waitFor();
+   assert(await page.getByRole('alert').evaluate(alert=>!!(alert.compareDocumentPosition(document.querySelector('table')) & Node.DOCUMENT_POSITION_FOLLOWING)), 'Copy recovery must be above the rental table');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),"Rental fallback page must fit viewport");
    await page.screenshot({path:path.join(root,`tmp/rental-link-fallback-${width}.png`),fullPage:true});
    await page.evaluate(()=>{window.failTextClipboard=true;});

@@ -36,12 +36,6 @@ const theme: Theme = createTheme({
   },
 });
 
-// Rails already served the destination; align React routing without another request.
-const shortTarget = document.querySelector<HTMLMetaElement>('meta[name="shortcode-target"]')?.content;
-if (shortTarget?.startsWith("/") && !shortTarget.startsWith("//")) {
-  window.history.replaceState(window.history.state, "", shortTarget);
-}
-
 const container = document.body.appendChild(document.createElement('div'));
 const root = createRoot(container);
 
