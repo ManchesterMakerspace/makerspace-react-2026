@@ -26,6 +26,10 @@ async function main() {
   const noShopTicket = { ...ticket, id: '123456789012345678901239', shopId: null, shopName: null, toolId: null, toolName: null, uncataloguedTool: 'Bench grinder', outOfService: false, title: 'Loose grinder guard' };
   const catalog = { shops: [{ id: ticket.shopId, name: ticket.shopName }], tools: [{ id: ticket.toolId, name: ticket.toolName, shopId: ticket.shopId, outOfService: true }], canCreate: true, openCount: 1, openLimit: 10, centralSlackEnabled: true };
   let creationReason = null;
+  let failLimitLoad = true;
+  ticket.capabilities.canReviewReward = true;
+  ticket.deliveryFailed = true;
+  let finishMutation;
   let bountyFail = true;
   let bountyCapabilities = { canClaim: false, canSubmitCompletion: false };
   const requests = [];
@@ -36,6 +40,14 @@ async function main() {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
+        if (url.pathname === '/api/admin/system_configs') {
+          if (failLimitLoad) { failLimitLoad = false; res.writeHead(503).end(JSON.stringify({ error: 'Configuration load failed' })); return; }
+          res.end(JSON.stringify({ security: { ticket_open_limit: 17 } })); return;
+        }
+        if (req.method === 'POST' && /\/(reward|retry_delivery)$/.test(url.pathname)) {
+          finishMutation = () => res.end(JSON.stringify(ticket));
+          return;
+        }
         if (url.pathname.startsWith('/api/volunteer/tasks/') && url.pathname.endsWith('/detail')) {
           if (bountyFail) { bountyFail = false; res.writeHead(503).end(JSON.stringify({ error: 'Bounty temporarily unavailable' })); return; }
           res.end(JSON.stringify({ id, title: 'Repair bounty', description: 'Replace switch', creditValue: 1, status: bountyCapabilities.canClaim ? 'available' : 'claimed', ticketId: id, capabilities: bountyCapabilities })); return;
@@ -93,6 +105,26 @@ async function main() {
       await page.goto(`${origin}/fix-tickets/${id}`);
       await page.getByRole('heading', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
+      await page.getByRole('button', { name: 'Change status', exact: true }).click();
+      const statusDialog = page.getByRole('dialog');
+      const statusConfirm = statusDialog.getByRole('button', { name: 'Confirm', exact: true });
+      const statusNote = statusDialog.getByRole('textbox', { name: /Note \(required/ });
+      for (const state of ['Resolved', 'Rejected']) {
+        await statusDialog.getByRole('combobox', { name: 'Status', exact: true }).click();
+        await page.getByRole('option', { name: state, exact: true }).click();
+        assert(await statusConfirm.isDisabled());
+        await statusNote.fill('   '); assert(await statusConfirm.isDisabled());
+        await statusNote.fill('Required explanation'); assert(await statusConfirm.isEnabled());
+        await statusNote.fill('');
+      }
+      await statusDialog.getByRole('combobox', { name: 'Status', exact: true }).click();
+      await page.getByRole('option', { name: 'Open', exact: true }).click();
+      assert(await statusConfirm.isEnabled(), 'An unchanged open status needs no note');
+      await statusDialog.getByRole('combobox', { name: 'Confirmation', exact: true }).click();
+      await page.getByRole('option', { name: 'Could not confirm', exact: true }).click();
+      assert(await statusConfirm.isDisabled());
+      await statusNote.fill('Unable to reproduce'); assert(await statusConfirm.isEnabled());
+      await statusDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.screenshot({ path: path.join(output, `detail-${width}.png`), fullPage: true, animations: 'disabled' });
       await page.getByRole('button', { name: 'Add note', exact: true }).click();
       await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Replacement switch ordered.');
@@ -127,6 +159,49 @@ async function main() {
       assert.equal(await dialog.getByRole('button', { name: 'Submit report' }).count(), 0);
     }
     creationReason = null;
+    ticket.status = 'resolved';
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    await page.getByRole('button', { name: 'Change status', exact: true }).click();
+    await page.getByRole('dialog').getByRole('combobox', { name: 'Status', exact: true }).click();
+    await page.getByRole('option', { name: 'Open', exact: true }).click();
+    assert(await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).isDisabled());
+    await page.getByRole('dialog').getByRole('textbox', { name: /Note \(required/ }).fill('Problem returned');
+    assert(await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).isEnabled());
+    ticket.status = 'open';
+    for (const width of [320, 600, 900, 1440]) {
+      failLimitLoad = true;
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/ticket-limit`);
+      await page.getByRole('alert').filter({ hasText: 'Configuration load failed' }).waitFor();
+      const saveLimit = page.getByRole('button', { name: 'Save ticket limit', exact: true });
+      const limitField = page.getByRole('spinbutton', { name: 'Open ticket limit per reporter' });
+      assert(await saveLimit.isDisabled()); assert.equal(await limitField.inputValue(), '');
+      assert.equal(await page.getByRole('progressbar').count(), 0);
+      await page.getByRole('button', { name: 'Retry loading ticket limit' }).click();
+      await page.waitForFunction(() => document.querySelector('input[type="number"]')?.value === '17');
+      assert(await saveLimit.isEnabled());
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Limit setting overflow at ${width}`);
+      await saveLimit.click();
+      await page.getByText('Ticket limit saved.', { exact: true }).waitFor();
+    }
+    const limitSaves = requests.filter(r => r.url.endsWith('/api/admin/system_configs/update_setting'));
+    assert.equal(limitSaves.length, 4);
+    assert(limitSaves.every(r => r.body.value === '17'), 'Only the retrieved limit may be saved');
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    const mutationLabels = ['Approve reporter point', 'Reject reporter point', 'Retry notifications'];
+    for (const label of mutationLabels) {
+      const button = page.getByRole('button', { name: label, exact: true });
+      await button.click();
+      for (const other of mutationLabels) {
+        assert(await page.getByRole('button', { name: other, exact: true }).isDisabled(), `${other} must be disabled while a mutation is pending`);
+      }
+      const deadline = Date.now() + 10000;
+      while (!finishMutation && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+      assert(finishMutation, 'Mutation request must reach the server');
+      finishMutation(); finishMutation = null;
+      await button.waitFor();
+      await page.waitForFunction(() => !Array.from(document.querySelectorAll('button')).find(b => b.textContent === 'Approve reporter point')?.disabled);
+    }
     await page.goto(`${origin}/volunteer/tasks/${id}`);
     await page.getByRole('button', { name: 'Retry loading bounty' }).waitFor();
     assert.equal(await page.getByRole('progressbar').count(), 0, 'Failed loads must stop spinning');

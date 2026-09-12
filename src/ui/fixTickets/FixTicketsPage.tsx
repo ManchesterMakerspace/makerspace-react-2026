@@ -86,8 +86,14 @@ export default function FixTicketsPage() {
       name === 'bounty' ? { title: ticket?.title, description: '', credit_value: 1 } : { note: '' });
   };
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
+  const statusNoteRequired = action === 'status' && !!ticket && (
+    (form.status !== ticket.status && (['resolved', 'rejected'].includes(form.status) || !activeStatuses.includes(ticket.status))) ||
+    (form.confirmation === 'could_not_confirm' && ticket.confirmation !== 'could_not_confirm')
+  );
+  const actionInvalid = (statusNoteRequired && !form.note?.trim()) ||
+    (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
-    if (!ticket) return;
+    if (!ticket || busy || actionInvalid) return;
     const path = `${base}/${ticket.id}`;
     if (action === 'status' || action === 'edit') return mutate(path, { ...form, revision: ticket.revision }, 'PATCH');
     if (action === 'assignments') return mutate(`${path}/assignments`, { member_ids: selectedPeople.map(p => p.id) });
@@ -160,8 +166,8 @@ export default function FixTicketsPage() {
           {ticket.capabilities.canCreateBounty && <Button onClick={() => openAction('bounty')}>Make this a bounty</Button>}
           {ticket.capabilities.canManage && ticket.toolId && <Button onClick={() => openAction('outage')}>{ticket.outOfService ? 'Restore service' : 'Mark out of service'}</Button>}
           {ticket.capabilities.canReveal && <Button onClick={() => openAction('reveal')}>Reveal reporter</Button>}
-          {ticket.capabilities.canReviewReward && <><Button onClick={() => mutate(`${base}/${id}/reward`, { decision: 'approve' })}>Approve reporter point</Button><Button onClick={() => mutate(`${base}/${id}/reward`, { decision: 'reject' })}>Reject reporter point</Button></>}
-          {ticket.deliveryFailed && <Button onClick={() => mutate(`${base}/${id}/retry_delivery`, {})}>Retry notifications</Button>}
+          {ticket.capabilities.canReviewReward && <><Button disabled={busy} onClick={() => mutate(`${base}/${id}/reward`, { decision: 'approve' })}>Approve reporter point</Button><Button disabled={busy} onClick={() => mutate(`${base}/${id}/reward`, { decision: 'reject' })}>Reject reporter point</Button></>}
+          {ticket.deliveryFailed && <Button disabled={busy} onClick={() => mutate(`${base}/${id}/retry_delivery`, {})}>Retry notifications</Button>}
         </Stack>
         {revealed && <Alert severity="warning" sx={{ mt: 2 }}>Reporter: {revealed}</Alert>}
       </Paper>
@@ -179,7 +185,7 @@ export default function FixTicketsPage() {
         {action === 'status' && <>
           <SelectField label="Status" value={form.status || ''} options={opts(statuses.filter(s => s !== 'withdrawn'))} onChange={v => set('status', v)} />
           <SelectField label="Confirmation" value={form.confirmation || ''} options={opts(confirmations)} onChange={v => set('confirmation', v)} />
-          <TextField multiline minRows={3} label="Note (required to close, reopen, or cannot confirm)" value={form.note || ''} onChange={e => set('note', e.target.value)} />
+          <TextField required={statusNoteRequired} multiline minRows={3} label="Note (required to close, reopen, or cannot confirm)" helperText={statusNoteRequired ? 'Enter a note before confirming this change.' : undefined} value={form.note || ''} onChange={e => set('note', e.target.value)} />
           {ticket?.capabilities.canNominateReward && form.status === 'resolved' && <FormControlLabel label="Nominate reporter for 1 volunteer point (separate approval)" control={<Checkbox checked={!!form.nominate_reward} onChange={e => set('nominate_reward', e.target.checked)} />} />}
         </>}
         {action === 'edit' && <>
@@ -205,7 +211,7 @@ export default function FixTicketsPage() {
         {action === 'withdraw' && <Typography>Withdraw this ticket? Its history is retained and any unclaimed bounty is cancelled.</Typography>}
         {action === 'unassign' && <Typography>Remove yourself? You may lose access to this ticket.</Typography>}
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
-      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)))} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
+      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
     <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;

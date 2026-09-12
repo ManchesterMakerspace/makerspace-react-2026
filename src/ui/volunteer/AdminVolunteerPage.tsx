@@ -178,7 +178,7 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {(selected as string[]).map(id => {
                   const tool = availableTools.find(candidate => candidate.id === id);
-                  return <Chip key={id} size='small' label={tool?.name || id} />;
+                  return <Chip key={id} size='small' label={`${tool?.name || id}${tool?.outOfService ? ' - Out of service' : ''}`} />;
                 })}
               </div>
             )}>
