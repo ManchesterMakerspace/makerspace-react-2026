@@ -24,6 +24,7 @@ const buildResponse = async <T>(request: Promise<any>): Promise<{ data?: T; erro
 export interface AnalyticsSummary {
   totalMembers: number;
   newMembers: number;
+  lostMembers: number;
   subscribedMembers: number;
   membersWithExpiringPaymentMethods: number;
   pastDueInvoices: number;
@@ -31,6 +32,11 @@ export interface AnalyticsSummary {
 }
 
 export interface MemberGrowthPoint {
+  month: string;   // "YYYY-MM"
+  count: number;
+}
+
+export interface MemberLossPoint {
   month: string;   // "YYYY-MM"
   count: number;
 }
@@ -71,6 +77,9 @@ export const getAnalyticsSummary = () =>
 
 export const getMemberGrowth = (params?: { year?: number; start_date?: string; end_date?: string }) =>
   buildResponse<MemberGrowthPoint[]>(api.get('/api/admin/analytics/member_growth', { params }));
+
+export const getMemberLosses = (params?: { year?: number; start_date?: string; end_date?: string }) =>
+  buildResponse<MemberLossPoint[]>(api.get('/api/admin/analytics/member_losses', { params }));
 
 export const getActiveMembers = (params?: { year?: number; month?: number; granularity?: 'day' | 'month' }) =>
   buildResponse<ActiveMemberPoint[]>(api.get('/api/admin/analytics/active_members', { params }));
