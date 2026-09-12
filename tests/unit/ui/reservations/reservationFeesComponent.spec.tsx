@@ -83,6 +83,17 @@ describe("reservation fee confirmation and full-day dates", () => {
     expect(container.textContent).toContain("Manager approval is still required");
   });
 
+  it("keeps every reserved tool while separately warning about unavailable ones", async () => {
+    (api.listReservations as jest.Mock).mockResolvedValue({ data: [{
+      id: "booking", memberId: "member", title: "Project", status: "approved", shopName: "Shop",
+      toolNames: ["Lathe", "Drill press"], outOfServiceToolNames: ["Lathe"],
+      startAt: "2026-09-10T04:00:00Z", endAt: "2026-09-11T04:00:00Z", approvalReasons: []
+    }] });
+    await act(async () => root.render(<MemberReservationsTab member={{ id: "member" } as any} />));
+    expect(container.textContent).toContain("Lathe, Drill press");
+    expect(container.textContent).toContain("Out of service: Lathe");
+  });
+
   it("preserves an existing full-day booking after the configured maximum is reduced", async () => {
     window.history.replaceState({}, "", "/?edit=booking");
     window.scrollTo = jest.fn();

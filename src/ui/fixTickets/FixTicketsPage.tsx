@@ -4,8 +4,9 @@ import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dia
   DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, MenuItem, Paper,
   Radio, RadioGroup, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, TextField, Typography } from '@mui/material';
-import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses } from 'api/fixTickets';
+import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint } from 'api/fixTickets';
 import ToolAvailability from 'ui/common/ToolAvailability';
+import generateUUID from 'ui/utils/generateUUID';
 
 const base = '/api/fix_tickets';
 const date = (value: string) => new Date(value).toLocaleString();
@@ -127,7 +128,7 @@ export default function FixTicketsPage() {
         <TableHead><TableRow>{['Ticket', 'Priority', 'Status', 'Shop / tool', 'Created', 'Last update'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
         <TableBody>{rows.map(t => <TableRow key={t.id}><TableCell><Link href={`/fix-tickets/${t.id}?${query}`}>{t.title}</Link></TableCell>
           <TableCell>{t.priority ?? '—'}</TableCell><TableCell>{fixLabel(t.status)}</TableCell>
-          <TableCell>{t.shopName} / {t.toolName || t.uncataloguedTool || '—'} <ToolAvailability outOfService={t.outOfService} /></TableCell>
+          <TableCell>{t.shopName || 'No shop'} / {t.toolName || t.uncataloguedTool || '—'} <ToolAvailability outOfService={t.outOfService} /></TableCell>
           <TableCell>{date(t.createdAt)}</TableCell><TableCell>{date(t.updatedAt)}</TableCell></TableRow>)}</TableBody>
       </Table>{!rows.length && <Typography sx={{ p: 3 }}>No tickets match these filters.</Typography>}</TableContainer>
       <TablePagination component="div" count={total} page={page} rowsPerPage={size} rowsPerPageOptions={[10, 25, 50]}
@@ -141,7 +142,7 @@ export default function FixTicketsPage() {
           <Chip label={ticket.publicReadOnly ? 'Public (read-only)' : 'Private'} /><ToolAvailability outOfService={ticket.outOfService} />{ticket.toolHidden && <Chip label="Hidden" />}
         </Stack>
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{ticket.description}</Typography>
-        <Typography sx={{ mt: 2 }}>{ticket.shopName} {ticket.toolName || ticket.uncataloguedTool}</Typography>
+        <Typography sx={{ mt: 2 }}>{ticket.shopName || 'No shop'} / {ticket.toolName || ticket.uncataloguedTool || 'No tool specified'}</Typography>
         <Typography color="text.secondary">Created {date(ticket.createdAt)} · Last update {date(ticket.updatedAt)}</Typography>
         <Typography>Assignees: {ticket.assignees.map(p => p.name).join(', ') || 'Unassigned'}</Typography>
         {ticket.iBrokeIt && <Typography>Reporter indicated: I broke it</Typography>}
@@ -181,12 +182,12 @@ export default function FixTicketsPage() {
           {ticket?.capabilities.canNominateReward && form.status === 'resolved' && <FormControlLabel label="Nominate reporter for 1 volunteer point (separate approval)" control={<Checkbox checked={!!form.nominate_reward} onChange={e => set('nominate_reward', e.target.checked)} />} />}
         </>}
         {action === 'edit' && <>
-          <TextField label="Title" value={form.title || ''} onChange={e => set('title', e.target.value)} />
+          <TextField label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} />
           <TextField label="Description" multiline minRows={3} value={form.description || ''} onChange={e => set('description', e.target.value)} />
           <SelectField label="Category" value={form.category || ''} options={opts(categories)} onChange={v => set('category', v)} />
           <SelectField label="Shop" value={form.shop_id || ''} all="No shop" options={catalog?.shops || []} onChange={v => { set('shop_id', v); set('tool_id', ''); }} />
           <SelectField label="Tool" value={form.tool_id || ''} all="No catalog tool" options={catalog?.tools.filter(t => t.shopId === form.shop_id) || []} onChange={v => { set('tool_id', v); if (v) set('uncatalogued_tool', ''); }} />
-          {!form.tool_id && <TextField label="Uncatalogued tool" value={form.uncatalogued_tool || ''} onChange={e => set('uncatalogued_tool', e.target.value)} />}
+          {!form.tool_id && <TextField label="Uncatalogued tool" error={invalidFixName(form.uncatalogued_tool)} helperText={fixNameHint} value={form.uncatalogued_tool || ''} onChange={e => set('uncatalogued_tool', e.target.value)} />}
           <Alert severity="info">Publishing exposes the full ticket and its existing notes to current members.</Alert>
           <FormControlLabel label="Public (read-only)" control={<Checkbox disabled={ticket?.capabilities.publicLocked} checked={!!form.public_read_only} onChange={e => set('public_read_only', e.target.checked)} />} />
           <FormControlLabel label="Announce to shop/tool Slack channel" control={<Checkbox checked={!!form.announce_to_slack} onChange={e => set('announce_to_slack', e.target.checked)} />} />
@@ -203,7 +204,7 @@ export default function FixTicketsPage() {
         {action === 'withdraw' && <Typography>Withdraw this ticket? Its history is retained and any unclaimed bounty is cancelled.</Typography>}
         {action === 'unassign' && <Typography>Remove yourself? You may lose access to this ticket.</Typography>}
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
-      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
+      </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)))} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
     <NewTicket open={create} catalog={catalog} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;
@@ -212,20 +213,20 @@ export default function FixTicketsPage() {
 function NewTicket({ open, catalog, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = React.useState<Record<string, any>>({});
   const [error, setError] = React.useState(''); const [busy, setBusy] = React.useState(false);
-  React.useEffect(() => { if (open) { setForm({ title: '', description: '', category: 'broken', shop_id: catalog?.tools.find(t => t.id === initialTool)?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: initialTool, uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: crypto.randomUUID() }); setError(''); } }, [open]);
+  React.useEffect(() => { if (open) { setForm({ title: '', description: '', category: 'broken', shop_id: catalog?.tools.find(t => t.id === initialTool)?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: initialTool, uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() }); setError(''); } }, [open]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
   const submit = async () => { setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   return <Dialog open={open} onClose={() => !busy && onClose()} fullWidth maxWidth="sm"><DialogTitle>Report a problem</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
     {error && <Alert severity="error">{error}</Alert>}
     <Alert severity="info">Your identity is hidden except from admins after a privacy acknowledgment. Text you write may identify you.{catalog?.centralSlackEnabled && ' Full notes will also be shared in the central tickets Slack channel.'}</Alert>
-    <TextField required label="Title" value={form.title || ''} onChange={e => set('title', e.target.value)} slotProps={{ htmlInput: { maxLength: 150 } }} />
+    <TextField required label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} slotProps={{ htmlInput: { maxLength: 150 } }} />
     <TextField required label="Description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
     <FormControl><FormLabel>Issue type</FormLabel><RadioGroup row value={form.category || 'broken'} onChange={e => set('category', e.target.value)}>{categories.map(c => <FormControlLabel key={c} value={c} control={<Radio />} label={fixLabel(c)} />)}</RadioGroup></FormControl>
     <SelectField label="Shop (optional)" value={form.shop_id || ''} all="No shop" options={catalog?.shops || []} onChange={v => { set('shop_id', v); set('tool_id', ''); }} />
     <SelectField label="Tool (optional)" value={form.tool_id || ''} all="No catalog tool" options={catalog?.tools.filter(t => t.shopId === form.shop_id) || []} onChange={v => { set('tool_id', v); if (v) set('uncatalogued_tool', ''); }} />
-    {!form.tool_id && <TextField label="Uncatalogued tool name (optional)" value={form.uncatalogued_tool || ''} onChange={e => set('uncatalogued_tool', e.target.value)} />}
+    {!form.tool_id && <TextField label="Uncatalogued tool name (optional)" error={invalidFixName(form.uncatalogued_tool)} helperText={fixNameHint} value={form.uncatalogued_tool || ''} onChange={e => set('uncatalogued_tool', e.target.value)} />}
     <SelectField label="Priority (1 highest, 10 lowest)" value={String(form.priority || '')} all="Unprioritized" options={Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), name: String(i + 1) }))} onChange={v => set('priority', v)} />
     <Typography variant="caption">Cannot be manually changed later. Existing tickets at this priority shift down; beyond 10 becomes unprioritized.</Typography>
     {(['i_broke_it', 'i_can_fix_it', 'public_read_only'] as const).map((key, i) => <FormControlLabel key={key} label={['I broke it', 'I can fix it!', 'Public (read-only): current members can read the full ticket and notes'][i]} control={<Checkbox checked={!!form[key]} onChange={e => set(key, e.target.checked)} />} />)}
-  </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !form.title?.trim() || !form.description?.trim()} onClick={submit}>{busy ? 'Submitting…' : 'Submit report'}</Button></DialogActions></Dialog>;
+  </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)} onClick={submit}>{busy ? 'Submitting…' : 'Submit report'}</Button></DialogActions></Dialog>;
 }

@@ -185,7 +185,7 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
             {availableTools.map(tool => (
               <MenuItem key={tool.id} value={tool.id}>
                 <Checkbox checked={prerequisiteToolIds.includes(tool.id)} />
-                <ListItemText primary={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} />
+                <ListItemText primary={`${tool.name}${tool.outOfService ? " - Out of service" : ""}`} />
               </MenuItem>
             ))}
           </Select>

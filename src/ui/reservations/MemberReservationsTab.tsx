@@ -47,7 +47,7 @@ const ReservationTitle: React.FC<{ reservation: Reservation }> = ({
 const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
   reservation,
 }) => {
-  const resources = reservation.outOfServiceToolNames?.length ? `Out of service: ${reservation.outOfServiceToolNames.join(", ")}` : reservation.toolNames?.length
+  const resources = reservation.toolNames?.length
     ? reservation.toolNames.join(", ")
     : reservation.shopName;
 
@@ -67,6 +67,9 @@ const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
         {moment(reservation.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} ·{" "}
         {resources}
       </Typography>
+      {!!reservation.outOfServiceToolNames?.length && <Typography variant="body2" color="warning.main">
+        Out of service: {reservation.outOfServiceToolNames.join(", ")}
+      </Typography>}
       {reservation.approvalReasons.length > 0 && (
         <ApprovalDetails details={reservation.approvalDetails} compact />
       )}

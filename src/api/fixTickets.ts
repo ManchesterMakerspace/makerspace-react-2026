@@ -30,3 +30,6 @@ export async function fixRequest<T>(path: string, body?: unknown, method = 'POST
   if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : data.message || `Request failed (${response.status}). Refresh and try again.`);
   return data;
 }
+
+export const fixNameHint = 'Use letters A-Z, numbers, spaces, and . , _ ( ) / -.';
+export const invalidFixName = (value: string = '') => /[^A-Za-z0-9 .,_()\/\-]/.test(value);

@@ -23,15 +23,22 @@ async function main() {
     publicReadOnly: false, iBrokeIt: false, iCanFixIt: true, assignees: [], announceToSlack: false, announcementNote: '', revision: 1,
     createdAt: '2026-09-10T12:00:00Z', updatedAt: '2026-09-12T12:00:00Z', capabilities: { canRead: true, canAddNote: true, canChangeStatus: true, canManage: true, canManageVisibility: true, canWithdraw: true, canCreateBounty: true, canReveal: true },
     events: [{ id: 'event-1', actor: 'Reporter', kind: 'created', createdAt: '2026-09-10T12:00:00Z', changes: {} }] };
+  const noShopTicket = { ...ticket, id: '123456789012345678901239', shopId: null, shopName: null, toolId: null, toolName: null, uncataloguedTool: 'Bench grinder', outOfService: false, title: 'Loose grinder guard' };
   const catalog = { shops: [{ id: ticket.shopId, name: ticket.shopName }], tools: [{ id: ticket.toolId, name: ticket.toolName, shopId: ticket.shopId, outOfService: true }], canCreate: true, openCount: 1, openLimit: 10, centralSlackEnabled: true };
   const requests = [];
+  let failFirstReport = true;
   const server = http.createServer((req, res) => {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname.startsWith('/api/')) {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
-        const data = url.pathname.endsWith('/catalog') ? catalog : url.pathname === '/api/fix_tickets' && req.method === 'GET' ? { tickets: [ticket], total: 26, page: Number(url.searchParams.get('page') || 0), pageSize: 25 } : ticket;
+        if (url.pathname === '/api/fix_tickets' && req.method === 'POST' && failFirstReport) {
+          failFirstReport = false;
+          res.writeHead(503).end(JSON.stringify({ error: 'Temporary submission failure. Please retry.' }));
+          return;
+        }
+        const data = url.pathname.endsWith('/catalog') ? catalog : url.pathname === '/api/fix_tickets' && req.method === 'GET' ? { tickets: [ticket, noShopTicket], total: 26, page: Number(url.searchParams.get('page') || 0), pageSize: 25 } : url.pathname.endsWith(noShopTicket.id) ? noShopTicket : ticket;
         res.end(JSON.stringify(data));
       }); return;
     }
@@ -51,6 +58,9 @@ async function main() {
   try {
     const page = await browser.newPage(); const errors = [];
     page.on('pageerror', e => errors.push(e.message));
+    // LAN HTTP origins do not expose randomUUID. Localhost is considered secure,
+    // so explicitly remove it before application code to cover that environment.
+    await page.addInitScript(() => Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true }));
     const origin = `http://127.0.0.1:${server.address().port}`;
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -63,8 +73,15 @@ async function main() {
       await page.getByRole('dialog').evaluate(async node => { await Promise.all(node.getAnimations({ subtree: true }).map(a => a.finished)); });
       await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Broken saw');
       await page.getByRole('textbox', { name: 'Description', exact: true }).fill('The guard is loose.');
+      await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Saw <script>');
+      assert(await page.getByRole('button', { name: 'Submit report' }).isDisabled());
+      await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Broken saw');
       await page.screenshot({ path: path.join(output, `form-${width}.png`), fullPage: true, animations: 'disabled' });
       await page.getByRole('button', { name: 'Submit report' }).click();
+      if (width === 320) {
+        await page.getByRole('alert').filter({ hasText: 'Temporary submission failure' }).waitFor();
+        await page.getByRole('button', { name: 'Submit report' }).click();
+      }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.goto(`${origin}/fix-tickets/${id}`);
       await page.getByRole('heading', { name: ticket.title }).waitFor();
@@ -79,12 +96,23 @@ async function main() {
     }
     await page.goto(`${origin}/fix-tickets`);
     await page.getByRole('link', { name: ticket.title }).waitFor();
+    await page.getByText('No shop / Bench grinder', { exact: true }).waitFor();
+    await page.getByRole('link', { name: noShopTicket.title }).click();
+    await page.getByRole('heading', { name: noShopTicket.title }).waitFor();
+    await page.getByText('No shop / Bench grinder', { exact: true }).waitFor();
+    await page.goto(`${origin}/fix-tickets`);
+    await page.getByRole('link', { name: ticket.title }).waitFor();
     await page.getByRole('button', { name: 'Go to next page' }).click();
     await page.waitForURL(/page=1/);
     assert(requests.some(r => r.method === 'POST' && r.body?.title === 'Broken saw'));
     assert(requests.some(r => r.method === 'POST' && r.body?.note === 'Replacement switch ordered.'));
+    const submissions = requests.filter(r => r.method === 'POST' && r.body?.title === 'Broken saw');
+    assert.equal(submissions.length, 5);
+    assert.equal(submissions[0].body.submission_key, submissions[1].body.submission_key, 'Retry must retain its submission key');
+    assert.equal(new Set(submissions.map(r => r.body.submission_key)).size, 4, 'New reports need distinct keys');
+    submissions.forEach(r => assert.match(r.body.submission_key, /^[\w-]{8,100}$/));
     assert.equal(errors.length, 0, errors.join('\n'));
-    console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; creation, notes, keyboard focus and pagination verified.');
+    console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; creation without crypto.randomUUID, retry keys, notes, keyboard focus and pagination verified.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 main().catch(e => { console.error(e); process.exitCode = 1; });
