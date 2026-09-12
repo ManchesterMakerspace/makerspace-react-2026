@@ -38,6 +38,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  outOfService?: boolean;
   open?: boolean;
   id: string;
   name: string;
@@ -78,6 +79,7 @@ export interface Tool {
 }
 
 export interface ToolCheckout {
+  outOfService?: boolean;
   id: string;
   memberId: string;
   memberName: string;
@@ -99,6 +101,7 @@ export interface ToolCheckout {
 }
 
 export interface CheckoutApprover {
+  outOfServiceToolNames?: string[];
   id: string;
   memberId: string;
   memberName: string;
@@ -110,6 +113,7 @@ export interface CheckoutApprover {
 }
 
 export interface ToolCheckoutRequest {
+  outOfService?: boolean;
   id: string;
   memberId: string;
   memberName: string;

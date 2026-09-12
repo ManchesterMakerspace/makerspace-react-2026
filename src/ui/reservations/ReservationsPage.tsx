@@ -1,3 +1,4 @@
+import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -58,11 +59,11 @@ const statusColor = (status: string): "default" | "primary" | "warning" | "succe
   (status === "pending" || status === "unpaid") ? "warning" : status === "approved" ? "success" : status === "denied" ? "error" : "default";
 
 const ReservationTitle: React.FC<{ reservation: Reservation }> = ({ reservation }) => (
-  reservation.calendarHtmlLink
+  <>{reservation.calendarHtmlLink
     ? <a href={reservation.calendarHtmlLink} target="_blank" rel="noopener noreferrer">
         {reservation.title}
       </a>
-    : <>{reservation.title}</>
+    : <>{reservation.title}</>} <ToolAvailability outOfService={!!reservation.outOfServiceToolNames?.length} /></>
 );
 
 const ReservationsPage: React.FC = () => {
@@ -494,7 +495,7 @@ const ReservationsPage: React.FC = () => {
             </Grid>
             {scope === "tools" && <Grid size={{ xs: 12 }}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {shopTools.map(tool => <Chip key={tool.id} label={tool.name} clickable onClick={() => toggleTool(tool.id)}
+                {shopTools.map(tool => <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} disabled={tool.outOfService && !toolIds.includes(tool.id)} clickable onClick={() => toggleTool(tool.id)}
                   color={toolIds.includes(tool.id) ? "primary" : "default"}
                   variant={toolIds.includes(tool.id) ? "filled" : "outlined"} />)}
                 {editing && editing.toolIds.filter(id => !shopTools.some(tool => tool.id === id)).map(id => {

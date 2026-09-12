@@ -47,7 +47,7 @@ const ReservationTitle: React.FC<{ reservation: Reservation }> = ({
 const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
   reservation,
 }) => {
-  const resources = reservation.toolNames?.length
+  const resources = reservation.outOfServiceToolNames?.length ? `Out of service: ${reservation.outOfServiceToolNames.join(", ")}` : reservation.toolNames?.length
     ? reservation.toolNames.join(", ")
     : reservation.shopName;
 

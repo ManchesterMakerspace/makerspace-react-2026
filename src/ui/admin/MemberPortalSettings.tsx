@@ -1,4 +1,5 @@
 // @ts-nocheck
+import TicketLimitSetting from "ui/fixTickets/TicketLimitSetting";
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -1213,7 +1214,7 @@ const MemberPortalSettings: React.FC = () => {
             savingKey={savingKey}
           />
         )}
-        {activeTab === 'security' && <SecurityTab />}
+        {activeTab === 'security' && <><TicketLimitSetting /><SecurityTab /></>}
         {activeTab === 'templates' && canViewPortalSettings && <TemplatesTab />}
         {activeTab === 'jobs' && (
           <JobsTab

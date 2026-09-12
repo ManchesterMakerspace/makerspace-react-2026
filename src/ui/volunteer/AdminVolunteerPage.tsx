@@ -185,7 +185,7 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
             {availableTools.map(tool => (
               <MenuItem key={tool.id} value={tool.id}>
                 <Checkbox checked={prerequisiteToolIds.includes(tool.id)} />
-                <ListItemText primary={tool.name} />
+                <ListItemText primary={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} />
               </MenuItem>
             ))}
           </Select>
@@ -909,6 +909,7 @@ const TasksTabInner: React.FC = () => {
               Requires: {row.prerequisiteToolNames.join(', ')}
             </Typography>
           )}
+          {row.ticketId && <a href={`/fix-tickets/${row.ticketId}`}>View source ticket</a>}
           {row.claimedByName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               Claimed by: {row.claimedByName}

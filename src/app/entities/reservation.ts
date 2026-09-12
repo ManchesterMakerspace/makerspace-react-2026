@@ -11,6 +11,7 @@ export interface ReservationApprovalDetail {
 }
 
 export interface Reservation {
+  outOfServiceToolNames?: string[];
   id: string;
   title: string;
   memberId: string;

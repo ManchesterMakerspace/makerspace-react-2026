@@ -121,7 +121,7 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
                 {tools.filter(tool => tool.shopId === shop.id).map(tool => (
                   <Chip
                     key={tool.id}
-                    label={tool.name}
+                    label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`}
                     size="small"
                     disabled={shopIds.includes(shop.id)}
                     onClick={() => toggleTool(tool.id)}
@@ -221,7 +221,7 @@ const CheckoutApproversManager: React.FC = () => {
       cell: (row: CheckoutApprover) => (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {row.toolNames?.map(name => (
-            <Chip key={name} label={name} size="small" variant="outlined" />
+            <Chip key={name} label={`${name}${row.outOfServiceToolNames?.includes(name) ? " — Out of service" : ""}`} size="small" variant="outlined" />
           ))}
         </div>
       ),
@@ -232,7 +232,7 @@ const CheckoutApproversManager: React.FC = () => {
       cell: (row: CheckoutApprover) => (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {row.shopNames?.map(name => (
-            <Chip key={name} label={name} size="small" variant="outlined" />
+            <Chip key={name} label={`${name}${row.outOfServiceToolNames?.includes(name) ? " — Out of service" : ""}`} size="small" variant="outlined" />
           ))}
         </div>
       ),

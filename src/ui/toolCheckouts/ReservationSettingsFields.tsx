@@ -153,7 +153,7 @@ const ReservationSettingsFields: React.FC<{
             </FormLabel>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
               {tools.map(tool => (
-                <Chip key={tool.id} label={tool.id === lockedToolId ? `${tool.name} (required)` : tool.name}
+                <Chip key={tool.id} label={`${tool.name}${tool.id === lockedToolId ? " (required)" : ""}${tool.outOfService ? " — Out of service" : ""}`}
                   size="small" clickable={tool.id !== lockedToolId}
                   onMouseDown={event => event.stopPropagation()}
                   onClick={event => {
