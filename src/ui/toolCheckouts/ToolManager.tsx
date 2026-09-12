@@ -529,7 +529,8 @@ const ToolManager: React.FC = () => {
             </Typography>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {selectedTool && !editingId && (
+            {/* The API scopes this list to tools the user can manage or approve. */}
+            {selectedTool && (
               <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                 onClick={() => setQrTool(selectedTool)}>QR Code</Button>
             )}

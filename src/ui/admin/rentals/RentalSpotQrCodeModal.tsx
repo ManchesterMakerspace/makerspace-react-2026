@@ -1,14 +1,11 @@
 import * as React from "react";
-import { Routing } from "app/constants";
-import QrCodeModal from "ui/common/QrCodeModal";
+import ShortLinkQrCodeModal from "ui/common/ShortLinkQrCodeModal";
 
 const RentalSpotQrCodeModal: React.FC<{
-  spotNumber: string | null;
+  spot: { id: string; number: string } | null;
   onClose: () => void;
-}> = ({ spotNumber, onClose }) => (
-  <QrCodeModal id="rental-spot-qr-code" isOpen={!!spotNumber}
-    title={spotNumber ? `QR Code — ${spotNumber}` : "QR Code"}
-    url={spotNumber ? `${window.location.origin}${Routing.RentalSpotDeepLink.replace(Routing.PathPlaceholder.SpotId, spotNumber)}` : ""}
-    filename={`rental-spot-${spotNumber}-qr.png`} onClose={onClose} />
-);
+}> = ({ spot, onClose }) => spot ? (
+  <ShortLinkQrCodeModal key={spot.id} id="rental-spot-qr-code" title={`QR Code — ${spot.number}`}
+    target={`/rentals/spots/${spot.id}`} fallbackUrl={`${window.location.origin}/rentals/spots/${spot.id}`} filename={`rental-spot-${spot.number}-qr.png`} onClose={onClose} />
+) : null;
 export default RentalSpotQrCodeModal;

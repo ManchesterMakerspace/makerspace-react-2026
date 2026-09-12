@@ -1,3 +1,4 @@
+import { createShortLink } from "api/shortcodes";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -13,7 +14,6 @@ import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 
-import { Routing } from "app/constants";
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
@@ -55,16 +55,62 @@ const AdminRentalSpots: React.FC = () => {
   const [isEditing,    setIsEditing]    = React.useState(false);
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
   const [linkCopied,   setLinkCopied]   = React.useState(false);
-  const [qrSpotNumber, setQrSpotNumber] = React.useState<string | null>(null);
+  const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
+  const [linkError, setLinkError] = React.useState("");
+  const [copyableLink, setCopyableLink] = React.useState("");
+  const [copyingLink, setCopyingLink] = React.useState(false);
+  const [preparedLink, setPreparedLink] = React.useState<{ spotId: string; url: string; fallback: boolean } | null>(null);
+  const linkReady = preparedLink?.spotId === selectedId && !!preparedLink?.url;
+  const copyPending = React.useRef(false);
+  const selectedIdRef = React.useRef(selectedId);
+  selectedIdRef.current = selectedId;
+  const mounted = React.useRef(true);
+  React.useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  React.useEffect(() => {
+    let cancelled = false;
+    setPreparedLink(null);
+    setLinkError(""); setCopyableLink(""); setLinkCopied(false);
+    if (selectedId) {
+      const target = `/rentals/spots/${selectedId}`;
+      createShortLink(target).then(link => {
+        if (!cancelled) setPreparedLink({ spotId: selectedId, url: link.short_url, fallback: false });
+      }).catch(() => {
+        if (!cancelled) {
+          const url = `${window.location.origin}/rentals/spots/${encodeURIComponent(selectedId)}`;
+          setPreparedLink({ spotId: selectedId, url, fallback: true });
+          setCopyableLink(url);
+          setLinkError("Short link unavailable. Use the full link below.");
+        }
+      });
+    }
+    return () => { cancelled = true; };
+  }, [selectedId]);
   const { params, changePage } = useQueryContext();
 
-  const copyDeepLink = React.useCallback((spotNumber: string) => {
-    const path = Routing.RentalSpotDeepLink.replace(Routing.PathPlaceholder.SpotId, spotNumber);
-    const url = `${window.location.origin}${path}`;
-    navigator.clipboard?.writeText(url);
-    setLinkCopied(true);
-    window.setTimeout(() => setLinkCopied(false), 2000);
-  }, []);
+  const copyDeepLink = React.useCallback(async (spotId: string) => {
+    if (copyPending.current || preparedLink?.spotId !== spotId) return;
+    const { url, fallback } = preparedLink;
+    copyPending.current = true;
+    setCopyingLink(true);
+    setLinkError(fallback ? "Short link unavailable. Use the full link below." : "");
+    setLinkCopied(false); setCopyableLink(url);
+    const current = () => mounted.current && selectedIdRef.current === spotId;
+    try {
+      // Invoke the clipboard during the click, before yielding to any promise.
+      try {
+        await navigator.clipboard.writeText(url);
+        if (current()) {
+          setLinkCopied(true);
+          window.setTimeout(() => { if (current()) setLinkCopied(false); }, 2000);
+        }
+      } catch {
+        if (current()) setLinkError("Could not copy automatically. Select and copy the link below.");
+      }
+    } finally {
+      copyPending.current = false;
+      if (mounted.current) setCopyingLink(false);
+    }
+  }, [preparedLink]);
 
   const { data: rentalTypes = [] } = useReadTransaction(
     adminListRentalTypes, {}, undefined, "admin-rental-types-for-spots"
@@ -149,15 +195,15 @@ const AdminRentalSpots: React.FC = () => {
       <Grid size={{ xs: 12 }}>
         <Grid container justifyContent="space-between" alignItems="center">
           <Typography variant="h6">Rental Spots</Typography>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {selectedSpot && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<ContentCopyIcon />}
-                  onClick={() => copyDeepLink(selectedSpot.number)}>
-                  {linkCopied ? "Copied!" : "Copy Link"}
+                  disabled={!linkReady || copyingLink} aria-busy={!linkReady || copyingLink} onClick={() => copyDeepLink(selectedSpot.id)}>
+                  {!linkReady ? "Loading link…" : copyingLink ? "Copying…" : linkCopied ? "Copied!" : "Copy Link"}
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
-                  onClick={() => setQrSpotNumber(selectedSpot.number)}>
+                  onClick={() => setQrSpot(selectedSpot)}>
                   QR Code
                 </Button>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
@@ -175,6 +221,12 @@ const AdminRentalSpots: React.FC = () => {
             </Button>
           </div>
         </Grid>
+      {linkError && <div role="alert">
+        <Typography color="error">{linkError}</Typography>
+        {copyableLink && <Typography sx={{ overflowWrap: "anywhere" }}>
+          <a href={copyableLink} target="_blank" rel="noopener noreferrer">{copyableLink}</a>
+        </Typography>}
+      </div>}
       </Grid>
 
       <Grid size={{ xs: 12 }}>
@@ -279,7 +331,7 @@ const AdminRentalSpots: React.FC = () => {
         )}
       </FormModal>
 
-      <RentalSpotQrCodeModal spotNumber={qrSpotNumber} onClose={() => setQrSpotNumber(null)} />
+      <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
     </Grid>
   );
 };

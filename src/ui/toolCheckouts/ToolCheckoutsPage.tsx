@@ -50,7 +50,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const visibleTabs = tabs.filter(t => {
     if (!t.adminOnly) return true;
     if (t.key === "approvers") return caps.canManageCheckoutApprovers;
-    if (t.key === "shops") return managesShops || caps.canManageCheckoutApprovers;
+    if (t.key === "shops") return caps.canViewShopQrCodes;
     // Tools tab also needs to reach a plain (non-shop-manager) checkout
     // approver so they can set a tool's notes -- see #189.
     if (t.key === "tools") return managesShops || caps.canManageCheckoutApprovers || caps.canManageCheckouts;
