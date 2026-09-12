@@ -42,7 +42,7 @@ async function main() {
         }
         if (url.pathname === '/api/fix_tickets' && req.method === 'POST' && failFirstReport) {
           failFirstReport = false;
-          res.writeHead(503).end(JSON.stringify({ error: 'Temporary submission failure. Please retry.' }));
+          res.writeHead(503).end(JSON.stringify({ error: 'Repair ticket changes are unavailable. Configure MongoDB as a replica set (a single-node replica set is sufficient for development/test) and update MLAB_URI. MongoDB: Transactions are not supported for the cluster: standalone topology' }));
           return;
         }
         const data = url.pathname.endsWith('/catalog') ? { ...catalog, canCreate: !creationReason, creationUnavailableReason: creationReason } : url.pathname === '/api/fix_tickets' && req.method === 'GET' ? { tickets: [ticket, noShopTicket], total: 26, page: Number(url.searchParams.get('page') || 0), pageSize: 25 } : url.pathname.endsWith(noShopTicket.id) ? noShopTicket : ticket;
@@ -86,7 +86,7 @@ async function main() {
       await page.screenshot({ path: path.join(output, `form-${width}.png`), fullPage: true, animations: 'disabled' });
       await page.getByRole('button', { name: 'Submit report' }).click();
       if (width === 320) {
-        await page.getByRole('alert').filter({ hasText: 'Temporary submission failure' }).waitFor();
+        await page.getByRole('alert').filter({ hasText: 'Transactions are not supported for the cluster: standalone topology' }).waitFor();
         await page.getByRole('button', { name: 'Submit report' }).click();
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
