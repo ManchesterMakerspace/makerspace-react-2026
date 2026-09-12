@@ -13,6 +13,7 @@ export interface FixTicket {
 export interface FixCatalog {
   assignees?: FixPerson[];
   shops: FixPerson[]; tools: (FixPerson & { shopId: string; outOfService: boolean })[];
+  creationUnavailableReason?: string | null;
   canCreate: boolean; openCount: number; openLimit: number | null; centralSlackEnabled: boolean;
 }
 export const statuses = ['open', 'in_progress', 'waiting_for_parts', 'resolved', 'rejected', 'withdrawn'];

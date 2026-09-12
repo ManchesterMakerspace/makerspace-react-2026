@@ -25,6 +25,9 @@ async function main() {
     events: [{ id: 'event-1', actor: 'Reporter', kind: 'created', createdAt: '2026-09-10T12:00:00Z', changes: {} }] };
   const noShopTicket = { ...ticket, id: '123456789012345678901239', shopId: null, shopName: null, toolId: null, toolName: null, uncataloguedTool: 'Bench grinder', outOfService: false, title: 'Loose grinder guard' };
   const catalog = { shops: [{ id: ticket.shopId, name: ticket.shopName }], tools: [{ id: ticket.toolId, name: ticket.toolName, shopId: ticket.shopId, outOfService: true }], canCreate: true, openCount: 1, openLimit: 10, centralSlackEnabled: true };
+  let creationReason = null;
+  let bountyFail = true;
+  let bountyCapabilities = { canClaim: false, canSubmitCompletion: false };
   const requests = [];
   let failFirstReport = true;
   const server = http.createServer((req, res) => {
@@ -33,12 +36,16 @@ async function main() {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
+        if (url.pathname.startsWith('/api/volunteer/tasks/') && url.pathname.endsWith('/detail')) {
+          if (bountyFail) { bountyFail = false; res.writeHead(503).end(JSON.stringify({ error: 'Bounty temporarily unavailable' })); return; }
+          res.end(JSON.stringify({ id, title: 'Repair bounty', description: 'Replace switch', creditValue: 1, status: bountyCapabilities.canClaim ? 'available' : 'claimed', ticketId: id, capabilities: bountyCapabilities })); return;
+        }
         if (url.pathname === '/api/fix_tickets' && req.method === 'POST' && failFirstReport) {
           failFirstReport = false;
           res.writeHead(503).end(JSON.stringify({ error: 'Temporary submission failure. Please retry.' }));
           return;
         }
-        const data = url.pathname.endsWith('/catalog') ? catalog : url.pathname === '/api/fix_tickets' && req.method === 'GET' ? { tickets: [ticket, noShopTicket], total: 26, page: Number(url.searchParams.get('page') || 0), pageSize: 25 } : url.pathname.endsWith(noShopTicket.id) ? noShopTicket : ticket;
+        const data = url.pathname.endsWith('/catalog') ? { ...catalog, canCreate: !creationReason, creationUnavailableReason: creationReason } : url.pathname === '/api/fix_tickets' && req.method === 'GET' ? { tickets: [ticket, noShopTicket], total: 26, page: Number(url.searchParams.get('page') || 0), pageSize: 25 } : url.pathname.endsWith(noShopTicket.id) ? noShopTicket : ticket;
         res.end(JSON.stringify(data));
       }); return;
     }
@@ -111,8 +118,34 @@ async function main() {
     assert.equal(submissions[0].body.submission_key, submissions[1].body.submission_key, 'Retry must retain its submission key');
     assert.equal(new Set(submissions.map(r => r.body.submission_key)).size, 4, 'New reports need distinct keys');
     submissions.forEach(r => assert.match(r.body.submission_key, /^[\w-]{8,100}$/));
+    for (const reason of ['Membership is inactive.', 'Membership has expired.', 'Open-ticket limit reached.']) {
+      creationReason = reason;
+      await page.goto(`${origin}/fix-tickets?new=true`);
+      const dialog = page.getByRole('dialog');
+      await dialog.getByText(reason).waitFor();
+      assert.equal(await dialog.getByRole('textbox', { name: 'Title', exact: true }).count(), 0);
+      assert.equal(await dialog.getByRole('button', { name: 'Submit report' }).count(), 0);
+    }
+    creationReason = null;
+    await page.goto(`${origin}/volunteer/tasks/${id}`);
+    await page.getByRole('button', { name: 'Retry loading bounty' }).waitFor();
+    assert.equal(await page.getByRole('progressbar').count(), 0, 'Failed loads must stop spinning');
+    await page.getByRole('button', { name: 'Retry loading bounty' }).click();
+    await page.getByRole('heading', { name: 'Repair bounty' }).waitFor();
+    assert.equal(await page.getByRole('button', { name: 'Submit completion for verification' }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Claim bounty' }).count(), 0);
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      bountyCapabilities = { canClaim: true, canSubmitCompletion: false };
+      await page.reload();
+      await page.getByRole('button', { name: 'Claim bounty' }).waitFor();
+      bountyCapabilities = { canClaim: false, canSubmitCompletion: true };
+      await page.reload();
+      await page.getByRole('button', { name: 'Submit completion for verification' }).waitFor();
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Bounty overflow at ${width}`);
+    }
     assert.equal(errors.length, 0, errors.join('\n'));
-    console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; creation without crypto.randomUUID, retry keys, notes, keyboard focus and pagination verified.');
+    console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; eligibility, bounty permissions/retry, name validation, creation, notes, keyboard focus and pagination verified.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 main().catch(e => { console.error(e); process.exitCode = 1; });

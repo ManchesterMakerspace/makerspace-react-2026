@@ -220,8 +220,8 @@ const CheckoutApproversManager: React.FC = () => {
       label: "Authorized Tools",
       cell: (row: CheckoutApprover) => (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {row.toolNames?.map(name => (
-            <Chip key={name} label={`${name}${row.outOfServiceToolNames?.includes(name) ? " - Out of service" : ""}`} size="small" variant="outlined" />
+          {row.tools?.map(tool => (
+            <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " - Out of service" : ""}`} size="small" variant="outlined" />
           ))}
         </div>
       ),
@@ -232,7 +232,7 @@ const CheckoutApproversManager: React.FC = () => {
       cell: (row: CheckoutApprover) => (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
           {row.shopNames?.map(name => (
-            <Chip key={name} label={`${name}${row.outOfServiceToolNames?.includes(name) ? " - Out of service" : ""}`} size="small" variant="outlined" />
+            <Chip key={name} label={name} size="small" variant="outlined" />
           ))}
         </div>
       ),

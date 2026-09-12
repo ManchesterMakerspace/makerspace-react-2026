@@ -107,6 +107,7 @@ export default function FixTicketsPage() {
       </Stack>
     </Stack>
     {catalog && <Typography color="text.secondary" sx={{ mb: 2 }}>{catalog.openCount} open reports · {catalog.openLimit === null ? 'No ticket cap' : `Limit ${catalog.openLimit}`}</Typography>}
+    {catalog && !catalog.canCreate && <Alert severity="info" sx={{ mb: 2 }}>{catalog.creationUnavailableReason || 'Reporting is currently unavailable for this membership.'}</Alert>}
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
     {loading ? <CircularProgress aria-label="Loading tickets" /> : !id ? <>
@@ -206,16 +207,21 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)))} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;
 }
 
-function NewTicket({ open, catalog, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
+function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; catalogLoading: boolean; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = React.useState<Record<string, any>>({});
   const [error, setError] = React.useState(''); const [busy, setBusy] = React.useState(false);
   React.useEffect(() => { if (open) { setForm({ title: '', description: '', category: 'broken', shop_id: catalog?.tools.find(t => t.id === initialTool)?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: initialTool, uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() }); setError(''); } }, [open]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
-  const submit = async () => { setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  const submit = async () => { if (!catalog?.canCreate) return; setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  if (open && !catalog?.canCreate) return <Dialog open onClose={onClose} fullWidth maxWidth="sm">
+    <DialogTitle>Reporting unavailable</DialogTitle><DialogContent>
+      {catalogLoading ? <CircularProgress aria-label="Checking reporting eligibility" /> : <Alert severity="info">{catalog?.creationUnavailableReason || 'Reporting eligibility could not be confirmed. Close this dialog and refresh the page.'}</Alert>}
+    </DialogContent><DialogActions><Button onClick={onClose}>Close</Button></DialogActions>
+  </Dialog>;
   return <Dialog open={open} onClose={() => !busy && onClose()} fullWidth maxWidth="sm"><DialogTitle>Report a problem</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
     {error && <Alert severity="error">{error}</Alert>}
     <Alert severity="info">Your identity is hidden except from admins after a privacy acknowledgment. Text you write may identify you.{catalog?.centralSlackEnabled && ' Full notes will also be shared in the central tickets Slack channel.'}</Alert>
@@ -228,5 +234,5 @@ function NewTicket({ open, catalog, initialShop, initialTool, onClose, onSaved }
     <SelectField label="Priority (1 highest, 10 lowest)" value={String(form.priority || '')} all="Unprioritized" options={Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), name: String(i + 1) }))} onChange={v => set('priority', v)} />
     <Typography variant="caption">Cannot be manually changed later. Existing tickets at this priority shift down; beyond 10 becomes unprioritized.</Typography>
     {(['i_broke_it', 'i_can_fix_it', 'public_read_only'] as const).map((key, i) => <FormControlLabel key={key} label={['I broke it', 'I can fix it!', 'Public (read-only): current members can read the full ticket and notes'][i]} control={<Checkbox checked={!!form[key]} onChange={e => set(key, e.target.checked)} />} />)}
-  </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)} onClick={submit}>{busy ? 'Submitting…' : 'Submit report'}</Button></DialogActions></Dialog>;
+  </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={onClose}>Cancel</Button><Button variant="contained" disabled={busy || !catalog?.canCreate || !form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)} onClick={submit}>{busy ? 'Submitting…' : 'Submit report'}</Button></DialogActions></Dialog>;
 }

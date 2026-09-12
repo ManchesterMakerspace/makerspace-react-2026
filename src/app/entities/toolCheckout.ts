@@ -101,6 +101,7 @@ export interface ToolCheckout {
 }
 
 export interface CheckoutApprover {
+  tools?: { id: string; name: string; shopId: string; outOfService: boolean }[];
   outOfServiceToolNames?: string[];
   id: string;
   memberId: string;
