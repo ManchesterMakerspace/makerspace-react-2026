@@ -185,7 +185,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "name", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.name}</strong></Typography>
+          <Typography variant="body2"><strong>{row.name}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
         </div>
       ),

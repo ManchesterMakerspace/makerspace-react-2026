@@ -55,6 +55,7 @@ export interface VolunteerSettings {
    *  The discount ID must contain 'volunteer' (e.g. volunteer_discount_10). */
   volunteer_discount_id: string;
   volunteer_task_max_credit: string;
+  ticket_bounty_max_credit: string;
   volunteer_bounty_token: string;
   volunteer_rolling_days: string;
   volunteer_leaderboard_top: string;

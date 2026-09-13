@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, '.cache/fix-ui');
 const config = require('../prod.config.js')({});
 config.mode = 'development'; config.entry = path.join(root, 'tests/fixtures/fix-tickets-entry.tsx');
+config.plugins.push(new webpack.NormalModuleReplacementPlugin(/[\\/]useReadTransaction(?:\.ts)?$/, path.join(root, 'tests/fixtures/empty-read-transaction.ts')));
 config.output = { ...config.output, path: output, clean: true };
 config.optimization = { minimize: false }; config.devtool = false;
 const compile = () => new Promise((resolve, reject) => webpack(config, (err, stats) => {
@@ -41,6 +42,15 @@ async function main() {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
+        if (['/api/admin/shops', '/api/admin/tools'].includes(url.pathname)) { res.end('[]'); return; }
+        if (req.method === 'POST' && url.pathname === `/api/fix_tickets/${id}/outage`) {
+          res.end(JSON.stringify({ affectedCount: 1, affectedReservations: [{ id: 'booking-review', startAt: '2026-09-15T14:00:00Z' }] })); return;
+        }
+        if (req.method === 'POST' && url.pathname.startsWith('/api/volunteer/tasks/') && /\/(claim|complete)$/.test(url.pathname)) {
+          bountyCapabilities = { canClaim: false, canSubmitCompletion: url.pathname.endsWith('/claim') };
+          bountyFail = true;
+          res.end(JSON.stringify({})); return;
+        }
         if (url.pathname === failTicketPath) { failTicketPath = ''; res.writeHead(503).end(JSON.stringify({ error: 'Ticket load failed' })); return; }
         if (url.pathname === '/api/admin/system_configs') {
           if (failLimitLoad) { failLimitLoad = false; res.writeHead(503).end(JSON.stringify({ error: 'Configuration load failed' })); return; }
@@ -78,14 +88,14 @@ async function main() {
   catch (error) { server.close(); throw error; }
   try {
     const page = await browser.newPage(); const errors = [];
-    page.on('pageerror', e => errors.push(e.message));
+    page.on('pageerror', e => errors.push(e.stack || e.message));
+    const origin = `http://127.0.0.1:${server.address().port}`;
     // LAN HTTP origins do not expose randomUUID. Localhost is considered secure,
     // so explicitly remove it before application code to cover that environment.
     await page.addInitScript(() => Object.defineProperty(globalThis.crypto, 'randomUUID', { value: undefined, configurable: true }));
-    const origin = `http://127.0.0.1:${server.address().port}`;
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
-      await page.goto(`${origin}/fix-tickets`);
+      await page.goto(`${origin}/fix-tickets?priority=1&sort=updated_at&direction=desc&page_size=10`);
       await page.getByRole('link', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `List overflow at ${width}`);
       await page.screenshot({ path: path.join(output, `list-${width}.png`), fullPage: true, animations: 'disabled' });
@@ -104,9 +114,28 @@ async function main() {
         await page.getByRole('button', { name: 'Submit report' }).click();
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
+      await page.waitForURL(`${origin}/fix-tickets`);
+      await page.getByRole('link', { name: ticket.title }).waitFor();
       await page.goto(`${origin}/fix-tickets/${id}`);
       await page.getByRole('heading', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
+      await page.getByRole('button', { name: 'Edit ticket', exact: true }).click();
+      const editDialog = page.getByRole('dialog');
+      const editConfirm = editDialog.getByRole('button', { name: 'Confirm', exact: true });
+      await editDialog.getByRole('textbox', { name: 'Title', exact: true }).fill('   ');
+      assert(await editConfirm.isDisabled());
+      await editDialog.getByRole('textbox', { name: 'Title', exact: true }).fill('Valid title');
+      await editDialog.getByRole('textbox', { name: 'Description', exact: true }).fill('');
+      assert(await editConfirm.isDisabled());
+      await editDialog.getByRole('textbox', { name: 'Description', exact: true }).fill('Valid description');
+      assert(await editConfirm.isEnabled());
+      await editDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+      await page.getByRole('button', { name: 'Restore service', exact: true }).click();
+      await page.getByRole('dialog').getByRole('button', { name: 'Confirm', exact: true }).click();
+      await page.getByRole('dialog').waitFor({ state: 'hidden' });
+      await page.getByRole('heading', { name: ticket.title }).waitFor();
+      const reviewLink = page.getByRole('list', { name: 'Affected reservations' }).getByRole('link');
+      assert.equal(await reviewLink.getAttribute('href'), '/reservations?edit=booking-review');
       await page.getByRole('button', { name: 'Make this a bounty', exact: true }).click();
       const bountyDialog = page.getByRole('dialog');
       const bountyConfirm = bountyDialog.getByRole('button', { name: 'Confirm', exact: true });
@@ -146,7 +175,16 @@ async function main() {
       assert(await page.evaluate(() => document.activeElement !== document.body), 'Keyboard focus remains usable');
       await page.getByRole('button', { name: 'Confirm', exact: true }).click();
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
+      await page.getByRole('list', { name: 'Affected reservations' }).getByRole('link').waitFor();
     }
+    ticket.status = 'resolved'; ticket.closedBy = { id: 'closer', name: 'Repair Volunteer' };
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    await page.getByText('Closed by Repair Volunteer', { exact: true }).waitFor();
+    ticket.closedBy = null;
+    await page.reload();
+    await page.getByRole('heading', { name: ticket.title }).waitFor();
+    assert.equal(await page.getByText('Closed by Repair Volunteer', { exact: true }).count(), 0);
+    ticket.status = 'open';
     await page.goto(`${origin}/fix-tickets`);
     await page.getByRole('link', { name: ticket.title }).waitFor();
     await page.getByText('No shop / Bench grinder', { exact: true }).waitFor();
@@ -238,10 +276,41 @@ async function main() {
       bountyCapabilities = { canClaim: true, canSubmitCompletion: false };
       await page.reload();
       await page.getByRole('button', { name: 'Claim bounty' }).waitFor();
-      bountyCapabilities = { canClaim: false, canSubmitCompletion: true };
-      await page.reload();
+      await page.getByRole('button', { name: 'Claim bounty' }).click();
+      await page.getByRole('button', { name: 'Retry loading bounty' }).waitFor();
+      await page.getByRole('alert').filter({ hasText: 'Your action succeeded' }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Claim bounty' }).count(), 0);
+      assert.equal(await page.getByRole('button', { name: 'Submit completion for verification' }).count(), 0);
+      await page.getByRole('button', { name: 'Retry loading bounty' }).click();
       await page.getByRole('button', { name: 'Submit completion for verification' }).waitFor();
+      await page.getByRole('button', { name: 'Submit completion for verification' }).click();
+      await page.getByRole('button', { name: 'Retry loading bounty' }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Submit completion for verification' }).count(), 0);
+      await page.getByRole('button', { name: 'Retry loading bounty' }).click();
+      await page.getByRole('heading', { name: 'Repair bounty' }).waitFor();
+      assert.equal(await page.getByRole('button', { name: 'Submit completion for verification' }).count(), 0);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Bounty overflow at ${width}`);
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      catalog.bountyMaxCredit = 5;
+      await page.goto(`${origin}/fix-tickets/${id}`);
+      await page.getByRole('button', { name: 'Make this a bounty', exact: true }).click();
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('textbox', { name: 'Public bounty description' }).fill('Replace switch');
+      const points = dialog.getByRole('spinbutton', { name: 'Volunteer points' });
+      assert.equal(await points.getAttribute('max'), '5');
+      await points.fill('5'); assert(await dialog.getByRole('button', { name: 'Confirm', exact: true }).isEnabled());
+      await points.fill('5.5'); assert(await dialog.getByRole('button', { name: 'Confirm', exact: true }).isDisabled());
+      await page.goto(`${origin}/edit-bounty`);
+      const credits = page.getByRole('spinbutton', { name: 'Credit Value' });
+      await credits.waitFor();
+      assert.equal(await credits.getAttribute('max'), null);
+      await credits.fill('1000.5');
+      const saved = page.waitForRequest(request => request.url().endsWith('/api/admin/volunteer_tasks/credit-task') && request.method() === 'PUT');
+      await page.getByRole('button', { name: 'Submit', exact: true }).click();
+      assert.equal((await saved).postDataJSON().credit_value, 1000.5);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Credit edit overflow at ${width}`);
     }
     assert.equal(errors.length, 0, errors.join('\n'));
     console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; eligibility, bounty permissions/retry, name validation, creation, notes, keyboard focus and pagination verified.');

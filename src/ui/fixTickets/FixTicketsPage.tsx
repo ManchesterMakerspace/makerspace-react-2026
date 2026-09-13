@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, MenuItem, Paper,
+  DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, List, ListItem, MenuItem, Paper,
   Radio, RadioGroup, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, TextField, Typography } from '@mui/material';
 import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint } from 'api/fixTickets';
@@ -20,6 +20,7 @@ const opts = (values: string[]) => values.map(v => ({ id: v, name: fixLabel(v) }
 
 export default function FixTicketsPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [query, setQuery] = useSearchParams();
   const [catalog, setCatalog] = React.useState<FixCatalog>();
   const [ticket, setTicket] = React.useState<FixTicket>();
@@ -30,6 +31,7 @@ export default function FixTicketsPage() {
   const [loadFailed, setLoadFailed] = React.useState(false);
   const [error, setError] = React.useState('');
   const [message, setMessage] = React.useState('');
+  const [outageReview, setOutageReview] = React.useState<{ ticketId: string; reservations: { id: string; startAt: string }[] }>();
   const [refresh, setRefresh] = React.useState(0);
   const [create, setCreate] = React.useState(query.get('new') === 'true');
   const [action, setAction] = React.useState('');
@@ -71,6 +73,7 @@ export default function FixTicketsPage() {
     setBusy(true); setError(''); setMessage('');
     try {
       const result = await fixRequest<any>(path, body, method);
+      if (action === 'outage' && id) setOutageReview({ ticketId: id, reservations: result.affectedReservations || [] });
       if (action === 'reveal') setRevealed(result.name);
       else { setRefresh(n => n + 1); setMessage(result.affectedCount !== undefined ? `Tool availability updated. ${result.affectedCount} existing reservations need review.` : 'Saved.'); }
       setAction('');
@@ -92,8 +95,8 @@ export default function FixTicketsPage() {
     (form.confirmation === 'could_not_confirm' && ticket.confirmation !== 'could_not_confirm')
   );
   const actionInvalid = (statusNoteRequired && !form.note?.trim()) ||
-    (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > 2 || !Number.isInteger(form.credit_value * 2))) ||
-    (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
+    (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > (catalog?.bountyMaxCredit ?? 2) || !Number.isInteger(form.credit_value * 2))) ||
+    (action === 'edit' && (!form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
     if (!ticket || busy || actionInvalid) return;
     const path = `${base}/${ticket.id}`;
@@ -118,6 +121,12 @@ export default function FixTicketsPage() {
     {catalog && !catalog.canCreate && <Alert severity="info" sx={{ mb: 2 }}>{catalog.creationUnavailableReason || 'Reporting is currently unavailable for this membership.'}</Alert>}
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+    {outageReview && outageReview.ticketId === id && !!outageReview.reservations.length && <Box sx={{ mb: 2 }}>
+      <Typography variant="h6">Affected reservations</Typography>
+      <List aria-label="Affected reservations">{outageReview.reservations.map(reservation => <ListItem key={reservation.id}>
+        <Link href={`/reservations?edit=${reservation.id}`}>{date(reservation.startAt)}</Link>
+      </ListItem>)}</List>
+    </Box>}
     {loading ? <CircularProgress aria-label="Loading tickets" /> : loadFailed ? <Button onClick={() => setRefresh(n => n + 1)}>Retry loading tickets</Button> : !id ? <>
       <Paper sx={{ p: 2, mb: 2 }}><Box sx={fieldsSx}>
         <SelectField label="List" value={mode} onChange={v => changeQuery('mode', v)} options={[
@@ -153,6 +162,7 @@ export default function FixTicketsPage() {
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{ticket.description}</Typography>
         <Typography sx={{ mt: 2 }}>{ticket.shopName || 'No shop'} / {ticket.toolName || ticket.uncataloguedTool || 'No tool specified'}</Typography>
         <Typography color="text.secondary">Created {date(ticket.createdAt)} · Last update {date(ticket.updatedAt)}</Typography>
+        {!activeStatuses.includes(ticket.status) && ticket.closedBy && <Typography>Closed by {ticket.closedBy.name}</Typography>}
         <Typography>Assignees: {ticket.assignees.map(p => p.name).join(', ') || 'Unassigned'}</Typography>
         {ticket.iBrokeIt && <Typography>Reporter indicated: I broke it</Typography>}
         {ticket.iCanFixIt && <Typography>Reporter indicated: I can fix it!</Typography>}
@@ -191,8 +201,8 @@ export default function FixTicketsPage() {
           {ticket?.capabilities.canNominateReward && form.status === 'resolved' && <FormControlLabel label="Nominate reporter for 1 volunteer point (separate approval)" control={<Checkbox checked={!!form.nominate_reward} onChange={e => set('nominate_reward', e.target.checked)} />} />}
         </>}
         {action === 'edit' && <>
-          <TextField label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} />
-          <TextField label="Description" multiline minRows={3} value={form.description || ''} onChange={e => set('description', e.target.value)} />
+          <TextField required label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} />
+          <TextField required label="Description" multiline minRows={3} value={form.description || ''} onChange={e => set('description', e.target.value)} />
           <SelectField label="Category" value={form.category || ''} options={opts(categories)} onChange={v => set('category', v)} />
           <SelectField label="Shop" value={form.shop_id || ''} all="No shop" options={catalog?.shops || []} onChange={v => { set('shop_id', v); set('tool_id', ''); }} />
           <SelectField label="Tool" value={form.tool_id || ''} all="No catalog tool" options={catalog?.tools.filter(t => t.shopId === form.shop_id) || []} onChange={v => { set('tool_id', v); if (v) set('uncatalogued_tool', ''); }} />
@@ -207,7 +217,7 @@ export default function FixTicketsPage() {
         {action === 'bounty' && <><Alert severity="warning">Saving publishes this ticket and all its notes to current members. Review the bounty text before publishing.</Alert>
           <TextField required label="Bounty title" value={form.title || ''} onChange={e => set('title', e.target.value)} />
           <TextField required label="Public bounty description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
-          <TextField required label="Volunteer points" type="number" slotProps={{ htmlInput: { min: 0.5, max: 2, step: 0.5 } }} helperText="0.5–2 points, in increments of 0.5." value={form.credit_value ?? 1} onChange={e => set('credit_value', Number(e.target.value))} />
+          <TextField required label="Volunteer points" type="number" slotProps={{ htmlInput: { min: 0.5, max: catalog?.bountyMaxCredit ?? 2, step: 0.5 } }} helperText={`0.5–${catalog?.bountyMaxCredit ?? 2} points, in increments of 0.5.`} value={form.credit_value ?? 1} onChange={e => set('credit_value', Number(e.target.value))} />
         </>}
         {action === 'reveal' && <Alert severity="warning">Reporter identity is private. Continue only for a legitimate administrative need. This access will be audited.</Alert>}
         {action === 'withdraw' && <Typography>Withdraw this ticket? Its history is retained and any unclaimed bounty is cancelled.</Typography>}
@@ -215,7 +225,7 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;
 }
 

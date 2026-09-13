@@ -1,5 +1,6 @@
 export interface FixPerson { id: string; name: string }
 export interface FixTicket {
+  closedBy?: FixPerson | null;
   toolHidden?: boolean;
   id: string; title: string; description: string; category: string; status: string; confirmation: string;
   priority: number | null; submittedPriority: number | null; shopId?: string; shopName?: string;
@@ -11,6 +12,7 @@ export interface FixTicket {
   events?: { id: string; kind: string; note?: string; actor: string; createdAt: string; changes: Record<string, unknown> }[];
 }
 export interface FixCatalog {
+  bountyMaxCredit?: number;
   assignees?: FixPerson[];
   shops: FixPerson[]; tools: (FixPerson & { shopId: string; outOfService: boolean })[];
   creationUnavailableReason?: string | null;

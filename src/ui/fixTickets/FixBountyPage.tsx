@@ -15,7 +15,18 @@ export default function FixBountyPage() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id, reload]);
-  const act = async (action: string) => { setBusy(true); setError(''); try { await fixRequest(`/api/volunteer/tasks/${id}/${action}`, {}); setTask(await fixRequest(`/api/volunteer/tasks/${id}/detail`)); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
+  const act = async (action: string) => {
+    if (busy || loading || !task) return;
+    setBusy(true); setError('');
+    let saved = false;
+    try {
+      await fixRequest(`/api/volunteer/tasks/${id}/${action}`, {});
+      saved = true; setTask(undefined); setLoading(true);
+      setTask(await fixRequest(`/api/volunteer/tasks/${id}/detail`));
+    } catch (e: any) {
+      setError(saved ? `Your action succeeded, but refreshing the bounty failed: ${e.message}. Retry loading its current state.` : e.message);
+    } finally { setBusy(false); setLoading(false); }
+  };
   const ticketId = task?.ticketId || task?.ticket_id;
   return <Paper sx={{ p: 3, my: 3, maxWidth: 900, mx: 'auto' }}>{error && <Alert severity="error">{error}</Alert>}{loading ? <CircularProgress aria-label="Loading bounty" /> : !task ? <Button onClick={() => setReload(n => n + 1)}>Retry loading bounty</Button> : <Stack spacing={2}>
     <Typography component="h1" variant="h4">{task.title}</Typography><Typography sx={{ whiteSpace: 'pre-wrap' }}>{task.description}</Typography>
