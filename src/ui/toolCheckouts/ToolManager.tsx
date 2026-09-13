@@ -200,17 +200,19 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
 interface EditToolRowProps {
   tool: Tool;
   tools: Tool[];
+  shops: Shop[];
   onSave: (id: string, body: Partial<Tool>, notes?: string) => void;
   onCancel: () => void;
   saving: boolean;
 }
 
-const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
+const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
   const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
   const [description, setDescription] = React.useState(tool.description || "");
   const [open, setOpen] = React.useState(!!tool.open);
+  const [shopId, setShopId] = React.useState(tool.shopId);
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
   const [announce, setAnnounce] = React.useState(!!tool.announce);
@@ -235,7 +237,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     reservationPrerequisiteToolIds: tool.reservationPrerequisiteToolIds,
   });
 
-  const availablePrereqs = tools.filter(t => t.shopId === tool.shopId && t.id !== tool.id);
+  const availablePrereqs = tools.filter(t => t.shopId === shopId && t.id !== tool.id);
   const togglePrereq = (id: string) => {
     const nextIds = prerequisiteIds.includes(id)
       ? prerequisiteIds.filter(p => p !== id)
@@ -250,11 +252,20 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     setPrerequisiteIds(nextIds);
   };
 
+  // Prerequisites are shop-scoped -- moving to a different shop invalidates
+  // whatever was previously selected here, the same way changing the shop
+  // on Add Tool resets it.
+  const changeShop = (nextShopId: string) => {
+    setShopId(nextShopId);
+    setPrerequisiteIds([]);
+    setLocalError("");
+  };
+
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
 
-    if (duplicateToolName(tools, trimmedName, tool.shopId, tool.id)) {
+    if (duplicateToolName(tools, trimmedName, shopId, tool.id)) {
       setLocalError("A tool with this name already exists in this shop.");
       return;
     }
@@ -267,7 +278,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
     setLocalError("");
     onSave(
       tool.id,
-      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
+      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
       notes !== (tool.notes || "") ? notes : undefined
     );
   };
@@ -278,6 +289,13 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
         placeholder="Tool name" autoFocus />
       <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
         placeholder="Description" />
+      <div style={{ gridColumn: "1 / -1" }}>
+        <FormLabel style={{ fontSize: 12 }}>Shop</FormLabel>
+        <Select native fullWidth size="small" value={shopId}
+          onChange={e => changeShop((e.target as HTMLSelectElement).value)}>
+          {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </Select>
+      </div>
       <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
         placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
       <TextField size="small" value={gdriveId} onChange={e => setGdriveId(e.target.value)}
@@ -314,7 +332,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
           <ReservationSettingsFields
             value={reservation}
             onChange={setReservation}
-            tools={tools.filter(candidate => candidate.shopId === tool.shopId)}
+            tools={tools.filter(candidate => candidate.shopId === shopId)}
             lockedToolId={tool.id}
           />
         </Grid>
@@ -480,7 +498,7 @@ const ToolManager: React.FC = () => {
       id: "name", label: "Tool",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Tool) => editingId === row.id
-        ? <EditToolRow tool={row} tools={allManageableTools} onSave={handleSave} onCancel={handleCancel} saving={updating} />
+        ? <EditToolRow tool={row} tools={allManageableTools} shops={shops as Shop[]} onSave={handleSave} onCancel={handleCancel} saving={updating} />
         : (
           <div>
             <Typography variant="body2"><strong>{row.name}</strong></Typography>
