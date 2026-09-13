@@ -21,6 +21,13 @@ import { states } from "./states";
 import { listShops } from "api/toolCheckouts";
 import { Shop } from "app/entities/toolCheckout";
 
+// Mirrors Member::RESOURCE_MANAGER_TAGGABLE_ROLES on the backend -- an admin
+// or board member already manages every shop regardless of this tagging, but
+// can still be tagged as a specific shop's point-of-contact (e.g. shown on
+// the public workshop page) since that's often who members should reach out
+// to in practice, even though their role isn't literally "resource_manager".
+const RESOURCE_MANAGER_TAGGABLE_ROLES = ["admin", "board_member", "resource_manager"];
+
 interface OwnProps {
   member?: Member;
   isAdmin: boolean;
@@ -111,7 +118,7 @@ class MemberForm extends React.Component<OwnProps, State> {
       silenceEmails,
       memberContractOnFile,
       subscription,
-      resourceManagerShopIds: this.state.role === "resource_manager" ? this.state.resourceManagerShopIds : [],
+      resourceManagerShopIds: RESOURCE_MANAGER_TAGGABLE_ROLES.includes(this.state.role) ? this.state.resourceManagerShopIds : [],
     };
   }
 
@@ -294,11 +301,15 @@ class MemberForm extends React.Component<OwnProps, State> {
                 ([key, value]) => <option id={`${fields.role.name}-option-${kebabCase(key)}`} key={kebabCase(key)} value={key}>{value}</option>)}
             </Select>
           </Grid>
-          {this.state.role === "resource_manager" && (
+          {RESOURCE_MANAGER_TAGGABLE_ROLES.includes(this.state.role) && (
             <Grid size={{ xs: 12 }}>
-              <FormLabel component="legend">Managed Shops *</FormLabel>
+              <FormLabel component="legend">
+                {this.state.role === "resource_manager" ? "Managed Shops *" : "Managed Shops (optional)"}
+              </FormLabel>
               <Typography variant="caption" color="textSecondary" display="block" gutterBottom>
-                Resource Manager authority applies only to these shops.
+                {this.state.role === "resource_manager"
+                  ? "Resource Manager authority applies only to these shops."
+                  : "This role already manages every shop -- tagging one here just lists this person as that shop's point-of-contact (e.g. on the workshop page)."}
               </Typography>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {this.state.shops.map(shop => (
@@ -312,7 +323,7 @@ class MemberForm extends React.Component<OwnProps, State> {
                   />
                 ))}
               </div>
-              {this.state.resourceManagerShopIds.length === 0 && (
+              {this.state.role === "resource_manager" && this.state.resourceManagerShopIds.length === 0 && (
                 <Typography variant="caption" color="error">Select at least one shop.</Typography>
               )}
             </Grid>
