@@ -101,8 +101,13 @@ class EnhancedTable<T> extends React.Component<Props<T>, {}> {
         >
         {
           defaultSortDirection ?
+            // Tooltip labels its child via aria-labelledby pointing at this
+            // title text, which outranks the button's own visible text in
+            // accessible-name computation -- a generic "Sort" title here
+            // means every sortable column announces itself identically to
+            // assistive tech (and to anything querying by accessible name).
             <Tooltip
-              title="Sort"
+              title={`Sort by ${label}`}
               placement={numeric ? 'bottom-end' : 'bottom-start'}
               enterDelay={300}
             >
