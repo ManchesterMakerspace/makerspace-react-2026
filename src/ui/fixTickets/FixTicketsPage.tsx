@@ -107,7 +107,9 @@ export default function FixTicketsPage() {
     (form.confirmation === 'could_not_confirm' && ticket.confirmation !== 'could_not_confirm')
   );
   const noteInvalid = Array.from((form.note || '').replace(/\s/gu, '')).length < 2 || (form.note || '').trim().length > 10000;
+  const needsNoteRole = ticket?.capabilities.requiresNoteRole && (action === 'notes' || (action === 'status' && (statusNoteRequired || form.note?.trim())));
   const actionInvalid = ((action === 'notes' || statusNoteRequired || (action === 'status' && form.note?.trim())) && noteInvalid) ||
+    (needsNoteRole && !['assignee', 'reporter'].includes(form.respond_as)) ||
     (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > (catalog?.bountyMaxCredit ?? 2) || !Number.isInteger(form.credit_value * 2))) ||
     (action === 'edit' && (!form.title?.trim() || form.title.length > 150 || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
@@ -203,6 +205,12 @@ export default function FixTicketsPage() {
     </Stack>}
     <Dialog open={!!action} onClose={() => !busy && setAction('')} fullWidth maxWidth="sm">
       <DialogTitle>{fixLabel(action)}</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
+        {needsNoteRole && <FormControl required><FormLabel id="note-role-label">Respond as:</FormLabel>
+          <RadioGroup aria-labelledby="note-role-label" value={form.respond_as || ''} onChange={e => set('respond_as', e.target.value)}>
+            <FormControlLabel value="assignee" control={<Radio />} label="Assignee" />
+            <FormControlLabel value="reporter" control={<Radio />} label="Reporter" />
+          </RadioGroup><Typography variant="caption">Assignee responses show your name. Reporter responses keep your identity hidden.</Typography>
+        </FormControl>}
         {error && <Alert severity="error">{error}</Alert>}
         {action === 'notes' && <>{privacy}<TextField required label="Note" multiline minRows={4} value={form.note || ''} helperText="At least 2 non-whitespace characters; maximum 10000 characters." onChange={e => set('note', e.target.value)} /></>}
         {action === 'status' && <>
@@ -243,7 +251,15 @@ export default function FixTicketsPage() {
 function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; catalogLoading: boolean; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = React.useState<Record<string, any>>({});
   const [error, setError] = React.useState(''); const [busy, setBusy] = React.useState(false);
-  React.useEffect(() => { if (open) { setForm({ title: '', description: '', category: 'broken', shop_id: catalog?.tools.find(t => t.id === initialTool)?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: initialTool, uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() }); setError(''); } }, [open]);
+  const initialized = React.useRef(false);
+  React.useEffect(() => {
+    if (!open) { initialized.current = false; return; }
+    if (!catalog || initialized.current) return;
+    initialized.current = true;
+    const tool = catalog.tools.find(t => t.id === initialTool);
+    setForm({ title: '', description: '', category: 'broken', shop_id: tool?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
+    setError('');
+  }, [open, catalog, initialShop, initialTool]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
   const submit = async () => { if (!catalog?.canCreate) return; setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   if (open && !catalog?.canCreate) return <Dialog open onClose={onClose} fullWidth maxWidth="sm">

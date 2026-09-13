@@ -221,6 +221,16 @@ async function main() {
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.getByRole('list', { name: 'Affected reservations' }).getByRole('link').waitFor();
     }
+    ticket.capabilities.requiresNoteRole = true;
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    await page.getByRole('button', { name: 'Add note', exact: true }).click();
+    await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Repair update');
+    assert(await page.getByRole('button', { name: 'Confirm', exact: true }).isDisabled());
+    await page.getByRole('radio', { name: 'Assignee', exact: true }).check();
+    await page.getByRole('button', { name: 'Confirm', exact: true }).click();
+    await page.getByRole('dialog').waitFor({ state: 'hidden' });
+    assert(requests.some(r => r.body?.respond_as === 'assignee' && r.body?.note === 'Repair update'));
+    ticket.capabilities.requiresNoteRole = false;
     ticket.status = 'resolved'; ticket.closedBy = { id: 'closer', name: 'Repair Volunteer' };
     await page.goto(`${origin}/fix-tickets/${id}`);
     await page.getByText('Closed by Repair Volunteer', { exact: true }).waitFor();
@@ -261,7 +271,9 @@ async function main() {
       assert.equal(await dialog.getByRole('button', { name: 'Submit report' }).count(), 0);
     }
     creationReason = null;
-    await page.goto(`${origin}/fix-tickets?new=true&priority=1`);
+    await page.goto(`${origin}/fix-tickets?new=true&priority=1&tool_id=${ticket.toolId}`);
+    await page.getByRole('dialog').getByRole('combobox', { name: 'Tool (optional)', exact: true }).waitFor();
+    assert.match(await page.getByRole('dialog').getByRole('combobox', { name: 'Tool (optional)', exact: true }).innerText(), /Drill press/);
     await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
     assert.equal(new URL(page.url()).searchParams.has('new'), false);
     assert.equal(new URL(page.url()).searchParams.get('priority'), '1');
