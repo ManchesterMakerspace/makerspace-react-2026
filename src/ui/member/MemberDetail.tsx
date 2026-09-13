@@ -365,7 +365,7 @@ const MemberProfile: React.FC = () => {
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}
-            {((member as any).groupName || canEditMembers) && (
+            {((member as any).householdRole || canEditMembers) && (
               <KeyValueItem label="Household">
                 {(member as any).householdRole === "primary" && (
                   <span id="member-detail-household-role">Primary Member</span>
@@ -373,7 +373,12 @@ const MemberProfile: React.FC = () => {
                 {(member as any).householdRole === "secondary" && (
                   <span id="member-detail-household-role">Secondary Member</span>
                 )}
-                {!(member as any).groupName && canEditMembers && (
+                {/* Keyed off householdRole, not raw groupName -- groupName can
+                    still hold a legacy, non-household value (see the rails
+                    household_role fix) even once this correctly resolves to
+                    no real household, so checking groupName here would leave
+                    this blank instead of showing "None". */}
+                {!(member as any).householdRole && canEditMembers && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
               </KeyValueItem>
