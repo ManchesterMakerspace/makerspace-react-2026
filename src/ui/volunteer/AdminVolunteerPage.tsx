@@ -124,6 +124,7 @@ const CANCELLABLE_STATUSES: VolunteerTaskStatus[] = ['available', 'reusable', 'r
 const EDITABLE_STATUSES: VolunteerTaskStatus[]    = ['available', 'claimed', 'reusable', 'repeatable', 'recurring'];
 
 interface VolunteerShopFieldsProps {
+  shopLocked?: boolean;
   shopId: string;
   prerequisiteToolIds: string[];
   onShopChange: (shopId: string) => void;
@@ -135,6 +136,7 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
   prerequisiteToolIds,
   onShopChange,
   onPrerequisitesChange,
+  shopLocked = false,
 }) => {
   const { data: shops = [] } = useReadTransaction(
     listManagedShops, {}, undefined, 'volunteer-managed-shops'
@@ -147,7 +149,7 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
   return (
     <>
       <Grid size={{ xs: 12 }}>
-        <FormControl fullWidth>
+        <FormControl fullWidth disabled={shopLocked}>
           <InputLabel id='volunteer-shop-label'>Shop (optional)</InputLabel>
           <Select
             labelId='volunteer-shop-label'
@@ -178,14 +180,14 @@ const VolunteerShopFields: React.FC<VolunteerShopFieldsProps> = ({
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {(selected as string[]).map(id => {
                   const tool = availableTools.find(candidate => candidate.id === id);
-                  return <Chip key={id} size='small' label={tool?.name || id} />;
+                  return <Chip key={id} size='small' label={`${tool?.name || id}${tool?.outOfService ? ' - Out of service' : ''}`} />;
                 })}
               </div>
             )}>
             {availableTools.map(tool => (
               <MenuItem key={tool.id} value={tool.id}>
                 <Checkbox checked={prerequisiteToolIds.includes(tool.id)} />
-                <ListItemText primary={tool.name} />
+                <ListItemText primary={`${tool.name}${tool.outOfService ? " - Out of service" : ""}`} />
               </MenuItem>
             ))}
           </Select>
@@ -592,6 +594,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
 };
 
 interface EditTaskModalProps {
+  canEditCredits: boolean;
   task: VolunteerTask | null;
   onClose: () => void;
   onSave: (id: string, body: Partial<VolunteerTask> & { days?: number | null }) => void;
@@ -599,7 +602,8 @@ interface EditTaskModalProps {
   error: string;
 }
 
-const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, loading, error }) => {
+export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, loading, error, canEditCredits }) => {
+  const [creditValue, setCreditValue] = React.useState('');
   const [title, setTitle]             = React.useState('');
   const [description, setDescription] = React.useState('');
   const [days, setDays]               = React.useState('');
@@ -608,6 +612,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, lo
 
   React.useEffect(() => {
     if (task) {
+      setCreditValue(String(task.creditValue));
       setTitle(task.title);
       setDescription(task.description);
       setDays(task.days != null ? String(task.days) : '');
@@ -624,10 +629,10 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, lo
 
   return (
     <FormModal id='edit-volunteer-task' title='Edit Task' isOpen={!!task} closeHandler={onClose}
-      onSubmit={() => task && title && onSave(task.id, {
+      onSubmit={() => task && title.trim() && (!canEditCredits || (Number.isFinite(Number(creditValue)) && Number(creditValue) > 0)) && onSave(task.id, {
         title, description,
-        days: isRecurring && days ? parseInt(days, 10) : undefined,
-        shopId: shopId || null,
+        ...(canEditCredits ? { creditValue: Number(creditValue) } : {}),
+        ...(!task.ticketId ? { days: isRecurring && days ? parseInt(days, 10) : undefined, shopId: shopId || null } : {}),
         prerequisiteToolIds,
       })}
       loading={loading} error={error}>
@@ -646,7 +651,14 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onSave, lo
               helperText='Days before the task can be claimed again' />
           </Grid>
         )}
+        {canEditCredits && <Grid size={{ xs: 12 }}>
+          <TextField label='Credit Value' type='number' value={creditValue} onChange={e => setCreditValue(e.target.value)}
+            slotProps={{ htmlInput: { min: 0, step: 'any' } }} fullWidth required
+            error={!Number.isFinite(Number(creditValue)) || Number(creditValue) <= 0}
+            helperText='Enter a positive credit value. Admin and board edits have no upper limit and are recorded in the audit log.' />
+        </Grid>}
         <VolunteerShopFields
+          shopLocked={!!task.ticketId}
           shopId={shopId}
           prerequisiteToolIds={prerequisiteToolIds}
           onShopChange={value => {
@@ -909,6 +921,7 @@ const TasksTabInner: React.FC = () => {
               Requires: {row.prerequisiteToolNames.join(', ')}
             </Typography>
           )}
+          {row.ticketId && <a href={`/fix-tickets/${row.ticketId}`}>View source ticket</a>}
           {row.claimedByName && (
             <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>
               Claimed by: {row.claimedByName}
@@ -1103,7 +1116,7 @@ const TasksTabInner: React.FC = () => {
         }})}
         loading={creating} error={createError} />
 
-      <EditTaskModal task={editTarget} onClose={() => setEditTarget(null)}
+      <EditTaskModal task={editTarget} canEditCredits={isAdmin} onClose={() => setEditTarget(null)}
         onSave={(id, body) => updateTask({ id, body })}
         loading={updating} error={updateError} />
 

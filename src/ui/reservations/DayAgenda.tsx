@@ -147,6 +147,7 @@ const DayAgenda: React.FC<{
                 </div>
                 <Typography variant="caption" component="div">
                   {reservation.memberName} ·{" "}
+                  {reservation.outOfServiceToolNames?.length ? `Out of service: ${reservation.outOfServiceToolNames.join(", ")}. ` : ""}
                   {reservation.toolNames?.length
                     ? reservation.toolNames.join(", ")
                     : "Entire shop"}

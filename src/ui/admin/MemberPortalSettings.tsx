@@ -1,4 +1,5 @@
 // @ts-nocheck
+import TicketLimitSetting from "ui/fixTickets/TicketLimitSetting";
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -582,6 +583,14 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
             value={config.volunteer.volunteer_task_max_credit}
             onSave={onSettingSave}
             saving={savingKey === 'volunteer_task_max_credit'}
+          />
+          <SettingRow
+            label='Max Credits for Ticket Bounties'
+            description='Maximum credits when converting a repair ticket to a bounty. At least 0.5 credits. Changes are recorded in the audit log.'
+            settingKey='ticket_bounty_max_credit'
+            value={config.volunteer.ticket_bounty_max_credit}
+            onSave={onSettingSave}
+            saving={savingKey === 'ticket_bounty_max_credit'}
           />
         </CardContent>
       </Card>
@@ -1213,7 +1222,7 @@ const MemberPortalSettings: React.FC = () => {
             savingKey={savingKey}
           />
         )}
-        {activeTab === 'security' && <SecurityTab />}
+        {activeTab === 'security' && <><TicketLimitSetting /><SecurityTab /></>}
         {activeTab === 'templates' && canViewPortalSettings && <TemplatesTab />}
         {activeTab === 'jobs' && (
           <JobsTab

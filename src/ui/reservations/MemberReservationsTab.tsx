@@ -67,6 +67,9 @@ const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
         {moment(reservation.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} ·{" "}
         {resources}
       </Typography>
+      {!!reservation.outOfServiceToolNames?.length && <Typography variant="body2" color="warning.main">
+        Out of service: {reservation.outOfServiceToolNames.join(", ")}
+      </Typography>}
       {reservation.approvalReasons.length > 0 && (
         <ApprovalDetails details={reservation.approvalDetails} compact />
       )}

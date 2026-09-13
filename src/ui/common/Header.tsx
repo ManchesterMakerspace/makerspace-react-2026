@@ -16,6 +16,9 @@ import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import MenuIcon from "@mui/icons-material/Menu";
 import ConstructionIcon from "@mui/icons-material/Construction";
+import CampaignIcon from "@mui/icons-material/Campaign";
+import AddCardIcon from "@mui/icons-material/AddCard";
+import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 
 import { ScopedThunkDispatch, State as ReduxState } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
@@ -148,6 +151,7 @@ class Header extends React.Component<Props, State> {
 
     // Privileged menu items — alphabetized
     const privilegedItems: JSX.Element[] = [
+      this.renderMenuNavLink("/fix-tickets", "Fix Tickets", "fix-tickets", <CampaignIcon fontSize="small" />),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.Analytics, "Analytics", "analytics")] : []),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.AuditLog, "Audit Log", "audit-log")] : []),
       ...(billingEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.Billing, "Billing", "billing")] : []),
@@ -172,7 +176,6 @@ class Header extends React.Component<Props, State> {
       { route: "profile", label: "Personal Information", id: "settings-submenu-profile" },
       ...(billingEnabled ? [
         { route: "subscriptions", label: "Subscriptions", id: "settings-submenu-subscriptions" },
-        { route: "payment-methods", label: "Payment Methods", id: "settings-submenu-payment-methods" },
       ] : []),
       { route: "security", label: "Security", id: "settings-submenu-security" },
     ];
@@ -211,6 +214,7 @@ class Header extends React.Component<Props, State> {
           {/* Member section */}
           {this.renderMenuNavLink(settingsUrl, "Account Settings", "settings")}
           {this.renderMenuNavLink(profileUrl, "My Profile", "profile")}
+          {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/payment-methods`, "Payment Methods", "settings-submenu-payment-methods", <AddCardIcon fontSize="small" />)}
 
           {/* Privileged section */}
           {privilegedItems.length > 0 && <Divider />}
@@ -222,7 +226,8 @@ class Header extends React.Component<Props, State> {
 
           {/* Logout */}
           <Divider />
-          <MenuItem id="logout" onClick={this.logoutUser} style={{ color: "#d32f2f" }}>
+          <MenuItem id="logout" onClick={this.logoutUser} sx={{ gap: 1 }} style={{ color: "#d32f2f" }}>
+            <ExitToAppIcon fontSize="small" />
             Logout
           </MenuItem>
         </Menu>

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -260,7 +261,7 @@ const CheckoutRoster: React.FC<Props> = ({
       cell: (row: ToolCheckout) => (
         <div>
           <Typography variant="body2" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {row.toolName}
+            {row.toolName} <ToolAvailability outOfService={row.outOfService} />
             {row.toolNotes && (
               <Tooltip title={row.toolNotes}>
                 <InfoOutlinedIcon fontSize="small" color="action" style={{ verticalAlign: "middle" }} />
