@@ -6,16 +6,16 @@ import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dia
   TablePagination, TableSortLabel, TextField, Typography } from '@mui/material';
 import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint, ToolOutageResult } from 'api/fixTickets';
 import AffectedReservations from './AffectedReservations';
-import ToolAvailability from 'ui/common/ToolAvailability';
+import ToolAvailability, { toolAvailabilityLabel } from 'ui/common/ToolAvailability';
 import generateUUID from 'ui/utils/generateUUID';
 
 const base = '/api/fix_tickets';
 const date = (value: string) => new Date(value).toLocaleString();
 const fieldsSx = { display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,minmax(0,1fr))' }, gap: 2 };
-const SelectField: React.FC<{ label: string; value: string; options: { id: string; name: string }[]; onChange: (v: string) => void; all?: string }> = p =>
+const SelectField: React.FC<{ label: string; value: string; options: { id: string; name: string; outOfService?: boolean }[]; onChange: (v: string) => void; all?: string }> = p =>
   <TextField select fullWidth label={p.label} value={p.value} onChange={e => p.onChange(e.target.value)}>
     {p.all !== undefined && <MenuItem value="">{p.all}</MenuItem>}
-    {p.options.map(o => <MenuItem key={o.id} value={o.id}>{o.name}</MenuItem>)}
+    {p.options.map(o => <MenuItem key={o.id} value={o.id}>{toolAvailabilityLabel(o)}</MenuItem>)}
   </TextField>;
 const opts = (values: string[]) => values.map(v => ({ id: v, name: fixLabel(v) }));
 
@@ -52,8 +52,12 @@ export default function FixTicketsPage() {
   const page = Number(query.get('page') || 0);
   const size = Number(query.get('page_size') || 25);
   const selectedStatuses = query.has('statuses') ? query.get('statuses')!.split(',').filter(Boolean) : activeStatuses;
+  const selectedShop = query.get('shop_id') || '';
+  const filterTools = (catalog?.tools || []).filter(tool => !selectedShop || tool.shopId === selectedShop)
+    .map(tool => selectedShop ? tool : { ...tool, name: `${catalog?.shops.find(shop => shop.id === tool.shopId)?.name || 'No shop'} / ${tool.name}` });
   const changeQuery = (key: string, value: string) => {
     const next = new URLSearchParams(query); value ? next.set(key, value) : next.delete(key);
+    if (key === 'shop_id') next.delete('tool_id');
     if (key !== 'page') next.set('page', '0');
     setQuery(next);
   };
@@ -145,7 +149,7 @@ export default function FixTicketsPage() {
           onChange={(_, v) => changeQuery('statuses', (v.length ? v : statuses).join(','))} renderInput={p => <TextField {...p} label="Statuses (clear for all)" />} />
         <SelectField label="Category" value={query.get('category') || ''} all="All categories" onChange={v => changeQuery('category', v)} options={opts(categories)} />
         <SelectField label="Confirmation" value={query.get('confirmation') || ''} all="All confirmations" onChange={v => changeQuery('confirmation', v)} options={opts(confirmations)} />
-        <SelectField label="Tool" value={query.get('tool_id') || ''} all="All tools" onChange={v => changeQuery('tool_id', v)} options={catalog?.tools || []} />
+        <SelectField label="Tool" value={query.get('tool_id') || ''} all="All tools" onChange={v => changeQuery('tool_id', v)} options={filterTools} />
         <SelectField label="Assignee" value={query.get('assignee_id') || ''} all="All assignees" onChange={v => changeQuery('assignee_id', v)} options={catalog?.assignees || []} />
       </Box></Paper>
       <TableContainer component={Paper}><Table size="small" aria-label="Fix tickets" sx={{ minWidth: 850, overflowWrap: 'normal' }}>

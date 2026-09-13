@@ -26,6 +26,8 @@ async function main() {
     events: [{ id: 'event-1', actor: 'Reporter', kind: 'created', createdAt: '2026-09-10T12:00:00Z', changes: {} }] };
   const noShopTicket = { ...ticket, id: '123456789012345678901239', shopId: null, shopName: null, toolId: null, toolName: null, uncataloguedTool: 'Bench grinder', outOfService: false, title: 'Loose grinder guard' };
   const catalog = { shops: [{ id: ticket.shopId, name: ticket.shopName }], tools: [{ id: ticket.toolId, name: ticket.toolName, shopId: ticket.shopId, outOfService: true }], canCreate: true, openCount: 1, openLimit: 10, centralSlackEnabled: true };
+  catalog.shops.push({ id: 'other-shop', name: 'Metalworking' });
+  catalog.tools.push({ id: 'other-tool', name: ticket.toolName, shopId: 'other-shop', outOfService: false });
   let creationReason = null;
   let failLimitLoad = true;
   let failTicketPath = '';
@@ -103,6 +105,11 @@ async function main() {
       await page.getByRole('button', { name: 'Report a problem' }).click();
       await page.getByRole('dialog').waitFor();
       await page.getByRole('dialog').evaluate(async node => { await Promise.all(node.getAnimations({ subtree: true }).map(a => a.finished)); });
+      await page.getByRole('combobox', { name: 'Shop (optional)', exact: true }).click();
+      await page.getByRole('option', { name: ticket.shopName, exact: true }).click();
+      await page.getByRole('combobox', { name: 'Tool (optional)', exact: true }).click();
+      await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
+      assert.match(await page.getByRole('combobox', { name: 'Tool (optional)', exact: true }).innerText(), /Out of service/);
       await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Broken saw');
       await page.getByRole('textbox', { name: 'Description', exact: true }).fill('The guard is loose.');
       await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Saw <script>');
@@ -117,6 +124,22 @@ async function main() {
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.waitForURL(`${origin}/fix-tickets`);
       await page.getByRole('link', { name: ticket.title }).waitFor();
+      await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
+      await page.getByRole('option', { name: 'Metalworking / Drill press', exact: true }).waitFor();
+      await page.keyboard.press('Escape');
+      await page.getByRole('combobox', { name: 'Shop', exact: true }).click();
+      await page.getByRole('option', { name: ticket.shopName, exact: true }).click();
+      await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
+      assert.equal(await page.getByRole('option').count(), 2);
+      await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
+      await page.getByRole('combobox', { name: 'Shop', exact: true }).click();
+      await page.getByRole('option', { name: 'No shop', exact: true }).click();
+      assert.equal(new URL(page.url()).searchParams.has('tool_id'), false);
+      await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
+      assert.equal(await page.getByRole('option').count(), 1);
+      await page.keyboard.press('Escape');
+      await page.getByRole('combobox', { name: 'Shop', exact: true }).click();
+      await page.getByRole('option', { name: 'All shops', exact: true }).click();
       assert.equal(await page.getByRole('combobox', { name: 'List', exact: true }).innerText(), 'Default View');
       const sorting = page.waitForRequest(r => r.url().includes('/api/fix_tickets?') && r.url().includes('sort=created_at'));
       await page.getByRole('button', { name: 'Created', exact: true }).click();
@@ -127,6 +150,8 @@ async function main() {
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
       await page.getByRole('button', { name: 'Edit ticket', exact: true }).click();
       const editDialog = page.getByRole('dialog');
+      await editDialog.getByRole('combobox', { name: 'Tool', exact: true }).click();
+      await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
       const editConfirm = editDialog.getByRole('button', { name: 'Confirm', exact: true });
       await editDialog.getByRole('textbox', { name: 'Title', exact: true }).fill('   ');
       assert(await editConfirm.isDisabled());
@@ -363,6 +388,29 @@ async function main() {
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Setting error overflow at ${width}`);
       await save.click(); await input.waitFor({ state: 'hidden' });
       await page.getByText('0.5', { exact: true }).waitFor();
+    }
+    assert.equal(errors.length, 0, errors.join('\n'));
+    for (const mode of ['new', 'edit']) {
+      await page.goto(`${origin}/tool-name/${mode}`);
+      const name = mode === 'new' ? page.getByRole('textbox', { name: 'Tool Name', exact: true }) : page.getByPlaceholder('Tool name', { exact: true });
+      await name.fill('Drill');
+      const save = page.getByRole('button', { name: mode === 'new' ? 'Add Tool' : 'Save', exact: true });
+      await save.click();
+      await page.getByText(/A tool with this name already exists/).waitFor();
+      assert.equal(await page.getByText('Tool accepted', { exact: true }).count(), 0);
+      await name.fill(mode === 'new' ? 'Lathe' : 'Saw');
+      await save.click();
+      await page.getByText('Tool accepted', { exact: true }).waitFor();
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/checkout-picker`);
+      await page.getByRole('combobox', { name: 'Shop', exact: true }).selectOption('shop');
+      const toolPicker = page.getByRole('combobox', { name: 'Tool', exact: true });
+      assert.deepEqual(await toolPicker.locator('option').allTextContents(), ['— select tool —', 'Drill - Out of service', 'Saw']);
+      await toolPicker.selectOption('broken');
+      assert(await page.getByRole('button', { name: 'Check Out', exact: true }).isEnabled());
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Checkout picker overflow at ${width}`);
     }
     assert.equal(errors.length, 0, errors.join('\n'));
     console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; eligibility, bounty permissions/retry, name validation, creation, notes, keyboard focus and pagination verified.');

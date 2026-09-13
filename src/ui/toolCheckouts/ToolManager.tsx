@@ -85,7 +85,7 @@ interface AddToolModalProps {
   error: string;
 }
 
-const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
+export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -207,7 +207,7 @@ interface EditToolRowProps {
   saving: boolean;
 }
 
-const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
+export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
   const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
@@ -323,7 +323,7 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, onSave, onCancel
       </div>
       <div>
         <Tooltip title="Save"><span>
-          <IconButton size="small" color="primary" disabled={saving || !name}
+          <IconButton aria-label="Save" size="small" color="primary" disabled={saving || !name}
             onClick={submit}>
             <SaveIcon fontSize="small" />
           </IconButton>
