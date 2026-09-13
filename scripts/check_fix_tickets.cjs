@@ -42,6 +42,7 @@ async function main() {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
+        if (url.pathname === '/api/admin/shops/resource_manager_options') { res.end(JSON.stringify([{ id: 'rm-one', name: 'First Manager' }, { id: 'rm-two', name: 'Second Manager' }])); return; }
         if (['/api/admin/shops', '/api/admin/tools'].includes(url.pathname)) { res.end('[]'); return; }
         if (req.method === 'POST' && url.pathname === `/api/fix_tickets/${id}/outage`) {
           res.end(JSON.stringify({ affectedCount: 1, affectedReservations: [{ id: 'booking-review', startAt: '2026-09-15T14:00:00Z' }] })); return;
@@ -115,6 +116,11 @@ async function main() {
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.waitForURL(`${origin}/fix-tickets`);
+      await page.getByRole('link', { name: ticket.title }).waitFor();
+      assert.equal(await page.getByRole('combobox', { name: 'List', exact: true }).innerText(), 'Default View');
+      const sorting = page.waitForRequest(r => r.url().includes('/api/fix_tickets?') && r.url().includes('sort=created_at'));
+      await page.getByRole('button', { name: 'Created', exact: true }).click();
+      assert.equal(new URL((await sorting).url()).searchParams.get('direction'), 'asc');
       await page.getByRole('link', { name: ticket.title }).waitFor();
       await page.goto(`${origin}/fix-tickets/${id}`);
       await page.getByRole('heading', { name: ticket.title }).waitFor();
@@ -309,8 +315,25 @@ async function main() {
       await credits.fill('1000.5');
       const saved = page.waitForRequest(request => request.url().endsWith('/api/admin/volunteer_tasks/credit-task') && request.method() === 'PUT');
       await page.getByRole('button', { name: 'Submit', exact: true }).click();
-      assert.equal((await saved).postDataJSON().credit_value, 1000.5);
+      const savedBody = (await saved).postDataJSON();
+      assert.equal(savedBody.credit_value, 1000.5);
+      assert(!Object.hasOwn(savedBody, 'shop_id')); assert(!Object.hasOwn(savedBody, 'days'));
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Credit edit overflow at ${width}`);
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/shop-managers`);
+      const picker = page.getByRole('combobox', { name: 'Resource Managers' });
+      await picker.waitFor();
+      await page.waitForFunction(() => !document.querySelector('input[role="combobox"]').disabled);
+      await picker.fill('Second');
+      await page.getByRole('option', { name: 'Second Manager' }).click();
+      await picker.press('Escape');
+      await page.getByRole('button', { name: 'Second Manager' }).waitFor();
+      await page.getByRole('button', { name: 'First Manager' }).focus();
+      await page.keyboard.press('Backspace');
+      assert.equal(await page.getByRole('button', { name: 'First Manager' }).count(), 0);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Manager picker overflow at ${width}`);
     }
     assert.equal(errors.length, 0, errors.join('\n'));
     console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; eligibility, bounty permissions/retry, name validation, creation, notes, keyboard focus and pagination verified.');

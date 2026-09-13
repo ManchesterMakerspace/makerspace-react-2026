@@ -6,6 +6,8 @@ export interface DurationFee {
 }
 
 export interface Shop {
+  resourceManagers?: { id: string; name: string }[];
+  resourceManagerIds?: string[];
   id: string;
   name: string;
   wikiUrl: string;

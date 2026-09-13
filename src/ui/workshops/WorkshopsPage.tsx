@@ -1,3 +1,4 @@
+import ShopResourceManagersField from 'ui/toolCheckouts/ShopResourceManagersField';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
@@ -69,6 +70,8 @@ const AddShopModal: React.FC<{
   onClose: () => void;
   onCreated: () => void;
 }> = ({ onClose, onCreated }) => {
+  const { canEditMembers } = useCapabilities();
+  const [managers, setManagers] = React.useState<{ id: string; name: string }[]>([]);
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -83,6 +86,7 @@ const AddShopModal: React.FC<{
       body: {
         name: name.trim(),
         wikiUrlOverride: wikiUrl,
+        ...(canEditMembers && { resourceManagerIds: managers.map(m => m.id) }),
         gdriveId,
         slackChannel
       }
@@ -102,6 +106,7 @@ const AddShopModal: React.FC<{
             onChange={event => setName(event.target.value)} autoFocus />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          {canEditMembers && <ShopResourceManagersField value={managers} onChange={setManagers} disabled={saving} />}
           <TextField fullWidth label="Wiki URL" value={wikiUrl}
             onChange={event => setWikiUrl(event.target.value)}
             helperText="Leave blank to generate WIKI_URL/workshops/slugified-shop-name." />
@@ -125,6 +130,8 @@ const EditShopModal: React.FC<{
   onClose: () => void;
   onUpdated: () => void;
 }> = ({ workshop, onClose, onUpdated }) => {
+  const { canEditMembers } = useCapabilities();
+  const [managers, setManagers] = React.useState(workshop.resourceManagers || []);
   const [name, setName] = React.useState(workshop.name);
   const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(workshop.gdriveId || "");
@@ -140,6 +147,7 @@ const EditShopModal: React.FC<{
       body: {
         name: name.trim(),
         wikiUrlOverride: wikiUrl,
+        ...(canEditMembers && { resourceManagerIds: managers.map(m => m.id) }),
         gdriveId,
         slackChannel,
         disabled: workshop.disabled,
@@ -156,7 +164,8 @@ const EditShopModal: React.FC<{
     <Grid container spacing={2}>
       <Grid size={{ xs: 12 }}><TextField fullWidth required label="Shop Name" value={name}
         onChange={event => setName(event.target.value)} autoFocus /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="Wiki URL" value={wikiUrl}
+      <Grid size={{ xs: 12 }}>{canEditMembers && <ShopResourceManagersField value={managers} onChange={setManagers} disabled={saving} />}
+          <TextField fullWidth label="Wiki URL" value={wikiUrl}
         onChange={event => setWikiUrl(event.target.value)}
         helperText="Leave blank to use the generated workshop URL." /></Grid>
       <Grid size={{ xs: 12 }}><TextField fullWidth label="GDrive ID" value={gdriveId}

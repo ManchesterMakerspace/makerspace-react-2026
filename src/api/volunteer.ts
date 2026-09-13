@@ -129,10 +129,10 @@ export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Parti
     title:        body.title,
     description:  body.description,
     credit_value: body.creditValue,
-    shop_id:      body.shopId || null,
+    ...(body.shopId !== undefined && { shop_id: body.shopId || null }),
     prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status,
-    days:         body.days ?? null,
+    ...(body.days !== undefined && { days: body.days }),
   }));
 
 export const adminCompleteVolunteerTask = ({ id }: { id: string }) =>

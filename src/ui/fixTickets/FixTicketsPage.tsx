@@ -3,7 +3,7 @@ import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'rea
 import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, List, ListItem, MenuItem, Paper,
   Radio, RadioGroup, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  TablePagination, TextField, Typography } from '@mui/material';
+  TablePagination, TableSortLabel, TextField, Typography } from '@mui/material';
 import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint } from 'api/fixTickets';
 import ToolAvailability from 'ui/common/ToolAvailability';
 import generateUUID from 'ui/utils/generateUUID';
@@ -40,7 +40,14 @@ export default function FixTicketsPage() {
   const [peopleSearch, setPeopleSearch] = React.useState('');
   const [selectedPeople, setSelectedPeople] = React.useState<FixPerson[]>([]);
   const [revealed, setRevealed] = React.useState('');
-  const mode = query.get('mode') || 'mine';
+  const mode = query.get('mode') || 'all';
+  const sort = query.get('sort') || 'priority';
+  const direction = query.get('direction') === 'desc' ? 'desc' : 'asc';
+  const changeSort = (field: string) => {
+    const next = new URLSearchParams(query);
+    next.set('sort', field); next.set('direction', sort === field && direction === 'asc' ? 'desc' : 'asc');
+    next.set('page', '0'); setQuery(next);
+  };
   const page = Number(query.get('page') || 0);
   const size = Number(query.get('page_size') || 25);
   const selectedStatuses = query.has('statuses') ? query.get('statuses')!.split(',').filter(Boolean) : activeStatuses;
@@ -130,20 +137,20 @@ export default function FixTicketsPage() {
     {loading ? <CircularProgress aria-label="Loading tickets" /> : loadFailed ? <Button onClick={() => setRefresh(n => n + 1)}>Retry loading tickets</Button> : !id ? <>
       <Paper sx={{ p: 2, mb: 2 }}><Box sx={fieldsSx}>
         <SelectField label="List" value={mode} onChange={v => changeQuery('mode', v)} options={[
+          { id: 'all', name: 'Default View' },
           { id: 'mine', name: 'My reports' }, { id: 'assigned', name: 'Assigned to me' }, { id: 'queue', name: 'Repair queue' }, { id: 'public', name: 'Public tickets' }]} />
         <SelectField label="Shop" value={query.get('shop_id') || ''} all="All shops" onChange={v => changeQuery('shop_id', v)} options={[{ id: 'none', name: 'No shop' }, ...(catalog?.shops || [])]} />
         <SelectField label="Priority" value={query.get('priority') || ''} all="All priorities" onChange={v => changeQuery('priority', v)} options={[{ id: 'none', name: 'Unprioritized' }, ...Array.from({ length: 10 }, (_, i) => ({ id: String(i + 1), name: String(i + 1) }))]} />
         <Autocomplete multiple options={statuses} value={selectedStatuses} getOptionLabel={fixLabel}
           onChange={(_, v) => changeQuery('statuses', (v.length ? v : statuses).join(','))} renderInput={p => <TextField {...p} label="Statuses (clear for all)" />} />
-        <SelectField label="Sort by" value={query.get('sort') || 'priority'} onChange={v => changeQuery('sort', v)} options={opts(['priority', 'created_at', 'updated_at'])} />
-        <SelectField label="Direction" value={query.get('direction') || 'asc'} onChange={v => changeQuery('direction', v)} options={[{ id: 'asc', name: 'Ascending' }, { id: 'desc', name: 'Descending' }]} />
         <SelectField label="Category" value={query.get('category') || ''} all="All categories" onChange={v => changeQuery('category', v)} options={opts(categories)} />
         <SelectField label="Confirmation" value={query.get('confirmation') || ''} all="All confirmations" onChange={v => changeQuery('confirmation', v)} options={opts(confirmations)} />
         <SelectField label="Tool" value={query.get('tool_id') || ''} all="All tools" onChange={v => changeQuery('tool_id', v)} options={catalog?.tools || []} />
         <SelectField label="Assignee" value={query.get('assignee_id') || ''} all="All assignees" onChange={v => changeQuery('assignee_id', v)} options={catalog?.assignees || []} />
       </Box></Paper>
       <TableContainer component={Paper}><Table size="small" aria-label="Fix tickets" sx={{ minWidth: 850, overflowWrap: 'normal' }}>
-        <TableHead><TableRow>{['Ticket', 'Priority', 'Status', 'Shop / tool', 'Created', 'Last update'].map(label => <TableCell key={label}>{label}</TableCell>)}</TableRow></TableHead>
+        <TableHead><TableRow>{[['Ticket', ''], ['Priority', 'priority'], ['Status', ''], ['Shop / tool', ''], ['Created', 'created_at'], ['Last update', 'updated_at']].map(([label, field]) =>
+          <TableCell key={label} sortDirection={field === sort ? direction : false}>{field ? <TableSortLabel active={field === sort} direction={field === sort ? direction : 'asc'} onClick={() => changeSort(field)}>{label}</TableSortLabel> : label}</TableCell>)}</TableRow></TableHead>
         <TableBody>{rows.map(t => <TableRow key={t.id}><TableCell><Link href={`/fix-tickets/${t.id}?${query}`}>{t.title}</Link></TableCell>
           <TableCell>{t.priority ?? '—'}</TableCell><TableCell>{fixLabel(t.status)}</TableCell>
           <TableCell>{t.shopName || 'No shop'} / {t.toolName || t.uncataloguedTool || '—'} <ToolAvailability outOfService={t.outOfService} /></TableCell>

@@ -53,6 +53,7 @@ export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
 
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
+    resource_manager_ids: body.resourceManagerIds,
     name: body.name,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
@@ -72,6 +73,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
   buildResponse<Shop>(api.put(`/api/admin/shops/${id}`, {
+    resource_manager_ids: body.resourceManagerIds,
     name: body.name,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,

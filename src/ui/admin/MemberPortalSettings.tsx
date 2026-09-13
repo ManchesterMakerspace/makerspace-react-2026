@@ -1129,7 +1129,7 @@ const MemberPortalSettings: React.FC = () => {
     if (!err && config) {
       if (key.startsWith('slack_channel') || key === 'volunteer_pending_slack_channel') {
         setConfig({ ...config, slack: { ...config.slack, [key]: value } });
-      } else if (key.startsWith('volunteer_')) {
+      } else if (key.startsWith('volunteer_') || key === 'ticket_bounty_max_credit') {
         setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
       } else if (key === 'reservation_token') {
         setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });

@@ -1,4 +1,5 @@
 // @ts-nocheck
+import ShopResourceManagersField from 'ui/toolCheckouts/ShopResourceManagersField';
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import * as React from "react";
@@ -43,6 +44,8 @@ interface AddShopModalProps {
 }
 
 const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
+  const { canEditMembers } = useCapabilities();
+  const [managers, setManagers] = React.useState([]);
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -65,7 +68,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...(canEditMembers && { resourceManagerIds: managers.map(m => m.id) }), ...reservation });
   };
 
   return (
@@ -90,6 +93,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          {canEditMembers && <ShopResourceManagersField value={managers} onChange={setManagers} disabled={loading} />}
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
@@ -117,6 +121,8 @@ interface EditShopModalProps {
 const EditShopModal: React.FC<EditShopModalProps> = ({
   shop, tools, onSave, onCancel, saving, error
 }) => {
+  const { canEditMembers } = useCapabilities();
+  const [managers, setManagers] = React.useState(shop.resourceManagers || []);
   const [name, setName] = React.useState(shop.name);
   const [wikiUrl, setWikiUrl] = React.useState(shop.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
@@ -142,7 +148,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
+    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...(canEditMembers && { resourceManagerIds: managers.map(m => m.id) }), ...reservation });
   };
 
   return (
@@ -167,6 +173,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          {canEditMembers && <ShopResourceManagersField value={managers} onChange={setManagers} disabled={saving} />}
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
