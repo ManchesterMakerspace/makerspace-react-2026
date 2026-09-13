@@ -628,11 +628,12 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
   const isRecurring = task.status === 'recurring';
   const numericDays = Number(days);
   const invalidDays = isRecurring && (!days.trim() || !Number.isSafeInteger(numericDays) || numericDays <= 0);
+  const invalidCredit = canEditCredits && (!Number.isFinite(Number(creditValue)) || Number(creditValue) <= 0);
 
   return (
     <FormModal id='edit-volunteer-task' title='Edit Task' isOpen={!!task} closeHandler={onClose}
-      submitDisabled={invalidDays}
-      onSubmit={() => !invalidDays && task && title.trim() && (!canEditCredits || (Number.isFinite(Number(creditValue)) && Number(creditValue) > 0)) && onSave(task.id, {
+      submitDisabled={invalidDays || invalidCredit}
+      onSubmit={() => !invalidDays && !invalidCredit && task && title.trim() && onSave(task.id, {
         title, description,
         ...(canEditCredits ? { creditValue: Number(creditValue) } : {}),
         ...(!task.ticketId ? { days: isRecurring ? numericDays : undefined, shopId: shopId || null } : {}),
@@ -658,7 +659,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
         {canEditCredits && <Grid size={{ xs: 12 }}>
           <TextField label='Credit Value' type='number' value={creditValue} onChange={e => setCreditValue(e.target.value)}
             slotProps={{ htmlInput: { min: 0, step: 'any' } }} fullWidth required
-            error={!Number.isFinite(Number(creditValue)) || Number(creditValue) <= 0}
+            error={invalidCredit}
             helperText='Enter a positive credit value. Admin and board edits have no upper limit and are recorded in the audit log.' />
         </Grid>}
         <VolunteerShopFields

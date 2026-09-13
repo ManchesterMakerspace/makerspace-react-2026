@@ -109,7 +109,7 @@ export default function FixTicketsPage() {
   const noteInvalid = Array.from((form.note || '').replace(/\s/gu, '')).length < 2 || (form.note || '').trim().length > 10000;
   const actionInvalid = ((action === 'notes' || statusNoteRequired || (action === 'status' && form.note?.trim())) && noteInvalid) ||
     (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > (catalog?.bountyMaxCredit ?? 2) || !Number.isInteger(form.credit_value * 2))) ||
-    (action === 'edit' && (!form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
+    (action === 'edit' && (!form.title?.trim() || form.title.length > 150 || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
     if (!ticket || busy || actionInvalid) return;
     const path = `${base}/${ticket.id}`;
@@ -212,7 +212,7 @@ export default function FixTicketsPage() {
           {ticket?.capabilities.canNominateReward && form.status === 'resolved' && <FormControlLabel label="Nominate reporter for 1 volunteer point (separate approval)" control={<Checkbox checked={!!form.nominate_reward} onChange={e => set('nominate_reward', e.target.checked)} />} />}
         </>}
         {action === 'edit' && <>
-          <TextField required label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} />
+          <TextField required label="Title" error={invalidFixName(form.title) || form.title?.length > 150} helperText={`${fixNameHint} Maximum 150 characters.`} value={form.title || ''} onChange={e => set('title', e.target.value)} slotProps={{ htmlInput: { maxLength: 150 } }} />
           <TextField required label="Description" multiline minRows={3} value={form.description || ''} onChange={e => set('description', e.target.value)} />
           <SelectField label="Category" value={form.category || ''} options={opts(categories)} onChange={v => set('category', v)} />
           <SelectField label="Shop" value={form.shop_id || ''} all="No shop" options={catalog?.shops || []} onChange={v => { set('shop_id', v); set('tool_id', ''); }} />
@@ -236,7 +236,7 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => setCreate(false)} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;
 }
 

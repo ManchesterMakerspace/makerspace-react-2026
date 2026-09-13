@@ -11,7 +11,7 @@ const ToolNameFixture = React.lazy(() => import('ui/toolCheckouts/ToolManager').
   const [saved, setSaved] = React.useState(false);
   const tools = [{ id: 'one', name: 'Saw', shopId: 'shop' }, { id: 'two', name: 'Drill', shopId: 'shop', disabled: true }, { id: 'three', name: 'Lathe', shopId: 'other' }] as any;
   return <>{saved && <div>Tool accepted</div>}{edit
-    ? <module.EditToolRow tool={tools[0]} tools={tools} onSave={() => setSaved(true)} onCancel={() => {}} saving={false} />
+    ? <module.EditToolRow tool={tools[0]} tools={tools} shops={[{ id: 'shop', name: 'Shop' }] as any} onSave={() => setSaved(true)} onCancel={() => {}} saving={false} />
     : <module.AddToolModal shops={[{ id: 'shop', name: 'Shop' }] as any} tools={tools} onClose={() => {}} onSave={() => setSaved(true)} loading={false} error='' />}</>;
 } })));
 function CheckoutPickerFixture() {

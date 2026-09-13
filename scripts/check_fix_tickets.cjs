@@ -154,6 +154,11 @@ async function main() {
       await editDialog.getByRole('combobox', { name: 'Tool', exact: true }).click();
       await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
       const editConfirm = editDialog.getByRole('button', { name: 'Confirm', exact: true });
+      const editTitle = editDialog.getByRole('textbox', { name: 'Title', exact: true });
+      assert.equal(await editTitle.getAttribute('maxlength'), '150');
+      await editTitle.evaluate(input => input.removeAttribute('maxlength'));
+      await editTitle.fill('A'.repeat(151));
+      assert(await editConfirm.isDisabled());
       await editDialog.getByRole('textbox', { name: 'Title', exact: true }).fill('   ');
       assert(await editConfirm.isDisabled());
       await editDialog.getByRole('textbox', { name: 'Title', exact: true }).fill('Valid title');
@@ -256,6 +261,13 @@ async function main() {
       assert.equal(await dialog.getByRole('button', { name: 'Submit report' }).count(), 0);
     }
     creationReason = null;
+    await page.goto(`${origin}/fix-tickets?new=true&priority=1`);
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+    assert.equal(new URL(page.url()).searchParams.has('new'), false);
+    assert.equal(new URL(page.url()).searchParams.get('priority'), '1');
+    await page.reload();
+    await page.getByRole('link', { name: ticket.title }).waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 0);
     for (const [path, destination] of [['/api/fix_tickets/catalog', '/fix-tickets'], ['/api/fix_tickets', '/fix-tickets'], [`/api/fix_tickets/${id}`, `/fix-tickets/${id}`]]) {
       failTicketPath = path;
       await page.goto(`${origin}${destination}`);
@@ -351,6 +363,10 @@ async function main() {
       const credits = page.getByRole('spinbutton', { name: 'Credit Value' });
       await credits.waitFor();
       assert.equal(await credits.getAttribute('max'), null);
+      for (const value of ['', '0', '-1']) {
+        await credits.fill(value);
+        assert(await page.getByRole('button', { name: 'Submit', exact: true }).isDisabled());
+      }
       await credits.fill('1000.5');
       const saved = page.waitForRequest(request => request.url().endsWith('/api/admin/volunteer_tasks/credit-task') && request.method() === 'PUT');
       await page.getByRole('button', { name: 'Submit', exact: true }).click();
