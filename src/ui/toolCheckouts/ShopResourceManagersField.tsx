@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Alert, Autocomplete, Button, Stack, TextField } from '@mui/material';
+import { Alert, Autocomplete, Button, Stack, TextField, Tooltip } from '@mui/material';
 import { fixRequest, FixPerson } from 'api/fixTickets';
 
 export default function ShopResourceManagersField({ value, onChange, disabled }: {
@@ -23,6 +23,9 @@ export default function ShopResourceManagersField({ value, onChange, disabled }:
     <Autocomplete multiple value={value} options={options} loading={loading} disabled={disabled || loading || !!error}
       isOptionEqualToValue={(a, b) => a.id === b.id} getOptionLabel={p => p.name}
       onChange={(_, people) => onChange(people)} renderInput={p => <TextField {...p} label="Resource Managers"
-        helperText="Assign members with the Resource Manager role to this shop." />} />
+        helperText="Assign Resource Managers, Admins, or Board members to this shop without changing their roles." />} />
+    <Tooltip describeChild title="To add a new RM, first change the member's role to RM">
+      <Button size="small" sx={{ alignSelf: 'flex-start' }}>How to add a new RM</Button>
+    </Tooltip>
   </Stack>;
 }

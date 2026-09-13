@@ -93,7 +93,7 @@ export default function FixTicketsPage() {
     setForm(name === 'edit' && ticket ? { title: ticket.title, description: ticket.description, category: ticket.category,
       shop_id: ticket.shopId || '', tool_id: ticket.toolId || '', uncatalogued_tool: ticket.uncataloguedTool || '',
       public_read_only: ticket.publicReadOnly, announce_to_slack: ticket.announceToSlack, announcement_note: ticket.announcementNote } :
-      name === 'status' ? { status: ticket?.status, confirmation: ticket?.confirmation, note: '', nominate_reward: false } :
+      name === 'status' ? { status: ticket && activeStatuses.includes(ticket.status) ? ticket.status : 'open', confirmation: ticket?.confirmation, note: '', nominate_reward: false } :
       name === 'bounty' ? { title: ticket?.title, description: '', credit_value: 1 } : { note: '' });
   };
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
@@ -203,7 +203,7 @@ export default function FixTicketsPage() {
         {error && <Alert severity="error">{error}</Alert>}
         {action === 'notes' && <>{privacy}<TextField required label="Note" multiline minRows={4} value={form.note || ''} helperText="At least 2 non-whitespace characters; maximum 10000 characters." onChange={e => set('note', e.target.value)} /></>}
         {action === 'status' && <>
-          <SelectField label="Status" value={form.status || ''} options={opts(statuses.filter(s => s !== 'withdrawn'))} onChange={v => set('status', v)} />
+          <SelectField label="Status" value={form.status || ''} options={opts(ticket && !activeStatuses.includes(ticket.status) ? ['open'] : statuses.filter(s => s !== 'withdrawn'))} onChange={v => set('status', v)} />
           <SelectField label="Confirmation" value={form.confirmation || ''} options={opts(confirmations)} onChange={v => set('confirmation', v)} />
           <TextField required={statusNoteRequired} multiline minRows={3} label="Note (required to close, reopen, or cannot confirm)" helperText={statusNoteRequired ? 'Enter a note before confirming this change.' : undefined} value={form.note || ''} onChange={e => set('note', e.target.value)} />
           {ticket?.capabilities.canNominateReward && form.status === 'resolved' && <FormControlLabel label="Nominate reporter for 1 volunteer point (separate approval)" control={<Checkbox checked={!!form.nominate_reward} onChange={e => set('nominate_reward', e.target.checked)} />} />}

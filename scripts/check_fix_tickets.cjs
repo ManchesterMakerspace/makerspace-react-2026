@@ -193,6 +193,12 @@ async function main() {
     ticket.status = 'resolved'; ticket.closedBy = { id: 'closer', name: 'Repair Volunteer' };
     await page.goto(`${origin}/fix-tickets/${id}`);
     await page.getByText('Closed by Repair Volunteer', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Change status', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Status', exact: true }).click();
+    assert.deepEqual(await page.getByRole('option').allTextContents(), ['Open']);
+    await page.keyboard.press('Escape');
+    assert(await page.getByRole('button', { name: 'Confirm', exact: true }).isDisabled());
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
     ticket.closedBy = null;
     await page.reload();
     await page.getByRole('heading', { name: ticket.title }).waitFor();
@@ -332,6 +338,8 @@ async function main() {
       await page.goto(`${origin}/shop-managers`);
       const picker = page.getByRole('combobox', { name: 'Resource Managers' });
       await picker.waitFor();
+      await page.getByRole('button', { name: 'How to add a new RM' }).focus();
+      await page.getByRole('tooltip', { name: "To add a new RM, first change the member's role to RM" }).waitFor();
       await page.waitForFunction(() => !document.querySelector('input[role="combobox"]').disabled);
       await picker.fill('Second');
       await page.getByRole('option', { name: 'Second Manager' }).click();
