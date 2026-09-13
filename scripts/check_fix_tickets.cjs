@@ -27,6 +27,7 @@ async function main() {
   const catalog = { shops: [{ id: ticket.shopId, name: ticket.shopName }], tools: [{ id: ticket.toolId, name: ticket.toolName, shopId: ticket.shopId, outOfService: true }], canCreate: true, openCount: 1, openLimit: 10, centralSlackEnabled: true };
   let creationReason = null;
   let failLimitLoad = true;
+  let failTicketPath = '';
   ticket.capabilities.canReviewReward = true;
   ticket.deliveryFailed = true;
   let finishMutation;
@@ -40,6 +41,7 @@ async function main() {
       let body = ''; req.on('data', data => body += data); req.on('end', () => {
         requests.push({ url: url.toString(), method: req.method, body: body && JSON.parse(body) });
         res.setHeader('Content-Type', 'application/json');
+        if (url.pathname === failTicketPath) { failTicketPath = ''; res.writeHead(503).end(JSON.stringify({ error: 'Ticket load failed' })); return; }
         if (url.pathname === '/api/admin/system_configs') {
           if (failLimitLoad) { failLimitLoad = false; res.writeHead(503).end(JSON.stringify({ error: 'Configuration load failed' })); return; }
           res.end(JSON.stringify({ security: { ticket_open_limit: 17 } })); return;
@@ -105,6 +107,18 @@ async function main() {
       await page.goto(`${origin}/fix-tickets/${id}`);
       await page.getByRole('heading', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
+      await page.getByRole('button', { name: 'Make this a bounty', exact: true }).click();
+      const bountyDialog = page.getByRole('dialog');
+      const bountyConfirm = bountyDialog.getByRole('button', { name: 'Confirm', exact: true });
+      assert(await bountyConfirm.isDisabled(), 'Bounty description starts empty');
+      await bountyDialog.getByRole('textbox', { name: 'Public bounty description' }).fill('Replace the switch');
+      const points = bountyDialog.getByRole('spinbutton', { name: 'Volunteer points' });
+      for (const invalid of ['', '0', '0.25', '2.5', '-1']) {
+        await points.fill(invalid); assert(await bountyConfirm.isDisabled(), `Invalid bounty points: ${invalid}`);
+      }
+      for (const valid of ['0.5', '1', '1.5', '2']) { await points.fill(valid); assert(await bountyConfirm.isEnabled()); }
+      await bountyDialog.getByRole('textbox', { name: 'Bounty title' }).fill('   '); assert(await bountyConfirm.isDisabled());
+      await bountyDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.getByRole('button', { name: 'Change status', exact: true }).click();
       const statusDialog = page.getByRole('dialog');
       const statusConfirm = statusDialog.getByRole('button', { name: 'Confirm', exact: true });
@@ -159,6 +173,16 @@ async function main() {
       assert.equal(await dialog.getByRole('button', { name: 'Submit report' }).count(), 0);
     }
     creationReason = null;
+    for (const [path, destination] of [['/api/fix_tickets/catalog', '/fix-tickets'], ['/api/fix_tickets', '/fix-tickets'], [`/api/fix_tickets/${id}`, `/fix-tickets/${id}`]]) {
+      failTicketPath = path;
+      await page.goto(`${origin}${destination}`);
+      await page.getByRole('button', { name: 'Retry loading tickets' }).waitFor();
+      assert.equal(await page.getByRole('progressbar').count(), 0);
+      assert.equal(await page.getByRole('table').count(), 0, 'Failed list loads must not appear empty');
+      await page.getByRole('button', { name: 'Retry loading tickets' }).click();
+      if (destination.endsWith(id)) await page.getByRole('heading', { name: ticket.title }).waitFor();
+      else await page.getByRole('link', { name: ticket.title }).waitFor();
+    }
     ticket.status = 'resolved';
     await page.goto(`${origin}/fix-tickets/${id}`);
     await page.getByRole('button', { name: 'Change status', exact: true }).click();

@@ -6,10 +6,11 @@ jest.mock("api/reservations", () => ({
   getReservationCatalog: jest.fn(), getReservationAvailability: jest.fn(),
   getReservationBlackouts: jest.fn(), listReservations: jest.fn(),
   listManagedReservations: jest.fn(), previewReservationUpdate: jest.fn(), previewReservation: jest.fn(), createReservation: jest.fn(),
+  previewManagedReservation: jest.fn(),
 }));
-jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({
+jest.mock("ui/reducer/hooks", () => ({ useAuthState: jest.fn(() => ({
   currentUser: { id: "member", status: "activeMember", expirationTime: 4102444800000 }
-}) }));
+})) }));
 jest.mock("app/permissions", () => ({ useCapabilities: () => ({}) }));
 jest.mock("ui/member/utils", () => ({ memberIsResourceManager: () => false }));
 jest.mock("ui/common/MemberSearchInput", () => () => null);
@@ -24,6 +25,7 @@ import ReservationSettingsFields from "ui/toolCheckouts/ReservationSettingsField
 import MemberReservationsTab from "ui/reservations/MemberReservationsTab";
 import * as api from "api/reservations";
 import ReservationsPage from "ui/reservations/ReservationsPage";
+import { useAuthState } from "ui/reducer/hooks";
 
 describe("reservation fee confirmation and full-day dates", () => {
   let container: HTMLDivElement;
@@ -39,6 +41,7 @@ describe("reservation fee confirmation and full-day dates", () => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     jest.useFakeTimers({ now: new Date("2026-09-09T13:00:00Z") });
     jest.clearAllMocks();
+    (useAuthState as jest.Mock).mockReturnValue({ currentUser: { id: 'member', status: 'activeMember', expirationTime: 4102444800000 } });
     (api.getReservationCatalog as jest.Mock).mockResolvedValue({ data: {
       shops: [{ id: "shop", name: "Shop", reservable: true, reservationFullDay: true, maxReservationDurationHours: 48 }], tools: []
     } });
@@ -71,6 +74,18 @@ describe("reservation fee confirmation and full-day dates", () => {
     });
     await act(async () => { jest.advanceTimersByTime(300); });
   };
+
+  it('opens another member\'s managed reservation from an outage review link', async () => {
+    (useAuthState as jest.Mock).mockReturnValue({ currentUser: { id: 'manager', isAdmin: true, status: 'activeMember', expirationTime: 4102444800000 } });
+    (api.listManagedReservations as jest.Mock).mockResolvedValue({ data: [{ id: 'affected', memberId: 'other', title: 'Affected booking', shopId: 'shop', reservationScope: 'shop', fullDay: true, status: 'approved', startAt: '2026-09-10T04:00:00Z', endAt: '2026-09-11T04:00:00Z' }] });
+    (api.previewManagedReservation as jest.Mock).mockResolvedValue({ data: preview });
+    window.scrollTo = jest.fn();
+    window.history.replaceState({}, '', '/reservations?edit=affected');
+    await act(async () => root.render(<ReservationsPage />));
+    await act(async () => { jest.advanceTimersByTime(300); });
+    expect(api.previewManagedReservation).toHaveBeenCalledWith({ id: 'affected', body: expect.objectContaining({ title: 'Affected booking' }) });
+    expect(api.previewReservationUpdate).not.toHaveBeenCalled();
+  });
 
   it("shows approval explanations on unpaid member reservations", async () => {
     (api.listReservations as jest.Mock).mockResolvedValue({ data: [{

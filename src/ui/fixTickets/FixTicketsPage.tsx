@@ -27,6 +27,7 @@ export default function FixTicketsPage() {
   const [total, setTotal] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
+  const [loadFailed, setLoadFailed] = React.useState(false);
   const [error, setError] = React.useState('');
   const [message, setMessage] = React.useState('');
   const [refresh, setRefresh] = React.useState(0);
@@ -48,7 +49,7 @@ export default function FixTicketsPage() {
   };
   React.useEffect(() => {
     let cancelled = false;
-    setLoading(true); setError(''); setRevealed('');
+    setLoading(true); setLoadFailed(false); setError(''); setRevealed('');
     const q = new URLSearchParams(query); q.delete('new'); q.delete('statuses');
     q.set('mode', mode); selectedStatuses.forEach(s => q.append('statuses[]', s));
     Promise.all([fixRequest<FixCatalog>(`${base}/catalog`), id ? fixRequest<FixTicket>(`${base}/${id}`) : fixRequest<{ tickets: FixTicket[]; total: number }>(`${base}?${q}`)])
@@ -56,7 +57,7 @@ export default function FixTicketsPage() {
         if (cancelled) return;
         setCatalog(cat);
         if (id) setTicket(data as FixTicket); else { setRows((data as any).tickets); setTotal((data as any).total); setTicket(undefined); }
-      }).catch(e => { if (!cancelled) setError(e.message); }).finally(() => { if (!cancelled) setLoading(false); });
+      }).catch(e => { if (!cancelled) { setError(e.message); setLoadFailed(true); } }).finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [id, query.toString(), refresh]);
   React.useEffect(() => {
@@ -91,6 +92,7 @@ export default function FixTicketsPage() {
     (form.confirmation === 'could_not_confirm' && ticket.confirmation !== 'could_not_confirm')
   );
   const actionInvalid = (statusNoteRequired && !form.note?.trim()) ||
+    (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > 2 || !Number.isInteger(form.credit_value * 2))) ||
     (action === 'edit' && (invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
     if (!ticket || busy || actionInvalid) return;
@@ -109,14 +111,14 @@ export default function FixTicketsPage() {
       <Typography variant="h4" component="h1">{id ? 'Fix ticket' : 'Fix tickets'}</Typography>
       <Stack direction="row" spacing={1}>
         {id && <Button href={`/fix-tickets?${query}`}>All tickets</Button>}
-        <Button variant="contained" disabled={!catalog?.canCreate || busy} onClick={() => setCreate(true)}>Report a problem</Button>
+        <Button variant="contained" disabled={loading || loadFailed || !catalog?.canCreate || busy} onClick={() => setCreate(true)}>Report a problem</Button>
       </Stack>
     </Stack>
     {catalog && <Typography color="text.secondary" sx={{ mb: 2 }}>{catalog.openCount} open reports · {catalog.openLimit === null ? 'No ticket cap' : `Limit ${catalog.openLimit}`}</Typography>}
     {catalog && !catalog.canCreate && <Alert severity="info" sx={{ mb: 2 }}>{catalog.creationUnavailableReason || 'Reporting is currently unavailable for this membership.'}</Alert>}
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
     {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-    {loading ? <CircularProgress aria-label="Loading tickets" /> : !id ? <>
+    {loading ? <CircularProgress aria-label="Loading tickets" /> : loadFailed ? <Button onClick={() => setRefresh(n => n + 1)}>Retry loading tickets</Button> : !id ? <>
       <Paper sx={{ p: 2, mb: 2 }}><Box sx={fieldsSx}>
         <SelectField label="List" value={mode} onChange={v => changeQuery('mode', v)} options={[
           { id: 'mine', name: 'My reports' }, { id: 'assigned', name: 'Assigned to me' }, { id: 'queue', name: 'Repair queue' }, { id: 'public', name: 'Public tickets' }]} />
@@ -203,9 +205,9 @@ export default function FixTicketsPage() {
         {action === 'assignments' && <Autocomplete multiple options={people} value={selectedPeople} getOptionLabel={p => p.name} isOptionEqualToValue={(a, b) => a.id === b.id}
           onChange={(_, v) => setSelectedPeople(v)} onInputChange={(_, v) => setPeopleSearch(v)} renderInput={p => <TextField {...p} label="Search active members" />} />}
         {action === 'bounty' && <><Alert severity="warning">Saving publishes this ticket and all its notes to current members. Review the bounty text before publishing.</Alert>
-          <TextField label="Bounty title" value={form.title || ''} onChange={e => set('title', e.target.value)} />
-          <TextField label="Public bounty description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
-          <TextField label="Volunteer points" type="number" value={form.credit_value ?? 1} onChange={e => set('credit_value', Number(e.target.value))} />
+          <TextField required label="Bounty title" value={form.title || ''} onChange={e => set('title', e.target.value)} />
+          <TextField required label="Public bounty description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
+          <TextField required label="Volunteer points" type="number" slotProps={{ htmlInput: { min: 0.5, max: 2, step: 0.5 } }} helperText="0.5–2 points, in increments of 0.5." value={form.credit_value ?? 1} onChange={e => set('credit_value', Number(e.target.value))} />
         </>}
         {action === 'reveal' && <Alert severity="warning">Reporter identity is private. Continue only for a legitimate administrative need. This access will be audited.</Alert>}
         {action === 'withdraw' && <Typography>Withdraw this ticket? Its history is retained and any unclaimed bounty is cancelled.</Typography>}

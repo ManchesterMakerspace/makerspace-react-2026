@@ -370,13 +370,15 @@ const ReservationsPage: React.FC = () => {
       new URLSearchParams(window.location.search).get("edit") || "";
     if (!requestedEditId || handledEditId.current === requestedEditId) return;
 
-    const reservation = mine.find(item => item.id === requestedEditId);
+    const ownReservation = mine.find(item => item.id === requestedEditId);
+    const managedReservation = isManager ? managed.find(item => item.id === requestedEditId) : undefined;
+    const reservation = ownReservation || managedReservation;
     if (!reservation) return;
 
     handledEditId.current = requestedEditId;
-    edit(reservation);
+    edit(reservation, !ownReservation && !!managedReservation);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [mine]);
+  }, [mine, managed, isManager]);
 
   const cancel = async (id: string) => {
     setError("");

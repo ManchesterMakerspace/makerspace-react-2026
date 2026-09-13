@@ -507,7 +507,7 @@ const ToolManager: React.FC = () => {
       id: "settings", label: "Settings",
       cell: (row: Tool) => editingId === row.id ? null : (
         <span>
-          <ToolAvailability outOfService={row.outOfService} /><ToolOutageAction tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />{row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
+          <ToolAvailability outOfService={row.outOfService} />{managedShopIds.has(row.shopId) && <ToolOutageAction tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />}{row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
           {row.reservable ? `, reservable (${row.maxConcurrentReservations || 1} concurrent)` : ", not reservable"}
         </span>
       ),
