@@ -301,6 +301,15 @@ const SlackTab: React.FC<SlackTabProps> = ({
             />
             <Divider style={{ margin: '8px 0' }} />
             <SettingRow
+              label='New Members Channel'
+              description='Welcome messages for new Slack members'
+              settingKey='slack_channel_new_members'
+              value={config.slack.slack_channel_new_members}
+              onSave={onSettingSave}
+              saving={savingKey === 'slack_channel_new_members'}
+            />
+            <Divider style={{ margin: '8px 0' }} />
+            <SettingRow
               label='Volunteer Pending Channel'
               description='Notified when a task is awaiting verification'
               settingKey='volunteer_pending_slack_channel'
