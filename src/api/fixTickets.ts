@@ -1,4 +1,8 @@
 export interface FixPerson { id: string; name: string }
+export interface ToolOutageResult {
+  affectedCount: number;
+  affectedReservations: { id: string; startAt: string }[];
+}
 export interface FixTicket {
   closedBy?: FixPerson | null;
   toolHidden?: boolean;

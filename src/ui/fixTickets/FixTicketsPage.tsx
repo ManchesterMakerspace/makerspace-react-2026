@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
-  DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, List, ListItem, MenuItem, Paper,
+  DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, MenuItem, Paper,
   Radio, RadioGroup, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   TablePagination, TableSortLabel, TextField, Typography } from '@mui/material';
-import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint } from 'api/fixTickets';
+import { activeStatuses, categories, confirmations, FixCatalog, FixPerson, FixTicket, fixLabel, fixRequest, statuses, invalidFixName, fixNameHint, ToolOutageResult } from 'api/fixTickets';
+import AffectedReservations from './AffectedReservations';
 import ToolAvailability from 'ui/common/ToolAvailability';
 import generateUUID from 'ui/utils/generateUUID';
 
@@ -31,7 +32,7 @@ export default function FixTicketsPage() {
   const [loadFailed, setLoadFailed] = React.useState(false);
   const [error, setError] = React.useState('');
   const [message, setMessage] = React.useState('');
-  const [outageReview, setOutageReview] = React.useState<{ ticketId: string; reservations: { id: string; startAt: string }[] }>();
+  const [outageReview, setOutageReview] = React.useState<{ ticketId: string; reservations: ToolOutageResult['affectedReservations'] }>();
   const [refresh, setRefresh] = React.useState(0);
   const [create, setCreate] = React.useState(query.get('new') === 'true');
   const [action, setAction] = React.useState('');
@@ -131,9 +132,7 @@ export default function FixTicketsPage() {
     {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
     {outageReview && outageReview.ticketId === id && !!outageReview.reservations.length && <Box sx={{ mb: 2 }}>
       <Typography variant="h6">Affected reservations</Typography>
-      <List aria-label="Affected reservations">{outageReview.reservations.map(reservation => <ListItem key={reservation.id}>
-        <Link href={`/reservations?edit=${reservation.id}`}>{date(reservation.startAt)}</Link>
-      </ListItem>)}</List>
+      <AffectedReservations reservations={outageReview.reservations} />
     </Box>}
     {loading ? <CircularProgress aria-label="Loading tickets" /> : loadFailed ? <Button onClick={() => setRefresh(n => n + 1)}>Retry loading tickets</Button> : !id ? <>
       <Paper sx={{ p: 2, mb: 2 }}><Box sx={fieldsSx}>
