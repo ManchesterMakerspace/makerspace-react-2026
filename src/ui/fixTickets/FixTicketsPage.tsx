@@ -164,7 +164,7 @@ export default function FixTicketsPage() {
         onPageChange={(_, p) => changeQuery('page', String(p))} onRowsPerPageChange={e => changeQuery('page_size', e.target.value)} />
     </> : ticket && <Stack spacing={2}>
       <Paper sx={{ p: 3 }}>
-        <Typography variant="h5" component="h2">{ticket.title}</Typography>
+        <Typography variant="h5" component="h2">#{ticket.id}: {ticket.title}</Typography>
         <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap", my: 2 }}>
           <Chip label={fixLabel(ticket.status)} /><Chip variant="outlined" label={fixLabel(ticket.confirmation)} />
           <Chip variant="outlined" label={`Priority ${ticket.priority ?? 'unspecified'}`} />

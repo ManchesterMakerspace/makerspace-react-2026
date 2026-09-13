@@ -18,7 +18,7 @@ const compile = () => new Promise((resolve, reject) => webpack(config, (err, sta
 }));
 async function main() {
   await compile();
-  const id = '123456789012345678901234';
+  const id = '42';
   const ticket = { id, title: 'Drill press stops unexpectedly', description: 'The switch intermittently stops the motor. Do not use until inspected.', category: 'broken', status: 'open', confirmation: 'unverified', priority: 1,
     shopId: '123456789012345678901235', shopName: 'Woodworking', toolId: '123456789012345678901236', toolName: 'Drill press', outOfService: true,
     publicReadOnly: false, iBrokeIt: false, iCanFixIt: true, assignees: [], announceToSlack: false, announcementNote: '', revision: 1,
@@ -146,6 +146,7 @@ async function main() {
       assert.equal(new URL((await sorting).url()).searchParams.get('direction'), 'asc');
       await page.getByRole('link', { name: ticket.title }).waitFor();
       await page.goto(`${origin}/fix-tickets/${id}`);
+      await page.getByRole('heading', { name: `#${id}: ${ticket.title}`, exact: true }).waitFor();
       await page.getByRole('heading', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
       await page.getByRole('button', { name: 'Edit ticket', exact: true }).click();
