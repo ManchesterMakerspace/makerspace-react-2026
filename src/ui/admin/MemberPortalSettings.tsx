@@ -305,7 +305,7 @@ interface SlackTabProps {
   onNavigateToConflicts: () => void;
 }
 
-const SlackTab: React.FC<SlackTabProps> = ({
+export const SlackTab: React.FC<SlackTabProps> = ({
   config, onFlagToggle, onSettingSave, togglingFlag, savingKey, onRunJob, runningJob, jobMessage,
   onNavigateToConflicts
 }) => {
@@ -364,6 +364,18 @@ const SlackTab: React.FC<SlackTabProps> = ({
               onSave={onSettingSave}
               saving={savingKey === 'slack_channel_new_members'}
             />
+            <Divider style={{ margin: '8px 0' }} />
+            <SettingRow
+              label='Fix Tickets Channel'
+              description='Channel where new and updated /fix tickets are announced'
+              settingKey='slack_channel_tickets'
+              value={config.slack.slack_channel_tickets}
+              onSave={onSettingSave}
+              saving={savingKey === 'slack_channel_tickets'}
+            />
+            <Typography variant='caption' color='textSecondary'>
+              Uses SLACK_TICKETS_CHANNEL until overridden. Save a blank value to disable announcements. No default channel is used.
+            </Typography>
             <Divider style={{ margin: '8px 0' }} />
             <SettingRow
               label='Volunteer Pending Channel'

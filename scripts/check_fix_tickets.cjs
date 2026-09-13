@@ -428,6 +428,23 @@ async function main() {
     }
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/slack-setting`);
+      await page.getByText('Channel where new and updated /fix tickets are announced', { exact: true }).waitFor();
+      const editChannel = page.getByRole('button', { name: 'Edit Fix Tickets Channel', exact: true });
+      await editChannel.click();
+      const channelInput = page.getByRole('textbox', { name: 'Fix Tickets Channel', exact: true });
+      assert.equal(await channelInput.inputValue(), 'C1234567890');
+      await channelInput.fill('repair-announcements');
+      await page.getByRole('button', { name: 'Save Fix Tickets Channel', exact: true }).click();
+      await page.getByText('repair-announcements', { exact: true }).waitFor();
+      await editChannel.click();
+      await channelInput.fill('');
+      await page.getByRole('button', { name: 'Save Fix Tickets Channel', exact: true }).click();
+      await editChannel.click();
+      assert.equal(await channelInput.inputValue(), '');
+      const channelBox = await channelInput.boundingBox();
+      assert(channelBox.x >= 0 && channelBox.x + channelBox.width <= width, `Ticket channel input fits at ${width}`);
+      await page.screenshot({ path: path.join(output, `slack-setting-${width}.png`), fullPage: true });
       await page.goto(`${origin}/bounty-setting`);
       await page.getByRole('button', { name: 'Edit Max Credits for Ticket Bounties', exact: true }).click();
       const input = page.getByRole('textbox', { name: 'Max Credits for Ticket Bounties', exact: true });

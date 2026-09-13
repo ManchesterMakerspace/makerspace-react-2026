@@ -24,6 +24,12 @@ function ShopManagersFixture() {
   return <ShopResourceManagersField value={value} onChange={setValue} />;
 }
 const EditTaskModal = React.lazy(() => import('ui/volunteer/AdminVolunteerPage').then(module => ({ default: module.EditTaskModal })));
+const SlackSettingFixture = React.lazy(() => import('ui/admin/MemberPortalSettings').then(module => ({ default: function SlackSetting() {
+  const [value, setValue] = React.useState('C1234567890');
+  return <module.SlackTab config={{ jobs: [], flags: {}, slack: { slack_channel_tickets: value, channel_cache: {} } } as any}
+    onSettingSave={async (_, next) => { setValue(next); }} savingKey={null} togglingFlag={null} runningJob={null}
+    jobMessage={{}} onFlagToggle={() => {}} onRunJob={() => {}} onNavigateToConflicts={() => {}} />;
+} })));
 const BountySettingFixture = React.lazy(() => import('ui/admin/MemberPortalSettings').then(module => ({ default: function BountySetting() {
   const [value, setValue] = React.useState('2');
   const attempt = React.useRef(0);
@@ -40,6 +46,6 @@ if (new URLSearchParams(window.location.search).has('recurring')) {
 }
 createRoot(document.body.appendChild(document.createElement('div'))).render(
   <BrowserRouter><ThemeProvider theme={createTheme({ palette: { secondary: { main: '#791100' } } })}>
-    <Box sx={{ px: '12px' }}><React.Suspense fallback={<div>Loading</div>}><Routes><Route path="/tool-name/new" element={<ToolNameFixture />} /><Route path="/tool-name/edit" element={<ToolNameFixture edit />} /><Route path="/checkout-picker" element={<CheckoutPickerFixture />} /><Route path="/bounty-setting" element={<BountySettingFixture />} /><Route path="/shop-managers" element={<ShopManagersFixture />} /><Route path="/edit-bounty" element={<EditTaskModal task={editTask} canEditCredits onClose={() => {}} onSave={(id, body) => { adminUpdateVolunteerTask({ id, body }); }} loading={false} error='' />} /><Route path="/ticket-limit" element={<TicketLimitSetting />} /><Route path="/volunteer/tasks/:id" element={<FixBountyPage />} /><Route path="/fix-tickets" element={<FixTicketsPage />} /><Route path="/fix-tickets/:id" element={<FixTicketsPage />} /></Routes></React.Suspense></Box>
+    <Box sx={{ px: '12px' }}><React.Suspense fallback={<div>Loading</div>}><Routes><Route path="/tool-name/new" element={<ToolNameFixture />} /><Route path="/tool-name/edit" element={<ToolNameFixture edit />} /><Route path="/checkout-picker" element={<CheckoutPickerFixture />} /><Route path="/slack-setting" element={<SlackSettingFixture />} /><Route path="/bounty-setting" element={<BountySettingFixture />} /><Route path="/shop-managers" element={<ShopManagersFixture />} /><Route path="/edit-bounty" element={<EditTaskModal task={editTask} canEditCredits onClose={() => {}} onSave={(id, body) => { adminUpdateVolunteerTask({ id, body }); }} loading={false} error='' />} /><Route path="/ticket-limit" element={<TicketLimitSetting />} /><Route path="/volunteer/tasks/:id" element={<FixBountyPage />} /><Route path="/fix-tickets" element={<FixTicketsPage />} /><Route path="/fix-tickets/:id" element={<FixTicketsPage />} /></Routes></React.Suspense></Box>
   </ThemeProvider></BrowserRouter>
 );
