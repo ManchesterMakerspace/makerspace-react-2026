@@ -12,6 +12,10 @@ export class AuthPage {
       await this.page.getByRole('button', { name: 'Menu' }).click();
       await this.page.getByRole('menuitem', { name: 'Logout' }).click();
       await this.page.waitForURL(/\/$|\/login/, { timeout: 10_000 });
+      // See logout() below -- a request still in flight can trigger its own
+      // redirect to /login via globalAuthInterceptor after the URL match
+      // above. Let it settle before navigating again, or this goto races it.
+      await this.page.waitForLoadState('domcontentloaded');
       await this.page.goto('/login');
     }
 

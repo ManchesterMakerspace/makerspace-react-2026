@@ -40,6 +40,7 @@ export interface SlackSettings {
   slack_channel_rm: string;
   slack_channel_admin: string;
   slack_channel_logs: string;
+  slack_channel_new_members: string;
   volunteer_pending_slack_channel: string;
   channel_cache: {
     available: boolean;
