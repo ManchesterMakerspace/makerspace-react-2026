@@ -357,6 +357,28 @@ async function main() {
       assert.equal(savedBody.credit_value, 1000.5);
       assert(!Object.hasOwn(savedBody, 'shop_id')); assert(!Object.hasOwn(savedBody, 'days'));
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Credit edit overflow at ${width}`);
+      await page.goto(`${origin}/edit-bounty?recurring=true`);
+      const interval = page.getByRole('spinbutton', { name: 'Recurrence Interval (days)' });
+      await interval.fill('');
+      await page.getByRole('textbox', { name: 'Title', exact: true }).fill('Updated recurring task');
+      const submit = page.getByRole('button', { name: 'Submit', exact: true });
+      const before = requests.filter(r => r.method === 'PUT').length;
+      for (const value of ['', '0', '-1', '1.5', '9007199254740992']) {
+        await interval.fill(value);
+        assert(await submit.isDisabled());
+        await page.getByText('Enter a positive whole number of days.', { exact: true }).waitFor();
+        assert.equal(await interval.getAttribute('aria-invalid'), 'true');
+        await interval.press('Enter');
+      }
+      assert.equal(requests.filter(r => r.method === 'PUT').length, before);
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Recurrence error overflow at ${width}`);
+      await interval.fill('14');
+      assert(await submit.isEnabled());
+      const recurrenceSaved = page.waitForRequest(request => request.url().endsWith('/api/admin/volunteer_tasks/credit-task') && request.method() === 'PUT');
+      await submit.click();
+      const recurrenceBody = (await recurrenceSaved).postDataJSON();
+      assert.equal(recurrenceBody.days, 14);
+      assert.equal(recurrenceBody.title, 'Updated recurring task');
     }
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });

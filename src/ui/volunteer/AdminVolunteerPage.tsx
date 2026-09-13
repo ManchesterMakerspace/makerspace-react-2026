@@ -626,13 +626,16 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
 
   if (!task) return null;
   const isRecurring = task.status === 'recurring';
+  const numericDays = Number(days);
+  const invalidDays = isRecurring && (!days.trim() || !Number.isSafeInteger(numericDays) || numericDays <= 0);
 
   return (
     <FormModal id='edit-volunteer-task' title='Edit Task' isOpen={!!task} closeHandler={onClose}
-      onSubmit={() => task && title.trim() && (!canEditCredits || (Number.isFinite(Number(creditValue)) && Number(creditValue) > 0)) && onSave(task.id, {
+      submitDisabled={invalidDays}
+      onSubmit={() => !invalidDays && task && title.trim() && (!canEditCredits || (Number.isFinite(Number(creditValue)) && Number(creditValue) > 0)) && onSave(task.id, {
         title, description,
         ...(canEditCredits ? { creditValue: Number(creditValue) } : {}),
-        ...(!task.ticketId ? { days: isRecurring && days ? parseInt(days, 10) : undefined, shopId: shopId || null } : {}),
+        ...(!task.ticketId ? { days: isRecurring ? numericDays : undefined, shopId: shopId || null } : {}),
         prerequisiteToolIds,
       })}
       loading={loading} error={error}>
@@ -648,7 +651,8 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label='Recurrence Interval (days)' value={days} onChange={e => setDays(e.target.value)}
               type='number' slotProps={{ htmlInput: { min: 1, step: 1 } }} fullWidth required
-              helperText='Days before the task can be claimed again' />
+              error={invalidDays}
+              helperText={invalidDays ? 'Enter a positive whole number of days.' : 'Days before the task can be claimed again'} />
           </Grid>
         )}
         {canEditCredits && <Grid size={{ xs: 12 }}>
