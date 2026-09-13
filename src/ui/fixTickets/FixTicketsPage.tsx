@@ -101,7 +101,8 @@ export default function FixTicketsPage() {
     (form.status !== ticket.status && (['resolved', 'rejected'].includes(form.status) || !activeStatuses.includes(ticket.status))) ||
     (form.confirmation === 'could_not_confirm' && ticket.confirmation !== 'could_not_confirm')
   );
-  const actionInvalid = (statusNoteRequired && !form.note?.trim()) ||
+  const noteInvalid = Array.from((form.note || '').replace(/\s/gu, '')).length < 2 || (form.note || '').trim().length > 10000;
+  const actionInvalid = ((action === 'notes' || statusNoteRequired || (action === 'status' && form.note?.trim())) && noteInvalid) ||
     (action === 'bounty' && (!form.title?.trim() || !form.description?.trim() || !Number.isFinite(form.credit_value) || form.credit_value < 0.5 || form.credit_value > (catalog?.bountyMaxCredit ?? 2) || !Number.isInteger(form.credit_value * 2))) ||
     (action === 'edit' && (!form.title?.trim() || !form.description?.trim() || invalidFixName(form.title) || invalidFixName(form.uncatalogued_tool)));
   const submitAction = () => {
@@ -200,7 +201,7 @@ export default function FixTicketsPage() {
     <Dialog open={!!action} onClose={() => !busy && setAction('')} fullWidth maxWidth="sm">
       <DialogTitle>{fixLabel(action)}</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
-        {action === 'notes' && <>{privacy}<TextField label="Note" multiline minRows={4} value={form.note || ''} onChange={e => set('note', e.target.value)} /></>}
+        {action === 'notes' && <>{privacy}<TextField required label="Note" multiline minRows={4} value={form.note || ''} helperText="At least 2 non-whitespace characters; maximum 10000 characters." onChange={e => set('note', e.target.value)} /></>}
         {action === 'status' && <>
           <SelectField label="Status" value={form.status || ''} options={opts(statuses.filter(s => s !== 'withdrawn'))} onChange={v => set('status', v)} />
           <SelectField label="Confirmation" value={form.confirmation || ''} options={opts(confirmations)} onChange={v => set('confirmation', v)} />

@@ -11,10 +11,19 @@ function ShopManagersFixture() {
   return <ShopResourceManagersField value={value} onChange={setValue} />;
 }
 const EditTaskModal = React.lazy(() => import('ui/volunteer/AdminVolunteerPage').then(module => ({ default: module.EditTaskModal })));
+const BountySettingFixture = React.lazy(() => import('ui/admin/MemberPortalSettings').then(module => ({ default: function BountySetting() {
+  const [value, setValue] = React.useState('2');
+  const attempt = React.useRef(0);
+  return <module.SettingRow label='Max Credits for Ticket Bounties' settingKey='ticket_bounty_max_credit'
+    value={value} saving={false} validate={module.validateTicketBountyLimit} onSave={async (_, next) => {
+      if (attempt.current++ === 0) throw new Error('Network unavailable. Please retry.');
+      setValue(next);
+    }} />;
+} })));
 import { adminUpdateVolunteerTask } from 'api/volunteer';
 const editTask = { id: 'credit-task', title: 'Repair', description: 'Replace switch', creditValue: 1, status: 'available', ticketId: 'ticket', prerequisiteToolIds: [] } as any;
 createRoot(document.body.appendChild(document.createElement('div'))).render(
   <BrowserRouter><ThemeProvider theme={createTheme({ palette: { secondary: { main: '#791100' } } })}>
-    <Box sx={{ px: '12px' }}><React.Suspense fallback={<div>Loading</div>}><Routes><Route path="/shop-managers" element={<ShopManagersFixture />} /><Route path="/edit-bounty" element={<EditTaskModal task={editTask} canEditCredits onClose={() => {}} onSave={(id, body) => { adminUpdateVolunteerTask({ id, body }); }} loading={false} error='' />} /><Route path="/ticket-limit" element={<TicketLimitSetting />} /><Route path="/volunteer/tasks/:id" element={<FixBountyPage />} /><Route path="/fix-tickets" element={<FixTicketsPage />} /><Route path="/fix-tickets/:id" element={<FixTicketsPage />} /></Routes></React.Suspense></Box>
+    <Box sx={{ px: '12px' }}><React.Suspense fallback={<div>Loading</div>}><Routes><Route path="/bounty-setting" element={<BountySettingFixture />} /><Route path="/shop-managers" element={<ShopManagersFixture />} /><Route path="/edit-bounty" element={<EditTaskModal task={editTask} canEditCredits onClose={() => {}} onSave={(id, body) => { adminUpdateVolunteerTask({ id, body }); }} loading={false} error='' />} /><Route path="/ticket-limit" element={<TicketLimitSetting />} /><Route path="/volunteer/tasks/:id" element={<FixBountyPage />} /><Route path="/fix-tickets" element={<FixTicketsPage />} /><Route path="/fix-tickets/:id" element={<FixTicketsPage />} /></Routes></React.Suspense></Box>
   </ThemeProvider></BrowserRouter>
 );

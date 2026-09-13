@@ -112,20 +112,39 @@ interface SettingRowProps {
   value: string;
   onSave: (key: string, value: string) => Promise<void>;
   saving: boolean;
+  validate?: (value: string) => string;
 }
 
-const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey, value, onSave, saving }) => {
+export const validateTicketBountyLimit = (value: string) =>
+  /^[+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim()) && Number.isFinite(Number(value)) && Number(value) >= 0.5
+    ? '' : 'Enter a number of at least 0.5.';
+
+export const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey, value, onSave, saving, validate }) => {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft]     = React.useState(value);
+  const [saveError, setSaveError] = React.useState('');
+  const [pending, setPending] = React.useState(false);
+  const savingRef = React.useRef(false);
+  const validationError = validate?.(draft) || '';
+  const busy = saving || pending;
 
   React.useEffect(() => { setDraft(value); }, [value]);
 
   const handleSave = async () => {
-    await onSave(settingKey, draft);
-    setEditing(false);
+    if (saving || savingRef.current || validationError) return;
+    savingRef.current = true; setPending(true); setSaveError('');
+    try {
+      await onSave(settingKey, draft);
+      setEditing(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save. Please try again.');
+    } finally {
+      savingRef.current = false; setPending(false);
+    }
   };
 
   const handleCancel = () => {
+    setSaveError('');
     setDraft(value);
     setEditing(false);
   };
@@ -141,20 +160,23 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
       <Grid size={{ xs: 12, sm: 8 }}>
         {editing ? (
           <TextField
+            label={label}
             value={draft}
-            onChange={e => setDraft(e.target.value)}
+            onChange={e => { setDraft(e.target.value); setSaveError(''); }}
+            error={!!(validationError || saveError)}
+            helperText={validationError || saveError}
             size='small'
             variant='outlined'
             fullWidth
-            disabled={saving}
+            disabled={busy}
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position='end'>
-                    <IconButton size='small' onClick={handleSave} disabled={saving}>
-                      {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
+                    <IconButton aria-label={`Save ${label}`} size='small' onClick={handleSave} disabled={busy || !!validationError}>
+                      {busy ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
                     </IconButton>
-                    <IconButton size='small' onClick={handleCancel} disabled={saving}>
+                    <IconButton aria-label={`Cancel editing ${label}`} size='small' onClick={handleCancel} disabled={busy}>
                       <CancelIcon fontSize='small' />
                     </IconButton>
                   </InputAdornment>
@@ -170,7 +192,7 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
               </Typography>
             </Grid>
             <Grid>
-              <IconButton size='small' onClick={() => setEditing(true)}>
+              <IconButton aria-label={`Edit ${label}`} size='small' onClick={() => { setSaveError(''); setEditing(true); }}>
                 <EditIcon fontSize='small' />
               </IconButton>
             </Grid>
@@ -202,6 +224,7 @@ const DiscountSelectRow: React.FC<DiscountSelectRowProps> = ({
   const [discounts, setDiscounts]   = React.useState<BraintreeDiscount[]>([]);
   const [loadingDiscounts, setLoadingDiscounts] = React.useState(true);
   const [fetchError, setFetchError] = React.useState('');
+  const [saveError, setSaveError] = React.useState('');
 
   React.useEffect(() => {
     getBraintreeDiscounts().then(result => {
@@ -216,7 +239,9 @@ const DiscountSelectRow: React.FC<DiscountSelectRowProps> = ({
   }, []);
 
   const handleChange = async (newId: string) => {
-    await onSave(settingKey, newId);
+    setSaveError('');
+    try { await onSave(settingKey, newId); }
+    catch (error) { setSaveError(error instanceof Error ? error.message : 'Unable to save. Please try again.'); }
   };
 
   const formatOption = (d: BraintreeDiscount): string => {
@@ -260,6 +285,7 @@ const DiscountSelectRow: React.FC<DiscountSelectRowProps> = ({
         {saving && (
           <CircularProgress size={14} style={{ marginLeft: 8, verticalAlign: 'middle' }} />
         )}
+        {saveError && <Alert severity='error'>{saveError}</Alert>}
       </Grid>
     </Grid>
   );
@@ -588,6 +614,7 @@ const VolunteerTab: React.FC<VolunteerTabProps> = ({
             label='Max Credits for Ticket Bounties'
             description='Maximum credits when converting a repair ticket to a bounty. At least 0.5 credits. Changes are recorded in the audit log.'
             settingKey='ticket_bounty_max_credit'
+            validate={validateTicketBountyLimit}
             value={config.volunteer.ticket_bounty_max_credit}
             onSave={onSettingSave}
             saving={savingKey === 'ticket_bounty_max_credit'}
@@ -1125,19 +1152,21 @@ const MemberPortalSettings: React.FC = () => {
 
   const handleSettingSave = React.useCallback(async (key: string, value: string) => {
     setSavingKey(key);
-    const { error: err } = await updateSystemSetting({ key, value });
-    if (!err && config) {
-      if (key.startsWith('slack_channel') || key === 'volunteer_pending_slack_channel') {
-        setConfig({ ...config, slack: { ...config.slack, [key]: value } });
-      } else if (key.startsWith('volunteer_') || key === 'ticket_bounty_max_credit') {
-        setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
-      } else if (key === 'reservation_token') {
-        setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
-      } else if (key.endsWith('_day')) {
-        setConfig({ ...config, job_schedule: { ...config.job_schedule, [key]: value } });
+    try {
+      const { error: err } = await updateSystemSetting({ key, value });
+      if (err) throw new Error(err.message || 'Unable to save. Please try again.');
+      if (config) {
+        if (key.startsWith('slack_channel') || key === 'volunteer_pending_slack_channel') {
+          setConfig({ ...config, slack: { ...config.slack, [key]: value } });
+        } else if (key.startsWith('volunteer_') || key === 'ticket_bounty_max_credit') {
+          setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
+        } else if (key === 'reservation_token') {
+          setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
+        } else if (key.endsWith('_day')) {
+          setConfig({ ...config, job_schedule: { ...config.job_schedule, [key]: value } });
+        }
       }
-    }
-    setSavingKey(null);
+    } finally { setSavingKey(null); }
   }, [config]);
 
   const handleRunJob = React.useCallback(async (jobKey: string) => {

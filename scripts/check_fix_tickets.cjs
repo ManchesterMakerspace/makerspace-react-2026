@@ -176,6 +176,13 @@ async function main() {
       await statusDialog.getByRole('button', { name: 'Cancel', exact: true }).click();
       await page.screenshot({ path: path.join(output, `detail-${width}.png`), fullPage: true, animations: 'disabled' });
       await page.getByRole('button', { name: 'Add note', exact: true }).click();
+      const noteInput = page.getByRole('textbox', { name: 'Note', exact: true });
+      const noteConfirm = page.getByRole('button', { name: 'Confirm', exact: true });
+      assert(await noteInput.getAttribute('required') !== null);
+      for (const invalid of ['', '   ', 'a', ' a \n ', '\u00a0a\u00a0', '😀']) {
+        await noteInput.fill(invalid); assert(await noteConfirm.isDisabled());
+      }
+      await noteInput.fill('a b'); assert(await noteConfirm.isEnabled());
       await page.getByRole('textbox', { name: 'Note', exact: true }).fill('Replacement switch ordered.');
       await page.keyboard.press('Tab');
       assert(await page.evaluate(() => document.activeElement !== document.body), 'Keyboard focus remains usable');
@@ -334,6 +341,20 @@ async function main() {
       await page.keyboard.press('Backspace');
       assert.equal(await page.getByRole('button', { name: 'First Manager' }).count(), 0);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Manager picker overflow at ${width}`);
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/bounty-setting`);
+      await page.getByRole('button', { name: 'Edit Max Credits for Ticket Bounties', exact: true }).click();
+      const input = page.getByRole('textbox', { name: 'Max Credits for Ticket Bounties', exact: true });
+      const save = page.getByRole('button', { name: 'Save Max Credits for Ticket Bounties', exact: true });
+      for (const value of ['0.49', '', 'nope']) { await input.fill(value); assert(await save.isDisabled()); }
+      await input.fill('0.5'); await save.click();
+      await page.getByText('Network unavailable. Please retry.', { exact: true }).waitFor();
+      assert.equal(await input.inputValue(), '0.5'); assert(await save.isEnabled());
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Setting error overflow at ${width}`);
+      await save.click(); await input.waitFor({ state: 'hidden' });
+      await page.getByText('0.5', { exact: true }).waitFor();
     }
     assert.equal(errors.length, 0, errors.join('\n'));
     console.log('Fix ticket browser checks passed at 320, 600, 900 and 1440 px; eligibility, bounty permissions/retry, name validation, creation, notes, keyboard focus and pagination verified.');
