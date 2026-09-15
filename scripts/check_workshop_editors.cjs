@@ -34,6 +34,7 @@ async function main() {
       let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => {
         requests.push({ url: req.url, method: req.method, body: body ? JSON.parse(body) : null });
         res.setHeader('Content-Type', 'application/json');
+        if (req.url === '/api/tools/tool/coreq.html') { res.end(JSON.stringify({ tool, eligible: true })); return; }
         if (req.method !== 'GET') {
           if (failSave) { failSave = false; res.writeHead(503).end('{"error":"Save failed"}'); return; }
           if (req.url.endsWith('/notes') && failNotes) { failNotes = false; res.writeHead(503).end('{"error":"Notes failed"}'); return; }
@@ -131,6 +132,15 @@ async function main() {
     assert.equal(await page.getByRole('button', { name: 'Edit tool', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'Restore service', exact: true }).count(), 0);
     assert.equal(requests.filter(r => r.url === '/api/admin/shops').length, before);
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/tools/tool/request-checkout`);
+      const dialog = page.getByRole('dialog', { name: 'Request Checkout: Lathe' });
+      await dialog.getByText('Out of service', { exact: true }).waitFor();
+      assert(await dialog.getByRole('button', { name: 'Submit Request' }).isEnabled());
+      assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
+      await page.screenshot({ path: path.join(output, `checkout-outage-${width}.png`) });
+    }
     assert.deepEqual(errors, []);
     console.log('Workshop shared editors passed at 320/600/900/1440px: full settings, status, save/retry, partial notes failure, RM and member permissions.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
