@@ -71,6 +71,8 @@ export interface WorkshopVolunteerTask {
 }
 
 export interface Workshop {
+  outOfService?: boolean;
+  outOfServiceNote?: string;
   id: string;
   name: string;
   wikiUrl: string;
