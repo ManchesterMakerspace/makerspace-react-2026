@@ -41,6 +41,7 @@ export type VolunteerTaskStatus =
   | 'recurring';
 
 export interface VolunteerTask {
+  ticketId?: string;
   id: string;
   taskNumber: number;
   title: string;
