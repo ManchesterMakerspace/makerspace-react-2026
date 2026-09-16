@@ -93,6 +93,18 @@ describe("WorkshopsPage helpers", () => {
     );
   });
 
+  it("shows the outage warning inside the checkout request form without blocking submission", async () => {
+    const unavailable = { ...tool('unavailable', 'Lathe'), outOfService: true };
+    await act(async () => root.render(<RequestCheckoutModal tool={unavailable} onClose={jest.fn()} onCreated={jest.fn()} />));
+    expect(container.textContent).toContain('Out of service');
+    const submit = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Submit Request')!;
+    expect(submit.disabled).toBe(false);
+    await act(async () => submit.click());
+    expect(mockCreateToolCheckoutRequest).toHaveBeenCalledWith({ body: { toolId: 'unavailable', note: '' } });
+    await act(async () => root.render(<RequestCheckoutModal tool={tool('available', 'Planer')} onClose={jest.fn()} onCreated={jest.fn()} />));
+    expect(container.textContent).not.toContain('Out of service');
+  });
+
   it("clears checkout notes and errors when the modal changes tools", async () => {
     const firstTool = tool("tool-1", "Planer");
     const secondTool = tool("tool-2", "Lathe");

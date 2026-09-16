@@ -1,4 +1,5 @@
 // @ts-nocheck
+import ToolAvailability, { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -90,7 +91,7 @@ interface CheckoutModalProps {
   unmetPrerequisites?: string[];
 }
 
-const CheckoutModal: React.FC<CheckoutModalProps> = ({
+export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   shops, tools, preselectedMember, onClose, onCheckout, loading, error, unmetPrerequisites
 }) => {
   const [selectedMember, setSelectedMember] = React.useState<SelectOption | null>(
@@ -131,7 +132,7 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
-          <Select native fullWidth value={shopId}
+          <Select native fullWidth value={shopId} inputProps={{ 'aria-label': 'Shop' }}
             onChange={e => { setShopId((e.target as HTMLSelectElement).value); setToolId(""); }}>
             <option value="">— select shop —</option>
             {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -139,10 +140,10 @@ const CheckoutModal: React.FC<CheckoutModalProps> = ({
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Tool *</FormLabel>
-          <Select native fullWidth value={toolId} disabled={!shopId}
+          <Select native fullWidth value={toolId} disabled={!shopId} inputProps={{ 'aria-label': 'Tool' }}
             onChange={e => setToolId((e.target as HTMLSelectElement).value)}>
             <option value="">— select tool —</option>
-            {shopTools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {shopTools.map(t => <option key={t.id} value={t.id}>{toolAvailabilityLabel(t)}</option>)}
           </Select>
         </Grid>
         {selectedTool?.prerequisiteNames?.length > 0 && (
@@ -260,7 +261,7 @@ const CheckoutRoster: React.FC<Props> = ({
       cell: (row: ToolCheckout) => (
         <div>
           <Typography variant="body2" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            {row.toolName}
+            {row.toolName} <ToolAvailability outOfService={row.outOfService} />
             {row.toolNotes && (
               <Tooltip title={row.toolNotes}>
                 <InfoOutlinedIcon fontSize="small" color="action" style={{ verticalAlign: "middle" }} />

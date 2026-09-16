@@ -1,9 +1,14 @@
+import ShopResourceManagersField from 'ui/toolCheckouts/ShopResourceManagersField';
+import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import { useCapabilities } from "app/permissions";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
+import ShopOutageAction from './ShopOutageAction';
+import WorkshopResourceEditor from './WorkshopResourceEditor';
+import ToolOutageAction from 'ui/fixTickets/ToolOutageAction';
 import { Link } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -25,7 +30,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool, adminUpdateShop
+  adminCreateShop, adminCreateTool
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -68,6 +73,8 @@ const AddShopModal: React.FC<{
   onClose: () => void;
   onCreated: () => void;
 }> = ({ onClose, onCreated }) => {
+  const { canEditMembers } = useCapabilities();
+  const [managers, setManagers] = React.useState<{ id: string; name: string }[]>([]);
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -82,6 +89,7 @@ const AddShopModal: React.FC<{
       body: {
         name: name.trim(),
         wikiUrlOverride: wikiUrl,
+        ...(canEditMembers && { resourceManagerIds: managers.map(m => m.id) }),
         gdriveId,
         slackChannel
       }
@@ -101,6 +109,7 @@ const AddShopModal: React.FC<{
             onChange={event => setName(event.target.value)} autoFocus />
         </Grid>
         <Grid size={{ xs: 12 }}>
+          {canEditMembers && <ShopResourceManagersField value={managers} onChange={setManagers} disabled={saving} />}
           <TextField fullWidth label="Wiki URL" value={wikiUrl}
             onChange={event => setWikiUrl(event.target.value)}
             helperText="Leave blank to generate WIKI_URL/workshops/slugified-shop-name." />
@@ -117,53 +126,6 @@ const AddShopModal: React.FC<{
       </Grid>
     </FormModal>
   );
-};
-
-const EditShopModal: React.FC<{
-  workshop: Workshop;
-  onClose: () => void;
-  onUpdated: () => void;
-}> = ({ workshop, onClose, onUpdated }) => {
-  const [name, setName] = React.useState(workshop.name);
-  const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrlOverride || "");
-  const [gdriveId, setGdriveId] = React.useState(workshop.gdriveId || "");
-  const [slackChannel, setSlackChannel] = React.useState(workshop.slackChannel || "");
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    const result = await adminUpdateShop({
-      id: workshop.id,
-      body: {
-        name: name.trim(),
-        wikiUrlOverride: wikiUrl,
-        gdriveId,
-        slackChannel,
-        disabled: workshop.disabled,
-      }
-    });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onUpdated();
-  };
-
-  return <FormModal id="workshops-edit-shop" isOpen title={`Edit ${workshop.name}`}
-    closeHandler={onClose} onSubmit={submit} submitText="Save"
-    loading={saving} error={error}>
-    <Grid container spacing={2}>
-      <Grid size={{ xs: 12 }}><TextField fullWidth required label="Shop Name" value={name}
-        onChange={event => setName(event.target.value)} autoFocus /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="Wiki URL" value={wikiUrl}
-        onChange={event => setWikiUrl(event.target.value)}
-        helperText="Leave blank to use the generated workshop URL." /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="GDrive ID" value={gdriveId}
-        onChange={event => setGdriveId(event.target.value)} /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="Slack Channel" value={slackChannel}
-        onChange={event => setSlackChannel(normalizeChannel(event.target.value))} /></Grid>
-    </Grid>
-  </FormModal>;
 };
 
 const AddToolModal: React.FC<{
@@ -290,6 +252,7 @@ const WorkshopTools: React.FC<{
   onRefresh: () => void;
 }> = ({ workshop, onRefresh }) => {
   const [addOpen, setAddOpen] = React.useState(false);
+  const [editingToolId, setEditingToolId] = React.useState<string>();
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
 
   return (
@@ -315,6 +278,9 @@ const WorkshopTools: React.FC<{
                 <strong>{tool.name}</strong>
               </a>{" "}
               {tool.open && <Chip size="small" label="No checkout required" />}
+              <ToolAvailability outOfService={tool.outOfService} />
+              {workshop.isShopManager && !tool.outOfService && <Chip size="small" label="Tool in service" variant="outlined" />}
+              <Button href={`/fix-tickets?new=true&shop_id=${workshop.id}&tool_id=${tool.id}`}>Report a problem</Button>
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
               {tool.prerequisiteNames.length > 0 &&
@@ -357,6 +323,10 @@ const WorkshopTools: React.FC<{
               alignItems: "flex-start",
               flexWrap: "wrap"
             }}>
+              {workshop.isShopManager && <>
+                <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => setEditingToolId(tool.id)}>Edit tool</Button>
+                <ToolOutageAction tool={tool} onSaved={onRefresh} />
+              </>}
               {tool.gdriveId &&
                 <Button size="small" variant="outlined"
                   href={`https://drive.google.com/drive/folders/${encodeURIComponent(tool.gdriveId)}`}
@@ -381,6 +351,8 @@ const WorkshopTools: React.FC<{
       {addOpen && <AddToolModal workshop={workshop}
         onClose={() => setAddOpen(false)}
         onCreated={() => { setAddOpen(false); onRefresh(); }} />}
+      {editingToolId && <WorkshopResourceEditor key={editingToolId} shopId={workshop.id} toolId={editingToolId}
+        onClose={() => setEditingToolId(undefined)} onSaved={() => { setEditingToolId(undefined); onRefresh(); }} />}
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}
         onCreated={() => { setRequestTool(null); onRefresh(); }} />
@@ -454,7 +426,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
             <Grid container justifyContent="space-between" alignItems="center">
               <Grid>
                 <strong>{row.reservation.title}</strong>{" "}
-                <Chip size="small" label={row.reservation.status} />
+                <Chip size="small" label={row.reservation.status} /><ToolAvailability outOfService={!!row.reservation.outOfServiceToolNames?.length} />
                 <Typography variant="body2">
                   {moment(row.reservation.startAt).tz(ZONE).format("HH:mm")}–
                   {moment(row.reservation.endAt).tz(ZONE).format("HH:mm")} ·{" "}
@@ -537,7 +509,7 @@ const WorkshopVolunteer: React.FC<{
         }}>
           <Grid container justifyContent="space-between" alignItems="center">
             <Grid size={{ xs: 12, md: 9 }}>
-              <strong>#{task.taskNumber} — {task.title}</strong>{" "}
+              <strong>#{task.taskNumber} — {task.title}</strong>{task.ticketId && <Button href={`/fix-tickets/${task.ticketId}`}>View source ticket</Button>}{" "}
               <Chip size="small" label={`${task.creditValue} credits`} />
               <Typography variant="body2">{task.description}</Typography>
               {task.prerequisiteToolNames.length > 0 &&
@@ -636,7 +608,7 @@ const WorkshopsPage: React.FC = () => {
             onChange={event => { setSelectedId(event.target.value); setTab("details"); }}>
             {data.workshops.map(shop => (
               <MenuItem key={shop.id} value={shop.id}>
-                {shop.name}{shop.disabled ? " (disabled)" : ""}
+                {shop.name}{shop.outOfService ? " (out of service)" : ""}{shop.disabled ? " (disabled)" : ""}
               </MenuItem>
             ))}
           </Select>
@@ -645,6 +617,10 @@ const WorkshopsPage: React.FC = () => {
 
       {workshop && <Grid size={{ xs: 12, md: 10 }}>
         <Paper style={{ padding: 18, position: "relative" }}>
+          {workshop.isShopManager && !workshop.outOfService && <Chip label="Shop in service" variant="outlined" sx={{ mb: 2 }} />}
+          {workshop.outOfService && <Alert severity="warning" sx={{ mb: 2, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+            Shop out of service. New shop and tool reservations are blocked. {workshop.outOfServiceNote}
+          </Alert>}
           {loading && <CircularProgress size={20}
             style={{ position: "absolute", right: 18, top: 18 }} />}
           <Tabs value={tab} onChange={(_, value) => setTab(value)}
@@ -661,7 +637,8 @@ const WorkshopsPage: React.FC = () => {
           <div style={{ marginTop: 18 }}>
             {tab === "details" && <>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {data.canAddShop && <Button startIcon={<EditIcon />} variant="outlined"
+              {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
+              {workshop.isShopManager && <Button startIcon={<EditIcon />} variant="outlined"
                 onClick={() => setEditOpen(true)}>
                 Edit
               </Button>}
@@ -691,9 +668,9 @@ const WorkshopsPage: React.FC = () => {
         onCreated={() => { setAddOpen(false); load(); }}
       />}
       {qrOpen && workshop && <PublicCatalogQrCodeModal key={workshop.id} kind="shop" resource={workshop} onClose={() => setQrOpen(false)} />}
-      {editOpen && workshop && <EditShopModal workshop={workshop}
+      {editOpen && workshop && <WorkshopResourceEditor key={workshop.id} shopId={workshop.id}
         onClose={() => setEditOpen(false)}
-        onUpdated={() => { setEditOpen(false); load(); }} />}
+        onSaved={() => { setEditOpen(false); load(); }} />}
     </Grid>
   );
 };

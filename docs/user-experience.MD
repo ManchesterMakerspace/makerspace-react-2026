@@ -175,6 +175,12 @@ When implementing responsive behavior:
 
 ## Interaction, feedback, and accessibility
 
+Shop and tool editing in `/workshops` reuses `EditShopModal` and `EditToolRow`
+from `/tool-checkouts`. Load complete, permission-scoped management records before
+rendering these forms; do not seed them from workshop summaries or introduce
+separate reduced edit forms. Shop managers see service status and edit controls
+for their shops and tools.
+
 - Use contained buttons for the main action and outlined/text buttons for
   secondary actions. Use icon buttons only for universally understood actions.
 - Display asynchronous work with MUI progress indicators or the branded loading
