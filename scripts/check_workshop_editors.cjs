@@ -47,7 +47,7 @@ async function main() {
           upcomingVolunteerEvents: [], volunteerTasks: [], tools: [{ ...tool, checkoutRequestable: false, reservationAvailable: false }]
         }] })); return; }
         if (req.url === '/api/admin/shops') { res.end(JSON.stringify(privileged ? [shop] : [])); return; }
-        if (req.url === '/api/admin/tools') { res.end(JSON.stringify([tool])); return; }
+        if (req.url === '/api/admin/tools') { res.end(JSON.stringify([tool, { ...tool, id: 'prerequisite', name: 'Safety prerequisite' }])); return; }
         if (req.url.startsWith('/api/admin/google_calendar/colors')) { res.end(JSON.stringify({ colors: [{ id: '1', name: 'Blue', backgroundColor: '#1976d2', foregroundColor: '#ffffff' }] })); return; }
         res.end('[]');
       }); return;
@@ -101,6 +101,9 @@ async function main() {
       await page.getByRole('button', { name: 'Edit tool', exact: true }).click();
       const name = page.getByRole('textbox', { name: 'Tool name', exact: true });
       await name.waitFor();
+      const prerequisiteChoices = page.getByRole('button', { name: 'Safety prerequisite - Out of service', exact: true });
+      assert.equal(await prerequisiteChoices.count(), 2);
+      await prerequisiteChoices.first().waitFor();
       assert.equal(await page.getByRole('textbox', { name: 'Notes', exact: true }).inputValue(), 'Lock 1234');
       assert.equal(await page.getByRole('textbox', { name: 'Announce channel' }).inputValue(), '#announcements');
       assert.equal(await page.getByRole('spinbutton', { name: 'Days reservable in advance' }).inputValue(), '11');
@@ -140,6 +143,15 @@ async function main() {
       assert(await dialog.getByRole('button', { name: 'Submit Request' }).isEnabled());
       assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
       await page.screenshot({ path: path.join(output, `checkout-outage-${width}.png`) });
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/checkout-manager-dialog`);
+      const dialog = page.getByRole('dialog', { name: 'Request Tool Checkout' });
+      await dialog.getByText('Out of service', { exact: true }).waitFor();
+      assert(await dialog.getByRole('button', { name: 'Submit Request' }).isEnabled());
+      assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
+      await page.screenshot({ path: path.join(output, `manager-checkout-outage-${width}.png`) });
     }
     assert.deepEqual(errors, []);
     console.log('Workshop shared editors passed at 320/600/900/1440px: full settings, status, save/retry, partial notes failure, RM and member permissions.');

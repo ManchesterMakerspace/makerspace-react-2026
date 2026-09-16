@@ -1,3 +1,4 @@
+import { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import * as React from "react";
 import { Box, Grid, Typography, TextField, IconButton, Tooltip, Select, FormLabel, Chip, Checkbox, FormControlLabel } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
@@ -126,7 +127,7 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
         <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>Prerequisites</FormLabel>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {availablePrereqs.length ? availablePrereqs.map(t => (
-            <Chip key={t.id} label={t.name} size="small" clickable
+            <Chip key={t.id} label={toolAvailabilityLabel(t)} size="small" clickable
               onClick={() => togglePrereq(t.id)}
               color={prerequisiteIds.includes(t.id) ? "primary" : "default"}
               variant={prerequisiteIds.includes(t.id) ? "filled" : "outlined"}

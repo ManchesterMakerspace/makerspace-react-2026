@@ -47,7 +47,7 @@ interface RequestModalProps {
   error: string;
 }
 
-const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, loading, error }) => {
+export const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, loading, error }) => {
   const [note, setNote] = React.useState("");
   React.useEffect(() => { setNote(""); }, [target?.id]);
 
@@ -59,6 +59,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, lo
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
             <Typography><strong>{target.name}</strong> in <strong>{target.shopName}</strong></Typography>
+            <ToolAvailability outOfService={target.outOfService} />
             {target.prerequisiteNames?.length > 0 && (
               <Typography variant="caption" color="textSecondary">
                 Prerequisites: {target.prerequisiteNames.join(", ")}
