@@ -67,6 +67,7 @@ async function main() {
   try {
     const page = await browser.newPage();
     const errors = []; page.on('pageerror', error => errors.push(error.message));
+    page.on('console', message => { if (/cannot be a descendant|validateDOMNesting/.test(message.text())) errors.push(message.text()); });
     const origin = `http://127.0.0.1:${server.address().port}`;
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -152,6 +153,14 @@ async function main() {
       assert(await dialog.getByRole('button', { name: 'Submit Request' }).isEnabled());
       assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1));
       await page.screenshot({ path: path.join(output, `manager-checkout-outage-${width}.png`) });
+    }
+    for (const width of [320, 600, 900, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      await page.goto(`${origin}/availability-regression`);
+      await page.getByText('Lathe - Out of service', { exact: true }).waitFor();
+      await page.getByText('Saw', { exact: true }).waitFor();
+      assert.equal(await page.locator('p strong .MuiChip-root').evaluate(element => element.tagName), 'SPAN');
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     }
     assert.deepEqual(errors, []);
     console.log('Workshop shared editors passed at 320/600/900/1440px: full settings, status, save/retry, partial notes failure, RM and member permissions.');

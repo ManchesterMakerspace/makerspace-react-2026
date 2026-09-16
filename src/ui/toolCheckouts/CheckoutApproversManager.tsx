@@ -9,6 +9,7 @@ import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
+import ApproverTools from "./ApproverTools";
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -121,7 +122,7 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
                 {tools.filter(tool => tool.shopId === shop.id).map(tool => (
                   <Chip
                     key={tool.id}
-                    label={`${tool.name}${tool.outOfService ? " - Out of service" : ""}`}
+                    label={toolAvailabilityLabel(tool)}
                     size="small"
                     disabled={shopIds.includes(shop.id)}
                     onClick={() => toggleTool(tool.id)}
@@ -218,13 +219,7 @@ const CheckoutApproversManager: React.FC = () => {
     {
       id: "toolNames",
       label: "Authorized Tools",
-      cell: (row: CheckoutApprover) => (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-          {row.tools?.map(tool => (
-            <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " - Out of service" : ""}`} size="small" variant="outlined" />
-          ))}
-        </div>
-      ),
+      cell: (row: CheckoutApprover) => <ApproverTools approver={row} />,
     },
     {
       id: "shopNames",
