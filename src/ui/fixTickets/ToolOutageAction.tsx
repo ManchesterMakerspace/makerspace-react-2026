@@ -11,7 +11,7 @@ export default function ToolOutageAction({ tool, onSaved }: { tool: { id: string
     try { const result = await fixRequest<ToolOutageResult>(`/api/tools/${tool.id}/outage`, { out_of_service: !tool.outOfService }); setCount(result.affectedCount); setAffected(result.affectedReservations); onSaved(); }
     catch (e: any) { setError(e.message); } finally { setBusy(false); }
   };
-  return <><Button size="small" onClick={() => { setOpen(true); setCount(undefined); }}>{tool.outOfService ? 'Restore service' : 'Mark out of service'}</Button>
+  return <><Button size="small" onClick={() => { setError(''); setAffected([]); setCount(undefined); setOpen(true); }}>{tool.outOfService ? 'Restore service' : 'Mark out of service'}</Button>
     <Dialog open={open} onClose={() => !busy && setOpen(false)}><DialogTitle>Tool availability: {tool.name}</DialogTitle>
       <DialogContent>{error && <Alert severity="error">{error}</Alert>}{count !== undefined ? <Alert severity="success">Saved. {count} existing reservations need review.</Alert> :
         <Typography>{tool.outOfService ? 'Verify all outstanding issues are addressed before restoring service.' : 'New reservations will be blocked. Existing bookings and billing remain for staff review.'} The Hidden setting is unchanged.</Typography>}
