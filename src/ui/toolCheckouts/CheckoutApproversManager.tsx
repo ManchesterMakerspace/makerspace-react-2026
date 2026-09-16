@@ -10,6 +10,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
 import ApproverTools from "./ApproverTools";
+import { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import StatefulTable from "ui/common/table/StatefulTable";

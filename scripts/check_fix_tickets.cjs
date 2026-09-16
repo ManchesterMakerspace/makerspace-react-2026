@@ -105,6 +105,12 @@ async function main() {
       await page.getByRole('button', { name: 'Report a problem' }).click();
       await page.getByRole('dialog').waitFor();
       await page.getByRole('dialog').evaluate(async node => { await Promise.all(node.getAnimations({ subtree: true }).map(a => a.finished)); });
+      await page.getByRole('radio', { name: 'Donation offer', exact: true }).check();
+      assert(await page.getByRole('checkbox', { name: 'Show my identity', exact: true }).isChecked());
+      await page.getByRole('checkbox', { name: 'Show my identity', exact: true }).uncheck();
+      assert(!(await page.getByRole('checkbox', { name: 'Show my identity', exact: true }).isChecked()));
+      await page.getByRole('radio', { name: 'Broken', exact: true }).check();
+      assert(!(await page.getByRole('checkbox', { name: 'Show my identity', exact: true }).isChecked()));
       await page.getByRole('combobox', { name: 'Shop (optional)', exact: true }).click();
       await page.getByRole('option', { name: ticket.shopName, exact: true }).click();
       await page.getByRole('combobox', { name: 'Tool (optional)', exact: true }).click();

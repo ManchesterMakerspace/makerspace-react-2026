@@ -4,6 +4,7 @@ export interface ToolOutageResult {
   affectedReservations: { id: string; startAt: string }[];
 }
 export interface FixTicket {
+  reporter?: FixPerson;
   closedBy?: FixPerson | null;
   toolHidden?: boolean;
   id: string; title: string; description: string; category: string; status: string; confirmation: string;
@@ -25,7 +26,7 @@ export interface FixCatalog {
 export const statuses = ['open', 'in_progress', 'waiting_for_parts', 'resolved', 'rejected', 'withdrawn'];
 export const activeStatuses = statuses.slice(0, 3);
 export const confirmations = ['unverified', 'confirmed', 'could_not_confirm'];
-export const categories = ['damaged', 'broken', 'missing', 'other'];
+export const categories = ['damaged', 'broken', 'missing', 'donation_offer', 'other'];
 export const fixLabel = (value: string) => value.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
 export async function fixRequest<T>(path: string, body?: unknown, method = 'POST'): Promise<T> {
   const token = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/)?.[1];

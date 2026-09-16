@@ -122,7 +122,7 @@ export default function FixTicketsPage() {
     if (action === 'outage') return mutate(`${path}/outage`, { out_of_service: !ticket.outOfService });
     return mutate(`${path}/${action}`, action === 'withdraw' ? {} : form);
   };
-  const privacy = <Alert severity="info">Reporter identity is hidden unless an admin explicitly reveals it. Text you write may identify you.
+  const privacy = <Alert severity="info">{ticket?.reporter ? 'The submitter chose to show their identity on this ticket.' : 'Reporter identity is hidden unless an admin explicitly reveals it.'} Text you write may identify you.
     {catalog?.centralSlackEnabled && ' Full notes are also shared in the central tickets Slack channel.'}</Alert>;
   return <Box sx={{ py: 3, maxWidth: 1400, mx: 'auto', overflowWrap: 'anywhere' }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: "space-between", mb: 2 }}>
@@ -175,6 +175,7 @@ export default function FixTicketsPage() {
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{ticket.description}</Typography>
         <Typography sx={{ mt: 2 }}>{ticket.shopName || 'No shop'} / {ticket.toolName || ticket.uncataloguedTool || 'No tool specified'}</Typography>
         <Typography color="text.secondary">Created {date(ticket.createdAt)} · Last update {date(ticket.updatedAt)}</Typography>
+        {ticket.reporter && <Typography>Submitter: {ticket.reporter.name}</Typography>}
         {!activeStatuses.includes(ticket.status) && ticket.closedBy && <Typography>Closed by {ticket.closedBy.name}</Typography>}
         <Typography>Assignees: {ticket.assignees.map(p => p.name).join(', ') || 'Unassigned'}</Typography>
         {ticket.iBrokeIt && <Typography>Reporter indicated: I broke it</Typography>}
@@ -257,7 +258,7 @@ function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, on
     if (!catalog || initialized.current) return;
     initialized.current = true;
     const tool = catalog.tools.find(t => t.id === initialTool);
-    setForm({ title: '', description: '', category: 'broken', shop_id: tool?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
+    setForm({ title: '', description: '', category: 'broken', shop_id: tool?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: false, i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
     setError('');
   }, [open, catalog, initialShop, initialTool]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
@@ -269,10 +270,11 @@ function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, on
   </Dialog>;
   return <Dialog open={open} onClose={() => !busy && onClose()} fullWidth maxWidth="sm"><DialogTitle>Report a problem</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
     {error && <Alert severity="error">{error}</Alert>}
-    <Alert severity="info">Your identity is hidden except from admins after a privacy acknowledgment. Text you write may identify you.{catalog?.centralSlackEnabled && ' Full notes will also be shared in the central tickets Slack channel.'}</Alert>
+    <Alert severity="info">{form.show_identity ? 'Your identity will be shown to people who can read this ticket and its notifications.' : 'Your identity is hidden except from admins after a privacy acknowledgment.'} Text you write may identify you.{catalog?.centralSlackEnabled && ' Full notes will also be shared in the central tickets Slack channel.'}</Alert>
     <TextField required label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} slotProps={{ htmlInput: { maxLength: 150 } }} />
     <TextField required label="Description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
-    <FormControl><FormLabel>Issue type</FormLabel><RadioGroup row value={form.category || 'broken'} onChange={e => set('category', e.target.value)}>{categories.map(c => <FormControlLabel key={c} value={c} control={<Radio />} label={fixLabel(c)} />)}</RadioGroup></FormControl>
+    <FormControl><FormLabel>Issue type</FormLabel><RadioGroup row value={form.category || 'broken'} onChange={e => setForm(f => ({ ...f, category: e.target.value, show_identity: e.target.value === 'donation_offer' }))}>{categories.map(c => <FormControlLabel key={c} value={c} control={<Radio />} label={fixLabel(c)} />)}</RadioGroup></FormControl>
+    <FormControlLabel label="Show my identity" control={<Checkbox checked={!!form.show_identity} onChange={e => set('show_identity', e.target.checked)} />} />
     <SelectField label="Shop (optional)" value={form.shop_id || ''} all="No shop" options={catalog?.shops || []} onChange={v => { set('shop_id', v); set('tool_id', ''); }} />
     <SelectField label="Tool (optional)" value={form.tool_id || ''} all="No catalog tool" options={catalog?.tools.filter(t => t.shopId === form.shop_id) || []} onChange={v => { set('tool_id', v); if (v) set('uncatalogued_tool', ''); }} />
     {!form.tool_id && <TextField label="Uncatalogued tool name (optional)" error={invalidFixName(form.uncatalogued_tool)} helperText={fixNameHint} value={form.uncatalogued_tool || ''} onChange={e => set('uncatalogued_tool', e.target.value)} />}
