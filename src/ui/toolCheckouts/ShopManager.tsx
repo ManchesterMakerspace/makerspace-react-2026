@@ -18,11 +18,11 @@ import StatefulTable from "ui/common/table/StatefulTable";
 import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
-import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  listManagedShops, listShops, listTools, adminCreateShop, adminUpdateShop, adminDeleteShop,
+  adminCreateShop, adminUpdateShop, adminDeleteShop,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 import ShopColorField from "./ShopColorField";
@@ -212,13 +212,17 @@ const ShopManager: React.FC = () => {
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
   const { isRequesting, data: publicShops = [], refresh, error: loadError } =
-    useReadTransaction(listShops, {}, undefined, "shops-list");
-  const { data: managedShops = [], refresh: refreshManaged, error: managedError, isRequesting: loadingManaged } = useReadTransaction(listManagedShops, {}, undefined, "editable-shops-list");
-  const { data: tools = [] } = useReadTransaction(listTools, {}, undefined, "shops-tools-list");
+    useCheckoutCatalog("shops");
+  const { data: managedShops = [], refresh: refreshManaged, error: managedError, isRequesting: loadingManaged } = useCheckoutCatalog("managedShops");
+  const { data: tools = [] } = useCheckoutCatalog("tools");
   const { canManageCheckoutApprovers, canViewShopQrCodes } = useCapabilities();
 
-  const refreshRef = React.useRef(refresh);
-  React.useEffect(() => { refreshRef.current = () => { refresh(); refreshManaged(); }; }, [refresh, refreshManaged]);
+  const refreshShops = React.useCallback(() => {
+    refresh();
+    // Outside CheckoutCatalogProvider (e.g. Reservations), these are separate
+    // reads. Inside it, both callbacks are the same shared catalog refresh.
+    if (refreshManaged !== refresh) refreshManaged();
+  }, [refresh, refreshManaged]);
 
   // Keep management-only shops selectable and prefer their complete records.
   const shops = React.useMemo(() => Array.from(new Map(
@@ -230,8 +234,8 @@ const ShopManager: React.FC = () => {
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
-    setSelectedId(undefined); refreshRef.current();
-  }, []);
+    setSelectedId(undefined); refreshShops();
+  }, [refreshShops]);
 
   const { call: createShop, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateShop, onSuccess);
   const { call: updateShop, isRequesting: updating, error: updateError } = useWriteTransaction(adminUpdateShop, onSuccess);

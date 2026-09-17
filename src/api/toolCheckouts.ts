@@ -1,4 +1,5 @@
 import axios from "axios";
+import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
 import {
   Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
 } from "app/entities/toolCheckout";
@@ -22,12 +23,14 @@ const wrapHeaders = (axiosHeaders: any) => ({
   has: (key: string) => key.toLowerCase() in axiosHeaders,
 });
 
-const buildResponse = async <T>(request: Promise<any>) => {
+const buildResponse = async <T>(request: Promise<any>): Promise<ApiDataResponse<T> | (ApiErrorResponse & { data?: undefined })> => {
   try {
     const res = await request;
     return { data: res.data, response: { ...res, headers: wrapHeaders(res.headers) } };
   } catch (err: any) {
     const error = {
+      status: err.response?.status || 0,
+      error: err.response?.data?.error || "request_failed",
       message: apiErrorMessage(err.response?.data, err.message || "Request failed")
     };
     return { error, response: err.response };
@@ -36,6 +39,12 @@ const buildResponse = async <T>(request: Promise<any>) => {
 
 const normalizeSlackChannel = (value?: string) =>
   value?.trim().replace(/^#+/, "") || "";
+
+// Checkout selection deliberately opts into server-side eligibility filtering.
+export const searchCheckoutMembers = (search: string) =>
+  buildResponse<Array<{ id: string; firstname: string; lastname: string; status?: string; expirationTime?: number }>>(
+    api.get("/api/members", { params: { search, fully_active_unexpired: true } })
+  );
 
 // ── Shops ─────────────────────────────────────────────────────────────────────
 
