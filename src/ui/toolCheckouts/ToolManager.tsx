@@ -526,7 +526,7 @@ const ToolManager: React.FC = () => {
     {
       id: "notes", label: "Notes",
       cell: (row: Tool) => editingId === row.id ? null : (
-        <NotesCell tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />
+        <NotesCell tool={row} onSaved={() => refreshRef.current()} />
       ),
     },
   ];

@@ -314,7 +314,7 @@ const ShopManager: React.FC = () => {
         <Alert severity="error">
           Could not load shop management settings. Edit and Delete are unavailable until this request succeeds.
           <div>{managedError}</div>
-          <Button color="inherit" onClick={refreshManaged} disabled={loadingManaged}>
+          <Button color="inherit" onClick={refresh} disabled={loadingManaged}>
             {loadingManaged ? "Retrying…" : "Retry management settings"}
           </Button>
         </Alert>
