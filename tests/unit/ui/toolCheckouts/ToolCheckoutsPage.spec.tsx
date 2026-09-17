@@ -6,6 +6,9 @@ import { MemoryRouter } from "react-router-dom";
 jest.mock("ui/reducer/hooks", () => ({
   useAuthState: () => ({ currentUser: { id: "admin-1", resourceManagerShopIds: [] } })
 }));
+jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({
+  CheckoutCatalogProvider: ({ children }: React.PropsWithChildren) => <>{children}</>
+}));
 jest.mock("ui/member/utils", () => ({ memberIsResourceManager: () => false }));
 jest.mock("app/permissions", () => ({
   useCapabilities: () => ({

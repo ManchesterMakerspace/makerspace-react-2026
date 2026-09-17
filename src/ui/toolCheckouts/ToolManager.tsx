@@ -26,12 +26,11 @@ import StatefulTable from "ui/common/table/StatefulTable";
 import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
-import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  listManagedShops, listTools,
   adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
@@ -438,11 +437,10 @@ const ToolManager: React.FC = () => {
   const [shopFilter,   setShopFilter]   = React.useState<string>("");
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
-  const { data: shops = [] } = useReadTransaction(listManagedShops, {}, undefined, "shops-for-tools");
-  const { isRequesting, data: tools = [], response, refresh, error: loadError } =
-    useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
-  const { data: allTools = [], refresh: refreshAllTools } =
-    useReadTransaction(listTools, {}, undefined, "tools-all-validation");
+  const { data: shops = [] } = useCheckoutCatalog("managedShops");
+  const { isRequesting, data: allTools = [], response, refresh, error: loadError } =
+    useCheckoutCatalog("tools");
+  const tools = shopFilter ? allTools.filter(tool => tool.shopId === shopFilter) : allTools;
   // GET /api/admin/tools is already correctly scoped server-side (shop
   // manager, or a checkout approver's specific tool_ids) -- do not re-filter
   // against listManagedShops here, which only covers actual shop managers
@@ -451,9 +449,7 @@ const ToolManager: React.FC = () => {
   const allManageableTools = allTools as Tool[];
 
   const refreshRef = React.useRef(refresh);
-  const refreshAllToolsRef = React.useRef(refreshAllTools);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
-  React.useEffect(() => { refreshAllToolsRef.current = refreshAllTools; }, [refreshAllTools]);
 
   const selectedTool = manageableTools.find(t => t.id === selectedId);
   // Full edit/delete stays restricted to actual shop managers -- a tool-only
@@ -466,7 +462,6 @@ const ToolManager: React.FC = () => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
     setSelectedId(undefined);
     refreshRef.current();
-    refreshAllToolsRef.current();
   }, []);
 
   const { call: createTool, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateTool, onSuccess);

@@ -5,6 +5,7 @@ import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import { useLocation } from "react-router-dom";
 
+import { CheckoutCatalogProvider } from "./CheckoutCatalog";
 import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
@@ -58,6 +59,7 @@ const ToolCheckoutsPage: React.FC = () => {
   });
 
   return (
+    <CheckoutCatalogProvider key={JSON.stringify(currentUser)} scopeKey={JSON.stringify(currentUser)}>
     <Grid container spacing={3} justifyContent="center">
       <Grid size={{ xs: 12, md: 10 }}>
         <Typography variant="h5" gutterBottom>Tool Checkouts</Typography>
@@ -91,6 +93,7 @@ const ToolCheckoutsPage: React.FC = () => {
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>
     </Grid>
+    </CheckoutCatalogProvider>
   );
 };
 
