@@ -5,9 +5,12 @@ import { createRoot, Root } from "react-dom/client";
 const mockRefresh = jest.fn();
 let mockManagedError = "";
 let mockLoadingManaged = false;
+let mockTools: any[] = [];
+let mockShops: any[] = [];
 jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({
   useCheckoutCatalog: (resource: string) => ({
-    data: resource === "tools" ? [{ id: "tool-1", name: "Bandsaw", notes: "Cabinet combination", shopId: "shop-1" }] : [],
+    data: resource === "tools" ? mockTools : mockShops,
+    response: { response: { headers: { get: () => "150" } } },
     error: resource === "managedShops" ? mockManagedError : "",
     isRequesting: resource === "managedShops" && mockLoadingManaged,
     refresh: mockRefresh
@@ -15,9 +18,9 @@ jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({
 }));
 jest.mock("app/permissions", () => ({ useCapabilities: () => ({ canManageCheckoutApprovers: true }) }));
 jest.mock("ui/common/Filters/QueryContext", () => ({ withQueryContext: (component: any) => component }));
-jest.mock("ui/common/table/StatefulTable", () => ({ data, columns }: any) => <>
+jest.mock("ui/common/table/StatefulTable", () => ({ data, columns, totalItems }: any) => <div data-testid="manager-table" data-total-items={totalItems} data-row-count={data.length}>
   {data.map((row: any) => <div key={row.id}>{columns.find((column: any) => column.id === "notes")?.cell(row)}</div>)}
-</>);
+</div>);
 jest.mock("ui/common/FormModal", () => () => null);
 jest.mock("ui/common/PublicCatalogQrCodeModal", () => () => null);
 jest.mock("ui/toolCheckouts/ToolQrCodeModal", () => () => null);
@@ -41,6 +44,8 @@ describe("manager catalog refresh callbacks", () => {
     jest.clearAllMocks();
     mockManagedError = "";
     mockLoadingManaged = false;
+    mockTools = [{ id: "tool-1", name: "Bandsaw", notes: "Cabinet combination", shopId: "shop-1" }];
+    mockShops = [];
     (adminUpdateToolNotes as jest.Mock).mockResolvedValue({ data: {}, response: {} });
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -71,5 +76,30 @@ describe("manager catalog refresh callbacks", () => {
     expect(adminUpdateToolNotes).toHaveBeenCalledWith({ id: "tool-1", notes: "Cabinet combination" });
     expect(mockRefresh).toHaveBeenCalledTimes(1);
     expect(container.querySelector("textarea")).toBeNull();
+  });
+
+  it("uses the filtered tool count for pagination instead of the catalog response total", async () => {
+    mockShops = [
+      { id: "shop-1", name: "Woodshop" },
+      { id: "shop-2", name: "Metalshop" },
+      { id: "shop-empty", name: "Empty shop" }
+    ];
+    mockTools = [
+      { id: "tool-1", name: "Bandsaw", shopId: "shop-1" },
+      { id: "tool-2", name: "Lathe", shopId: "shop-1" },
+      { id: "tool-3", name: "Welder", shopId: "shop-2" }
+    ];
+    await act(async () => root.render(<ToolManager />));
+    const table = () => container.querySelector('[data-testid="manager-table"]')!;
+    expect(table().getAttribute("data-total-items")).toBe("3");
+    for (const [shopId, count] of [["shop-1", "2"], ["shop-2", "1"], ["shop-empty", "0"], ["", "3"]]) {
+      await act(async () => {
+        const select = container.querySelector("select")!;
+        select.value = shopId;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      expect(table().getAttribute("data-row-count")).toBe(count);
+      expect(table().getAttribute("data-total-items")).toBe(count);
+    }
   });
 });

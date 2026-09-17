@@ -28,7 +28,6 @@ import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
   adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
@@ -438,7 +437,7 @@ const ToolManager: React.FC = () => {
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
   const { data: shops = [] } = useCheckoutCatalog("managedShops");
-  const { isRequesting, data: allTools = [], response, refresh, error: loadError } =
+  const { isRequesting, data: allTools = [], refresh, error: loadError } =
     useCheckoutCatalog("tools");
   const tools = shopFilter ? allTools.filter(tool => tool.shopId === shopFilter) : allTools;
   // GET /api/admin/tools is already correctly scoped server-side (shop
@@ -582,7 +581,7 @@ const ToolManager: React.FC = () => {
         <StatefulTable
           id="tools-table" title="Tools" loading={isRequesting}
           data={manageableTools} error={loadError} columns={columns}
-          rowId={rowId} totalItems={extractTotalItems(response)}
+          rowId={rowId} totalItems={manageableTools.length}
           selectedIds={selectedId} setSelectedIds={handleSelectId}
           renderSearch={true}
         />
