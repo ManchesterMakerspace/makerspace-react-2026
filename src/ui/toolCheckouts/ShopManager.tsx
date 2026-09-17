@@ -213,12 +213,16 @@ const ShopManager: React.FC = () => {
 
   const { isRequesting, data: publicShops = [], refresh, error: loadError } =
     useCheckoutCatalog("shops");
-  const { data: managedShops = [], error: managedError, isRequesting: loadingManaged } = useCheckoutCatalog("managedShops");
+  const { data: managedShops = [], refresh: refreshManaged, error: managedError, isRequesting: loadingManaged } = useCheckoutCatalog("managedShops");
   const { data: tools = [] } = useCheckoutCatalog("tools");
   const { canManageCheckoutApprovers, canViewShopQrCodes } = useCapabilities();
 
-  const refreshRef = React.useRef(refresh);
-  React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
+  const refreshShops = React.useCallback(() => {
+    refresh();
+    // Outside CheckoutCatalogProvider (e.g. Reservations), these are separate
+    // reads. Inside it, both callbacks are the same shared catalog refresh.
+    if (refreshManaged !== refresh) refreshManaged();
+  }, [refresh, refreshManaged]);
 
   // Keep management-only shops selectable and prefer their complete records.
   const shops = React.useMemo(() => Array.from(new Map(
@@ -230,8 +234,8 @@ const ShopManager: React.FC = () => {
 
   const onSuccess = React.useCallback(() => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
-    setSelectedId(undefined); refreshRef.current();
-  }, []);
+    setSelectedId(undefined); refreshShops();
+  }, [refreshShops]);
 
   const { call: createShop, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateShop, onSuccess);
   const { call: updateShop, isRequesting: updating, error: updateError } = useWriteTransaction(adminUpdateShop, onSuccess);
@@ -314,7 +318,7 @@ const ShopManager: React.FC = () => {
         <Alert severity="error">
           Could not load shop management settings. Edit and Delete are unavailable until this request succeeds.
           <div>{managedError}</div>
-          <Button color="inherit" onClick={refresh} disabled={loadingManaged}>
+          <Button color="inherit" onClick={refreshManaged} disabled={loadingManaged}>
             {loadingManaged ? "Retrying…" : "Retry management settings"}
           </Button>
         </Alert>
