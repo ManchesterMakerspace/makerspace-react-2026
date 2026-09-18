@@ -84,7 +84,10 @@ test.describe('RM enforces CNC mill prerequisites', () => {
     await checkouts.submitCheckout(422);
     await expect(page.getByRole('dialog').getByText(/Complete all prerequisite checkouts/i)).toBeVisible();
     await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
-    await expect(page.getByRole('cell', { name: CNC_MILL, exact: true })).not.toBeVisible();
+    const rejectedCncRow = page.getByRole('row')
+      .filter({ has: page.getByRole('cell', { name: CNC_MILL }) })
+      .filter({ has: page.getByRole('cell', { name: /Basic Member1/i }) });
+    await expect(rejectedCncRow).not.toBeVisible();
 
     await checkouts.checkOutMember('Basic Member1', METALSHOP, MILL);
     await checkouts.verifyCheckoutInTable('Basic Member1', MILL);
@@ -121,11 +124,10 @@ test.describe('Members view their tool checkout status', () => {
     await member.dismissNotificationModal();
     await member.clickTab('Checkouts');
 
-    const cncRow = page.getByRole('row').filter({
-      has: page.getByRole('cell', { name: CNC_MILL, exact: true }),
-    });
+    const cncCell = page.getByRole('cell', { name: /^cnc mill\b/i });
+    const cncRow = page.getByRole('row').filter({ has: cncCell });
     await expect(cncRow).toBeVisible({ timeout: 10_000 });
-    await expect(cncRow.getByRole('cell', { name: METALSHOP, exact: true })).toBeVisible();
-    await expect(page.getByRole('cell', { name: MILL, exact: true })).toBeVisible();
+    await expect(cncCell).toContainText(METALSHOP);
+    await expect(page.getByRole('cell', { name: /^mill\b/i })).toBeVisible();
   });
 });

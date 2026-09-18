@@ -123,7 +123,7 @@ export class AdminToolCheckoutsPage {
 
   async verifyCheckoutInTable(memberName: string, toolName: string): Promise<void> {
     const row = this.page.getByRole('row')
-      .filter({ has: this.page.getByRole('cell', { name: toolName, exact: true }) })
+      .filter({ has: this.page.getByRole('cell', { name: toolName }) })
       .filter({ has: this.page.getByRole('cell', { name: new RegExp(memberName, 'i') }) });
     await expect(row).toBeVisible({ timeout: 10_000 });
   }
