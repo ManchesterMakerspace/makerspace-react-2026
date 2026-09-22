@@ -99,6 +99,14 @@ export class AdminToolCheckoutsPage {
 
     const dialog = this.page.getByRole('dialog');
     await dialog.locator('select').nth(0).selectOption({ label: shopName });
+    // DO NOT REMOVE: selecting the shop triggers an async re-fetch of that
+    // shop's tools into the tool <select> below. Without this wait, this
+    // suite is flaky in CI -- the tool select's options query intermittently
+    // hasn't repopulated yet, causing selectOption to time out waiting for
+    // an option that never appears (see the 2026-09-18 and 2026-09-22 CI
+    // failures on this exact step). This was removed once already during a
+    // refactor and caused exactly that flakiness -- keep it.
+    await this.page.waitForTimeout(500);
     await dialog.locator('select').nth(1).selectOption({ label: toolName });
   }
 
