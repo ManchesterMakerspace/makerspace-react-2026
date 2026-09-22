@@ -231,14 +231,21 @@ const MembersList: React.FC = () => {
   const caps = useCapabilities();
   const canViewAll = caps.canViewAllMembers;
   const canViewProvisioning = caps.canViewAuditLog;
-  const updateFilter = React.useCallback(
-    () => setParam('currentMembers', !params.currentMembers),
-    [params, setParam]
-  );
-  const updateShowDeleted = React.useCallback(
-    () => setParam('showDeleted', !params.showDeleted),
-    [params, setParam]
-  );
+  // "Show deleted accounts" is a distinct view, not a filter that composes
+  // with "current members" -- a member can't be both currently active and
+  // soft-deleted (soft-delete refuses to run on an active/unexpired
+  // member), so combining them would just always show nothing. Checking
+  // one clears the other rather than letting both be checked at once.
+  const updateFilter = React.useCallback(() => {
+    const next = !params.currentMembers;
+    setParam('currentMembers', next);
+    if (next) setParam('showDeleted', false);
+  }, [params, setParam]);
+  const updateShowDeleted = React.useCallback(() => {
+    const next = !params.showDeleted;
+    setParam('showDeleted', next);
+    if (next) setParam('currentMembers', false);
+  }, [params, setParam]);
 
   const { isRequesting, data: members = [], response, refresh, error } = useReadTransaction(
     listMembers,
