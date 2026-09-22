@@ -52,7 +52,24 @@ const nameColumn: Column<MemberSummary> = {
   id: 'lastname',
   label: 'Name',
   cell: (row: MemberSummary) => (
-    <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
+    <span style={(row as any).mergedAt ? { color: '#888' } : undefined}>
+      <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
+      {(row as any).mergedAt && (
+        <span
+          style={{
+            marginLeft: 6,
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: '#555',
+            border: '1px solid #999',
+            borderRadius: 4,
+            padding: '1px 4px',
+          }}
+        >
+          DELETED
+        </span>
+      )}
+    </span>
   ),
   defaultSortDirection: SortDirection.Desc,
 };
@@ -218,6 +235,10 @@ const MembersList: React.FC = () => {
     () => setParam('currentMembers', !params.currentMembers),
     [params, setParam]
   );
+  const updateShowDeleted = React.useCallback(
+    () => setParam('showDeleted', !params.showDeleted),
+    [params, setParam]
+  );
 
   const { isRequesting, data: members = [], response, refresh, error } = useReadTransaction(
     listMembers,
@@ -239,6 +260,10 @@ const MembersList: React.FC = () => {
             <FormControlLabel
               control={<Checkbox color='primary' value='true' checked={!!params.currentMembers} onChange={updateFilter} />}
               label='View only current members'
+            />
+            <FormControlLabel
+              control={<Checkbox color='primary' value='true' checked={!!params.showDeleted} onChange={updateShowDeleted} />}
+              label='Show deleted accounts'
             />
           </Grid>
         )}
@@ -269,6 +294,7 @@ const MembersList: React.FC = () => {
 
 export default withQueryContext(MembersList, {
   currentMembers: false,
+  showDeleted: false,
   orderBy: 'startDate',
   order: SortDirection.Desc,
 });
