@@ -19,7 +19,8 @@ import {
   SlackProvisioningIcon,
 } from 'ui/member/ProvisioningStatus';
 
-import { listMembers, MemberSummary } from 'makerspace-ts-api-client';
+import { MemberSummary } from 'makerspace-ts-api-client';
+import { listMembersWithDeleted } from 'api/members';
 import CreateMember from 'ui/member/CreateMember';
 import RenewMember from 'ui/member/RenewMember';
 import extractTotalItems from '../utils/extractTotalItems';
@@ -248,7 +249,7 @@ const MembersList: React.FC = () => {
   }, [params, setParam]);
 
   const { isRequesting, data: members = [], response, refresh, error } = useReadTransaction(
-    listMembers,
+    listMembersWithDeleted,
     { ...params }
   );
 
