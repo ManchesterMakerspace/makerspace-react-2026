@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
 import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
+import { timeToDate } from "ui/utils/timeToDate";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 import KeyValueItem from "ui/common/KeyValueItem";
 import DetailView from "ui/common/DetailView";
@@ -332,9 +333,18 @@ const MemberProfile: React.FC = () => {
                 )}
               </span>
             </KeyValueItem>
-            <KeyValueItem  label="Membership Expiration">
-              <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
-            </KeyValueItem>
+            <div style={{ paddingBottom: "1em", display: "flex", flexWrap: "wrap" }}>
+              <span style={{ marginRight: "2.5em" }}>
+                <strong>Signed Up: </strong>
+                <span id="member-detail-signup-date">
+                  {(member as any).startDate ? timeToDate((member as any).startDate) : "N/A"}
+                </span>
+              </span>
+              <span>
+                <strong>Membership Expiration: </strong>
+                <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
+              </span>
+            </div>
             {canViewAuditLog && provisioning && (
               <>
                 <KeyValueItem label="Slack Provisioning">
