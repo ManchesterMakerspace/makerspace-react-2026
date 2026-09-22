@@ -3,7 +3,7 @@ import { MemberStatus, MemberSummary } from "makerspace-ts-api-client";
 import { Status } from "ui/constants";
 import StatusLabel from "ui/common/StatusLabel";
 import Tooltip from "@mui/material/Tooltip";
-import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import Chip from "@mui/material/Chip";
 
 export const memberStatusLabelMap = {
   [MemberStatus.ActiveMember]: "Active",
@@ -42,10 +42,12 @@ const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member
     <span style={{ display: "inline-flex", alignItems: "center" }}>
       <StatusLabel id={id} label={label} color={statusColor} />
       {member.paidPendingStart && (
-        <Tooltip title="Membership paid, pending membership start">
-          <AttachMoneyIcon
-            fontSize="small"
-            style={{ color: "#2e7d32", verticalAlign: "middle" }}
+        <Tooltip title="Membership paid -- pending fob registration to start the membership term">
+          <Chip
+            size="small"
+            color="warning"
+            label="Paid — Not Started"
+            style={{ marginLeft: 8 }}
           />
         </Tooltip>
       )}
