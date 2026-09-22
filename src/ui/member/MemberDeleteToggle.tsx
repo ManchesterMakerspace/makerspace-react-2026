@@ -22,6 +22,11 @@ const getCsrfToken = (): string => {
 // access and frees the email for reuse, but never notifies the member. The
 // backend refuses (422) if the member currently has an active, unexpired
 // membership or a live subscription; that message is surfaced here.
+//
+// This is NOT how you revoke a member's access. Revocation is done by
+// changing their Status field on this page instead, which blocks their
+// email from being reused for a new signup -- the opposite of what this
+// does. This button is only for cleaning up a duplicate/abandoned account.
 const MemberDeleteToggle: React.FC<Props> = (props) => {
   const { member, onUpdated } = props;
   const [loading, setLoading] = React.useState(false);
@@ -54,7 +59,9 @@ const MemberDeleteToggle: React.FC<Props> = (props) => {
     if (!window.confirm(
       `Delete ${member.firstname} ${member.lastname}'s account? This hides it from member lists/search and ` +
       "frees their email for reuse, but keeps its history (invoices, audit log, etc.) intact. It can be " +
-      "restored later. The member will not be notified."
+      "restored later. The member will not be notified.\n\n" +
+      "This is not how you revoke a member's access -- use the Status field for that instead, which also " +
+      "blocks their email from being reused."
     )) return;
     call("soft_delete");
   };
@@ -68,7 +75,7 @@ const MemberDeleteToggle: React.FC<Props> = (props) => {
     <>
       <Tooltip title={deleted
         ? "Un-delete this account so it appears in member lists/search again"
-        : "Mark this account as deleted -- for a duplicate/abandoned signup, not a real member's access"
+        : "Mark this account as deleted -- for a duplicate/abandoned signup, not for revoking a real member's access (use Status for that)"
       }>
         <span>
           <Button
