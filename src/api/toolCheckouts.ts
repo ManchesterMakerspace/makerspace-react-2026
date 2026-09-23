@@ -78,6 +78,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
     reservation_requires_approval: body.reservationRequiresApproval,
     reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
     color_id: body.colorId,
+    resource_manager_ids: body.resourceManagerIds,
   }));
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
@@ -101,10 +102,19 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
       reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds,
     }),
     color_id: body.colorId,
+    ...(body.resourceManagerIds !== undefined && {
+      resource_manager_ids: body.resourceManagerIds,
+    }),
   }));
 
 export const adminDeleteShop = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/shops/${id}`));
+
+// Kept separate from the full shop update so a shop-scoped resource manager
+// can change request instructions without receiving permission to change
+// admin/board-only shop settings.
+export const adminUpdateShopAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
+  buildResponse<Shop>(api.patch(`/api/admin/shops/${id}/requestor_annotation`, { requestor_annotation: annotation }));
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
@@ -290,5 +300,7 @@ export const adminUpdateCheckoutApprover = ({ id, body }: {
 export const adminDeleteCheckoutApprover = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/checkout_approvers/${id}`));
 
+// This endpoint is intentionally available to admin/board, the tool's shop
+// resource managers, and every additional checkout approver for the tool.
 export const adminUpdateToolAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
   buildResponse<Tool>(api.patch(`/api/admin/tools/${id}/requestor_annotation`, { requestor_annotation: annotation }));
