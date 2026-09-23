@@ -32,7 +32,15 @@ jest.mock("api/toolCheckouts", () => ({
 import { getRootReducer } from "ui/reducer";
 import { listShops, listManagedShops, listTools, adminCreateShop, adminUpdateShop, adminDeleteShop } from "api/toolCheckouts";
 import { CheckoutCatalogProvider } from "ui/toolCheckouts/CheckoutCatalog";
-import ShopManager from "ui/toolCheckouts/ShopManager";
+import ShopManager, { resourceManagerIdsUpdate } from "ui/toolCheckouts/ShopManager";
+
+describe("shop manager permissions", () => {
+  it("omits resource-manager assignments from non-privileged updates", () => {
+    const managers = [{ id: "manager-1" }];
+    expect(resourceManagerIdsUpdate(false, managers)).toEqual({});
+    expect(resourceManagerIdsUpdate(true, managers)).toEqual({ resourceManagerIds: ["manager-1"] });
+  });
+});
 
 describe.each([false, true])("ShopManager with catalog provider=%s", (withCatalog) => {
   let container: HTMLDivElement;

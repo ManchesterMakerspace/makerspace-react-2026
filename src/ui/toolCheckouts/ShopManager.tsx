@@ -34,21 +34,18 @@ import { useCapabilities } from "app/permissions";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { SelectOption } from "ui/common/AsyncSelect";
 import ShopAnnotationCell from "./ShopAnnotationCell";
+import RequestorAnnotationHelp from "./RequestorAnnotationHelp";
 
 const rowId = (s: Shop) => s.id;
 const normalizedName = (value: string) => value.trim().toLowerCase();
 const normalizedChannel = (value: string) => value.replace(/^#+/, "");
 
-const RequestorAnnotationLabel = () => (
-  <span>
-    Annotation for requestors
-    <Tooltip title="This message is sent after a checkout request when the selected tool does not have its own requestor annotation.">
-      <IconButton size="small" aria-label="About requestor annotations" sx={{ ml: 0.5, p: 0.25 }}>
-        <InfoOutlinedIcon fontSize="inherit" />
-      </IconButton>
-    </Tooltip>
-  </span>
-);
+export const resourceManagerIdsUpdate = (
+  canManageResourceManagers: boolean,
+  managers: Array<{ id: string }>
+) => canManageResourceManagers
+  ? { resourceManagerIds: managers.map(manager => manager.id) }
+  : {};
 
 const ResourceManagersField: React.FC<{
   managers: Array<{ id: string; name: string }>;
@@ -70,7 +67,8 @@ const ResourceManagersField: React.FC<{
         </IconButton>
       </Tooltip>
     </Typography>
-    <MemberSearchInput key={searchKey} name="resourceManager" placeholder="Search for a member to add"
+    <MemberSearchInput key={searchKey} name="resourceManager" ariaLabel="Add a shop resource manager"
+      placeholder="Search for a member to add"
       excludeIds={managers.map(manager => manager.id)} onChange={addManager} />
     <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
       {managers.map(manager => <Chip key={manager.id} label={manager.name}
@@ -145,9 +143,12 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <TextField fullWidth multiline minRows={2} label={<RequestorAnnotationLabel />}
-            value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
-            helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
+          <div style={{ display: "flex", alignItems: "flex-start" }}>
+            <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+              value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
+              helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
+            <RequestorAnnotationHelp level="shop" />
+          </div>
         </Grid>
         <ResourceManagersField managers={resourceManagers} onChange={setResourceManagers} />
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
@@ -170,10 +171,11 @@ interface EditShopModalProps {
   onCancel: () => void;
   saving: boolean;
   error: string;
+  canManageResourceManagers: boolean;
 }
 
 export const EditShopModal: React.FC<EditShopModalProps> = ({
-  shop, tools, onSave, onCancel, saving, error
+  shop, tools, onSave, onCancel, saving, error, canManageResourceManagers
 }) => {
   const [requestorAnnotation, setRequestorAnnotation] = React.useState(shop.requestorAnnotation || "");
   const [name, setName] = React.useState(shop.name);
@@ -202,7 +204,12 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
+    onSave(shop.id, {
+      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId,
+      requestorAnnotation: requestorAnnotation.trim() || null,
+      ...resourceManagerIdsUpdate(canManageResourceManagers, resourceManagers),
+      ...reservation
+    });
   };
 
   return (
@@ -230,11 +237,15 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <TextField fullWidth multiline minRows={2} label={<RequestorAnnotationLabel />}
-            value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
-            helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
+          <div style={{ display: "flex", alignItems: "flex-start" }}>
+            <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+              value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
+              helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
+            <RequestorAnnotationHelp level="shop" />
+          </div>
         </Grid>
-        <ResourceManagersField managers={resourceManagers} onChange={setResourceManagers} />
+        {canManageResourceManagers &&
+          <ResourceManagersField managers={resourceManagers} onChange={setResourceManagers} />}
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
@@ -427,6 +438,7 @@ const ShopManager: React.FC = () => {
           onCancel={handleCancel}
           saving={updating}
           error={updateError}
+          canManageResourceManagers={canManageCheckoutApprovers}
         />
       )}
 

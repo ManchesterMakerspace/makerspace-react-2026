@@ -637,6 +637,7 @@ const WorkshopsPage: React.FC = () => {
         onCancel={() => setEditOpen(false)}
         onSave={updateShop}
         saving={shopSaving}
+        canManageResourceManagers
         error={shopError} />}
     </Grid>
   );
