@@ -40,6 +40,11 @@ describe("shop manager permissions", () => {
     expect(resourceManagerIdsUpdate(false, managers)).toEqual({});
     expect(resourceManagerIdsUpdate(true, managers)).toEqual({ resourceManagerIds: ["manager-1"] });
   });
+
+  it("preserves assignments when the API omits manager details", () => {
+    expect(resourceManagerIdsUpdate(true, undefined)).toEqual({});
+    expect(resourceManagerIdsUpdate(true, [])).toEqual({ resourceManagerIds: [] });
+  });
 });
 
 describe.each([false, true])("ShopManager with catalog provider=%s", (withCatalog) => {

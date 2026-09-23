@@ -42,8 +42,8 @@ const normalizedChannel = (value: string) => value.replace(/^#+/, "");
 
 export const resourceManagerIdsUpdate = (
   canManageResourceManagers: boolean,
-  managers: Array<{ id: string }>
-) => canManageResourceManagers
+  managers?: Array<{ id: string }>
+) => canManageResourceManagers && managers !== undefined
   ? { resourceManagerIds: managers.map(manager => manager.id) }
   : {};
 
@@ -183,7 +183,10 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
-  const [resourceManagers, setResourceManagers] = React.useState(shop.resourceManagers || []);
+  // Undefined means the API did not include the authoritative assignments.
+  // Preserve that distinction from an explicitly empty list so an unrelated
+  // edit cannot accidentally revoke every existing manager.
+  const [resourceManagers, setResourceManagers] = React.useState(shop.resourceManagers);
   // Only the reservation-specific fields -- seeding this from the full shop
   // object let its name/wikiUrlOverride/gdriveId/slackChannel/colorId leak
   // in, which then silently overwrote whatever the user just edited via the
@@ -244,8 +247,14 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
             <RequestorAnnotationHelp level="shop" />
           </div>
         </Grid>
-        {canManageResourceManagers &&
+        {canManageResourceManagers && resourceManagers !== undefined &&
           <ResourceManagersField managers={resourceManagers} onChange={setResourceManagers} />}
+        {canManageResourceManagers && resourceManagers === undefined &&
+          <Grid size={{ xs: 12 }}>
+            <Alert severity="warning">
+              Resource manager assignments are unavailable. Saving will preserve the existing assignments.
+            </Alert>
+          </Grid>}
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
