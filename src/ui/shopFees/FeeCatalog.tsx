@@ -122,9 +122,9 @@ const EditFeeItemRow: React.FC<EditFeeItemRowProps> = ({ item, onSave, onCancel,
       <TextField size="small" value={amount} onChange={e => setAmount(e.target.value)}
         placeholder="0.00" type="number" slotProps={{ htmlInput: { min: "0.01", step: "0.01" } }} style={{ flex: 1 }} />
       <Tooltip title="Save changes"><span>
-        <IconButton size="small" color="primary" disabled={saving || !name || !amount}
+        <IconButton size="medium" color="primary" disabled={saving || !name || !amount}
           onClick={() => onSave(item.id, { name, description, amount })}>
-          <SaveIcon fontSize="small" />
+          <SaveIcon fontSize="medium" />
         </IconButton>
       </span></Tooltip>
       <Tooltip title="Cancel">

@@ -33,6 +33,9 @@ Keep related actions together, put the primary action first, and use clear
 labels. Icons must reinforce—not replace—an accessible text label unless an
 icon-only control has an `aria-label` and tooltip/title.
 
+Editor save actions use MUI's `medium` icon-button and icon sizes on desktop so
+the primary commit control remains prominent and has a comfortable target.
+
 ## Typography and fonts
 
 No web font or custom `font-family` is loaded by this React bundle. MUI's

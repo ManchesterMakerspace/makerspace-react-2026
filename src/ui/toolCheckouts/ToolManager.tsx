@@ -1,6 +1,7 @@
 // @ts-nocheck
 import * as React from "react";
 import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -211,7 +212,7 @@ interface EditToolRowProps {
   saving: boolean;
 }
 
-const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
+export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
   const [name, setName] = React.useState(tool.name);
   const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
@@ -289,7 +290,12 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, o
   };
 
   return (
-    <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr", alignItems: "center" }}>
+    <Box sx={{
+      display: "grid",
+      gap: 1,
+      gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" },
+      alignItems: "center"
+    }}>
       <TextField size="small" value={name} onChange={e => setName(e.target.value)}
         placeholder="Tool name" autoFocus />
       <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
@@ -344,16 +350,16 @@ const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, o
       </div>
       <div>
         <Tooltip title="Save"><span>
-          <IconButton size="small" color="primary" disabled={saving || !name}
+          <IconButton size="medium" color="primary" disabled={saving || !name}
             onClick={submit}>
-            <SaveIcon fontSize="small" />
+            <SaveIcon fontSize="medium" />
           </IconButton>
         </span></Tooltip>
         <Tooltip title="Cancel">
           <IconButton size="small" onClick={onCancel}><CancelIcon fontSize="small" /></IconButton>
         </Tooltip>
       </div>
-    </div>
+    </Box>
   );
 };
 
@@ -398,9 +404,9 @@ const NotesCell: React.FC<NotesCellProps> = ({ tool, onSaved }) => {
       <TextField size="small" multiline value={value} autoFocus
         placeholder="e.g. lock combo" onChange={e => setValue(e.target.value)} />
       <Tooltip title="Save"><span>
-        <IconButton size="small" color="primary" disabled={isRequesting}
+        <IconButton size="medium" color="primary" disabled={isRequesting}
           onClick={() => saveNotes({ id: tool.id, notes: value })}>
-          <SaveIcon fontSize="small" />
+          <SaveIcon fontSize="medium" />
         </IconButton>
       </span></Tooltip>
       <Tooltip title="Cancel">

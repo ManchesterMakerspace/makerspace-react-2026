@@ -9,6 +9,9 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
@@ -25,7 +28,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool, adminUpdateShop, listManagedShops, listTools
+  adminCreateShop, adminCreateTool, adminUpdateShop, adminUpdateTool,
+  adminUpdateToolNotes, listManagedShops, listTools
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -47,6 +51,7 @@ import RequestCheckoutModal from "./RequestCheckoutModal";
 import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 import { workshopReservationRows } from "./workshopReservations";
 import { AddShopModal, EditShopModal } from "ui/toolCheckouts/ShopManager";
+import { EditToolRow } from "ui/toolCheckouts/ToolManager";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -187,10 +192,32 @@ const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
 
 const WorkshopTools: React.FC<{
   workshop: Workshop;
+  managedShop?: Shop;
+  managedTools: Tool[];
   onRefresh: () => void;
-}> = ({ workshop, onRefresh }) => {
+}> = ({ workshop, managedShop, managedTools, onRefresh }) => {
   const [addOpen, setAddOpen] = React.useState(false);
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
+  const [editTool, setEditTool] = React.useState<Tool | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [editError, setEditError] = React.useState("");
+
+  const saveTool = async (id: string, body: Partial<Tool>, notes?: string) => {
+    setSaving(true);
+    setEditError("");
+    const results = await Promise.all([
+      adminUpdateTool({ id, body }),
+      ...(notes === undefined ? [] : [adminUpdateToolNotes({ id, notes })]),
+    ]);
+    setSaving(false);
+    const error = results.find(result => result.error)?.error;
+    if (error) {
+      setEditError(error.message);
+      return;
+    }
+    setEditTool(null);
+    onRefresh();
+  };
 
   return (
     <>
@@ -273,6 +300,14 @@ const WorkshopTools: React.FC<{
                   to={`${Routing.Reservations}?shop=${workshop.id}&tool=${tool.id}`}>
                   Reserve
                 </Button>}
+              {workshop.canAddTool && managedShop && managedTools.some(candidate => candidate.id === tool.id) &&
+                <Button size="small" variant="outlined" startIcon={<EditIcon />}
+                  onClick={() => {
+                    setEditError("");
+                    setEditTool(managedTools.find(candidate => candidate.id === tool.id) || null);
+                  }}>
+                  Edit
+                </Button>}
             </Grid>
           </Grid>
         </Paper>
@@ -284,6 +319,24 @@ const WorkshopTools: React.FC<{
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}
         onCreated={() => { setRequestTool(null); onRefresh(); }} />
+      <Dialog fullWidth maxWidth="md" open={!!editTool}
+        onClose={() => !saving && setEditTool(null)}
+        aria-labelledby="workshop-edit-tool-title">
+        <DialogTitle id="workshop-edit-tool-title">
+          Edit {editTool?.name || "Tool"}
+        </DialogTitle>
+        <DialogContent>
+          {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
+          {editTool && managedShop && <EditToolRow
+            tool={editTool}
+            tools={managedTools}
+            shops={[managedShop]}
+            onSave={saveTool}
+            onCancel={() => setEditTool(null)}
+            saving={saving}
+          />}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -496,7 +549,7 @@ const WorkshopsPage: React.FC = () => {
           : result.data!.workshops[0]?.id || ""
       );
       setError("");
-      if (result.data.canAddShop) {
+      if (result.data.canAddShop || result.data.workshops.some(shop => shop.canAddTool)) {
         const [shopsResult, toolsResult] = await Promise.all([
           listManagedShops(),
           listTools(),
@@ -608,7 +661,9 @@ const WorkshopsPage: React.FC = () => {
               <WorkshopDetails workshop={workshop} />
             </>}
             {tab === "tools" &&
-              <WorkshopTools workshop={workshop} onRefresh={load} />}
+              <WorkshopTools workshop={workshop} managedShop={managedShop}
+                managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
+                onRefresh={load} />}
             {tab === "reservations" &&
               <WorkshopReservations workshop={workshop} />}
             {tab === "documentation" && workshop.gdriveId &&
