@@ -6,6 +6,7 @@ export interface DurationFee {
 }
 
 export interface Shop {
+  requestorAnnotation?: string | null;
   id: string;
   name: string;
   wikiUrl: string;
@@ -38,6 +39,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  requestorAnnotation?: string | null;
   open?: boolean;
   id: string;
   name: string;
@@ -110,6 +112,7 @@ export interface CheckoutApprover {
 }
 
 export interface ToolCheckoutRequest {
+  requestorAnnotation?: string | null;
   id: string;
   memberId: string;
   memberName: string;

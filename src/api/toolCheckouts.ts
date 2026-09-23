@@ -63,6 +63,7 @@ export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
@@ -82,6 +83,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
   buildResponse<Shop>(api.put(`/api/admin/shops/${id}`, {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
@@ -114,6 +116,7 @@ export const listTools = (params?: { shopId?: string }) =>
 export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
   buildResponse<Tool>(api.post("/api/admin/tools", {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     description: body.description,
@@ -139,6 +142,7 @@ export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
 export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> }) =>
   buildResponse<Tool>(api.put(`/api/admin/tools/${id}`, {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     description: body.description,
@@ -285,3 +289,6 @@ export const adminUpdateCheckoutApprover = ({ id, body }: {
 
 export const adminDeleteCheckoutApprover = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/checkout_approvers/${id}`));
+
+export const adminUpdateToolAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
+  buildResponse<Tool>(api.patch(`/api/admin/tools/${id}/requestor_annotation`, { requestor_annotation: annotation }));

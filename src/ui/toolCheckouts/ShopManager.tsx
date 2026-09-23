@@ -43,6 +43,7 @@ interface AddShopModalProps {
 }
 
 const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loading, error }) => {
+  const [requestorAnnotation, setRequestorAnnotation] = React.useState("");
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -65,7 +66,7 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, requestorAnnotation: requestorAnnotation.trim() || null, ...reservation });
   };
 
   return (
@@ -92,6 +93,11 @@ const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSave, loa
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />
         </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+            value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
+            helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
+        </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
@@ -117,6 +123,7 @@ interface EditShopModalProps {
 const EditShopModal: React.FC<EditShopModalProps> = ({
   shop, tools, onSave, onCancel, saving, error
 }) => {
+  const [requestorAnnotation, setRequestorAnnotation] = React.useState(shop.requestorAnnotation || "");
   const [name, setName] = React.useState(shop.name);
   const [wikiUrl, setWikiUrl] = React.useState(shop.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
@@ -142,7 +149,7 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
   const submit = () => {
     const trimmedName = name.trim();
     if (!trimmedName) return;
-    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, ...reservation });
+    onSave(shop.id, { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, requestorAnnotation: requestorAnnotation.trim() || null, ...reservation });
   };
 
   return (
@@ -168,6 +175,11 @@ const EditShopModal: React.FC<EditShopModalProps> = ({
         </Grid>
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+            value={requestorAnnotation} onChange={event => setRequestorAnnotation(event.target.value)}
+            helperText="Sent after a checkout request when the tool has no annotation. Leave blank for no shop message." />
         </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
         <Grid size={{ xs: 12 }}>

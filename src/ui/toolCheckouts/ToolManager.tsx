@@ -12,6 +12,7 @@ import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import QrCodeIcon from "@mui/icons-material/QrCode";
+import ToolAnnotationCell from "./ToolAnnotationCell";
 import ToolQrCodeModal from "./ToolQrCodeModal";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -86,6 +87,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [requestorAnnotation, setRequestorAnnotation] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
   const [open, setOpen] = React.useState(false);
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
@@ -114,7 +116,7 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, requestorAnnotation: requestorAnnotation.trim() || null, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -149,6 +151,11 @@ const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSa
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
             value={description} onChange={e => setDescription(e.target.value)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+            value={requestorAnnotation} onChange={e => setRequestorAnnotation(e.target.value)}
+            helperText="Leave blank to use the shop annotation." />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
@@ -521,6 +528,10 @@ const ToolManager: React.FC = () => {
           {row.reservable ? `, reservable (${row.maxConcurrentReservations || 1} concurrent)` : ", not reservable"}
         </span>
       ),
+    },
+    {
+      id: "requestorAnnotation", label: "Annotation for requestors",
+      cell: (row: Tool) => <ToolAnnotationCell tool={row} onSaved={() => refreshRef.current()} />,
     },
     {
       id: "notes", label: "Notes",
