@@ -3,9 +3,10 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 
 let mockLoadOptions: (query: string) => Promise<any[]>;
+let mockSelectProps: any;
 jest.mock("awesome-debounce-promise", () => (fn: any) => fn);
 jest.mock("ui/common/AsyncSelect", () => ({
-  AsyncSelectFixed: ({ loadOptions }: any) => { mockLoadOptions = loadOptions; return null; },
+  AsyncSelectFixed: (props: any) => { mockLoadOptions = props.loadOptions; mockSelectProps = props; return null; },
   AsyncCreatableSelect: () => null
 }));
 jest.mock("ui/hooks/useWriteTransaction", () => () => ({ call: jest.fn() }));
@@ -41,5 +42,12 @@ describe("checkout member autocomplete", () => {
     await act(async () => root.render(<MemberSearchInput name="member" />));
     await mockLoadOptions("Ada");
     expect(listMembers).toHaveBeenCalledWith({ search: "Ada" });
+  });
+
+  it("forwards a persistent accessible name to the combobox", async () => {
+    await act(async () => root.render(
+      <MemberSearchInput name="resourceManager" ariaLabel="Add a shop resource manager" />
+    ));
+    expect(mockSelectProps["aria-label"]).toBe("Add a shop resource manager");
   });
 });

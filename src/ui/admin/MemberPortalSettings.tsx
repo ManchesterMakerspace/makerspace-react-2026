@@ -150,8 +150,8 @@ const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey,
               input: {
                 endAdornment: (
                   <InputAdornment position='end'>
-                    <IconButton size='small' onClick={handleSave} disabled={saving}>
-                      {saving ? <CircularProgress size={16} /> : <SaveIcon fontSize='small' />}
+                    <IconButton size='medium' aria-label='Save' onClick={handleSave} disabled={saving}>
+                      {saving ? <CircularProgress size={24} /> : <SaveIcon fontSize='medium' />}
                     </IconButton>
                     <IconButton size='small' onClick={handleCancel} disabled={saving}>
                       <CancelIcon fontSize='small' />

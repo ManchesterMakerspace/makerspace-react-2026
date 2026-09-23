@@ -9,6 +9,9 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
@@ -25,7 +28,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool, adminUpdateShop
+  adminCreateShop, adminCreateTool, adminUpdateShop, adminUpdateTool,
+  adminUpdateToolNotes, listManagedShops, listTools
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -38,6 +42,7 @@ import {
 import {
   Reservation, ReservationBlackoutOccurrence
 } from "app/entities/reservation";
+import { Shop, Tool } from "app/entities/toolCheckout";
 import { Routing } from "app/constants";
 import FormModal from "ui/common/FormModal";
 import { useAuthState } from "ui/reducer/hooks";
@@ -45,6 +50,8 @@ import moment from "ui/utils/moment";
 import RequestCheckoutModal from "./RequestCheckoutModal";
 import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 import { workshopReservationRows } from "./workshopReservations";
+import { AddShopModal, EditShopModal } from "ui/toolCheckouts/ShopManager";
+import { EditToolRow } from "ui/toolCheckouts/ToolManager";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -62,108 +69,6 @@ const SlackChannel: React.FC<{
   return details?.slackUrl
     ? <a href={details.slackUrl}>{label}</a>
     : <>{label}</>;
-};
-
-const AddShopModal: React.FC<{
-  onClose: () => void;
-  onCreated: () => void;
-}> = ({ onClose, onCreated }) => {
-  const [name, setName] = React.useState("");
-  const [wikiUrl, setWikiUrl] = React.useState("");
-  const [gdriveId, setGdriveId] = React.useState("");
-  const [slackChannel, setSlackChannel] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    const result = await adminCreateShop({
-      body: {
-        name: name.trim(),
-        wikiUrlOverride: wikiUrl,
-        gdriveId,
-        slackChannel
-      }
-    });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onCreated();
-  };
-
-  return (
-    <FormModal id="workshops-add-shop" isOpen title="Add Shop"
-      closeHandler={onClose} onSubmit={submit} submitText="Add Shop"
-      loading={saving} error={error}>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth required label="Shop Name" value={name}
-            onChange={event => setName(event.target.value)} autoFocus />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Wiki URL" value={wikiUrl}
-            onChange={event => setWikiUrl(event.target.value)}
-            helperText="Leave blank to generate WIKI_URL/workshops/slugified-shop-name." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="GDrive ID" value={gdriveId}
-            onChange={event => setGdriveId(event.target.value)}
-            helperText="Optional Google Drive folder ID." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Slack Channel" value={slackChannel}
-            onChange={event => setSlackChannel(normalizeChannel(event.target.value))} />
-        </Grid>
-      </Grid>
-    </FormModal>
-  );
-};
-
-const EditShopModal: React.FC<{
-  workshop: Workshop;
-  onClose: () => void;
-  onUpdated: () => void;
-}> = ({ workshop, onClose, onUpdated }) => {
-  const [name, setName] = React.useState(workshop.name);
-  const [wikiUrl, setWikiUrl] = React.useState(workshop.wikiUrlOverride || "");
-  const [gdriveId, setGdriveId] = React.useState(workshop.gdriveId || "");
-  const [slackChannel, setSlackChannel] = React.useState(workshop.slackChannel || "");
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    const result = await adminUpdateShop({
-      id: workshop.id,
-      body: {
-        name: name.trim(),
-        wikiUrlOverride: wikiUrl,
-        gdriveId,
-        slackChannel,
-        disabled: workshop.disabled,
-      }
-    });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onUpdated();
-  };
-
-  return <FormModal id="workshops-edit-shop" isOpen title={`Edit ${workshop.name}`}
-    closeHandler={onClose} onSubmit={submit} submitText="Save"
-    loading={saving} error={error}>
-    <Grid container spacing={2}>
-      <Grid size={{ xs: 12 }}><TextField fullWidth required label="Shop Name" value={name}
-        onChange={event => setName(event.target.value)} autoFocus /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="Wiki URL" value={wikiUrl}
-        onChange={event => setWikiUrl(event.target.value)}
-        helperText="Leave blank to use the generated workshop URL." /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="GDrive ID" value={gdriveId}
-        onChange={event => setGdriveId(event.target.value)} /></Grid>
-      <Grid size={{ xs: 12 }}><TextField fullWidth label="Slack Channel" value={slackChannel}
-        onChange={event => setSlackChannel(normalizeChannel(event.target.value))} /></Grid>
-    </Grid>
-  </FormModal>;
 };
 
 const AddToolModal: React.FC<{
@@ -287,10 +192,32 @@ const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
 
 const WorkshopTools: React.FC<{
   workshop: Workshop;
+  managedShop?: Shop;
+  managedTools: Tool[];
   onRefresh: () => void;
-}> = ({ workshop, onRefresh }) => {
+}> = ({ workshop, managedShop, managedTools, onRefresh }) => {
   const [addOpen, setAddOpen] = React.useState(false);
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
+  const [editTool, setEditTool] = React.useState<Tool | null>(null);
+  const [saving, setSaving] = React.useState(false);
+  const [editError, setEditError] = React.useState("");
+
+  const saveTool = async (id: string, body: Partial<Tool>, notes?: string) => {
+    setSaving(true);
+    setEditError("");
+    const results = await Promise.all([
+      adminUpdateTool({ id, body }),
+      ...(notes === undefined ? [] : [adminUpdateToolNotes({ id, notes })]),
+    ]);
+    setSaving(false);
+    const error = results.find(result => result.error)?.error;
+    if (error) {
+      setEditError(error.message);
+      return;
+    }
+    setEditTool(null);
+    onRefresh();
+  };
 
   return (
     <>
@@ -373,6 +300,14 @@ const WorkshopTools: React.FC<{
                   to={`${Routing.Reservations}?shop=${workshop.id}&tool=${tool.id}`}>
                   Reserve
                 </Button>}
+              {workshop.canAddTool && managedShop && managedTools.some(candidate => candidate.id === tool.id) &&
+                <Button size="small" variant="outlined" startIcon={<EditIcon />}
+                  onClick={() => {
+                    setEditError("");
+                    setEditTool(managedTools.find(candidate => candidate.id === tool.id) || null);
+                  }}>
+                  Edit
+                </Button>}
             </Grid>
           </Grid>
         </Paper>
@@ -384,6 +319,24 @@ const WorkshopTools: React.FC<{
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}
         onCreated={() => { setRequestTool(null); onRefresh(); }} />
+      <Dialog fullWidth maxWidth="md" open={!!editTool}
+        onClose={() => !saving && setEditTool(null)}
+        aria-labelledby="workshop-edit-tool-title">
+        <DialogTitle id="workshop-edit-tool-title">
+          Edit {editTool?.name || "Tool"}
+        </DialogTitle>
+        <DialogContent>
+          {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
+          {editTool && managedShop && <EditToolRow
+            tool={editTool}
+            tools={managedTools}
+            shops={[managedShop]}
+            onSave={saveTool}
+            onCancel={() => setEditTool(null)}
+            saving={saving}
+          />}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -577,6 +530,10 @@ const WorkshopsPage: React.FC = () => {
   const [addOpen, setAddOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [qrOpen, setQrOpen] = React.useState(false);
+  const [managedShops, setManagedShops] = React.useState<Shop[]>([]);
+  const [managedTools, setManagedTools] = React.useState<Tool[]>([]);
+  const [shopSaving, setShopSaving] = React.useState(false);
+  const [shopError, setShopError] = React.useState("");
   const { canViewShopQrCodes } = useCapabilities();
 
   const load = React.useCallback(async () => {
@@ -592,6 +549,19 @@ const WorkshopsPage: React.FC = () => {
           : result.data!.workshops[0]?.id || ""
       );
       setError("");
+      if (result.data.canAddShop || result.data.workshops.some(shop => shop.canAddTool)) {
+        const [shopsResult, toolsResult] = await Promise.all([
+          listManagedShops(),
+          listTools(),
+        ]);
+        if (shopsResult.data) setManagedShops(shopsResult.data);
+        if (toolsResult.data) setManagedTools(toolsResult.data);
+        if (shopsResult.error || toolsResult.error) {
+          setShopError(shopsResult.error?.message || toolsResult.error?.message || "Unable to load shop settings.");
+        } else {
+          setShopError("");
+        }
+      }
     }
     setLoading(false);
   }, []);
@@ -599,6 +569,23 @@ const WorkshopsPage: React.FC = () => {
   React.useEffect(() => { load(); }, [load]);
 
   const workshop = data.workshops.find(shop => shop.id === selectedId);
+  const managedShop = managedShops.find(shop => shop.id === selectedId);
+
+  const createShop = async (body: Partial<Shop>) => {
+    setShopSaving(true);
+    const result = await adminCreateShop({ body });
+    setShopSaving(false);
+    if (result.error) setShopError(result.error.message);
+    else { setAddOpen(false); await load(); }
+  };
+
+  const updateShop = async (id: string, body: Partial<Shop>) => {
+    setShopSaving(true);
+    const result = await adminUpdateShop({ id, body });
+    setShopSaving(false);
+    if (result.error) setShopError(result.error.message);
+    else { setEditOpen(false); await load(); }
+  };
   React.useEffect(() => {
     if (tab === "reservations" && !workshop?.reservationsAvailable) {
       setTab("details");
@@ -629,6 +616,9 @@ const WorkshopsPage: React.FC = () => {
         </Grid>
       </Grid>
       {error && <Grid size={{ xs: 12, md: 10 }}><Alert severity="error">{error}</Alert></Grid>}
+      {shopError && !addOpen && !editOpen && <Grid size={{ xs: 12, md: 10 }}>
+        <Alert severity="error">Shop management settings could not be loaded: {shopError}</Alert>
+      </Grid>}
       <Grid size={{ xs: 12, md: 10 }}>
         <FormControl fullWidth>
           <InputLabel>Workshop</InputLabel>
@@ -661,7 +651,7 @@ const WorkshopsPage: React.FC = () => {
           <div style={{ marginTop: 18 }}>
             {tab === "details" && <>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {data.canAddShop && <Button startIcon={<EditIcon />} variant="outlined"
+              {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
                 onClick={() => setEditOpen(true)}>
                 Edit
               </Button>}
@@ -671,7 +661,9 @@ const WorkshopsPage: React.FC = () => {
               <WorkshopDetails workshop={workshop} />
             </>}
             {tab === "tools" &&
-              <WorkshopTools workshop={workshop} onRefresh={load} />}
+              <WorkshopTools workshop={workshop} managedShop={managedShop}
+                managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
+                onRefresh={load} />}
             {tab === "reservations" &&
               <WorkshopReservations workshop={workshop} />}
             {tab === "documentation" && workshop.gdriveId &&
@@ -687,13 +679,21 @@ const WorkshopsPage: React.FC = () => {
       </Grid>}
 
       {addOpen && <AddShopModal
+        shops={managedShops}
         onClose={() => setAddOpen(false)}
-        onCreated={() => { setAddOpen(false); load(); }}
+        onSave={createShop}
+        loading={shopSaving}
+        error={shopError}
       />}
       {qrOpen && workshop && <PublicCatalogQrCodeModal key={workshop.id} kind="shop" resource={workshop} onClose={() => setQrOpen(false)} />}
-      {editOpen && workshop && <EditShopModal workshop={workshop}
-        onClose={() => setEditOpen(false)}
-        onUpdated={() => { setEditOpen(false); load(); }} />}
+      {editOpen && workshop && managedShop && <EditShopModal
+        shop={{ ...managedShop, resourceManagers: managedShop.resourceManagers || workshop.resourceManagers }}
+        tools={managedTools.filter(tool => tool.shopId === workshop.id)}
+        onCancel={() => setEditOpen(false)}
+        onSave={updateShop}
+        saving={shopSaving}
+        canManageResourceManagers
+        error={shopError} />}
     </Grid>
   );
 };
