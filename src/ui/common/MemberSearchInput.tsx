@@ -16,6 +16,7 @@ interface Props  {
   excludeIds?: string[];    // Exclude specific member IDs e.g. current user in EM reports
   fullyActiveUnexpired?: boolean; // Filter in Mongo before search pagination
   excludeExpired?: boolean; // Exclude members with expired or inactive/revoked status
+  ariaLabel?: string;
   onChange?(selection: SelectOption): void;
   getFormRef?(): Form;
 }
@@ -69,6 +70,7 @@ const MemberSearchInput: React.FC<Props> = ({
   excludeIds = [],
   excludeExpired = false,
   fullyActiveUnexpired = false,
+  ariaLabel,
 }) => {
   // Track field value
   const [selection, setSelection] = React.useState<SelectOption>(initialSelection);
@@ -133,6 +135,7 @@ const MemberSearchInput: React.FC<Props> = ({
       isClearable
       name={name}
       id={name}
+      aria-label={ariaLabel}
       value={selection && selection.value ? selection : undefined}
       placeholder={placeholder}
       onChange={updateSelection}

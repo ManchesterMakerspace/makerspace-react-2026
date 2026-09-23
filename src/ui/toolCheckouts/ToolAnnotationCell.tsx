@@ -6,6 +6,7 @@ import { Tool } from "app/entities/toolCheckout";
 import { adminUpdateToolAnnotation } from "api/toolCheckouts";
 import FormModal from "ui/common/FormModal";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
+import RequestorAnnotationHelp from "./RequestorAnnotationHelp";
 
 // The managed tool catalog includes only tools this viewer manages or approves.
 const ToolAnnotationCell: React.FC<{ tool: Tool; onSaved: () => void }> = ({ tool, onSaved }) => {
@@ -19,6 +20,7 @@ const ToolAnnotationCell: React.FC<{ tool: Tool; onSaved: () => void }> = ({ too
   return <>
     <Typography variant="body2" sx={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
       {tool.requestorAnnotation || "Uses shop annotation, if set"}
+      <RequestorAnnotationHelp level="tool" />
     </Typography>
     <Button size="small" onClick={() => { setValue(tool.requestorAnnotation || ""); setEditing(true); }}>
       Edit annotation

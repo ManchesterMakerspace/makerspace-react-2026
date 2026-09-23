@@ -29,6 +29,13 @@ export interface Shop {
   colorId?: string;
   googleResourceId?: string;
   resourceEmail?: string;
+  resourceManagers?: ShopResourceManager[];
+  resourceManagerIds?: string[];
+}
+
+export interface ShopResourceManager {
+  id: string;
+  name: string;
 }
 
 export interface GoogleCalendarColor {
