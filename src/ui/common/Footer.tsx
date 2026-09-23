@@ -1,4 +1,10 @@
 import * as React from "react";
+import HomeIcon from '@mui/icons-material/Home';
+import HelpCenterIcon from '@mui/icons-material/HelpCenter';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ChatIcon from '@mui/icons-material/Chat';
+import EmailIcon from '@mui/icons-material/Email';
+import { platform } from 'app/platform';
 import { connect } from "react-redux";
 
 import { ScopedThunkDispatch } from "ui/reducer";
@@ -16,7 +22,8 @@ const footerStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "center",
   alignItems: "center",
-  gap: "24px",
+  gap: "16px",
+  flexWrap: "wrap",
   padding: "20px 12px",
   marginTop: "24px",
 };
@@ -27,6 +34,8 @@ const iconStyle: React.CSSProperties = {
 };
 
 const linkStyle: React.CSSProperties = {
+  minWidth: 44,
+  minHeight: 44,
   color: "inherit",
   textDecoration: "none",
   display: "inline-flex",
@@ -49,6 +58,10 @@ const FooterBase: React.FC<Props> = ({ logout }) => {
 
   const logoutAndGo = async (event: any, href: string) => {
     event.preventDefault();
+    if (platform.native) {
+      try { await platform.openExternal?.(href); } catch { window.dispatchEvent(new Event('mms:link-error')); }
+      return;
+    }
     try {
       await logout();
     } finally {
@@ -59,20 +72,20 @@ const FooterBase: React.FC<Props> = ({ logout }) => {
   return (
     <footer style={footerStyle}>
       <a href="https://manchestermakerspace.org/" style={linkStyle} aria-label="Public Home" title="Public Home" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/")}>
-        <span className="material-symbols-rounded" style={iconStyle}>home</span>
+        <HomeIcon style={iconStyle} />
       </a>
       {wikiUrl &&
         <a href={wikiUrl} style={linkStyle} aria-label="Public Wiki" title="Public Wiki" onClick={(e) => logoutAndGo(e, wikiUrl)}>
-          <span className="material-symbols-rounded" style={iconStyle}>help_center</span>
+          <HelpCenterIcon style={iconStyle} />
         </a>}
       <a href="https://manchestermakerspace.org/calendar" style={linkStyle} aria-label="Event Calendar" title="Event Calendar" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/calendar")}>
-        <span className="material-symbols-rounded" style={iconStyle}>calendar_month</span>
+        <CalendarMonthIcon style={iconStyle} />
       </a>
       <a href="https://manchestermakerspace.slack.com/archives/C29L2UMDF" style={linkStyle} aria-label="Chat with us on Slack" title="Chat with us on Slack" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.slack.com/archives/C29L2UMDF")}>
-        <span className="material-symbols-rounded" style={iconStyle}>chat</span>
+        <ChatIcon style={iconStyle} />
       </a>
       <a href={mailtoHref} style={linkStyle} aria-label="Contact us via Email" title="Contact Us" onClick={(e) => logoutAndGo(e, mailtoHref)}>
-        <span className="material-symbols-rounded" style={iconStyle}>mail</span>
+        <EmailIcon style={iconStyle} />
       </a>
     </footer>
   );

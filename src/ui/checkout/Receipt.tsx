@@ -1,4 +1,6 @@
 import * as React from "react";
+import { platform } from 'app/platform';
+import { BrowserWorkflow } from 'ui/common/BrowserWorkflow';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import Grid from "@mui/material/Grid";
@@ -24,6 +26,7 @@ const Receipt: React.FC = () => {
 
   return (
     <>
+      {platform.native ? <BrowserWorkflow path={buildReceiptUrl(invoiceId, false)} label="View or print receipt in browser" /> : <>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12, sm: 6 }}>
           <Typography variant="h4">Thank you for your purchase!</Typography>
@@ -48,6 +51,7 @@ const Receipt: React.FC = () => {
         </Grid>
       </Grid>
       <DocumentFrame id={receiptContainerId} src={buildReceiptUrl(invoiceId, false)} fullHeight={true}/>
+      </>}
     </>
   )
 }

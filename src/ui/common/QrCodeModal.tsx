@@ -1,4 +1,5 @@
 import * as React from "react";
+import { platform } from 'app/platform';
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import Typography from "@mui/material/Typography";
@@ -40,6 +41,10 @@ const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClos
   }, [url]);
 
   const copyImage = () => {
+    if (platform.native && platform.shareImage) {
+      void platform.shareImage(png, filename).catch(() => setImageError('Unable to share the QR image. Please try again.'));
+      return;
+    }
     canvasRef.current?.toBlob(async blob => {
       if (!blob) {
         setImageError("Could not generate the image.");
@@ -57,7 +62,7 @@ const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClos
 
   return <FormModal id={id} isOpen={isOpen} title={title} closeHandler={onClose}
     cancelText="Close" onSubmit={png && !loading && !error ? copyImage : undefined}
-    submitText={copied ? "Copied!" : "Copy Image"}>
+    submitText={platform.native ? "Share PNG" : copied ? "Copied!" : "Copy Image"}>
     <div style={{ textAlign: "center" }}>
       {loading ? <CircularProgress aria-label="Loading QR code" /> : error ? null : url && <>
         <canvas ref={setCanvasRef} role="img" aria-label={title} style={{ maxWidth: "100%", height: "auto" }} />
@@ -65,8 +70,8 @@ const QrCodeModal: React.FC<Props> = ({ id, isOpen, title, url, filename, onClos
           <a href={url} target="_blank" rel="noopener noreferrer">{url}</a>
         </Typography>
         <Typography variant="caption" color="textSecondary" component="div" sx={{ mt: 1 }}>
-          Copy the image to paste it into a label/sticker program, or{" "}
-          {png && <a href={png} download={filename}>download it as a PNG</a>}.
+          {platform.native ? 'Share the PNG to save it or send it to a label/sticker program.' : <>Copy the image to paste it into a label/sticker program, or{" "}
+          {png && <a href={png} download={filename}>download it as a PNG</a>}.</>}
         </Typography>
       </>}
       {notice && !error && <Alert severity="warning" sx={{ mt: 1 }}>{notice}</Alert>}

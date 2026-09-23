@@ -4,10 +4,35 @@ import {
   setupGlobalAuthInterceptor,
   shouldRedirectToLogin,
 } from "ui/common/globalAuthInterceptor";
+import { platform, NATIVE_PENDING_PATH } from 'app/platform';
 
 describe("global authentication interception", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/login");
+  });
+  afterEach(() => { platform.native = false; platform.apiOrigin = ''; sessionStorage.clear(); });
+
+  it('retains native pending destinations for an expired API-origin session', async () => {
+    platform.native = true; platform.apiOrigin = 'https://portal.example.org';
+    window.history.replaceState({}, '', '/reservations?shop=one');
+    const dispatch = jest.fn(), use = jest.fn(), navigate = jest.fn();
+    window.addEventListener('mms:navigate', navigate);
+    setGlobalDispatch(dispatch);
+    attachGlobalAuthInterceptor({ interceptors: { response: { use } } } as any);
+    const error = { config: { baseURL: platform.apiOrigin, url: '/api/reservations' }, response: { status: 401 } };
+    await expect(use.mock.calls[0][1](error)).rejects.toBe(error);
+    expect(sessionStorage.getItem(NATIVE_PENDING_PATH)).toBe('/reservations?shop=one');
+    expect(navigate).toHaveBeenCalled();
+    window.removeEventListener('mms:navigate', navigate);
+  });
+
+  it('leaves unrelated Axios 401 responses outside portal authentication', async () => {
+    const dispatch = jest.fn(), use = jest.fn();
+    setGlobalDispatch(dispatch);
+    attachGlobalAuthInterceptor({ interceptors: { response: { use } } } as any);
+    const error = { config: { baseURL: 'https://other.example.org', url: '/api/example' }, response: { status: 401 } };
+    await expect(use.mock.calls[0][1](error)).rejects.toBe(error);
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
   it("recognizes protected and public routes", () => {

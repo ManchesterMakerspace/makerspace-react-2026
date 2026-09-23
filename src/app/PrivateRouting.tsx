@@ -1,5 +1,7 @@
 import CheckoutRequestPage from "ui/workshops/CheckoutRequestPage";
 import * as React from 'react';
+import { platform } from 'app/platform';
+import { BrowserWorkflow } from 'ui/common/BrowserWorkflow';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { Routing, Whitelists } from 'app/constants';
@@ -80,7 +82,8 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
     <Routes>
       <Route path={Routing.Members} element={<MembersList />} />
       <Route path={`${Routing.Documents}`} element={<AgreementContainer />} />
-      <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
+      <Route path={Routing.SignUp} element={platform.native ? <BrowserWorkflow path="/signup" label="Continue signup in browser" /> : <SignUpWorkflow />} />
+      {platform.renderRoutes?.(true)}
       <Route path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<SettingsContainer />} />
       <Route path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<MemberDetail />} />
       <Route path={Routing.RentalSpotDeepLink} element={<RentalSpotDeepLink />} />
@@ -98,7 +101,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canViewAuditLog      && <Route path={Routing.AuditLog}         element={<AuditLogPage />} />}
       {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
       {billingEnabled && <Route path={Routing.Receipt} element={<Receipt />} />}
-      {billingEnabled && <Route path={Routing.Checkout} element={<CheckoutPage />} />}
+      {billingEnabled && <Route path={Routing.Checkout} element={platform.native ? <BrowserWorkflow path={`/members/${currentUserId}/dues`} label="Pay in browser" /> : <CheckoutPage />} />}
       <Route path={Routing.SendRegistration} element={<SendRegistrationComponent />} />
       {earnedMembershipEnabled && <Route path={Routing.EarnedMemberships} element={<EarnedMembershipsList />} />}
       <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />

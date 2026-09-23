@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { platform } from 'app/platform';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -86,7 +87,7 @@ const FirebaseAuthButtons: React.FC<Props> = ({
         </Button>
 
         {/* Apple — enabled when Apple Developer account is configured */}
-        {APPLE_ENABLED && (
+        {APPLE_ENABLED && !platform.native && (
           <Button
             id='apple-sign-in'
             variant='outlined'
@@ -100,7 +101,7 @@ const FirebaseAuthButtons: React.FC<Props> = ({
         )}
 
         {/* GitHub — enabled when GitHub OAuth app is configured */}
-        {GITHUB_ENABLED && (
+        {GITHUB_ENABLED && !platform.native && (
           <Button
             id='github-sign-in'
             variant='outlined'
@@ -114,7 +115,7 @@ const FirebaseAuthButtons: React.FC<Props> = ({
         )}
 
         {/* Microsoft — enabled when Azure app is configured */}
-        {MICROSOFT_ENABLED && (
+        {MICROSOFT_ENABLED && !platform.native && (
           <Button
             id='microsoft-sign-in'
             variant='outlined'

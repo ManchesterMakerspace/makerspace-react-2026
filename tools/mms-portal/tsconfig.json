@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.test.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "lib": ["es2020", "dom", "dom.iterable"],
+    "baseUrl": "../../src",
+    "types": ["node", "jest"],
+    "typeRoots": ["../../node_modules/@types", "../../src/app/typings"],
+    "module": "commonjs"
+  },
+  "include": ["src", "tests", "../../src"],
+  "exclude": ["node_modules", "www", "../../node_modules"]
+}

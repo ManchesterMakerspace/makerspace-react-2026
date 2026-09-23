@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { checkoutDestination } from "ui/auth/checkoutDestination";
+import { navigatePortal } from 'app/platform';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
@@ -248,7 +249,7 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
     dispatch({ type: AuthAction.ClearEnrollmentRequired });
     // Redirect to their profile now that enrollment is done
     const destination = checkoutDestination();
-    if (destination) window.location.assign(destination);
+    if (destination) navigatePortal(destination);
     else navigate(`/members/${memberId}`);
   }, [dispatch, memberId, navigate]);
 

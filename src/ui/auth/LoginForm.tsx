@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { checkoutDestination } from "./checkoutDestination";
+import { navigatePortal, platform, safePendingPath, NATIVE_PENDING_PATH } from 'app/platform';
 import * as React from "react";
 import { connect } from "react-redux";
 
@@ -98,7 +99,7 @@ class LoginForm extends React.Component<Props, State> {
     const { auth, pushLocation } = this.props;
     if (auth) {
       const destination = checkoutDestination();
-      if (destination) window.location.assign(destination);
+      if (destination) navigatePortal(destination);
       else pushLocation(Routing.Members);
       return;
     }
@@ -121,8 +122,8 @@ class LoginForm extends React.Component<Props, State> {
     const { isRequesting, auth, error, pushLocation, totpEnrollmentRequired, currentUserId } = this.props;
     if (wasRequesting && !isRequesting && !error && auth && !totpEnrollmentRequired) {
       const destination = checkoutDestination();
-      if (destination) window.location.assign(destination);
-      else pushLocation(Routing.Members);
+      if (destination) navigatePortal(destination);
+      else pushLocation(platform.native && safePendingPath(sessionStorage.getItem(NATIVE_PENDING_PATH)) || Routing.Members);
     }
     // Privileged member needs to enroll in TOTP — redirect to security settings
     if (totpEnrollmentRequired && !prevProps.totpEnrollmentRequired && auth) {

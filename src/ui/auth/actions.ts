@@ -17,6 +17,7 @@ import {
 } from "makerspace-ts-api-client";
 import { firebaseSignOut } from "ui/auth/firebase";
 import { CartAction } from "../checkout/cart";
+import { platform } from 'app/platform';
 
 const handleAuthWithPermissions = async (
   response: ApiErrorResponse | ApiDataResponse<Member>,
@@ -75,7 +76,12 @@ export const loginUserAction = (
       })(),
     },
     body: JSON.stringify({ member: loginForm }),
+  }).catch(error => {
+    if (!platform.native) throw error;
+    dispatch({ type: AuthAction.AuthUserFailure, error: 'Unable to connect. Check your connection and try again.' });
+    return null;
   });
+  if (!res) return;
 
   if (res.status === 202) {
     // TOTP code required — stay on login page, show code entry
@@ -125,7 +131,12 @@ export const sessionLoginUserAction = (): ThunkAction<Promise<void>, {}, {}, Any
       })(),
     },
     body: JSON.stringify({}),
+  }).catch(error => {
+    if (!platform.native) throw error;
+    dispatch({ type: AuthAction.AuthUserFailure, error: undefined });
+    return null;
   });
+  if (!res) return;
 
   if (res.status === 202) {
     dispatch({ type: AuthAction.TotpRequired });
@@ -165,7 +176,7 @@ export const refreshUserAction = sessionLoginUserAction;
 export const logoutUserAction = (
 ): ThunkAction<Promise<void>, {}, {}, AnyAction> => async (dispatch) => {
   dispatch({ type: AuthAction.StartAuthRequest });
-  await signOut();
+  await signOut().catch(error => { if (!platform.native) throw error; });
   await firebaseSignOut().catch(() => {}); // Sign out of Firebase too (no-op if not signed in)
   dispatch({ type: TransactionAction.Reset });
   dispatch({ type: CartAction.EmptyCart });
@@ -188,10 +199,28 @@ export const firebaseLoginAction = (
       })(),
     },
     body: JSON.stringify({ id_token: idToken }),
+  }).catch(error => {
+    if (!platform.native) throw error;
+    dispatch({ type: AuthAction.AuthUserFailure, error: 'Unable to connect. Check your connection and try again.' });
+    return null;
   });
+  if (!response) return;
 
+  if (response.status === 202) {
+    dispatch({ type: AuthAction.TotpRequired });
+    return;
+  }
   if (response.ok) {
     const member = await response.json();
+    if (member.totp_enrollment_required) {
+      const permissionsResponse = await listMembersPermissions({ id: member.id });
+      if (isApiErrorResponse(permissionsResponse)) {
+        dispatch({ type: AuthAction.AuthUserFailure, error: permissionsResponse.error.message });
+      } else {
+        dispatch({ type: AuthAction.AuthEnrollmentRequired, data: { member, permissions: permissionsResponse.data } });
+      }
+      return;
+    }
     await handleAuthWithPermissions(
       { data: member, response } as any,
       dispatch

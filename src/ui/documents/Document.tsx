@@ -1,4 +1,6 @@
 import * as React from "react";
+import { Alert, Button, Stack } from '@mui/material';
+import { platform, portalUrl } from 'app/platform';
 
 import Grid from "@mui/material/Grid";
 
@@ -51,6 +53,7 @@ export const documents: { [K in Documents]: DocDetails} = {
 }
 
 const DocumentFrame: React.FC<Props> = (props) => {
+  if (platform.native) return <NativeDocument {...props} />;
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12 }}>
@@ -59,6 +62,36 @@ const DocumentFrame: React.FC<Props> = (props) => {
     </Grid>
   );
 }
+
+const NativeDocument: React.FC<Props> = ({ id, src }) => {
+  const [html, setHtml] = React.useState<string>();
+  const [error, setError] = React.useState('');
+  const [attempt, setAttempt] = React.useState(0);
+  React.useEffect(() => {
+    let active = true;
+    setHtml(undefined); setError('');
+    fetch(src, { headers: { Accept: 'text/html' }, cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('Unable to load this document. Check your session and connection.');
+        return response.text();
+      }).then(text => {
+        const parsed = new DOMParser().parseFromString(text, 'text/html');
+        parsed.querySelectorAll('script, base').forEach(element => element.remove());
+        const base = parsed.createElement('base'); base.href = portalUrl(src); parsed.head.prepend(base);
+        if (active) setHtml('<!doctype html>' + parsed.documentElement.outerHTML);
+      }).catch(reason => { if (active) setError(reason.message); });
+    return () => { active = false; };
+  }, [src, attempt]);
+  if (error) return <Stack spacing={1}><Alert severity="error">{error}</Alert><Button onClick={() => setAttempt(value => value + 1)}>Try again</Button></Stack>;
+  if (!html) return <LoadingOverlay id={id} contained />;
+  return <iframe title="Makerspace agreement" id={id} srcDoc={html} sandbox="allow-same-origin"
+    style={{ width: '100%', height: '60vh', border: 0 }} onLoad={event => {
+      event.currentTarget.contentDocument?.addEventListener('click', click => {
+        const anchor = (click.target as Element)?.closest('a[href]') as HTMLAnchorElement | null;
+        if (anchor) { click.preventDefault(); void platform.openExternal?.(anchor.href); }
+      });
+    }} />;
+};
 
 interface Props { 
   src: string;

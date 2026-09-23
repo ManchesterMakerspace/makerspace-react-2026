@@ -1,0 +1,45 @@
+name: MMS Portal Android
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            tools/mms-portal/yarn.lock
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - run: yarn install --frozen-lockfile
+      - run: yarn --cwd tools/mms-portal install --frozen-lockfile
+      - name: Optional Firebase Android configuration
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.MMS_PORTAL_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > tools/mms-portal/android/app/google-services.json
+          fi
+      - run: yarn --cwd tools/mms-portal typecheck
+      - run: yarn --cwd tools/mms-portal test
+      - run: chmod +x tools/mms-portal/android/gradlew
+      - run: yarn --cwd tools/mms-portal android:debug
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mms-portal-debug
+          path: tools/mms-portal/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

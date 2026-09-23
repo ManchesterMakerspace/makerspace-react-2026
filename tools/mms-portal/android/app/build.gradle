@@ -1,0 +1,89 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "org.manchestermakerspace.portal"
+    buildFeatures { buildConfig = true }
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "org.manchestermakerspace.portal"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "0.1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        internalRelease {
+            if (System.getenv('MMS_PORTAL_KEYSTORE')) {
+                storeFile file(System.getenv('MMS_PORTAL_KEYSTORE'))
+                storePassword System.getenv('MMS_PORTAL_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('MMS_PORTAL_KEY_ALIAS')
+                keyPassword System.getenv('MMS_PORTAL_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            manifestPlaceholders = [portalCleartext: (System.getenv('MMS_PORTAL_DEBUG') == 'true' &&
+                (System.getenv('MMS_PORTAL_API_URL') ?: '').startsWith('http://')).toString()]
+        }
+        release {
+            signingConfig signingConfigs.internalRelease
+            debuggable false
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+// A production artifact must contain production web assets and Firebase config.
+tasks.register('validatePortalRelease') {
+    doLast {
+        def config = new groovy.json.JsonSlurper().parse(file('src/main/assets/capacitor.config.json'))
+        def built = new groovy.json.JsonSlurper().parse(file('src/main/assets/public/build-settings.json'))
+        if (built.debug || !built.origin.startsWith('https://') || config.server?.url ||
+            config.server?.cleartext || config.android?.webContentsDebuggingEnabled ||
+            built.origin != config.plugins.PortalSession.apiOrigin) {
+            throw new GradleException('Rebuild and sync HTTPS release assets before assembling a release.')
+        }
+        if (!file('google-services.json').exists()) throw new GradleException('Release requires the portal Firebase Android configuration.')
+        ['MMS_PORTAL_KEYSTORE', 'MMS_PORTAL_KEYSTORE_PASSWORD', 'MMS_PORTAL_KEY_ALIAS', 'MMS_PORTAL_KEY_PASSWORD'].each {
+            if (!System.getenv(it)) throw new GradleException('Missing release signing setting: ' + it)
+        }
+    }
+}
+tasks.configureEach { if (name == 'preReleaseBuild') dependsOn 'validatePortalRelease' }
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

@@ -6,6 +6,7 @@
  */
 import axios, { AxiosInstance } from 'axios';
 import { Routing } from 'app/constants';
+import { platform, isPortalApiUrl, navigatePortal, NATIVE_PENDING_PATH } from 'app/platform';
 
 const RESET_TRANSACTIONS = 'reset';
 const LOGOUT_SUCCESS = 'AUTH/LOGOUT';
@@ -21,6 +22,7 @@ const FIREBASE_CALLBACK_PATH = '/auth/callback';
 // before React Router ever renders it.
 const RENTAL_SPOT_DEEP_LINK_PREFIX = `${Routing.Rentals}/spots/`;
 const publicPaths = [
+  '/mobile/catalog/',
   Routing.Login, Routing.SignUp, Routing.PasswordReset, FIREBASE_CALLBACK_PATH,
   RENTAL_SPOT_DEEP_LINK_PREFIX,
 ];
@@ -47,7 +49,7 @@ const isApiRequest = (input: RequestInfo | URL): boolean => {
       : input.url;
   const url = new URL(rawUrl, window.location.origin);
 
-  return url.origin === window.location.origin && url.pathname.startsWith('/api/');
+  return isPortalApiUrl(url.href);
 };
 
 const isSessionEstablishmentRequest = (input: RequestInfo | URL | undefined): boolean => {
@@ -60,7 +62,7 @@ const isSessionEstablishmentRequest = (input: RequestInfo | URL | undefined): bo
       : input.url;
   const url = new URL(rawUrl, window.location.origin);
 
-  return url.origin === window.location.origin
+  return isPortalApiUrl(url.href)
     && sessionEstablishmentPaths.includes(url.pathname);
 };
 
@@ -92,14 +94,17 @@ const handle401 = (dispatch: Function | null = globalDispatch) => {
   const currentPath = window.location.pathname;
 
   if (shouldRedirectToLogin(currentPath)) {
-    window.location.href = Routing.Login + (/^\/tools\/[^/]+\/request-checkout$/.test(currentPath) ? `?return_to=${encodeURIComponent(currentPath)}` : "");
+    if (platform.native) sessionStorage.setItem(NATIVE_PENDING_PATH, currentPath + window.location.search);
+    navigatePortal(Routing.Login + (/^\/tools\/[^/]+\/request-checkout$/.test(currentPath) ? `?return_to=${encodeURIComponent(currentPath)}` : ""));
   }
 };
 
 const interceptAxiosError = (error: any) => {
+  const requestUrl = error?.config?.url ? axios.getUri(error.config) : undefined;
   if (
     error?.response?.status === 401
-    && !shouldSuppressSessionEstablishment401(error?.config?.url)
+    && (!requestUrl || isApiRequest(requestUrl))
+    && !shouldSuppressSessionEstablishment401(requestUrl)
   ) {
     handle401();
   }
@@ -107,6 +112,7 @@ const interceptAxiosError = (error: any) => {
 };
 
 export const attachGlobalAuthInterceptor = <T extends AxiosInstance>(api: T): T => {
+  platform.configureAxios?.(api);
   api.interceptors.response.use(
     response => response,
     interceptAxiosError

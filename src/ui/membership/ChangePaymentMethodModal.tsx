@@ -1,5 +1,7 @@
 // @ts-nocheck
 import * as React from "react";
+import { platform } from 'app/platform';
+import { BrowserWorkflow } from 'ui/common/BrowserWorkflow';
 
 import FormModal from "ui/common/FormModal";
 import { updateSubscription, Subscription } from "makerspace-ts-api-client";
@@ -39,6 +41,7 @@ const ChangePaymentMethodModal: React.FC<Props> = ({ subscription: { id: subscri
   if (!subscriptionId) {
     return null;
   }
+  if (platform.native) return <BrowserWorkflow path={window.location.pathname + window.location.search} label="Change payment method in browser" />;
 
   return (
     <>

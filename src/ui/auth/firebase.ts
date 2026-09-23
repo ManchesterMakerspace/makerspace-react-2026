@@ -13,6 +13,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { loadClientConfig } from 'api/clientConfig';
+import { platform } from 'app/platform';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 const PROVIDER_KEYS: readonly ProviderKey[] = ['google', 'apple', 'github', 'microsoft'];
@@ -76,6 +77,7 @@ const initializeFirebase = (): Promise<FirebaseServices> => {
 
 /** Load runtime configuration and initialize the SDK before a provider button is clicked. */
 export const preloadFirebaseAuth = async (): Promise<void> => {
+  if (platform.native) return;
   console.info('[Firebase Auth] Preloading Firebase services');
   await initializeFirebase();
   console.info('[Firebase Auth] Firebase services ready for provider authentication');
@@ -108,6 +110,10 @@ const providerFor = (provider: ProviderKey): AuthProvider => {
 
 /** Start the configured popup flow, or stage the provider for the redirect callback. */
 export const initiateProviderSignIn = async (provider: ProviderKey): Promise<void | string> => {
+  if (platform.native) {
+    if (provider !== 'google' || !platform.signInGoogle) throw new Error('This sign-in provider is unavailable in Android.');
+    return platform.signInGoogle();
+  }
   if (!initializer) {
     // Popup mode needs to open synchronously within the click's transient user
     // activation window. Calling this without preloading first re-adds the
@@ -206,6 +212,10 @@ export const signInWithMicrosoft = () => initiateProviderSignIn('microsoft');
 
 export const firebaseSignOut = async (): Promise<void> => {
   clearProviderSignInState();
+  if (platform.native) {
+    await platform.signOut?.();
+    return;
+  }
   try {
     const { auth } = await initializeFirebase();
     // Ensure persisted credentials have been restored before attempting logout.

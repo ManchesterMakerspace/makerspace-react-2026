@@ -190,6 +190,22 @@ When implementing responsive behavior:
 
 ## Checklist for UI changes
 
+### Android portal
+
+The Capacitor package in `tools/mms-portal` reuses this theme and the full portal.
+Show a labeled **Scan QR code** action before and after login. Use the existing
+logo and MUI icons; packaged screens must not depend on externally loaded fonts.
+Respect Android safe-area insets, keyboard resizing and Back navigation (close
+the active modal, then navigate back, then background the app at its root).
+
+Signup and payment entry use clearly labeled browser actions that explain the
+separate browser session and possible need to select an invoice again. Refresh
+server state on return without showing success merely because the browser closed.
+Offline and camera errors must explain recovery; do not queue mutations. Use the
+Android share sheet for QR images and a script-disabled frame for agreement HTML.
+
+### Shared checklist
+
 Before considering a UI change complete, confirm that it:
 
 - uses MUI components, typography, spacing, palette roles, and icons where

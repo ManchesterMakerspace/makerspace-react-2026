@@ -1,0 +1,33 @@
+{
+  "name": "mms-portal",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "sync": "node scripts/sync.cjs",
+    "open": "cap open android",
+    "android:debug": "node scripts/android.cjs debug",
+    "android:release": "node scripts/android.cjs release",
+    "typecheck": "node ../../node_modules/typescript/bin/tsc --noEmit -p tsconfig.json --ignoreDeprecations 6.0",
+    "test": "node ../../node_modules/jest/bin/jest.js --config jest.config.cjs --runInBand"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.5.2",
+    "@capacitor/android": "8.5.2",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.4",
+    "@capacitor/app-launcher": "8.0.1",
+    "@capacitor/barcode-scanner": "3.1.2",
+    "@capacitor/filesystem": "8.1.3",
+    "@capacitor/share": "8.0.2",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capacitor-firebase/authentication": "8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2"
+  }
+}

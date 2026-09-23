@@ -1,4 +1,5 @@
 import * as React from "react";
+import { platform } from 'app/platform';
 import { Status } from "ui/constants";
 import StatusLabel from "ui/common/StatusLabel";
 import { Transaction, TransactionStatusEnum } from "makerspace-ts-api-client";
@@ -175,5 +176,9 @@ export const writeReport = (transactions: Transaction[], reportName: string) => 
   //provide the name for the CSV file to be downloaded  
   const date = new Date();
   hiddenElement.download = `${reportName}_${date.getMonth() + 1}_${date.getDate()}_${date.getFullYear()}.csv`;
+  if (platform.native && platform.shareText) {
+    void platform.shareText(csv, hiddenElement.download).catch(() => window.dispatchEvent(new Event('mms:link-error')));
+    return;
+  }
   hiddenElement.click();  
 }

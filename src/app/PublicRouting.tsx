@@ -1,4 +1,6 @@
 import * as React from 'react';
+import { platform } from 'app/platform';
+import { BrowserWorkflow } from 'ui/common/BrowserWorkflow';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 import { Routing } from 'app/constants';
@@ -39,7 +41,8 @@ const PublicRouting: React.FC<{}> = () => {
     <Routes>
       <Route path={`${Routing.PasswordReset}/:token`} element={<PasswordReset />} />
       <Route path={Routing.Login} element={<LoginPage />} />
-      <Route path={Routing.SignUp} element={<PublicSignUpRoute />} />
+      <Route path={Routing.SignUp} element={platform.native ? <BrowserWorkflow path="/signup" label="Sign up in browser" /> : <PublicSignUpRoute />} />
+      {platform.renderRoutes?.(false)}
       <Route path={Routing.Root} element={<LandingPage />} />
       <Route path={Routing.Unsubscribe} element={<UnsubscribeEmails />} />
       <Route path={Routing.RentalSpotDeepLink} element={<RentalSpotPublicInfo />} />

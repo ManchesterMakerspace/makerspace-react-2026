@@ -4,6 +4,10 @@ A frontend UI to integrate with [makerspace-rails](https://github.com/Manchester
 
 ## Development
 
+The Capacitor Android application lives in [tools/mms-portal](tools/mms-portal/README.md)
+and shares this React UI. Its dependencies, native project and APK build are separate
+from the Rails asset build.
+
 You can start a webpack-dev-server on localhost:3035 via `yarn && yarn start`. By default, the UI will proxy `/api` routes to localhost:3002 for the 
 API endpoints in a `development` environment. This can be configured via the `API_DOMAIN` environment variable. Since this UI is expected to run on the 
 API's server, it uses relative paths in `production`.  If you want to use an absolute API path in `production`, configure the build with `BASE_URL`.

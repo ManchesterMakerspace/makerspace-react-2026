@@ -1,4 +1,5 @@
 import { createShortLink } from "api/shortcodes";
+import { configuredPublicUrl } from 'ui/common/publicCatalogUrl';
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -74,12 +75,15 @@ const AdminRentalSpots: React.FC = () => {
       const target = `/rentals/spots/${selectedId}`;
       createShortLink(target).then(link => {
         if (!cancelled) setPreparedLink({ spotId: selectedId, url: link.short_url, fallback: false });
-      }).catch(() => {
-        if (!cancelled) {
-          const url = `${window.location.origin}/rentals/spots/${encodeURIComponent(selectedId)}`;
+      }).catch(async () => {
+        try {
+          const url = await configuredPublicUrl(target);
+          if (cancelled) return;
           setPreparedLink({ spotId: selectedId, url, fallback: true });
           setCopyableLink(url);
           setLinkError("Short link unavailable. Use the full link below.");
+        } catch {
+          if (!cancelled) setLinkError("Unable to load the configured public URL. Please try again.");
         }
       });
     }

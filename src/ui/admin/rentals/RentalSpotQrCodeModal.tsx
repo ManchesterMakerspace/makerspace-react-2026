@@ -1,4 +1,5 @@
 import * as React from "react";
+import { configuredPublicUrl } from 'ui/common/publicCatalogUrl';
 import ShortLinkQrCodeModal from "ui/common/ShortLinkQrCodeModal";
 
 const RentalSpotQrCodeModal: React.FC<{
@@ -6,6 +7,6 @@ const RentalSpotQrCodeModal: React.FC<{
   onClose: () => void;
 }> = ({ spot, onClose }) => spot ? (
   <ShortLinkQrCodeModal key={spot.id} id="rental-spot-qr-code" title={`QR Code — ${spot.number}`}
-    target={`/rentals/spots/${spot.id}`} fallbackUrl={`${window.location.origin}/rentals/spots/${spot.id}`} filename={`rental-spot-${spot.number}-qr.png`} onClose={onClose} />
+    target={`/rentals/spots/${spot.id}`} fallbackUrl={() => configuredPublicUrl(`/rentals/spots/${spot.id}`)} filename={`rental-spot-${spot.number}-qr.png`} onClose={onClose} />
 ) : null;
 export default RentalSpotQrCodeModal;

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { checkoutDestination } from "ui/auth/checkoutDestination";
+import { platform, NATIVE_PENDING_PATH, safePendingPath, navigatePortal } from 'app/platform';
 import * as React from 'react';
 import { useNavigate, useLocation} from 'react-router-dom';
 import { useDispatch } from "react-redux";
@@ -24,6 +25,18 @@ const App: React.FC = () => {
   const { pathname, search, hash } = location;
   const checkoutReturn = checkoutDestination();
   const dispatch = useDispatch();
+  const [refreshKey, setRefreshKey] = React.useState(0);
+  React.useEffect(() => {
+    if (!platform.native) return;
+    const go = (event: CustomEvent<string>) => navigate(event.detail);
+    const refresh = () => { dispatch(sessionLoginUserAction()); setRefreshKey(key => key + 1); };
+    window.addEventListener('mms:navigate', go as EventListener);
+    window.addEventListener('mms:refresh', refresh);
+    return () => {
+      window.removeEventListener('mms:navigate', go as EventListener);
+      window.removeEventListener('mms:refresh', refresh);
+    };
+  }, [navigate, dispatch]);
 
   // Register global 401 interceptor once on mount
   React.useEffect(() => {
@@ -34,6 +47,7 @@ const App: React.FC = () => {
   const [attemptingLogin, setAttemptingLogin] = React.useState(true);
   const [loginAttempted, setLoginAttempted] = React.useState<boolean>();
   const [authSettled, setAuthSettled] = React.useState<boolean>();
+  React.useEffect(() => { if (platform.native && !currentUserId) setAuthSettled(false); }, [currentUserId]);
   const { current: initialPath } = React.useRef(pathname);
   const { current: initialSearch } = React.useRef(search);
   const { current: initialHash } = React.useRef(hash);
@@ -73,8 +87,13 @@ const App: React.FC = () => {
       loginAttempted && setAttemptingLogin(false);
       if (currentUserId) {
         if (totpEnrollmentRequired) return;
+        const pending = platform.native && safePendingPath(sessionStorage.getItem(NATIVE_PENDING_PATH));
+        if (pending) {
+          sessionStorage.removeItem(NATIVE_PENDING_PATH);
+          navigate(pending); setAuthSettled(true); return;
+        }
         if (checkoutReturn && pathname !== checkoutReturn) {
-          window.location.assign(checkoutReturn);
+          navigatePortal(checkoutReturn);
           return;
         }
         // Explicit redirect target (e.g. /login?redirect=/rentals/spots/abc123)
@@ -106,7 +125,8 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <div className="root">
         <Header />
-        <div style={{ padding: "0 12px" }}>
+        {platform.renderShell?.()}
+        <div key={refreshKey} style={{ padding: "0 12px" }}>
           {attemptingLogin ?
             <LoadingOverlay id="body" />
             : (currentUserId

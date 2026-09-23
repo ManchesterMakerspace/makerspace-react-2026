@@ -1,4 +1,6 @@
 import * as React from "react";
+import { platform } from 'app/platform';
+import { BrowserWorkflow } from 'ui/common/BrowserWorkflow';
 
 import Grid from "@mui/material/Grid";
 import FormControl from "@mui/material/FormControl";
@@ -265,6 +267,7 @@ class PaymentMethodsContainer extends React.Component<Props, State> {
   };
 
   public render(): JSX.Element {
+    if (platform.native) return <BrowserWorkflow path={window.location.pathname + window.location.search} label="Manage payment methods in browser" />;
     const { isRequesting, paymentMethods, error, selectedPaymentMethodId, openAddPayment } = this.state;
     const { managingMethods, title } = this.props;
 
