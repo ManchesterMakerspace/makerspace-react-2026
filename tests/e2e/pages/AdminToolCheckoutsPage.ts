@@ -80,6 +80,11 @@ export class AdminToolCheckoutsPage {
   // ── Checkout Roster ────────────────────────────────────────────────────────
 
   async checkOutMember(memberName: string, shopName: string, toolName: string): Promise<void> {
+    await this.openCheckout(memberName, shopName, toolName);
+    await this.submitCheckout();
+  }
+
+  async openCheckout(memberName: string, shopName: string, toolName: string): Promise<void> {
     await this.page.getByRole('button', { name: 'Check Out Member' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
@@ -92,19 +97,29 @@ export class AdminToolCheckoutsPage {
     await this.page.waitForSelector('[role="option"]', { timeout: 10_000 });
     await this.page.getByRole('option', { name: new RegExp(memberName, 'i') }).first().click();
 
-    // Scope to dialog — page also has comboboxes behind the modal.
-    // Use page-scoped nth: nth(0)=member react-select, nth(1)=shop, nth(2)=tool.
-    // selectOption({ label }) does an exact label match on the native <select>.
-    const shopSelect = this.page.getByRole('combobox').nth(1);
-    await shopSelect.selectOption({ label: shopName });
+    const dialog = this.page.getByRole('dialog');
+    await dialog.locator('select').nth(0).selectOption({ label: shopName });
+    // DO NOT REMOVE: selecting the shop triggers an async re-fetch of that
+    // shop's tools into the tool <select> below. Without this wait, this
+    // suite is flaky in CI -- the tool select's options query intermittently
+    // hasn't repopulated yet, causing selectOption to time out waiting for
+    // an option that never appears (see the 2026-09-18 and 2026-09-22 CI
+    // failures on this exact step). This was removed once already during a
+    // refactor and caused exactly that flakiness -- keep it.
     await this.page.waitForTimeout(500);
+    await dialog.locator('select').nth(1).selectOption({ label: toolName });
+  }
 
-    const toolSelect = this.page.getByRole('combobox').nth(2);
-    await toolSelect.selectOption({ label: toolName });
-    await this.page.waitForTimeout(300);
-
-    await this.page.getByRole('button', { name: 'Check Out' }).click();
-    await this.page.waitForTimeout(1000);
+  async submitCheckout(expectedStatus = 200): Promise<void> {
+    const responsePromise = this.page.waitForResponse(response =>
+      new URL(response.url()).pathname.endsWith('/admin/tool_checkouts') &&
+      response.request().method() === 'POST');
+    await this.page.getByRole('dialog').getByRole('button', { name: 'Check Out', exact: true }).click();
+    const response = await responsePromise;
+    expect(response.status(), await response.text()).toBe(expectedStatus);
+    if (expectedStatus === 200) {
+      await expect(this.page.getByRole('dialog')).not.toBeVisible();
+    }
   }
 
   async verifyPrerequisiteWarning(prereqName: string): Promise<void> {
@@ -115,9 +130,9 @@ export class AdminToolCheckoutsPage {
   }
 
   async verifyCheckoutInTable(memberName: string, toolName: string): Promise<void> {
-    await expect(this.page.getByRole('cell', { name: new RegExp(memberName, 'i') }).first())
-      .toBeVisible({ timeout: 10_000 });
-    await expect(this.page.getByRole('cell', { name: new RegExp(toolName, 'i') }).first())
-      .toBeVisible({ timeout: 10_000 });
+    const row = this.page.getByRole('row')
+      .filter({ has: this.page.getByRole('cell', { name: toolName }) })
+      .filter({ has: this.page.getByRole('cell', { name: new RegExp(memberName, 'i') }) });
+    await expect(row).toBeVisible({ timeout: 10_000 });
   }
 }

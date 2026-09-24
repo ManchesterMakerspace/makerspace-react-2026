@@ -62,7 +62,11 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
   const [addingMember, setAddingMember] = React.useState(false);
 
   const memberAny = member as any;
-  const isInHousehold = !!memberAny.groupName;
+  // Keyed off householdRole, not raw groupName -- groupName can hold a
+  // legacy, non-household value (see the rails household_role fix) even
+  // when this member isn't really in a household, which previously showed
+  // "Manage Household" and fetched/displayed an unrelated legacy group.
+  const isInHousehold = !!memberAny.householdRole;
   const isPrimary = memberAny.householdRole === "primary";
 
   const fetchHousehold = React.useCallback(async () => {
@@ -263,13 +267,15 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
             </Grid>
           )}
 
-          {/* Member has a groupName but the referenced group itself doesn't
-              exist (e.g. a stale/legacy value with no matching Group record
-              at all) — the fetch fails and neither the "create" nor "exists"
-              branch above applies. FormModal/Form's own error display is
-              gated behind form.isDirty, which never becomes true here since
-              there's no editable field, so without this the modal would
-              silently show nothing but its title. */}
+          {/* householdRole says this member really is a primary/secondary
+              (a real member exists at groupName), but the Group document
+              itself is missing -- e.g. deleted directly, bypassing the
+              cleanup Admin::GroupsController#destroy normally does. The
+              fetch fails and neither the "create" nor "exists" branch above
+              applies. FormModal/Form's own error display is gated behind
+              form.isDirty, which never becomes true here since there's no
+              editable field, so without this the modal would silently show
+              nothing but its title. */}
           {isInHousehold && !household && !loading && error && (
             <Grid container spacing={2}>
               <Grid size={{ xs: 12 }}>

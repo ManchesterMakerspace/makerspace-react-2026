@@ -20,6 +20,7 @@ import { withQueryContext } from "ui/common/Filters/QueryContext";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { SelectOption } from "ui/common/AsyncSelect";
 import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { CheckoutApprover, Shop, Tool } from "app/entities/toolCheckout";
@@ -28,8 +29,6 @@ import {
   adminCreateCheckoutApprover,
   adminUpdateCheckoutApprover,
   adminDeleteCheckoutApprover,
-  listShops,
-  listTools,
 } from "api/toolCheckouts";
 
 const rowId = (a: CheckoutApprover) => a.id;
@@ -175,8 +174,8 @@ const CheckoutApproversManager: React.FC = () => {
 
   const { isRequesting, data: approvers = [], response, refresh, error: loadError } =
     useReadTransaction(listCheckoutApprovers, {}, undefined, "checkout-approvers");
-  const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-approvers");
-  const { data: tools = [] } = useReadTransaction(listTools, {}, undefined, "tools-approvers");
+  const { data: shops = [] } = useCheckoutCatalog("shops");
+  const { data: tools = [], refresh: refreshCatalog } = useCheckoutCatalog("tools");
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -186,7 +185,8 @@ const CheckoutApproversManager: React.FC = () => {
     setDeleteTarget(null);
     setSelectedId(undefined);
     refreshRef.current();
-  }, []);
+    refreshCatalog();
+  }, [refreshCatalog]);
 
   const { call: createApprover, isRequesting: creating, error: createError } =
     useWriteTransaction(adminCreateCheckoutApprover, onSuccess);

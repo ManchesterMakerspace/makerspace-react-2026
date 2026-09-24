@@ -9,6 +9,7 @@ import FormLabel from "@mui/material/FormLabel";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import BlockIcon from "@mui/icons-material/Block";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -24,13 +25,13 @@ import MemberSearchInput from "ui/common/MemberSearchInput";
 import { SelectOption } from "ui/common/AsyncSelect";
 import { Status } from "ui/constants";
 import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { useAuthState } from "ui/reducer/hooks";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { ToolCheckout, Shop, Tool } from "app/entities/toolCheckout";
 import {
   listToolCheckouts, listMemberCheckouts, adminCreateToolCheckout, adminRevokeToolCheckout,
-  listShops, listTools,
 } from "api/toolCheckouts";
 
 const rowId = (c: ToolCheckout) => c.id;
@@ -123,6 +124,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             <Typography><strong>{preselectedMember.name}</strong></Typography>
           ) : (
             <MemberSearchInput
+              fullyActiveUnexpired
               name="checkout-member-search"
               placeholder="Search by name or email"
               onChange={(opt: SelectOption) => setSelectedMember(opt || null)}
@@ -205,8 +207,8 @@ const CheckoutRoster: React.FC<Props> = ({
   const { isRequesting, data: checkouts = [], response, refresh, error: loadError } =
     canManage ? adminRead : memberRead;
 
-  const { data: shops = [] } = useReadTransaction(listShops, {}, undefined, "shops-roster");
-  const { data: tools = [] } = useReadTransaction(listTools, {}, !canManage, "tools-roster");
+  const { data: shops = [] } = useCheckoutCatalog("shops");
+  const { data: tools = [], refresh: refreshCatalog } = useCheckoutCatalog("tools", !canManage);
   const checkoutApproverShopIds = currentUser.checkoutApproverShopIds || [];
   const hasGlobalCheckoutAccess = !!currentUser.isAdmin || !!currentUser.isBoardMember || !!currentUser.isResourceManager || isResourceManager;
   const modalShops = hasGlobalCheckoutAccess
@@ -227,7 +229,8 @@ const CheckoutRoster: React.FC<Props> = ({
     setRevokeTarget(null);
     setSelectedId(undefined);
     refreshRef.current();
-  }, []);
+    refreshCatalog();
+  }, [refreshCatalog]);
 
   const { call: createCheckout, isRequesting: creating, error: createError } =
     useWriteTransaction(adminCreateToolCheckout, onSuccess);
@@ -262,9 +265,11 @@ const CheckoutRoster: React.FC<Props> = ({
         <div>
           <Typography variant="body2" style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {row.toolName} <ToolAvailability outOfService={row.outOfService} />
-            {row.toolNotes && (
-              <Tooltip title={row.toolNotes}>
-                <InfoOutlinedIcon fontSize="small" color="action" style={{ verticalAlign: "middle" }} />
+            {row.toolNotes?.trim() && (
+              <Tooltip title={row.toolNotes} describeChild>
+                <IconButton size="small" aria-label={`Notes for ${row.toolName}`}>
+                  <InfoOutlinedIcon fontSize="small" color="action" />
+                </IconButton>
               </Tooltip>
             )}
           </Typography>

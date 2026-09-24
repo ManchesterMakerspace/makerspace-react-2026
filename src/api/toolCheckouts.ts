@@ -1,4 +1,5 @@
 import axios from "axios";
+import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
 import {
   Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
 } from "app/entities/toolCheckout";
@@ -22,12 +23,14 @@ const wrapHeaders = (axiosHeaders: any) => ({
   has: (key: string) => key.toLowerCase() in axiosHeaders,
 });
 
-const buildResponse = async <T>(request: Promise<any>) => {
+const buildResponse = async <T>(request: Promise<any>): Promise<ApiDataResponse<T> | (ApiErrorResponse & { data?: undefined })> => {
   try {
     const res = await request;
     return { data: res.data, response: { ...res, headers: wrapHeaders(res.headers) } };
   } catch (err: any) {
     const error = {
+      status: err.response?.status || 0,
+      error: err.response?.data?.error || "request_failed",
       message: apiErrorMessage(err.response?.data, err.message || "Request failed")
     };
     return { error, response: err.response };
@@ -36,6 +39,12 @@ const buildResponse = async <T>(request: Promise<any>) => {
 
 const normalizeSlackChannel = (value?: string) =>
   value?.trim().replace(/^#+/, "") || "";
+
+// Checkout selection deliberately opts into server-side eligibility filtering.
+export const searchCheckoutMembers = (search: string) =>
+  buildResponse<Array<{ id: string; firstname: string; lastname: string; status?: string; expirationTime?: number }>>(
+    api.get("/api/members", { params: { search, fully_active_unexpired: true } })
+  );
 
 // ── Shops ─────────────────────────────────────────────────────────────────────
 
@@ -55,6 +64,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
     resource_manager_ids: body.resourceManagerIds,
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
@@ -75,6 +85,7 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
   buildResponse<Shop>(api.put(`/api/admin/shops/${id}`, {
     resource_manager_ids: body.resourceManagerIds,
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
@@ -92,10 +103,19 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
       reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds,
     }),
     color_id: body.colorId,
+    ...(body.resourceManagerIds !== undefined && {
+      resource_manager_ids: body.resourceManagerIds,
+    }),
   }));
 
 export const adminDeleteShop = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/shops/${id}`));
+
+// Kept separate from the full shop update so a shop-scoped resource manager
+// can change request instructions without receiving permission to change
+// admin/board-only shop settings.
+export const adminUpdateShopAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
+  buildResponse<Shop>(api.patch(`/api/admin/shops/${id}/requestor_annotation`, { requestor_annotation: annotation }));
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
 
@@ -107,6 +127,7 @@ export const listTools = (params?: { shopId?: string }) =>
 export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
   buildResponse<Tool>(api.post("/api/admin/tools", {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     description: body.description,
@@ -132,6 +153,7 @@ export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
 export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> }) =>
   buildResponse<Tool>(api.put(`/api/admin/tools/${id}`, {
     name: body.name,
+    requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     description: body.description,
@@ -278,3 +300,8 @@ export const adminUpdateCheckoutApprover = ({ id, body }: {
 
 export const adminDeleteCheckoutApprover = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/checkout_approvers/${id}`));
+
+// This endpoint is intentionally available to admin/board, the tool's shop
+// resource managers, and every additional checkout approver for the tool.
+export const adminUpdateToolAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
+  buildResponse<Tool>(api.patch(`/api/admin/tools/${id}/requestor_annotation`, { requestor_annotation: annotation }));

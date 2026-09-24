@@ -3,9 +3,8 @@ import ToolAvailability from "ui/common/ToolAvailability";
 import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
-import { EditToolRow } from "./EditToolRow";
-export { EditToolRow } from "./EditToolRow";
 import { duplicateToolName, wouldCreatePrerequisiteLoop } from "./toolValidation";
+import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -17,6 +16,7 @@ import Chip from "@mui/material/Chip";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import QrCodeIcon from "@mui/icons-material/QrCode";
+import ToolAnnotationCell from "./ToolAnnotationCell";
 import ToolQrCodeModal from "./ToolQrCodeModal";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -31,12 +31,10 @@ import StatefulTable from "ui/common/table/StatefulTable";
 import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
-import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import extractTotalItems from "ui/utils/extractTotalItems";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  listManagedShops, listTools,
   adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
@@ -61,6 +59,7 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [requestorAnnotation, setRequestorAnnotation] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
   const [open, setOpen] = React.useState(false);
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
@@ -89,7 +88,7 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, requestorAnnotation: requestorAnnotation.trim() || null, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -124,6 +123,11 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Description" placeholder="Optional details"
             value={description} onChange={e => setDescription(e.target.value)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
+            value={requestorAnnotation} onChange={e => setRequestorAnnotation(e.target.value)}
+            helperText="Leave blank to use the shop annotation." />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
@@ -170,6 +174,166 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
 
 // ── EditToolRow ───────────────────────────────────────────────────────────────
 
+interface EditToolRowProps {
+  tool: Tool;
+  tools: Tool[];
+  shops: Shop[];
+  onSave: (id: string, body: Partial<Tool>, notes?: string) => void;
+  onCancel: () => void;
+  saving: boolean;
+}
+
+export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
+  const [name, setName] = React.useState(tool.name);
+  const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
+  const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
+  const [description, setDescription] = React.useState(tool.description || "");
+  const [open, setOpen] = React.useState(!!tool.open);
+  const [shopId, setShopId] = React.useState(tool.shopId);
+  const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
+  const [disabled, setDisabled] = React.useState(!!tool.disabled);
+  const [announce, setAnnounce] = React.useState(!!tool.announce);
+  const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
+  const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
+  const [notes, setNotes] = React.useState(tool.notes || "");
+  const [localError, setLocalError] = React.useState("");
+  // Only the reservation-specific fields -- seeding this from the full tool
+  // object let its name/description/gdriveId/announce*/etc. leak in, which
+  // then silently overwrote whatever the user just edited via the trailing
+  // `...reservation` spread in submit() below.
+  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
+    reservable: tool.reservable,
+    maxConcurrentReservations: tool.maxConcurrentReservations,
+    reservationHorizonDays: tool.reservationHorizonDays,
+    minimumAdvanceNoticeHours: tool.minimumAdvanceNoticeHours ?? 2,
+    prohibitSameDayReservations: tool.prohibitSameDayReservations ?? false,
+    reservationFullDay: tool.reservationFullDay,
+    durationFees: tool.durationFees,
+    maxReservationDurationHours: tool.maxReservationDurationHours,
+    reservationRequiresApproval: tool.reservationRequiresApproval,
+    reservationPrerequisiteToolIds: tool.reservationPrerequisiteToolIds,
+  });
+
+  const availablePrereqs = tools.filter(t => t.shopId === shopId && t.id !== tool.id);
+  const togglePrereq = (id: string) => {
+    const nextIds = prerequisiteIds.includes(id)
+      ? prerequisiteIds.filter(p => p !== id)
+      : [...prerequisiteIds, id];
+
+    if (wouldCreatePrerequisiteLoop(tools, tool.id, nextIds)) {
+      setLocalError("That prerequisite would create a dependency loop.");
+      return;
+    }
+
+    setLocalError("");
+    setPrerequisiteIds(nextIds);
+  };
+
+  // Prerequisites are shop-scoped -- moving to a different shop invalidates
+  // whatever was previously selected here, the same way changing the shop
+  // on Add Tool resets it.
+  const changeShop = (nextShopId: string) => {
+    setShopId(nextShopId);
+    setPrerequisiteIds([]);
+    setLocalError("");
+  };
+
+  const submit = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    if (duplicateToolName(tools, trimmedName, shopId, tool.id)) {
+      setLocalError("A tool with this name already exists in this shop.");
+      return;
+    }
+
+    if (wouldCreatePrerequisiteLoop(tools, tool.id, prerequisiteIds)) {
+      setLocalError("These prerequisites would create a dependency loop.");
+      return;
+    }
+
+    setLocalError("");
+    onSave(
+      tool.id,
+      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
+      notes !== (tool.notes || "") ? notes : undefined
+    );
+  };
+
+  return (
+    <Box sx={{
+      display: "grid",
+      gap: 1,
+      gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" },
+      alignItems: "center"
+    }}>
+      <TextField size="small" value={name} onChange={e => setName(e.target.value)}
+        placeholder="Tool name" autoFocus />
+      <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
+        placeholder="Description" />
+      <div style={{ gridColumn: "1 / -1" }}>
+        <FormLabel style={{ fontSize: 12 }}>Shop</FormLabel>
+        <Select native fullWidth size="small" value={shopId}
+          onChange={e => changeShop((e.target as HTMLSelectElement).value)}>
+          {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </Select>
+      </div>
+      <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
+        placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
+      <TextField size="small" value={gdriveId} onChange={e => setGdriveId(e.target.value)}
+        placeholder="GDrive ID" style={{ gridColumn: "1 / -1" }} />
+      {tool.notes !== undefined && (
+        <TextField size="small" multiline value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Notes (e.g. lock combo) -- only shown to approvers and active checkouts"
+          style={{ gridColumn: "1 / -1" }} />
+      )}
+      <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))}
+        placeholder="Announce channel" />
+      <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))}
+        placeholder="Users channel" />
+      <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
+      <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />} label="Hidden" />
+      <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />} label="Announce" />
+      <div style={{ gridColumn: "1 / -1" }}>
+        <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>Prerequisites</FormLabel>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {availablePrereqs.length ? availablePrereqs.map(t => (
+            <Chip key={t.id} label={t.name} size="small" clickable
+              onClick={() => togglePrereq(t.id)}
+              color={prerequisiteIds.includes(t.id) ? "primary" : "default"}
+              variant={prerequisiteIds.includes(t.id) ? "default" : "outlined"}
+            />
+          )) : (
+            <Typography variant="caption" color="textSecondary">No other tools in this shop.</Typography>
+          )}
+        </div>
+        {localError && <Typography variant="caption" color="error">{localError}</Typography>}
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <Grid container spacing={1}>
+          <ReservationSettingsFields
+            value={reservation}
+            onChange={setReservation}
+            tools={tools.filter(candidate => candidate.shopId === shopId)}
+            lockedToolId={tool.id}
+          />
+        </Grid>
+      </div>
+      <div>
+        <Tooltip title="Save"><span>
+          <IconButton size="medium" color="primary" disabled={saving || !name}
+            onClick={submit}>
+            <SaveIcon fontSize="medium" />
+          </IconButton>
+        </span></Tooltip>
+        <Tooltip title="Cancel">
+          <IconButton size="small" onClick={onCancel}><CancelIcon fontSize="small" /></IconButton>
+        </Tooltip>
+      </div>
+    </Box>
+  );
+};
+
 // ── NotesCell ─────────────────────────────────────────────────────────────────
 // Separate from EditToolRow/adminUpdateTool: a checkout approver for this
 // tool may set notes (e.g. lock combo) even if they can't edit anything
@@ -211,9 +375,9 @@ const NotesCell: React.FC<NotesCellProps> = ({ tool, onSaved }) => {
       <TextField size="small" multiline value={value} autoFocus
         placeholder="e.g. lock combo" onChange={e => setValue(e.target.value)} />
       <Tooltip title="Save"><span>
-        <IconButton size="small" color="primary" disabled={isRequesting}
+        <IconButton size="medium" color="primary" disabled={isRequesting}
           onClick={() => saveNotes({ id: tool.id, notes: value })}>
-          <SaveIcon fontSize="small" />
+          <SaveIcon fontSize="medium" />
         </IconButton>
       </span></Tooltip>
       <Tooltip title="Cancel">
@@ -256,11 +420,10 @@ const ToolManager: React.FC = () => {
   const [shopFilter,   setShopFilter]   = React.useState<string>("");
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
-  const { data: shops = [] } = useReadTransaction(listManagedShops, {}, undefined, "shops-for-tools");
-  const { isRequesting, data: tools = [], response, refresh, error: loadError } =
-    useReadTransaction(listTools, { shopId: shopFilter || undefined }, undefined, `tools-list-${shopFilter}`);
-  const { data: allTools = [], refresh: refreshAllTools } =
-    useReadTransaction(listTools, {}, undefined, "tools-all-validation");
+  const { data: shops = [] } = useCheckoutCatalog("managedShops");
+  const { isRequesting, data: allTools = [], refresh, error: loadError } =
+    useCheckoutCatalog("tools");
+  const tools = shopFilter ? allTools.filter(tool => tool.shopId === shopFilter) : allTools;
   // GET /api/admin/tools is already correctly scoped server-side (shop
   // manager, or a checkout approver's specific tool_ids) -- do not re-filter
   // against listManagedShops here, which only covers actual shop managers
@@ -269,9 +432,7 @@ const ToolManager: React.FC = () => {
   const allManageableTools = allTools as Tool[];
 
   const refreshRef = React.useRef(refresh);
-  const refreshAllToolsRef = React.useRef(refreshAllTools);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
-  React.useEffect(() => { refreshAllToolsRef.current = refreshAllTools; }, [refreshAllTools]);
 
   const selectedTool = manageableTools.find(t => t.id === selectedId);
   // Full edit/delete stays restricted to actual shop managers -- a tool-only
@@ -284,7 +445,6 @@ const ToolManager: React.FC = () => {
     setAddOpen(false); setEditingId(null); setDeleteTarget(null);
     setSelectedId(undefined);
     refreshRef.current();
-    refreshAllToolsRef.current();
   }, []);
 
   const { call: createTool, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateTool, onSuccess);
@@ -347,9 +507,13 @@ const ToolManager: React.FC = () => {
       ),
     },
     {
+      id: "requestorAnnotation", label: "Annotation for requestors",
+      cell: (row: Tool) => <ToolAnnotationCell tool={row} onSaved={() => refreshRef.current()} />,
+    },
+    {
       id: "notes", label: "Notes",
       cell: (row: Tool) => editingId === row.id ? null : (
-        <NotesCell tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />
+        <NotesCell tool={row} onSaved={() => refreshRef.current()} />
       ),
     },
   ];
@@ -405,7 +569,7 @@ const ToolManager: React.FC = () => {
         <StatefulTable
           id="tools-table" title="Tools" loading={isRequesting}
           data={manageableTools} error={loadError} columns={columns}
-          rowId={rowId} totalItems={extractTotalItems(response)}
+          rowId={rowId} totalItems={manageableTools.length}
           selectedIds={selectedId} setSelectedIds={handleSelectId}
           renderSearch={true}
         />

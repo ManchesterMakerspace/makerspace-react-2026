@@ -6,8 +6,7 @@ export interface DurationFee {
 }
 
 export interface Shop {
-  resourceManagers?: { id: string; name: string }[];
-  resourceManagerIds?: string[];
+  requestorAnnotation?: string | null;
   id: string;
   name: string;
   wikiUrl: string;
@@ -30,6 +29,13 @@ export interface Shop {
   colorId?: string;
   googleResourceId?: string;
   resourceEmail?: string;
+  resourceManagers?: ShopResourceManager[];
+  resourceManagerIds?: string[];
+}
+
+export interface ShopResourceManager {
+  id: string;
+  name: string;
 }
 
 export interface GoogleCalendarColor {
@@ -41,6 +47,7 @@ export interface GoogleCalendarColor {
 
 export interface Tool {
   outOfService?: boolean;
+  requestorAnnotation?: string | null;
   open?: boolean;
   id: string;
   name: string;
@@ -117,6 +124,7 @@ export interface CheckoutApprover {
 
 export interface ToolCheckoutRequest {
   outOfService?: boolean;
+  requestorAnnotation?: string | null;
   id: string;
   memberId: string;
   memberName: string;

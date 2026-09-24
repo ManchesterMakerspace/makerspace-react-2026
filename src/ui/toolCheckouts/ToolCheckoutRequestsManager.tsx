@@ -5,6 +5,7 @@ import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import RequestorAnnotationTooltip from "./RequestorAnnotationTooltip";
 import Chip from "@mui/material/Chip";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -162,6 +163,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
         <div>
           <Typography variant="body2"><strong>{row.toolName}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
+          {!canManage && <RequestorAnnotationTooltip annotation={row.requestorAnnotation} />}
         </div>
       ),
     },

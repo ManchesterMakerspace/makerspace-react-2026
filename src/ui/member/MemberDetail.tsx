@@ -5,6 +5,7 @@ import Button from "@mui/material/Button";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
 import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
+import { timeToDate } from "ui/utils/timeToDate";
 import LoadingOverlay from "ui/common/LoadingOverlay";
 import KeyValueItem from "ui/common/KeyValueItem";
 import DetailView from "ui/common/DetailView";
@@ -39,6 +40,7 @@ import { EmailStatusIcon, SlackStatusIcon } from "ui/common/ContactStatusIcons";
 import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
 import GoogleDriveProvisioningBlockToggle from 'ui/member/GoogleDriveProvisioningBlockToggle';
 import SlackInviteButton from 'ui/member/SlackInviteButton';
+import MemberDeleteToggle from 'ui/member/MemberDeleteToggle';
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 import {
   MemberProvisioning,
@@ -215,9 +217,27 @@ const MemberProfile: React.FC = () => {
   const showExpiringPaymentWarning =
     !!expiringPaymentCardTypes && (isOwnProfile || canManageBilling);
   const paymentMethodsPath = `${Routing.Settings.replace(Routing.PathPlaceholder.MemberId, member.id)}/${SubRoutes.PaymentMethods}`;
+  const mergedAt = (member as any).mergedAt as string | undefined;
 
   return (
     <>
+      {mergedAt && canEditMembers && (
+        <div
+          id="member-detail-deleted-warning"
+          role="alert"
+          style={{
+            color: "#555",
+            fontWeight: 700,
+            border: "2px solid #555",
+            borderRadius: 4,
+            marginBottom: 16,
+            padding: "12px 16px",
+          }}
+        >
+          This account was deleted on {new Date(mergedAt).toLocaleDateString()}. It's hidden from member
+          lists and search, and its email is free for a new signup to reuse. Use "Restore Account" below to undo this.
+        </div>
+      )}
       {showExpiringPaymentWarning && (
         <div
           id="member-expiring-payment-method-warning"
@@ -282,6 +302,9 @@ const MemberProfile: React.FC = () => {
             <SlackInviteButton member={member} key='slack-invite' onProvisioned={refreshMember} />,
             ...((member as any).totpEnabled ? [
               <Reset2FAButton key="reset-2fa" memberId={memberId} onReset={refreshMember} />
+            ] : []),
+            ...(!isOwnProfile ? [
+              <MemberDeleteToggle member={member} key="delete-toggle" onUpdated={refreshMember} />
             ] : [])
           ] : [],
           // Send Charge button — admin and RM, not on own profile
@@ -310,9 +333,18 @@ const MemberProfile: React.FC = () => {
                 )}
               </span>
             </KeyValueItem>
-            <KeyValueItem  label="Membership Expiration">
-              <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
-            </KeyValueItem>
+            <div style={{ paddingBottom: "1em", display: "flex", flexWrap: "wrap" }}>
+              <span style={{ marginRight: "2.5em" }}>
+                <strong>Signed Up: </strong>
+                <span id="member-detail-signup-date">
+                  {(member as any).startDate ? timeToDate((member as any).startDate) : "N/A"}
+                </span>
+              </span>
+              <span>
+                <strong>Membership Expiration: </strong>
+                <span id="member-detail-expiration">{displayMemberExpiration(member)}</span>
+              </span>
+            </div>
             {canViewAuditLog && provisioning && (
               <>
                 <KeyValueItem label="Slack Provisioning">
@@ -365,7 +397,7 @@ const MemberProfile: React.FC = () => {
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}
-            {((member as any).groupName || canEditMembers) && (
+            {((member as any).householdRole || canEditMembers) && (
               <KeyValueItem label="Household">
                 {(member as any).householdRole === "primary" && (
                   <span id="member-detail-household-role">Primary Member</span>
@@ -373,7 +405,12 @@ const MemberProfile: React.FC = () => {
                 {(member as any).householdRole === "secondary" && (
                   <span id="member-detail-household-role">Secondary Member</span>
                 )}
-                {!(member as any).groupName && canEditMembers && (
+                {/* Keyed off householdRole, not raw groupName -- groupName can
+                    still hold a legacy, non-household value (see the rails
+                    household_role fix) even once this correctly resolves to
+                    no real household, so checking groupName here would leave
+                    this blank instead of showing "None". */}
+                {!(member as any).householdRole && canEditMembers && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
               </KeyValueItem>

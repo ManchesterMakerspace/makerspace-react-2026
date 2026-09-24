@@ -67,50 +67,32 @@ test.describe('RM checks out member on woodshop tool', () => {
   });
 });
 
-// ── Test 3: RM1 checks out basic_member1 on CNC mill — prereq warning shown ──
-
-test.describe('RM checks out member on metalshop CNC mill with prereq warning', () => {
-
-  test('RM1 checks out Basic Member1 for CNC mill and sees prerequisite warning', async ({ page }) => {
-    const auth      = new AuthPage(page);
+// ── Test 3: CNC checkout requires an active manual mill checkout ─────────────
+test.describe('RM enforces CNC mill prerequisites', () => {
+  test('RM1 checks out the mill before approving Basic Member1 for CNC mill', async ({ page }) => {
+    const auth = new AuthPage(page);
     const checkouts = new AdminToolCheckoutsPage(page);
 
     await auth.signIn(rmMember1.email, rmMember1.password);
     await checkouts.goto();
 
-    // Open checkout modal and select CNC mill
-    await page.getByRole('button', { name: 'Check Out Member' }).click();
-    await page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
+    await checkouts.openCheckout('Basic Member1', METALSHOP, CNC_MILL);
+    await expect(page.getByRole('dialog').getByText(/Prerequisites for cnc mill/i)).toBeVisible();
 
-    // Search for Basic Member1 — use react-select input directly
-    const memberInput = page.locator('input[id^="react-select"]').last();
-    await memberInput.click();
-    await memberInput.type('Basic Member1', { delay: 50 });
-    await page.waitForSelector('[role="option"]', { timeout: 10_000 });
-    await page.getByRole('option', { name: /Basic Member1/i }).first().click();
+    // The shared server policy rejects missing prerequisites; a warning does
+    // not authorize a checkout. Assert the response rather than a table timeout.
+    await checkouts.submitCheckout(422);
+    await expect(page.getByRole('dialog').getByText(/Complete all prerequisite checkouts/i)).toBeVisible();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+    const rejectedCncRow = page.getByRole('row')
+      .filter({ has: page.getByRole('cell', { name: CNC_MILL }) })
+      .filter({ has: page.getByRole('cell', { name: /Basic Member1/i }) });
+    await expect(rejectedCncRow).not.toBeVisible();
 
-    // Use page-scoped nth: nth(0)=member react-select, nth(1)=shop, nth(2)=tool
-    const shopSelect = page.getByRole('combobox').nth(1);
-    await shopSelect.selectOption({ label: METALSHOP });
-    await page.waitForTimeout(500);
-
-    const toolSelect = page.getByRole('combobox').nth(2);
-    await toolSelect.selectOption({ label: CNC_MILL });
-    await page.waitForTimeout(300);
-
-    // Prerequisite warning shows in modal before submitting
-    await expect(page.getByText(/Prerequisites for cnc mill/i)).toBeVisible({ timeout: 5_000 });
-
-    // Submit and wait
-    await page.getByRole('button', { name: 'Check Out' }).click();
-    await page.waitForTimeout(1000);
-
-    // Verify the checkout succeeded
+    await checkouts.checkOutMember('Basic Member1', METALSHOP, MILL);
+    await checkouts.verifyCheckoutInTable('Basic Member1', MILL);
+    await checkouts.checkOutMember('Basic Member1', METALSHOP, CNC_MILL);
     await checkouts.verifyCheckoutInTable('Basic Member1', CNC_MILL);
-
-    // Prereq warning shows in the table row as unmet prerequisites text
-    const cncRow = page.getByRole('row', { name: /cnc mill/i });
-    await expect(cncRow).toBeVisible({ timeout: 10_000 });
   });
 });
 
@@ -142,9 +124,10 @@ test.describe('Members view their tool checkout status', () => {
     await member.dismissNotificationModal();
     await member.clickTab('Checkouts');
 
-    await expect(page.getByRole('cell', { name: new RegExp(CNC_MILL, 'i') }))
-      .toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole('cell', { name: new RegExp(METALSHOP, 'i') }))
-      .toBeVisible({ timeout: 10_000 });
+    const cncCell = page.getByRole('cell', { name: /^cnc mill\b/i });
+    const cncRow = page.getByRole('row').filter({ has: cncCell });
+    await expect(cncRow).toBeVisible({ timeout: 10_000 });
+    await expect(cncCell).toContainText(METALSHOP);
+    await expect(page.getByRole('cell', { name: /^mill\b/i })).toBeVisible();
   });
 });

@@ -19,7 +19,8 @@ import {
   SlackProvisioningIcon,
 } from 'ui/member/ProvisioningStatus';
 
-import { listMembers, MemberSummary } from 'makerspace-ts-api-client';
+import { MemberSummary } from 'makerspace-ts-api-client';
+import { listMembersWithDeleted } from 'api/members';
 import CreateMember from 'ui/member/CreateMember';
 import RenewMember from 'ui/member/RenewMember';
 import extractTotalItems from '../utils/extractTotalItems';
@@ -52,7 +53,24 @@ const nameColumn: Column<MemberSummary> = {
   id: 'lastname',
   label: 'Name',
   cell: (row: MemberSummary) => (
-    <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
+    <span style={(row as any).mergedAt ? { color: '#888' } : undefined}>
+      <Link to={`/members/${row.id}`}>{row.firstname} {row.lastname}</Link>
+      {(row as any).mergedAt && (
+        <span
+          style={{
+            marginLeft: 6,
+            fontSize: '0.7rem',
+            fontWeight: 700,
+            color: '#555',
+            border: '1px solid #999',
+            borderRadius: 4,
+            padding: '1px 4px',
+          }}
+        >
+          DELETED
+        </span>
+      )}
+    </span>
   ),
   defaultSortDirection: SortDirection.Desc,
 };
@@ -214,13 +232,24 @@ const MembersList: React.FC = () => {
   const caps = useCapabilities();
   const canViewAll = caps.canViewAllMembers;
   const canViewProvisioning = caps.canViewAuditLog;
-  const updateFilter = React.useCallback(
-    () => setParam('currentMembers', !params.currentMembers),
-    [params, setParam]
-  );
+  // "Show deleted accounts" is a distinct view, not a filter that composes
+  // with "current members" -- a member can't be both currently active and
+  // soft-deleted (soft-delete refuses to run on an active/unexpired
+  // member), so combining them would just always show nothing. Checking
+  // one clears the other rather than letting both be checked at once.
+  const updateFilter = React.useCallback(() => {
+    const next = !params.currentMembers;
+    setParam('currentMembers', next);
+    if (next) setParam('showDeleted', false);
+  }, [params, setParam]);
+  const updateShowDeleted = React.useCallback(() => {
+    const next = !params.showDeleted;
+    setParam('showDeleted', next);
+    if (next) setParam('currentMembers', false);
+  }, [params, setParam]);
 
   const { isRequesting, data: members = [], response, refresh, error } = useReadTransaction(
-    listMembers,
+    listMembersWithDeleted,
     { ...params }
   );
 
@@ -239,6 +268,10 @@ const MembersList: React.FC = () => {
             <FormControlLabel
               control={<Checkbox color='primary' value='true' checked={!!params.currentMembers} onChange={updateFilter} />}
               label='View only current members'
+            />
+            <FormControlLabel
+              control={<Checkbox color='primary' value='true' checked={!!params.showDeleted} onChange={updateShowDeleted} />}
+              label='Show deleted accounts'
             />
           </Grid>
         )}
@@ -269,6 +302,7 @@ const MembersList: React.FC = () => {
 
 export default withQueryContext(MembersList, {
   currentMembers: false,
+  showDeleted: false,
   orderBy: 'startDate',
   order: SortDirection.Desc,
 });

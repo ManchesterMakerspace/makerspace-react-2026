@@ -4,6 +4,7 @@ import AwesomeDebouncePromise from 'awesome-debounce-promise';
 import { listMembers, isApiErrorResponse, getMember, message, MemberStatus } from "makerspace-ts-api-client";
 import { SelectOption, AsyncSelectFixed, AsyncCreatableSelect, AsyncSelectProps, AsyncCreateableSelectProps } from "./AsyncSelect";
 import Form from "./Form";
+import { searchCheckoutMembers } from "api/toolCheckouts";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 
 interface Props  {
@@ -13,7 +14,9 @@ interface Props  {
   initialSelection?: SelectOption;
   disabled?: boolean;
   excludeIds?: string[];    // Exclude specific member IDs e.g. current user in EM reports
+  fullyActiveUnexpired?: boolean; // Filter in Mongo before search pagination
   excludeExpired?: boolean; // Exclude members with expired or inactive/revoked status
+  ariaLabel?: string;
   onChange?(selection: SelectOption): void;
   getFormRef?(): Form;
 }
@@ -21,9 +24,12 @@ interface Props  {
 async function searchMemberOptions(
   searchValue: string,
   excludeIds: string[] = [],
-  excludeExpired: boolean = false
+  excludeExpired: boolean = false,
+  fullyActiveUnexpired: boolean = false
 ) {
-  const membersResponse = await listMembers({ search: searchValue });
+  const membersResponse = fullyActiveUnexpired
+    ? await searchCheckoutMembers(searchValue)
+    : await listMembers({ search: searchValue });
   let memberOptions = [] as SelectOption[];
   if (isApiErrorResponse(membersResponse)) {
     console.error(membersResponse.error);
@@ -63,21 +69,22 @@ const MemberSearchInput: React.FC<Props> = ({
   initialSelection,
   excludeIds = [],
   excludeExpired = false,
+  fullyActiveUnexpired = false,
+  ariaLabel,
 }) => {
   // Track field value
   const [selection, setSelection] = React.useState<SelectOption>(initialSelection);
   const componentRef = React.useRef<MemberSearchComponent>(creatable ? AsyncCreatableSelect : AsyncSelectFixed);
 
-  // Rebuild loadMembers if excludeIds or excludeExpired changes so filters stay current
-  const loadMembers = React.useRef<(search: string) => Promise<SelectOption[]>>(
-    AwesomeDebouncePromise((search: string) => searchMemberOptions(search, excludeIds, excludeExpired), 250)
-  );
-  React.useEffect(() => {
-    loadMembers.current = AwesomeDebouncePromise(
-      (search: string) => searchMemberOptions(search, excludeIds, excludeExpired),
+  // Pass a new callback when filters change; mutating a ref after render leaves
+  // AsyncSelect using the previous search policy until another render occurs.
+  const loadMembers = React.useMemo(
+    () => AwesomeDebouncePromise(
+      (search: string) => searchMemberOptions(search, excludeIds, excludeExpired, fullyActiveUnexpired),
       250
-    );
-  }, [JSON.stringify(excludeIds), excludeExpired]);
+    ),
+    [JSON.stringify(excludeIds), excludeExpired, fullyActiveUnexpired]
+  );
 
   // Determine select component
   React.useEffect(() => {
@@ -128,11 +135,12 @@ const MemberSearchInput: React.FC<Props> = ({
       isClearable
       name={name}
       id={name}
+      aria-label={ariaLabel}
       value={selection && selection.value ? selection : undefined}
       placeholder={placeholder}
       onChange={updateSelection}
       isDisabled={disabled}
-      loadOptions={loadMembers.current}
+      loadOptions={loadMembers}
       getFormRef={getFormRef}
     />
   )
