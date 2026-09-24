@@ -28,6 +28,7 @@ export interface WorkshopCheckoutRequest {
 }
 
 export interface WorkshopTool {
+  outOfService?: boolean;
   open?: boolean;
   id: string;
   name: string;
@@ -57,6 +58,7 @@ export interface WorkshopVolunteerEvent {
 }
 
 export interface WorkshopVolunteerTask {
+  ticketId?: string;
   id: string;
   taskNumber: number;
   title: string;
@@ -69,6 +71,8 @@ export interface WorkshopVolunteerTask {
 }
 
 export interface Workshop {
+  outOfService?: boolean;
+  outOfServiceNote?: string;
   id: string;
   name: string;
   wikiUrl: string;

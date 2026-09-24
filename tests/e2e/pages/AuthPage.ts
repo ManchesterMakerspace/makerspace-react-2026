@@ -7,15 +7,24 @@ export class AuthPage {
     const navStart = Date.now();
     await this.page.goto('/login');
 
-    // If redirected away from /login (already authenticated), logout via menu first
-    if (!this.page.url().includes('/login')) {
-      await this.page.getByRole('button', { name: 'Menu' }).click();
-      await this.page.getByRole('menuitem', { name: 'Logout' }).click();
-      await this.page.waitForURL(/\/$|\/login/, { timeout: 10_000 });
-      // See logout() below -- a request still in flight can trigger its own
-      // redirect to /login via globalAuthInterceptor after the URL match
-      // above. Let it settle before navigating again, or this goto races it.
-      await this.page.waitForLoadState('domcontentloaded');
+    // page.url() right after goto() reflects the URL Playwright requested,
+    // not what the SPA does next. If a previous member's session is still
+    // active, the app boots up, validates the stored token, and redirects
+    // away from /login back to that member's own profile -- but only after
+    // goto() has already resolved, so checking page.url() here always reads
+    // '/login' and wrongly concludes "not authenticated". That skipped the
+    // logout step entirely and left the test waiting forever for a login
+    // form that the app had already redirected away from. Race the two
+    // real outcomes instead of trusting the URL.
+    const emailField = this.page.getByRole('textbox', { name: 'Email' });
+    const menuButton = this.page.getByRole('button', { name: 'Menu' });
+    const outcome = await Promise.race([
+      emailField.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'login' as const),
+      menuButton.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'authenticated' as const),
+    ]).catch(() => 'neither' as const);
+
+    if (outcome === 'authenticated') {
+      await this.logout();
       await this.page.goto('/login');
     }
 
@@ -24,7 +33,6 @@ export class AuthPage {
     // elapsed time from navigation start — needed to tell apart "needs
     // more margin" from "genuinely hanging" the next time this is slow
     // or fails.
-    const emailField = this.page.getByRole('textbox', { name: 'Email' });
     try {
       await emailField.waitFor({ state: 'visible', timeout: 60_000 });
     } finally {

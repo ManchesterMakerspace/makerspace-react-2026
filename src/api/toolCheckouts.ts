@@ -62,6 +62,7 @@ export const listGoogleCalendarColors = (params?: { colorId?: string }) =>
 
 export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
   buildResponse<Shop>(api.post("/api/admin/shops", {
+    resource_manager_ids: body.resourceManagerIds,
     name: body.name,
     requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
@@ -78,11 +79,11 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
     reservation_requires_approval: body.reservationRequiresApproval,
     reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
     color_id: body.colorId,
-    resource_manager_ids: body.resourceManagerIds,
   }));
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
   buildResponse<Shop>(api.put(`/api/admin/shops/${id}`, {
+    resource_manager_ids: body.resourceManagerIds,
     name: body.name,
     requestor_annotation: body.requestorAnnotation,
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,

@@ -5,6 +5,7 @@ import TextField from "@mui/material/TextField";
 import { createToolCheckoutRequest } from "api/toolCheckouts";
 import { WorkshopTool } from "app/entities/workshop";
 import FormModal from "ui/common/FormModal";
+import ToolAvailability from "ui/common/ToolAvailability";
 
 const RequestCheckoutModal: React.FC<{
   tool: WorkshopTool | null;
@@ -36,6 +37,7 @@ const RequestCheckoutModal: React.FC<{
       title={`Request Checkout: ${tool?.name || ""}`}
       closeHandler={onClose} onSubmit={submit} submitText="Submit Request"
       loading={saving} error={error}>
+      <ToolAvailability outOfService={tool?.outOfService} />
       {!!tool?.unmetPrerequisiteNames?.length && <Alert severity="warning">Recommended checkouts: {tool.unmetPrerequisiteNames.join(", ")}</Alert>}
       <TextField fullWidth label="Note" value={note}
         onChange={event => setNote(event.target.value)}

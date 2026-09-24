@@ -27,6 +27,8 @@ const EarnedMembershipsList = lazyRoute(() => import(/* webpackChunkName: "earne
 const BillingContainer = lazyRoute(() => import(/* webpackChunkName: "billing", webpackPrefetch: true */ 'ui/billing/BillingContainer'));
 const AdminRentalsPage = lazyRoute(() => import(/* webpackChunkName: "admin-rentals", webpackPrefetch: true */ 'ui/admin/rentals/AdminRentalsPage'));
 const ShopFeesPage = lazyRoute(() => import(/* webpackChunkName: "admin-shop-fees", webpackPrefetch: true */ 'ui/shopFees/ShopFeesPage'));
+const FixTicketsPage = lazyRoute(() => import('ui/fixTickets/FixTicketsPage'));
+const FixBountyPage = lazyRoute(() => import('ui/fixTickets/FixBountyPage'));
 const ToolCheckoutsPage = lazyRoute(() => import(/* webpackChunkName: "admin-tool-checkouts", webpackPrefetch: true */ 'ui/toolCheckouts/ToolCheckoutsPage'));
 const ReservationsPage = lazyRoute(() => import(/* webpackChunkName: "member-reservations", webpackPrefetch: true */ 'ui/reservations/ReservationsPage'));
 const WorkshopsPage = lazyRoute(() => import(/* webpackChunkName: "member-workshops", webpackPrefetch: true */ 'ui/workshops/WorkshopsPage'));
@@ -90,6 +92,9 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />
       <Route path={Routing.Reservations} element={<ReservationsPage />} />
       <Route path="/tools/:id/request-checkout" element={<CheckoutRequestPage />} />
+      <Route path="/fix-tickets" element={<FixTicketsPage />} />
+      <Route path="/fix-tickets/:id" element={<FixTicketsPage />} />
+      <Route path="/volunteer/tasks/:id" element={<FixBountyPage />} />
       <Route path={Routing.Workshops} element={<WorkshopsPage />} />
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}

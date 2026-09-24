@@ -1,4 +1,5 @@
 // @ts-nocheck
+import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -47,7 +48,7 @@ interface RequestModalProps {
   error: string;
 }
 
-const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, loading, error }) => {
+export const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, loading, error }) => {
   const [note, setNote] = React.useState("");
   React.useEffect(() => { setNote(""); }, [target?.id]);
 
@@ -59,6 +60,7 @@ const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onSave, lo
         <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
             <Typography><strong>{target.name}</strong> in <strong>{target.shopName}</strong></Typography>
+            <ToolAvailability outOfService={target.outOfService} />
             {target.prerequisiteNames?.length > 0 && (
               <Typography variant="caption" color="textSecondary">
                 Prerequisites: {target.prerequisiteNames.join(", ")}
@@ -159,7 +161,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "toolName", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.toolName}</strong></Typography>
+          <Typography variant="body2"><strong>{row.toolName}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
           {!canManage && <RequestorAnnotationTooltip annotation={row.requestorAnnotation} />}
         </div>
@@ -186,7 +188,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "name", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.name}</strong></Typography>
+          <Typography variant="body2"><strong>{row.name}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
         </div>
       ),

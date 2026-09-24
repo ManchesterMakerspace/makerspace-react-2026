@@ -1,9 +1,12 @@
+import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import { useCapabilities } from "app/permissions";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
+import ShopOutageAction from './ShopOutageAction';
+import ToolOutageAction from 'ui/fixTickets/ToolOutageAction';
 import { Link } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -242,6 +245,9 @@ const WorkshopTools: React.FC<{
                 <strong>{tool.name}</strong>
               </a>{" "}
               {tool.open && <Chip size="small" label="No checkout required" />}
+              <ToolAvailability outOfService={tool.outOfService} />
+              {workshop.isShopManager && !tool.outOfService && <Chip size="small" label="Tool in service" variant="outlined" />}
+              <Button href={`/fix-tickets?new=true&shop_id=${workshop.id}&tool_id=${tool.id}`}>Report a problem</Button>
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
               {tool.prerequisiteNames.length > 0 &&
@@ -284,6 +290,7 @@ const WorkshopTools: React.FC<{
               alignItems: "flex-start",
               flexWrap: "wrap"
             }}>
+              {workshop.isShopManager && <ToolOutageAction tool={tool} onSaved={onRefresh} />}
               {tool.gdriveId &&
                 <Button size="small" variant="outlined"
                   href={`https://drive.google.com/drive/folders/${encodeURIComponent(tool.gdriveId)}`}
@@ -407,7 +414,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
             <Grid container justifyContent="space-between" alignItems="center">
               <Grid>
                 <strong>{row.reservation.title}</strong>{" "}
-                <Chip size="small" label={row.reservation.status} />
+                <Chip size="small" label={row.reservation.status} /><ToolAvailability outOfService={!!row.reservation.outOfServiceToolNames?.length} />
                 <Typography variant="body2">
                   {moment(row.reservation.startAt).tz(ZONE).format("HH:mm")}–
                   {moment(row.reservation.endAt).tz(ZONE).format("HH:mm")} ·{" "}
@@ -490,7 +497,7 @@ const WorkshopVolunteer: React.FC<{
         }}>
           <Grid container justifyContent="space-between" alignItems="center">
             <Grid size={{ xs: 12, md: 9 }}>
-              <strong>#{task.taskNumber} — {task.title}</strong>{" "}
+              <strong>#{task.taskNumber} — {task.title}</strong>{task.ticketId && <Button href={`/fix-tickets/${task.ticketId}`}>View source ticket</Button>}{" "}
               <Chip size="small" label={`${task.creditValue} credits`} />
               <Typography variant="body2">{task.description}</Typography>
               {task.prerequisiteToolNames.length > 0 &&
@@ -626,7 +633,7 @@ const WorkshopsPage: React.FC = () => {
             onChange={event => { setSelectedId(event.target.value); setTab("details"); }}>
             {data.workshops.map(shop => (
               <MenuItem key={shop.id} value={shop.id}>
-                {shop.name}{shop.disabled ? " (disabled)" : ""}
+                {shop.name}{shop.outOfService ? " (out of service)" : ""}{shop.disabled ? " (disabled)" : ""}
               </MenuItem>
             ))}
           </Select>
@@ -635,6 +642,10 @@ const WorkshopsPage: React.FC = () => {
 
       {workshop && <Grid size={{ xs: 12, md: 10 }}>
         <Paper style={{ padding: 18, position: "relative" }}>
+          {workshop.isShopManager && !workshop.outOfService && <Chip label="Shop in service" variant="outlined" sx={{ mb: 2 }} />}
+          {workshop.outOfService && <Alert severity="warning" sx={{ mb: 2, overflowWrap: 'anywhere', whiteSpace: 'pre-wrap' }}>
+            Shop out of service. New shop and tool reservations are blocked. {workshop.outOfServiceNote}
+          </Alert>}
           {loading && <CircularProgress size={20}
             style={{ position: "absolute", right: 18, top: 18 }} />}
           <Tabs value={tab} onChange={(_, value) => setTab(value)}
@@ -651,6 +662,7 @@ const WorkshopsPage: React.FC = () => {
           <div style={{ marginTop: 18 }}>
             {tab === "details" && <>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
               {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
                 onClick={() => setEditOpen(true)}>
                 Edit

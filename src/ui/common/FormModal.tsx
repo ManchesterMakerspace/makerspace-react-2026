@@ -13,6 +13,7 @@ interface FormModalProps {
   cancelText?: string;
   onSubmit?: (form: Form) => void;
   submitText?: string;
+  submitDisabled?: boolean;
   loading?: boolean;
   children?: React.ReactNode;
   error?: string;
@@ -48,6 +49,7 @@ const FormModal = (props: FormModalProps) => {
         loading={loading}
         onSubmit={onSubmit}
         submitText={submitText}
+        submitDisabled={props.submitDisabled}
         error={error}
         style={style}
       >

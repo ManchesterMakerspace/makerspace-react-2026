@@ -1,6 +1,9 @@
 // @ts-nocheck
+import ToolAvailability from "ui/common/ToolAvailability";
+import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
+import { duplicateToolName, wouldCreatePrerequisiteLoop } from "./toolValidation";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -38,39 +41,7 @@ import ReservationSettingsFields, { ReservationSettingsValue } from "./Reservati
 
 const rowId = (t: Tool) => t.id;
 
-const normalizedName = (value: string) => value.trim().toLowerCase();
 const normalizedChannel = (value: string) => value.replace(/^#+/, "");
-
-const duplicateToolName = (tools: Tool[], name: string, shopId: string, excludeId?: string) => {
-  const target = normalizedName(name);
-  return !!target && tools.some(t =>
-    t.shopId === shopId && t.id !== excludeId && normalizedName(t.name) === target
-  );
-};
-
-const wouldCreatePrerequisiteLoop = (
-  tools: Tool[],
-  toolId: string | undefined,
-  prerequisiteIds: string[]
-) => {
-  if (!toolId) return false;
-
-  const byId = new Map(tools.map(t => [t.id, t]));
-  const stack = [...prerequisiteIds];
-  const visited = new Set<string>();
-
-  while (stack.length) {
-    const currentId = stack.pop();
-    if (!currentId || visited.has(currentId)) continue;
-    if (currentId === toolId) return true;
-
-    visited.add(currentId);
-    const currentTool = byId.get(currentId);
-    currentTool?.prerequisiteIds?.forEach(id => stack.push(id));
-  }
-
-  return false;
-};
 
 // ── AddToolModal ──────────────────────────────────────────────────────────────
 
@@ -83,7 +54,7 @@ interface AddToolModalProps {
   error: string;
 }
 
-const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
+export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -530,7 +501,7 @@ const ToolManager: React.FC = () => {
       id: "settings", label: "Settings",
       cell: (row: Tool) => editingId === row.id ? null : (
         <span>
-          {row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
+          <ToolAvailability outOfService={row.outOfService} />{managedShopIds.has(row.shopId) && <ToolOutageAction tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />}{row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
           {row.reservable ? `, reservable (${row.maxConcurrentReservations || 1} concurrent)` : ", not reservable"}
         </span>
       ),
