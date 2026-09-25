@@ -13,6 +13,8 @@ interface Props<Args, Data> {
   placeholder: string;
   fieldname: string;
   mapOption: (resource: Data) => SelectOption;
+  // Optional client-side reorder of the fetched list (e.g. active before hidden).
+  sortOptions?: (resources: Data[]) => Data[];
   onChange?: (value: string) => void;
   getFormRef?: () => Form;
 }
@@ -24,6 +26,7 @@ const OptionsList: React.FC<Props<unknown, unknown>> = ({
   args,
   apiFunction,
   mapOption,
+  sortOptions,
   onChange,
   getFormRef
 }) => {
@@ -38,7 +41,8 @@ const OptionsList: React.FC<Props<unknown, unknown>> = ({
     onChange && onChange(value);
   };
 
-  const { isRequesting, error, data = [] } = useReadTransaction(apiFunction, args);
+  const { isRequesting, error, data: fetched = [] } = useReadTransaction(apiFunction, args);
+  const data = React.useMemo(() => (sortOptions ? sortOptions(fetched) : fetched), [fetched, sortOptions]);
 
   return (
     <Select

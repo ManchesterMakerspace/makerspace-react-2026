@@ -24,6 +24,7 @@ import { fields } from "ui/invoice/constants";
 import { toDatePicker } from "ui/utils/timeToDate";
 import MemberSearchInput from "../common/MemberSearchInput";
 import OptionsList from "../common/OptionsList";
+import { adminInvoiceOptionLabel, sortEnabledFirst } from "ui/utils/adminInvoiceOptions";
 
 interface OwnProps {
   memberId: string;
@@ -191,10 +192,11 @@ export class InvoiceForm extends React.Component<Props, State> {
               placeholder={fields.id.placeholder}
               apiFunction={listInvoiceOptions}
               args={{ types: [this.state.invoiceType] }}
+              sortOptions={sortEnabledFirst}
               mapOption={invoice => ({
                 id: `${fields.id.name}-option-${invoice.id}`,
                 value: invoice.id,
-                label: invoice.name
+                label: adminInvoiceOptionLabel(invoice)
               })}
             />
           </Grid>
