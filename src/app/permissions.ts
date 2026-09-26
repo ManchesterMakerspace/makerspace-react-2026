@@ -13,6 +13,8 @@ import { AuthMember } from 'ui/auth/interfaces';
  * Zero component changes needed.
  */
 export interface UserCapabilities {
+  canScanNfc: boolean;
+  canManageNfcCards: boolean;
   // Member management
   canViewAllMembers:           boolean; // admin, board, rm
   canEditMembers:              boolean; // admin, board
@@ -60,6 +62,8 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
   const privileged = admin || board;
 
   return {
+    canScanNfc: !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
+    canManageNfcCards: privileged && !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
     canViewAllMembers:           privileged || rm,
     canEditMembers:              privileged,
     canCreateMembers:            privileged,

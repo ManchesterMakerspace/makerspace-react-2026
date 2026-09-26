@@ -128,6 +128,7 @@ module.exports = env => ({
     new webpack.EnvironmentPlugin({
       BILLING_ENABLED: true,
       BASE_URL: (env && env.BASE_URL) || "",
+      NATIVE_API_ORIGIN: "",
       // Build-time public contact address; defaults to the Makerspace inbox.
       SMTP_FROM: "contact@manchestermakerspace.org",
       FIREBASE_API_KEY: "",

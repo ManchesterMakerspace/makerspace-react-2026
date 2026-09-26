@@ -26,6 +26,9 @@ import { AuthMember } from "ui/auth/interfaces";
 import { memberIsAdmin, memberIsBoardMember, memberIsResourceManager } from "ui/member/utils";
 import { Routing, Whitelists } from "app/constants";
 import Help from "ui/common/Help";
+import ScanNfc, { NfcController } from 'ui/nfc/ScanNfc';
+import NfcIcon from '@mui/icons-material/Nfc';
+import { computeCapabilities } from 'app/permissions';
 
 const logoUrl = "/assets/FilledLaserableLogo.svg";
 
@@ -90,6 +93,7 @@ const roleBadge = (currentUser: AuthMember): JSX.Element | null => {
 };
 
 class Header extends React.Component<Props, State> {
+  private nfcScanner = React.createRef<NfcController>();
 
   constructor(props: Props) {
     super(props);
@@ -214,6 +218,9 @@ class Header extends React.Component<Props, State> {
           {/* Member section */}
           {this.renderMenuNavLink(settingsUrl, "Account Settings", "settings")}
           {this.renderMenuNavLink(profileUrl, "My Profile", "profile")}
+          {computeCapabilities(currentUser).canScanNfc && <MenuItem onClick={() => { this.detachMenu(); this.nfcScanner.current?.start(); }} sx={{ gap: 1 }}>
+            <NfcIcon fontSize="small" />SCAN NFC
+          </MenuItem>}
           {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/payment-methods`, "Payment Methods", "settings-submenu-payment-methods", <AddCardIcon fontSize="small" />)}
 
           {/* Privileged section */}
@@ -231,6 +238,7 @@ class Header extends React.Component<Props, State> {
             Logout
           </MenuItem>
         </Menu>
+        <ScanNfc ref={this.nfcScanner} hiddenTrigger />
       </>
     );
   }
