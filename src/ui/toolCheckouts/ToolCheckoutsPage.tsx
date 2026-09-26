@@ -9,13 +9,14 @@ import { CheckoutCatalogProvider } from "./CheckoutCatalog";
 import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
+import ShopMapManager from "./ShopMapManager";
 import CheckoutApproversManager from "./CheckoutApproversManager";
 import ToolCheckoutRequestsManager from "./ToolCheckoutRequestsManager";
 import { useAuthState } from "ui/reducer/hooks";
 import { memberIsResourceManager } from "ui/member/utils";
 import { useCapabilities } from "app/permissions";
 
-type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "approvers";
+type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "map" | "approvers";
 
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
@@ -45,13 +46,14 @@ const ToolCheckoutsPage: React.FC = () => {
     { key: "roster", label: "Checkout Roster", adminOnly: true },
     { key: "shops", label: "Shops", adminOnly: true },
     { key: "tools", label: "Tools", adminOnly: true },
+    { key: "map", label: "Map", adminOnly: true },
     { key: "approvers", label: "Approvers", adminOnly: true },
   ];
 
   const visibleTabs = tabs.filter(t => {
     if (!t.adminOnly) return true;
     if (t.key === "approvers") return caps.canManageCheckoutApprovers;
-    if (t.key === "shops") return caps.canViewShopQrCodes;
+    if (t.key === "shops" || t.key === "map") return caps.canViewShopQrCodes;
     // Tools tab also needs to reach a plain (non-shop-manager) checkout
     // approver so they can set a tool's notes -- see #189.
     if (t.key === "tools") return managesShops || caps.canManageCheckoutApprovers || caps.canManageCheckouts;
@@ -90,6 +92,7 @@ const ToolCheckoutsPage: React.FC = () => {
         {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={managesShops} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}
+        {activeTab === "map" && <ShopMapManager />}
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>
     </Grid>

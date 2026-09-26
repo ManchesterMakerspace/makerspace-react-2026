@@ -8,6 +8,7 @@ export interface DurationFee {
 export interface Shop {
   requestorAnnotation?: string | null;
   id: string;
+  floorName?: string;
   name: string;
   wikiUrl: string;
   wikiUrlOverride?: string;
@@ -36,6 +37,18 @@ export interface Shop {
 export interface ShopResourceManager {
   id: string;
   name: string;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  kind?: string;
+  parentId?: string;
+  shopId: string;
+  svgElementId?: string;
+  xPct?: number;
+  yPct?: number;
+  shapePoints?: { x: number; y: number }[];
 }
 
 export interface GoogleCalendarColor {
