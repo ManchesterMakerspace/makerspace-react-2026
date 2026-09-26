@@ -32,16 +32,43 @@ import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
+import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
   adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
+import { adminListLocations } from "api/locations";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 
 const rowId = (t: Tool) => t.id;
 
 const normalizedChannel = (value: string) => value.replace(/^#+/, "");
+
+// ── ToolLocationField ─────────────────────────────────────────────────────────
+// Scoped to whichever shop is currently selected -- a location belongs to
+// exactly one shop (see Location#shop_id), so the choices here always
+// change together with the shop picker, same as prerequisites already do.
+
+const ToolLocationField: React.FC<{
+  shopId: string;
+  value: string;
+  onChange: (locationId: string) => void;
+}> = ({ shopId, value, onChange }) => {
+  const { data: locations = [] } = useReadTransaction(
+    adminListLocations, { shopId }, !shopId, `admin-locations-${shopId}`, true
+  );
+  if (!shopId) return null;
+  return (
+    <>
+      <FormLabel style={{ fontSize: 12 }}>Location</FormLabel>
+      <Select native fullWidth value={value} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
+        <option value="">— no location —</option>
+        {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+      </Select>
+    </>
+  );
+};
 
 // ── AddToolModal ──────────────────────────────────────────────────────────────
 
@@ -62,6 +89,7 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
   const [requestorAnnotation, setRequestorAnnotation] = React.useState("");
   const [shopId, setShopId] = React.useState(shops[0]?.id || "");
   const [open, setOpen] = React.useState(false);
+  const [locationId, setLocationId] = React.useState("");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
   const [disabled, setDisabled] = React.useState(false);
   const [announce, setAnnounce] = React.useState(false);
@@ -88,7 +116,7 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, requestorAnnotation: requestorAnnotation.trim() || null, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, requestorAnnotation: requestorAnnotation.trim() || null, shopId, locationId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
   };
 
   return (
@@ -101,10 +129,13 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
         <Grid size={{ xs: 12 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
           <Select native fullWidth value={shopId}
-            onChange={e => { setShopId((e.target as HTMLSelectElement).value); setPrerequisiteIds([]); }}>
+            onChange={e => { setShopId((e.target as HTMLSelectElement).value); setPrerequisiteIds([]); setLocationId(""); }}>
             <option value="">— select shop —</option>
             {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <ToolLocationField shopId={shopId} value={locationId} onChange={setLocationId} />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth required label="Tool Name" placeholder="e.g. Bandsaw"
@@ -190,6 +221,7 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
   const [description, setDescription] = React.useState(tool.description || "");
   const [open, setOpen] = React.useState(!!tool.open);
   const [shopId, setShopId] = React.useState(tool.shopId);
+  const [locationId, setLocationId] = React.useState(tool.locationId || "");
   const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
   const [disabled, setDisabled] = React.useState(!!tool.disabled);
   const [announce, setAnnounce] = React.useState(!!tool.announce);
@@ -235,6 +267,7 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
   const changeShop = (nextShopId: string) => {
     setShopId(nextShopId);
     setPrerequisiteIds([]);
+    setLocationId("");
     setLocalError("");
   };
 
@@ -255,7 +288,7 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
     setLocalError("");
     onSave(
       tool.id,
-      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
+      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, locationId, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
       notes !== (tool.notes || "") ? notes : undefined
     );
   };
@@ -277,6 +310,9 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
           onChange={e => changeShop((e.target as HTMLSelectElement).value)}>
           {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <ToolLocationField shopId={shopId} value={locationId} onChange={setLocationId} />
       </div>
       <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
         placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
@@ -488,6 +524,12 @@ const ToolManager: React.FC = () => {
       id: "shopName", label: "Shop",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Tool) => editingId === row.id ? null : <span>{row.shopName}</span>,
+    },
+    {
+      id: "locationName", label: "Location",
+      cell: (row: Tool) => editingId === row.id ? null : (
+        <span style={{ color: row.locationName ? "inherit" : "#aaa" }}>{row.locationName || "—"}</span>
+      ),
     },
     {
       id: "prerequisites", label: "Prerequisites",

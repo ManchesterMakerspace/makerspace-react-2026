@@ -78,6 +78,8 @@ export interface Tool {
   usersChannel?: string;
   shopId: string;
   shopName: string;
+  locationId?: string;
+  locationName?: string;
   prerequisiteIds: string[];
   prerequisiteNames: string[];
   unmetPrerequisiteIds?: string[];

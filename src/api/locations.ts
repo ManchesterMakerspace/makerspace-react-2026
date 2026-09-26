@@ -35,8 +35,10 @@ const buildResponse = async <T>(request: Promise<any>): Promise<ApiDataResponse<
   }
 };
 
-export const adminListLocations = ({ shopId }: { shopId: string }) =>
-  buildResponse<Location[]>(api.get("/api/admin/locations", { params: { shop_id: shopId } }));
+export const adminListLocations = (params: { shopId: string } | { shopIds: string[] }) =>
+  buildResponse<Location[]>(api.get("/api/admin/locations", {
+    params: "shopIds" in params ? { shop_ids: params.shopIds } : { shop_id: params.shopId },
+  }));
 
 export const adminCreateLocation = ({ body }: { body: Partial<Location> }) =>
   buildResponse<Location>(api.post("/api/admin/locations", {

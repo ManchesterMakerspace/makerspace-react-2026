@@ -11,8 +11,10 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import { Location } from "app/entities/toolCheckout";
+import { Location, Shop } from "app/entities/toolCheckout";
 import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from "api/locations";
+import { listGoogleCalendarColors } from "api/toolCheckouts";
+import { FALLBACK_COLORS } from "./ShopColorField";
 
 // One SVG per building floor, shared by every shop on that floor (a real
 // floor plan covers multiple rooms/shops at once, not one shop in
@@ -31,17 +33,21 @@ interface PendingPlacement {
 
 const LocationFormModal: React.FC<{
   initialName: string;
+  shops?: Shop[];
+  initialShopId?: string;
   onClose: () => void;
-  onSave: (name: string) => void;
+  onSave: (name: string, shopId?: string) => void;
   onDelete?: () => void;
+  onRedraw?: () => void;
   loading: boolean;
   error: string;
-}> = ({ initialName, onClose, onSave, onDelete, loading, error }) => {
+}> = ({ initialName, shops, initialShopId, onClose, onSave, onDelete, onRedraw, loading, error }) => {
   const [name, setName] = React.useState(initialName);
+  const [shopId, setShopId] = React.useState(initialShopId || "");
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onSave(trimmed);
+    onSave(trimmed, shops ? shopId : undefined);
   };
   return (
     <FormModal id="location-form" isOpen={true} title={initialName ? "Edit location" : "Name this location"}
@@ -52,6 +58,18 @@ const LocationFormModal: React.FC<{
           <TextField fullWidth required label="Name" placeholder="e.g. Drill bit bin"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
+        {shops && (
+          <Grid size={{ xs: 12 }}>
+            <Select native fullWidth value={shopId} onChange={e => setShopId((e.target as HTMLSelectElement).value)}>
+              {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </Select>
+          </Grid>
+        )}
+        {onRedraw && (
+          <Grid size={{ xs: 12 }}>
+            <Button onClick={onRedraw}>Redraw / reposition</Button>
+          </Grid>
+        )}
         {onDelete && (
           <Grid size={{ xs: 12 }}>
             <Button color="error" onClick={onDelete}>Delete this location</Button>
@@ -70,16 +88,35 @@ const ShopMapManager: React.FC = () => {
   const [editing, setEditing] = React.useState<Location | null>(null);
   const [drawing, setDrawing] = React.useState(false);
   const [drawPoints, setDrawPoints] = React.useState<{ x: number; y: number }[]>([]);
+  const [redrawing, setRedrawing] = React.useState<{ id: string; isPin: boolean } | null>(null);
+  const [shopColors, setShopColors] = React.useState<Record<string, string>>({});
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   const selectedShop = shops.find(s => s.id === shopId);
   const floorName = selectedShop?.floorName;
+  // Every shop sharing this floor, not just the selected one -- so a newly
+  // drawn shape can be checked against neighbors already placed there.
+  const floorShopIds = shops.filter(s => s.floorName === floorName).map(s => s.id);
 
-  const { data: locations = [], refresh, error: loadError } =
-    useReadTransaction(adminListLocations, { shopId }, !shopId, `admin-locations-${shopId}`, true);
+  React.useEffect(() => {
+    let active = true;
+    listGoogleCalendarColors().then(result => {
+      if (!active) return;
+      const list = result.data?.colors || FALLBACK_COLORS;
+      setShopColors(Object.fromEntries(list.map(c => [c.id, c.backgroundColor])));
+    });
+    return () => { active = false; };
+  }, []);
+
+  const { data: allLocations = [], refresh, error: loadError } = useReadTransaction(
+    adminListLocations, { shopIds: floorShopIds }, !floorShopIds.length,
+    `admin-locations-floor-${floorName}`, true
+  );
+  const activeLocations = allLocations.filter(l => l.shopId === shopId);
+  const otherLocations = allLocations.filter(l => l.shopId !== shopId);
 
   const create = useWriteTransaction(adminCreateLocation, () => { refresh(); setPending(null); });
-  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); });
+  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); });
   const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); });
 
   React.useEffect(() => {
@@ -94,29 +131,6 @@ const ShopMapManager: React.FC = () => {
     return () => { cancelled = true; };
   }, [floorName]);
 
-  // The injected SVG's own intrinsic size (often specified in mm, e.g. from
-  // an Inkscape export) has no relation to this wrapper's rendered box --
-  // without forcing it to fill the wrapper exactly, it can render wider than
-  // the wrapper (visually overflowing, since overflow isn't clipped) while
-  // still being clickable there, so a click on that overflow computes a
-  // percentage relative to the wrapper's smaller width and comes out over
-  // 100%. Every other calculation here (click math, clip-path overlays)
-  // assumes the visible map exactly fills the wrapper, so this keeps that
-  // assumption true regardless of the source SVG's own units.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !svgMarkup) return;
-    const svgRoot = wrapper.querySelector("svg") as unknown as SVGElement | null;
-    if (svgRoot) {
-      // CSS (not the width/height attributes) so the SVG's own viewBox
-      // aspect ratio drives height -- forcing height to a fixed value here
-      // would fight the wrapper, whose own height is itself derived from
-      // this SVG's rendered size (no explicit height is set on it).
-      svgRoot.style.width = "100%";
-      svgRoot.style.height = "auto";
-      svgRoot.style.display = "block";
-    }
-  }, [svgMarkup]);
 
   // Switching shops changes what the map/locations mean -- drop any
   // in-progress drawing or open form rather than letting it apply to the
@@ -126,6 +140,7 @@ const ShopMapManager: React.FC = () => {
     setDrawPoints([]);
     setPending(null);
     setEditing(null);
+    setRedrawing(null);
   }, [shopId]);
 
   // Re-applies highlights/pins whenever the map or the location list changes
@@ -136,11 +151,56 @@ const ShopMapManager: React.FC = () => {
     if (!wrapper) return;
     wrapper.querySelectorAll("[data-location-pin]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-shape]").forEach(el => el.remove());
+    wrapper.querySelectorAll("[data-other-shop-location]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-highlighted]").forEach(el => {
       el.removeAttribute("data-location-highlighted");
       (el as unknown as SVGElement).style.outline = "";
     });
-    locations.forEach(location => {
+
+    // Reference layer: every OTHER shop's already-placed locations on this
+    // same floor, tinted with that shop's own color and non-interactive, so
+    // drawing a new shape can't accidentally overlap one without it being
+    // visible while drawing.
+    otherLocations.forEach(location => {
+      const ownerShop = shops.find(s => s.id === location.shopId);
+      const color = (ownerShop?.colorId && shopColors[ownerShop.colorId]) || "#888888";
+      const label = `${ownerShop?.name || "Another shop"}: ${location.name}`;
+      if (location.shapePoints && location.shapePoints.length >= 3) {
+        const shape = document.createElement("div");
+        shape.setAttribute("data-other-shop-location", location.id);
+        shape.title = label;
+        Object.assign(shape.style, {
+          position: "absolute",
+          inset: "0",
+          clipPath: `polygon(${location.shapePoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
+          background: color,
+          opacity: "0.18",
+          pointerEvents: "none",
+        });
+        wrapper.appendChild(shape);
+        return;
+      }
+      if (location.xPct != null && location.yPct != null) {
+        const dot = document.createElement("div");
+        dot.setAttribute("data-other-shop-location", location.id);
+        dot.title = label;
+        Object.assign(dot.style, {
+          position: "absolute",
+          left: `${location.xPct}%`,
+          top: `${location.yPct}%`,
+          transform: "translate(-50%, -100%)",
+          width: "14px",
+          height: "14px",
+          borderRadius: "50% 50% 50% 0",
+          background: color,
+          opacity: "0.5",
+          pointerEvents: "none",
+        });
+        wrapper.appendChild(dot);
+      }
+    });
+
+    activeLocations.forEach(location => {
       if (location.svgElementId) {
         const target = wrapper.querySelector(`#${CSS.escape(location.svgElementId)}`) as SVGElement | null;
         if (target) {
@@ -190,7 +250,7 @@ const ShopMapManager: React.FC = () => {
         wrapper.appendChild(pin);
       }
     });
-  }, [svgMarkup, locations]);
+  }, [svgMarkup, activeLocations, otherLocations, shops, shopColors]);
 
   // Live feedback for an in-progress "draw shop area" click sequence --
   // separate from the effect above since it re-runs on every vertex placed,
@@ -261,7 +321,7 @@ const ShopMapManager: React.FC = () => {
 
     const highlighted = target.closest("[data-location-highlighted]");
     if (highlighted) {
-      const existing = locations.find(l => l.svgElementId === highlighted.id);
+      const existing = activeLocations.find(l => l.svgElementId === highlighted.id);
       if (existing) { setEditing(existing); return; }
     }
 
@@ -274,11 +334,20 @@ const ShopMapManager: React.FC = () => {
       return;
     }
 
+    if (redrawing?.isPin) {
+      update.call({ id: redrawing.id, body: { xPct, yPct } });
+      return;
+    }
+
     setPending({ xPct, yPct });
   };
 
   const finishShape = () => {
-    setPending({ shapePoints: drawPoints });
+    if (redrawing) {
+      update.call({ id: redrawing.id, body: { shapePoints: drawPoints } });
+    } else {
+      setPending({ shapePoints: drawPoints });
+    }
     setDrawPoints([]);
     setDrawing(false);
   };
@@ -286,6 +355,14 @@ const ShopMapManager: React.FC = () => {
   const cancelDrawing = () => {
     setDrawing(false);
     setDrawPoints([]);
+    setRedrawing(null);
+  };
+
+  const startRedraw = (location: Location) => {
+    const isPin = location.xPct != null && location.yPct != null;
+    setRedrawing({ id: location.id, isPin });
+    setEditing(null);
+    if (!isPin) { setDrawing(true); setDrawPoints([]); }
   };
 
   return (
@@ -309,14 +386,21 @@ const ShopMapManager: React.FC = () => {
           {drawing && (
             <Alert severity="info" sx={{ mb: 1 }}>
               {drawPoints.length === 0
-                ? "Click on the map to place the first point of the shop's boundary."
+                ? `Click on the map to place the first point of ${redrawing ? "the new outline" : "the shop's boundary"}.`
                 : drawPoints.length < 3
                   ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking to add more (at least 3 needed to close a shape).`
                   : `${drawPoints.length} points placed -- the dashed line previews where the shape will close. Click "Finish shape" when the outline looks right, or keep adding points.`}
             </Alert>
           )}
+          {redrawing?.isPin && (
+            <Alert severity="info" sx={{ mb: 1 }} action={
+              <Button size="small" onClick={() => setRedrawing(null)}>Cancel</Button>
+            }>
+              Click anywhere on the map to move this location.
+            </Alert>
+          )}
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-            {!drawing && (
+            {!drawing && !redrawing && (
               <Button variant="outlined" onClick={() => setDrawing(true)}>Draw shop area</Button>
             )}
             {drawing && (
@@ -328,8 +412,19 @@ const ShopMapManager: React.FC = () => {
               </>
             )}
           </div>
+          {/* A CSS rule, not an imperative style on the injected <svg> --
+              something (never fully root-caused; flagged for the broader
+              debug pass) keeps clearing a JS-applied inline style on that
+              node, but a stylesheet rule isn't an attribute of the node
+              itself, so nothing can reset it out from under us. Forces the
+              SVG's own intrinsic size (often mm units from an Inkscape
+              export) to exactly fill the wrapper -- every click/overlay
+              calculation here assumes the visible map exactly matches the
+              wrapper's box, regardless of the source file's own units. */}
+          <style>{"[data-map-wrapper] > svg { width: 100% !important; height: auto !important; display: block !important; }"}</style>
           <div
             ref={wrapperRef}
+            data-map-wrapper
             onClick={handleMapClick}
             style={{ position: "relative", border: "1px solid #ccc", cursor: "crosshair", maxWidth: 600 }}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
@@ -348,9 +443,16 @@ const ShopMapManager: React.FC = () => {
       {editing && (
         <LocationFormModal
           initialName={editing.name}
+          shops={shops}
+          initialShopId={editing.shopId}
           onClose={() => setEditing(null)}
-          onSave={name => update.call({ id: editing.id, body: { name } })}
+          onSave={(name, newShopId) => update.call({ id: editing.id, body: { name, shopId: newShopId } })}
           onDelete={() => remove.call({ id: editing.id })}
+          onRedraw={
+            (editing.shapePoints?.length || (editing.xPct != null && editing.yPct != null))
+              ? () => startRedraw(editing)
+              : undefined
+          }
           loading={update.isRequesting || remove.isRequesting}
           error={update.error || remove.error}
         />
