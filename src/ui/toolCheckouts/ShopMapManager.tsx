@@ -420,8 +420,15 @@ const ShopMapManager: React.FC = () => {
               SVG's own intrinsic size (often mm units from an Inkscape
               export) to exactly fill the wrapper -- every click/overlay
               calculation here assumes the visible map exactly matches the
-              wrapper's box, regardless of the source file's own units. */}
-          <style>{"[data-map-wrapper] > svg { width: 100% !important; height: auto !important; display: block !important; }"}</style>
+              wrapper's box, regardless of the source file's own units.
+              Excludes the live-draw preview overlay (:not([data-draw-preview]))
+              -- that one is a plain 0-100 square viewBox by design, and
+              forcing height:auto on it (deriving from its square intrinsic
+              ratio) squished it into a non-matching square, offsetting the
+              in-progress polyline/dashed-line from the correctly-positioned
+              dots. It already sets its own width/height:100% inline, which
+              this rule would otherwise stomp via !important. */}
+          <style>{"[data-map-wrapper] > svg:not([data-draw-preview]) { width: 100% !important; height: auto !important; display: block !important; }"}</style>
           <div
             ref={wrapperRef}
             data-map-wrapper
