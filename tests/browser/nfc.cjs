@@ -41,6 +41,8 @@ const server = http.createServer((request, response) => {
       const page = await context.newPage();
       let role = 'member', lookups = 0, releases = 0, memberReads = 0;
       const errors = []; page.on('pageerror', error => errors.push(error.message));
+      const fontRequests = [];
+      page.on('request', request => { if (/fonts\.(googleapis|gstatic)\.com/.test(request.url())) fontRequests.push(request.url()); });
       await page.addInitScript(() => {
         window.NDEFReader = class { constructor() { window.testNfcReader = this; } async scan() {} };
         window.presentTag = (uid, urls = []) => window.testNfcReader.onreading({ serialNumber: uid, message: {
@@ -61,6 +63,9 @@ const server = http.createServer((request, response) => {
         await route.fulfill({ status, contentType: 'application/json', body: status === 204 ? '' : JSON.stringify(body) });
       });
       await page.goto(`${origin}/workshops`);
+      await page.locator('footer a svg').first().waitFor();
+      assert.equal(await page.locator('footer a svg').count(), await page.locator('footer a').count());
+      assert(await page.locator('footer').evaluate(el => el.scrollWidth <= el.clientWidth + 1));
       await page.getByRole('button', { name: 'Menu', exact: true }).click();
       await page.getByRole('menuitem', { name: 'SCAN NFC' }).click();
       await page.evaluate(() => window.presentTag('1b:1a:4d:2f', ['https://example.org/a/very/long/path?value=abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz']));
@@ -83,6 +88,7 @@ const server = http.createServer((request, response) => {
       await page.getByRole('button', { name: 'RELEASE CARD', exact: true }).click();
       await page.getByText('Released, reusable', { exact: true }).waitFor();
       assert.equal(releases, 1); assert.equal(lookups, 1); assert.deepEqual(errors, []);
+      assert.deepEqual(fontRequests, []);
       await page.keyboard.press('Escape');
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       const cacheKeys = await page.evaluate(async () => {
@@ -91,6 +97,39 @@ const server = http.createServer((request, response) => {
       });
       assert(cacheKeys.flat().every(path => ['/offline.html', '/pwa-icon.png'].includes(path)));
       await context.close(); console.log(`PASS NFC member/admin flows and layout at ${width}px`);
+    }
+    // Simulate the native platform for real iframe rendering. Bridge HTTP is
+    // independently exercised by nativeTransport.spec.ts; no device is implied.
+    for (const width of [320, 600, 900, 1280]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 } });
+      const page = await context.newPage();
+      const frameRequests = [];
+      await page.addInitScript(() => { window.androidBridge = {}; });
+      await page.route('**/api/**', async route => {
+        const pathname = new URL(route.request().url()).pathname;
+        let body = {};
+        if (pathname === '/api/members/sign_in') body = { id: 'operator', firstname: 'Native', lastname: 'Tester', role: 'member', status: 'activeMember', expirationTime: Date.now() + 86400000 };
+        else if (pathname.endsWith('/permissions')) body = { billing: true };
+        else if (pathname === '/api/billing/receipts/invoice1') {
+          frameRequests.push(route.request().resourceType());
+          return route.fulfill({ contentType: 'text/html', body: '<html><body style="font-family:Arial;min-height:420px"><h2>Receipt loaded through session transport</h2><p>Membership payment: $75.00</p><a href="details">Details</a><script>parent.untrustedFrameScriptRan=true</script></body></html>' });
+        }
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      });
+      await page.goto(`${origin}/checkout/receipt/invoice1`);
+      await page.frameLocator('#receipt-container').getByText('Membership payment: $75.00').waitFor();
+      assert.deepEqual(frameRequests, ['fetch']);
+      const frame = page.locator('#receipt-container');
+      assert.equal(await frame.getAttribute('src'), null);
+      assert(await frame.evaluate(el => el.getBoundingClientRect().height >= 420));
+      assert.equal(await page.evaluate(() => window.untrustedFrameScriptRan), undefined);
+      assert(await page.frameLocator('#receipt-container').getByRole('link', { name: 'Details' }).evaluate(el => el.href.endsWith('/api/billing/receipts/details')));
+      await page.evaluate(() => { window.frames['receipt-container'].print = () => { window.receiptPrinted = true; }; });
+      await page.getByRole('button', { name: 'Print Receipt' }).click();
+      assert.equal(await page.evaluate(() => window.receiptPrinted), true);
+      assert(await page.locator('footer').evaluate(el => el.scrollWidth <= el.clientWidth + 1));
+      await page.screenshot({ path: path.join(root, `tmp/nfc-browser/native-receipt-${width}.png`), fullPage: true });
+      await context.close(); console.log(`PASS native HTML frame, sizing and print access at ${width}px`);
     }
   } finally { await browser.close(); server.close(); }
 })().catch(error => { console.error(error); server.close(); process.exitCode = 1; });

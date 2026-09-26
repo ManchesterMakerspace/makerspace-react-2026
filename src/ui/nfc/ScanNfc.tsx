@@ -41,14 +41,6 @@ const ScanNfc = React.forwardRef<NfcController, { hiddenTrigger?: boolean; onUid
   React.useEffect(() => {
     if (open && !busy) retryButton.current?.focus();
   }, [open, busy]);
-  React.useEffect(() => {
-    if (!open) return;
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
-    };
-    document.addEventListener('keydown', escape, true);
-    return () => document.removeEventListener('keydown', escape, true);
-  }, [open]);
   React.useEffect(() => { void nfcCapabilities().then(value => setSupported(value.supported)).catch(() => setSupported(false)); }, []);
   React.useEffect(() => { close(); return cancel; }, [currentUser.id, allowed, location.key]);
   React.useEffect(() => {

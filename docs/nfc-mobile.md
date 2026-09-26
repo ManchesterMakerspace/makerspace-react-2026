@@ -35,6 +35,14 @@ yarn android:open
 
 The origin must be HTTPS without a path or trailing slash. `dist-native` contains a local HTML shell/assets, not a remotely loaded website. The app's native HTTP/cookie transport rewrites portal API requests, bootstraps CSRF through `/api/config`, and obtains the remote XSRF cookie for each mutation. The Rails session remains cookie based; CSRF is not disabled and no credentialed wildcard CORS is introduced. Never store session cookies in localStorage.
 
+Agreement and receipt frames fetch their API content through that session transport.
+HTML renders locally in a sandboxed frame with scripts disabled and a portal base
+URL for relative assets/links, preserving receipt sizing and print access without
+depending on cross-origin iframe cookies. Failed loads offer Retry; changed or
+closed views abort pending loads and release binary object URLs. Android Back
+sends Escape only to the topmost visible dialog, so closing NFC enrollment returns
+to the existing fob form. Footer icons are bundled MUI SVGs and need no remote font.
+
 The debug APK is `android/app/build/outputs/apk/debug/app-debug.apk`. Build an AAB with `yarn android:release` after syncing. For a signed release supply `ANDROID_KEYSTORE_PATH`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` through the environment; otherwise the release bundle is unsigned. Never commit signing files/passwords. Distribution and device installation are separate steps.
 
 Native APIs are provided by the app-owned `MakerspaceNfcPlugin` using foreground reader mode, `Tag.getId`, and optional NDEF. NFC is optional hardware: unsupported devices can still run the portal. The app must remain in the foreground. Technology support varies by phone; test actual access fobs.

@@ -45,6 +45,14 @@ describe('native portal session transport', () => {
     const response = await window.fetch('/api/documents/agreement');
     expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([0, 1, 255]);
   });
+  it.each(['/api/documents/member_contract', '/api/admin/billing/receipts/one'])('decodes native HTML responses for %s', async path => {
+    await installNativeTransport();
+    const html = '<html><body>Agreement & receipt — café</body></html>';
+    mockRequest.mockResolvedValue({ status: 200, data: Buffer.from(html).toString('base64'), headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    const response = await window.fetch('https://members.example.org' + path, { headers: { Accept: 'text/html' } });
+    expect(await response.text()).toBe(html);
+    expect(mockRequest.mock.calls[mockRequest.mock.calls.length - 1][0]).toMatchObject({ url: 'https://members.example.org' + path, responseType: 'arraybuffer' });
+  });
   it('rejects insecure native origins', async () => {
     process.env.NATIVE_API_ORIGIN = 'http://example.org';
     await expect(installNativeTransport()).rejects.toThrow('HTTPS'); expect(mockRequest).not.toHaveBeenCalled();

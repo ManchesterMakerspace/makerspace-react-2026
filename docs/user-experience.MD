@@ -129,11 +129,9 @@ shaking, for example:
 import AddIcon from "@mui/icons-material/Add";
 ```
 
-The footer additionally uses the `material-symbols-rounded` CSS class for the
-home, help center, calendar, chat, and mail glyphs. That font is not loaded by
-this bundle and must be provided by the host page. Do not extend this secondary
-set without first ensuring that the font is reliably supplied; prefer MUI icons
-for new application controls.
+The footer uses bundled MUI SVG icons for home, help center, calendar, chat, and
+mail. Its glyphs require neither a host-provided icon font nor a remote font
+request, including in the packaged native application.
 
 Brand imagery consists of the SVG files in `src/assets` and `favicon.png`.
 Reuse these assets rather than redrawing the logo. Always give meaningful

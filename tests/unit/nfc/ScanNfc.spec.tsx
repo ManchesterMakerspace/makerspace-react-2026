@@ -20,6 +20,8 @@ import ScanNfc from 'ui/nfc/ScanNfc';
 import { scanNfc } from '../../../src/nfc/scanner';
 import { lookupNfcCard, releaseNfcCard } from 'api/nfc';
 import { getMember } from 'makerspace-ts-api-client';
+import FormModal from 'ui/common/FormModal';
+import { closeTopmostDialog, topmostDialog } from '../../../src/native/backButton';
 
 const empty = { urls: [], texts: [], unsupported: [] };
 const card = { id: 'card1', uid: '1B1A4D2F', member_id: 'member1', holder: 'Ada', validity: 'lost', releasable: true, version: 'version' };
@@ -33,7 +35,7 @@ describe('NFC interaction flows', () => {
     (releaseNfcCard as jest.Mock).mockResolvedValue(null);
     (getMember as jest.Mock).mockResolvedValue({ data: { id: 'member1' } });
   });
-  afterEach(() => { act(() => root.unmount()); host.remove(); });
+  afterEach(() => { act(() => root.unmount()); host.remove(); jest.useRealTimers(); });
   const click = async (label: string) => {
     const button = Array.from(document.querySelectorAll('button')).find(button => button.textContent === label);
     expect(button).toBeDefined();
@@ -82,5 +84,24 @@ describe('NFC interaction flows', () => {
     await act(async () => root.render(<ScanNfc />)); await click('SCAN NFC');
     await act(async () => mockRead({ ...empty, uid: card.uid })); await click('Cancel');
     await act(async () => resolve(card)); expect(document.body.textContent).not.toContain('Ada');
+  });
+  it('Android back closes only the scanner and preserves the enclosing fob form candidate', async () => {
+    jest.useFakeTimers();
+    mockCaps.canManageNfcCards = true;
+    const closeForm = jest.fn();
+    await act(async () => root.render(<FormModal id="fob" title="Replace Fob" isOpen closeHandler={closeForm}>
+      <input aria-label="Candidate" defaultValue="00112233" />
+      <ScanNfc onUid={jest.fn()} />
+    </FormModal>));
+    await click('SCAN NFC');
+    expect(topmostDialog().textContent).toContain('Scan new fob');
+    await act(async () => { expect(closeTopmostDialog()).toBe(true); });
+    expect(mockStop).toHaveBeenCalled();
+    expect(closeForm).not.toHaveBeenCalled();
+    await act(async () => { jest.advanceTimersByTime(300); });
+    expect(topmostDialog().textContent).toContain('Replace Fob');
+    expect((document.querySelector('[aria-label="Candidate"]') as HTMLInputElement).value).toBe('00112233');
+    await act(async () => { closeTopmostDialog(); });
+    expect(closeForm).toHaveBeenCalledTimes(1);
   });
 });
