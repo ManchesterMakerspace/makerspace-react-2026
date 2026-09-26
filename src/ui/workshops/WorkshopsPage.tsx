@@ -644,7 +644,7 @@ const WorkshopsPage: React.FC = () => {
         <FormControl fullWidth>
           <InputLabel>Workshop</InputLabel>
           <Select value={selectedId} label="Workshop"
-            onChange={event => { setSearchParams({}); setSelectedId(event.target.value); setTab("details"); }}>
+            onChange={event => { setSearchParams({}); setError(""); setSelectedId(event.target.value); setTab("details"); }}>
             {data.workshops.map(shop => (
               <MenuItem key={shop.id} value={shop.id}>
                 {shop.name}{shop.outOfService ? " (out of service)" : ""}{shop.disabled ? " (disabled)" : ""}
