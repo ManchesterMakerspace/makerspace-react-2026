@@ -94,6 +94,30 @@ const ShopMapManager: React.FC = () => {
     return () => { cancelled = true; };
   }, [floorName]);
 
+  // The injected SVG's own intrinsic size (often specified in mm, e.g. from
+  // an Inkscape export) has no relation to this wrapper's rendered box --
+  // without forcing it to fill the wrapper exactly, it can render wider than
+  // the wrapper (visually overflowing, since overflow isn't clipped) while
+  // still being clickable there, so a click on that overflow computes a
+  // percentage relative to the wrapper's smaller width and comes out over
+  // 100%. Every other calculation here (click math, clip-path overlays)
+  // assumes the visible map exactly fills the wrapper, so this keeps that
+  // assumption true regardless of the source SVG's own units.
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !svgMarkup) return;
+    const svgRoot = wrapper.querySelector("svg") as unknown as SVGElement | null;
+    if (svgRoot) {
+      // CSS (not the width/height attributes) so the SVG's own viewBox
+      // aspect ratio drives height -- forcing height to a fixed value here
+      // would fight the wrapper, whose own height is itself derived from
+      // this SVG's rendered size (no explicit height is set on it).
+      svgRoot.style.width = "100%";
+      svgRoot.style.height = "auto";
+      svgRoot.style.display = "block";
+    }
+  }, [svgMarkup]);
+
   // Switching shops changes what the map/locations mean -- drop any
   // in-progress drawing or open form rather than letting it apply to the
   // wrong shop's map.
