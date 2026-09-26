@@ -30,3 +30,7 @@ All pull requests require Travis CI tests to pass before being merged.
 # LICENSE
 
 The app is available as open source under the terms of the MIT License.
+# NFC and native mobile
+
+See [NFC, PWA and native build instructions](docs/nfc-mobile.md) for scanning,
+Android builds, optional iOS builds and required backend deployment.

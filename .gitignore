@@ -1,5 +1,9 @@
 /node_modules
 /dist
+/dist-native
+/ios
+*.jks
+*.keystore
 /tmp
 # dotenv
 development.env
