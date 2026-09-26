@@ -104,12 +104,20 @@ const server = http.createServer((request, response) => {
       const context = await browser.newContext({ viewport: { width, height: 900 } });
       const page = await context.newPage();
       const frameRequests = [];
+      const contractRequests = [];
       await page.addInitScript(() => { window.androidBridge = {}; });
       await page.route('**/api/**', async route => {
         const pathname = new URL(route.request().url()).pathname;
         let body = {};
         if (pathname === '/api/members/sign_in') body = { id: 'operator', firstname: 'Native', lastname: 'Tester', role: 'member', status: 'activeMember', expirationTime: Date.now() + 86400000 };
+        else if (pathname === '/api/members/operator') body = { id: 'operator', firstname: 'Native', lastname: 'Tester', role: 'member', status: 'activeMember', expirationTime: Date.now() + 86400000, memberContractOnFile: true, address: { street: '1 Test Street' } };
+        else if (pathname === '/api/rentals') body = [];
         else if (pathname.endsWith('/permissions')) body = { billing: true };
+        else if (pathname === '/api/documents/member_contract') {
+          assert.equal(new URL(route.request().url()).searchParams.get('saved'), 'true');
+          contractRequests.push(route.request().resourceType());
+          return route.fulfill({ contentType: 'text/html', body: '<html><body style="font-family:Arial"><h2>Saved member contract</h2><p>Signed membership agreement.</p></body></html>' });
+        }
         else if (pathname === '/api/billing/receipts/invoice1') {
           frameRequests.push(route.request().resourceType());
           return route.fulfill({ contentType: 'text/html', body: '<html><body style="font-family:Arial;min-height:420px"><h2>Receipt loaded through session transport</h2><p>Membership payment: $75.00</p><a href="details">Details</a><script>parent.untrustedFrameScriptRan=true</script></body></html>' });
@@ -129,6 +137,22 @@ const server = http.createServer((request, response) => {
       assert.equal(await page.evaluate(() => window.receiptPrinted), true);
       assert(await page.locator('footer').evaluate(el => el.scrollWidth <= el.clientWidth + 1));
       await page.screenshot({ path: path.join(root, `tmp/nfc-browser/native-receipt-${width}.png`), fullPage: true });
+      await page.goto(`${origin}/members/operator`);
+      const viewContract = page.getByRole('button', { name: 'View Member Contract', exact: true });
+      await viewContract.click();
+      const contractDialog = page.getByRole('dialog', { name: 'Member Contract', exact: true });
+      await page.frameLocator('#saved-member-contract').getByText('Signed membership agreement.').waitFor();
+      await settledDialog(page);
+      assert.deepEqual(contractRequests, ['fetch']);
+      assert.equal(context.pages().length, 1);
+      assert.equal(await page.locator('#saved-member-contract').getAttribute('src'), null);
+      assert(await contractDialog.evaluate(el => el.scrollWidth <= el.clientWidth + 1));
+      const bounds = await contractDialog.boundingBox();
+      assert(bounds.x >= 0 && bounds.x + bounds.width <= width);
+      await page.screenshot({ path: path.join(root, `tmp/nfc-browser/native-contract-${width}.png`), fullPage: true });
+      await contractDialog.getByRole('button', { name: 'Close', exact: true }).click();
+      await contractDialog.waitFor({ state: 'hidden' });
+      await page.waitForFunction(() => document.activeElement?.textContent === 'View Member Contract');
       await context.close(); console.log(`PASS native HTML frame, sizing and print access at ${width}px`);
     }
   } finally { await browser.close(); server.close(); }

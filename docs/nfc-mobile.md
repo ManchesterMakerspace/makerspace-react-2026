@@ -36,6 +36,10 @@ yarn android:open
 The origin must be HTTPS without a path or trailing slash. `dist-native` contains a local HTML shell/assets, not a remotely loaded website. The app's native HTTP/cookie transport rewrites portal API requests, bootstraps CSRF through `/api/config`, and obtains the remote XSRF cookie for each mutation. The Rails session remains cookie based; CSRF is not disabled and no credentialed wildcard CORS is introduced. Never store session cookies in localStorage.
 
 Agreement and receipt frames fetch their API content through that session transport.
+The profile's View Member Contract action opens an in-app dialog on native devices
+and fetches the saved contract through the same transport. Browser profiles retain
+the normal new-tab link. Closing the native dialog cancels pending loading and
+releases downloaded document URLs.
 HTML renders locally in a sandboxed frame with scripts disabled and a portal base
 URL for relative assets/links, preserving receipt sizing and print access without
 depending on cross-origin iframe cookies. Failed loads offer Retry; changed or

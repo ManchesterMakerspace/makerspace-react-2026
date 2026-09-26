@@ -7,6 +7,7 @@ jest.mock('../../../src/native/transport', () => ({ portalOrigin: () => 'https:/
 jest.mock('ui/common/LoadingOverlay', () => ({ __esModule: true, default: () => <div role="status">Loading</div> }));
 import { DocumentInternalFrame } from 'ui/documents/Document';
 import { nativeDocumentUrl } from '../../../src/native/documentFrame';
+import PreviewMemberContract from 'ui/documents/PreviewMemberContract';
 
 describe('authenticated native document frames', () => {
   let root: Root; let host: HTMLDivElement;
@@ -64,5 +65,30 @@ describe('authenticated native document frames', () => {
     expect(host.querySelector('iframe').getAttribute('src')).toBe('blob:document');
     await act(async () => root.render(null));
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:document');
+  });
+  it('opens the saved profile contract through authenticated native transport', async () => {
+    await act(async () => root.render(<PreviewMemberContract />));
+    expect(window.fetch).not.toHaveBeenCalled();
+    expect(host.querySelector('a[target="_blank"]')).toBeNull();
+    await act(async () => (host.querySelector('button') as HTMLButtonElement).click());
+    expect(window.fetch).toHaveBeenCalledWith('https://members.example.org/api/documents/member_contract?saved=true',
+      expect.objectContaining({ credentials: 'include', signal: expect.any(AbortSignal) }));
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain('Member Contract');
+    expect(dialog.querySelector('iframe').getAttribute('src')).toBeNull();
+    expect(dialog.querySelector('iframe').srcdoc).toContain('Agreement');
+    const signal = (window.fetch as jest.Mock).mock.calls[0][1].signal;
+    await act(async () => (dialog.querySelector('button') as HTMLButtonElement).click());
+    expect(signal.aborted).toBe(true);
+    expect(document.querySelector('#saved-member-contract')).toBeNull();
+  });
+  it('preserves the saved contract link for web profiles', async () => {
+    mockNative = false;
+    await act(async () => root.render(<PreviewMemberContract />));
+    const link = host.querySelector('a');
+    expect(link.getAttribute('href')).toBe('/api/documents/member_contract?saved=true');
+    expect(link.target).toBe('_blank');
+    expect(window.fetch).not.toHaveBeenCalled();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
   });
 });
