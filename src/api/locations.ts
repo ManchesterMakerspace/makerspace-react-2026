@@ -40,6 +40,11 @@ export const adminListLocations = (params: { shopId: string } | { shopIds: strin
     params: "shopIds" in params ? { shop_ids: params.shopIds } : { shop_id: params.shopId },
   }));
 
+// Plain (non-admin) equivalent -- visible to any signed-in member, for the
+// member-facing shop map view. Read-only; no create/update/destroy here.
+export const listLocations = (params: { shopIds: string[] }) =>
+  buildResponse<Location[]>(api.get("/api/locations", { params: { shop_ids: params.shopIds } }));
+
 export const adminCreateLocation = ({ body }: { body: Partial<Location> }) =>
   buildResponse<Location>(api.post("/api/admin/locations", {
     name: body.name,

@@ -10,13 +10,14 @@ import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
 import ShopMapManager from "./ShopMapManager";
+import ShopMapView from "./ShopMapView";
 import CheckoutApproversManager from "./CheckoutApproversManager";
 import ToolCheckoutRequestsManager from "./ToolCheckoutRequestsManager";
 import { useAuthState } from "ui/reducer/hooks";
 import { memberIsResourceManager } from "ui/member/utils";
 import { useCapabilities } from "app/permissions";
 
-type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "map" | "approvers";
+type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "map" | "shopMap" | "approvers";
 
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
@@ -47,6 +48,7 @@ const ToolCheckoutsPage: React.FC = () => {
     { key: "shops", label: "Shops", adminOnly: true },
     { key: "tools", label: "Tools", adminOnly: true },
     { key: "map", label: "Map", adminOnly: true },
+    { key: "shopMap", label: "Shop Map" },
     { key: "approvers", label: "Approvers", adminOnly: true },
   ];
 
@@ -93,6 +95,7 @@ const ToolCheckoutsPage: React.FC = () => {
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager />}
         {activeTab === "map" && <ShopMapManager />}
+        {activeTab === "shopMap" && <ShopMapView />}
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>
     </Grid>
