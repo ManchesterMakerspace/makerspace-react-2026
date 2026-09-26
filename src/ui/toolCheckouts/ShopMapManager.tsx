@@ -4,6 +4,7 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -192,6 +193,22 @@ const ShopMapManager: React.FC = () => {
       line.setAttribute("stroke-width", "0.5");
       overlay.appendChild(line);
     }
+    // Dashed preview of the closing edge (last point back to first) so the
+    // in-progress view matches the closed shape Finish will actually save --
+    // only meaningful once there are enough points to form a real polygon.
+    if (drawPoints.length >= 3) {
+      const first = drawPoints[0];
+      const last = drawPoints[drawPoints.length - 1];
+      const closing = document.createElementNS(svgNs, "line");
+      closing.setAttribute("x1", String(last.x));
+      closing.setAttribute("y1", String(last.y));
+      closing.setAttribute("x2", String(first.x));
+      closing.setAttribute("y2", String(first.y));
+      closing.setAttribute("stroke", "#1976d2");
+      closing.setAttribute("stroke-width", "0.5");
+      closing.setAttribute("stroke-dasharray", "2,1");
+      overlay.appendChild(closing);
+    }
     wrapper.appendChild(overlay);
 
     drawPoints.forEach((point, i) => {
@@ -262,10 +279,18 @@ const ShopMapManager: React.FC = () => {
       {shopId && svgMarkup && (
         <Grid size={{ xs: 12 }}>
           <Typography variant="body2" color="textSecondary" gutterBottom>
-            Floor {floorName} map -- shared with every other shop on this floor. {drawing
-              ? `Click to place a point (${drawPoints.length} so far, need at least 3), then Finish shape.`
-              : "Click \"Draw shop area\" to outline a shop's boundary, or click anywhere else to drop a point pin for a smaller item (cabinet, tool, fixture)."}
+            Floor {floorName} map -- shared with every other shop on this floor.{" "}
+            {!drawing && "Click \"Draw shop area\" to outline a shop's boundary, or click anywhere else to drop a point pin for a smaller item (cabinet, tool, fixture)."}
           </Typography>
+          {drawing && (
+            <Alert severity="info" sx={{ mb: 1 }}>
+              {drawPoints.length === 0
+                ? "Click on the map to place the first point of the shop's boundary."
+                : drawPoints.length < 3
+                  ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking to add more (at least 3 needed to close a shape).`
+                  : `${drawPoints.length} points placed -- the dashed line previews where the shape will close. Click "Finish shape" when the outline looks right, or keep adding points.`}
+            </Alert>
+          )}
           <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             {!drawing && (
               <Button variant="outlined" onClick={() => setDrawing(true)}>Draw shop area</Button>
