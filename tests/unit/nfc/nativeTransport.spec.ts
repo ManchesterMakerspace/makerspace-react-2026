@@ -33,6 +33,43 @@ describe('native portal session transport', () => {
     await installNativeTransport(); await window.fetch('https://elsewhere.test/api/cards');
     expect(mockRequest).toHaveBeenCalledTimes(1); expect(fallback).toHaveBeenCalledTimes(1);
   });
+  it('does not dispatch a release canceled while reading cookies', async () => {
+    await installNativeTransport();
+    mockRequest.mockClear();
+    let resolveCookies!: (cookies: Record<string, string>) => void;
+    mockCookies.mockReturnValueOnce(new Promise(resolve => { resolveCookies = resolve; }));
+    const controller = new AbortController();
+    const request = window.fetch('/api/admin/cards/card1', { method: 'DELETE', signal: controller.signal });
+    expect(mockCookies).toHaveBeenCalledTimes(1);
+    controller.abort();
+    resolveCookies({ 'XSRF-TOKEN': 'remote%2Btoken' });
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+  it('does not dispatch a release canceled while reading a Request body', async () => {
+    await installNativeTransport();
+    mockRequest.mockClear();
+    const controller = new AbortController();
+    const input = new Request('https://localhost/api/admin/cards/card1', {
+      method: 'DELETE', signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' }, body: '{"version":"one"}',
+    });
+    let resolveBody!: (body: string) => void;
+    let bodyStarted!: () => void;
+    const started = new Promise<void>(resolve => { bodyStarted = resolve; });
+    const clone = input.clone();
+    jest.spyOn(clone, 'text').mockImplementation(() => {
+      bodyStarted();
+      return new Promise(resolve => { resolveBody = resolve; });
+    });
+    jest.spyOn(input, 'clone').mockReturnValue(clone);
+    const request = window.fetch(input);
+    await started;
+    controller.abort();
+    resolveBody('{"version":"one"}');
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
   it('maps Axios instances through the same transport and propagates failures', async () => {
     await installNativeTransport();
     const api = axios.create();

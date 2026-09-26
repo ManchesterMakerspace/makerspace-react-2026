@@ -32,6 +32,8 @@ export async function installNativeTransport() {
     let data: any = body;
     if (typeof body === 'string' && headers.get('Content-Type')?.includes('application/json')) data = JSON.parse(body);
     const binary = /application\/pdf|application\/octet-stream|image\//i.test(headers.get('Accept') || '') || /\/documents\/|\/receipts\//.test(local.pathname);
+    // Cookie and body reads can yield after the caller cancels the request.
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     const response = await CapacitorHttp.request({ url, method, headers: Object.fromEntries(headers.entries()), data,
       responseType: binary ? 'arraybuffer' : 'text', connectTimeout: 15000, readTimeout: 30000, disableRedirects: true });
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
