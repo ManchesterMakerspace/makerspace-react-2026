@@ -24,7 +24,11 @@ export default function FixTicketsPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useSearchParams();
   const [catalog, setCatalog] = React.useState<FixCatalog>();
-  const [ticket, setTicket] = React.useState<FixTicket>();
+  const [loadedTicket, setTicket] = React.useState<FixTicket>();
+  const ticket = loadedTicket?.id === id ? loadedTicket : undefined;
+  const [catalogLoading, setCatalogLoading] = React.useState(true);
+  const [catalogError, setCatalogError] = React.useState('');
+  const [catalogRetry, setCatalogRetry] = React.useState(0);
   const [rows, setRows] = React.useState<FixTicket[]>([]);
   const [total, setTotal] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
@@ -62,24 +66,35 @@ export default function FixTicketsPage() {
     setQuery(next);
   };
   React.useEffect(() => {
+    const controller = new AbortController();
+    setCatalogLoading(true); setCatalogError(''); setCatalog(undefined);
+    fixRequest<FixCatalog>(`${base}/catalog`, undefined, 'GET', controller.signal)
+      .then(data => { if (!controller.signal.aborted) setCatalog(data); })
+      .catch(e => { if (!controller.signal.aborted) setCatalogError(e.message); })
+      .finally(() => { if (!controller.signal.aborted) setCatalogLoading(false); });
+    return () => controller.abort();
+  }, [refresh, catalogRetry]);
+  React.useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setLoading(true); setLoadFailed(false); setError(''); setRevealed('');
+    setTicket(undefined); setAction('');
     const q = new URLSearchParams(query); q.delete('new'); q.delete('statuses');
     q.set('mode', mode); selectedStatuses.forEach(s => q.append('statuses[]', s));
-    Promise.all([fixRequest<FixCatalog>(`${base}/catalog`), id ? fixRequest<FixTicket>(`${base}/${id}`) : fixRequest<{ tickets: FixTicket[]; total: number }>(`${base}?${q}`)])
-      .then(([cat, data]) => {
+    fixRequest<FixTicket | { tickets: FixTicket[]; total: number }>(id ? `${base}/${id}` : `${base}?${q}`, undefined, 'GET', controller.signal)
+      .then(data => {
         if (cancelled) return;
-        setCatalog(cat);
         if (id) setTicket(data as FixTicket); else { setRows((data as any).tickets); setTotal((data as any).total); setTicket(undefined); }
       }).catch(e => { if (!cancelled) { setError(e.message); setLoadFailed(true); } }).finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [id, query.toString(), refresh]);
   React.useEffect(() => {
     if (action !== 'assignments' || !id) return;
     let cancelled = false;
-    const timer = setTimeout(() => fixRequest<FixPerson[]>(`${base}/${id}/assignee_options?search=${encodeURIComponent(peopleSearch)}`)
+    const controller = new AbortController();
+    const timer = setTimeout(() => fixRequest<FixPerson[]>(`${base}/${id}/assignee_options?search=${encodeURIComponent(peopleSearch)}`, undefined, 'GET', controller.signal)
       .then(data => { if (!cancelled) setPeople(data); }).catch(e => { if (!cancelled) setError(e.message); }), 200);
-    return () => { cancelled = true; clearTimeout(timer); };
+    return () => { cancelled = true; clearTimeout(timer); controller.abort(); };
   }, [action, peopleSearch, id]);
   const mutate = async (path: string, body: unknown, method = 'POST') => {
     setBusy(true); setError(''); setMessage('');
@@ -123,18 +138,20 @@ export default function FixTicketsPage() {
     return mutate(`${path}/${action}`, action === 'withdraw' ? {} : form);
   };
   const privacy = <Alert severity="info">{ticket?.reporter ? 'The submitter chose to show their identity on this ticket.' : 'Reporter identity is hidden unless an admin explicitly reveals it.'} Text you write may identify you.
-    {catalog?.centralSlackEnabled && ' Full notes are also shared in the central tickets Slack channel.'}</Alert>;
+    {catalog ? (catalog.centralSlackEnabled && ' Full notes are also shared in the central tickets Slack channel.') : ' Full notes may also be shared in the central tickets Slack channel.'}</Alert>;
   return <Box sx={{ py: 3, maxWidth: 1400, mx: 'auto', overflowWrap: 'anywhere' }}>
     <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: "space-between", mb: 2 }}>
       <Typography variant="h4" component="h1">{id ? 'Fix ticket' : 'Fix tickets'}</Typography>
       <Stack direction="row" spacing={1}>
-        {id && <Button href={`/fix-tickets?${query}`}>All tickets</Button>}
-        <Button variant="contained" disabled={loading || loadFailed || !catalog?.canCreate || busy} onClick={() => setCreate(true)}>Report a problem</Button>
+        {id && <Button component={RouterLink as React.ElementType} to={`/fix-tickets?${query}`}>All tickets</Button>}
+        <Button variant="contained" disabled={catalogLoading || !catalog?.canCreate || busy} onClick={() => setCreate(true)}>Report a problem</Button>
       </Stack>
     </Stack>
     {catalog && <Typography color="text.secondary" sx={{ mb: 2 }}>{catalog.openCount} open reports · {catalog.openLimit === null ? 'No ticket cap' : `Limit ${catalog.openLimit}`}</Typography>}
     {catalog && !catalog.canCreate && <Alert severity="info" sx={{ mb: 2 }}>{catalog.creationUnavailableReason || 'Reporting is currently unavailable for this membership.'}</Alert>}
     {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+    {catalogLoading && <Typography role="status" sx={{ mb: 2 }}>Loading ticket options…</Typography>}
+    {catalogError && <Alert severity="error" sx={{ mb: 2 }} action={<Button onClick={() => setCatalogRetry(n => n + 1)}>Retry ticket options</Button>}>Ticket options could not be loaded: {catalogError}</Alert>}
     {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
     {outageReview && outageReview.ticketId === id && !!outageReview.reservations.length && <Box sx={{ mb: 2 }}>
       <Typography variant="h6">Affected reservations</Typography>
@@ -157,7 +174,7 @@ export default function FixTicketsPage() {
       <TableContainer component={Paper}><Table size="small" aria-label="Fix tickets" sx={{ minWidth: 850, overflowWrap: 'normal' }}>
         <TableHead><TableRow>{[['Ticket', ''], ['Priority', 'priority'], ['Status', ''], ['Shop / tool', ''], ['Created', 'created_at'], ['Last update', 'updated_at']].map(([label, field]) =>
           <TableCell key={label} sortDirection={field === sort ? direction : false}>{field ? <TableSortLabel active={field === sort} direction={field === sort ? direction : 'asc'} onClick={() => changeSort(field)}>{label}</TableSortLabel> : label}</TableCell>)}</TableRow></TableHead>
-        <TableBody>{rows.map(t => <TableRow key={t.id}><TableCell><Link href={`/fix-tickets/${t.id}?${query}`}>{t.title}</Link></TableCell>
+        <TableBody>{rows.map(t => <TableRow key={t.id}><TableCell><Link component={RouterLink as React.ElementType} to={`/fix-tickets/${t.id}?${query}`}>{t.title}</Link></TableCell>
           <TableCell>{t.priority ?? '—'}</TableCell><TableCell>{fixLabel(t.status)}</TableCell>
           <TableCell>{t.shopName || 'No shop'} / {t.toolName || t.uncataloguedTool || '—'} <ToolAvailability outOfService={t.outOfService} /></TableCell>
           <TableCell>{date(t.createdAt)}</TableCell><TableCell>{date(t.updatedAt)}</TableCell></TableRow>)}</TableBody>
@@ -186,10 +203,10 @@ export default function FixTicketsPage() {
         <Stack direction="row" useFlexGap spacing={1} sx={{ flexWrap: "wrap", mt: 2 }}>
           {ticket.capabilities.canAddNote && <Button variant="contained" onClick={() => openAction('notes')}>Add note</Button>}
           {ticket.capabilities.canChangeStatus && <Button onClick={() => openAction('status')}>Change status</Button>}
-          {ticket.capabilities.canManage && <><Button onClick={() => openAction('edit')}>Edit ticket</Button><Button onClick={() => openAction('assignments')}>Assignees</Button></>}
+          {ticket.capabilities.canManage && <><Button disabled={!catalog || catalogLoading} onClick={() => openAction('edit')}>Edit ticket</Button><Button onClick={() => openAction('assignments')}>Assignees</Button></>}
           {ticket.capabilities.canUnassign && <Button onClick={() => openAction('unassign')}>Unassign myself</Button>}
           {ticket.capabilities.canWithdraw && <Button color="error" onClick={() => openAction('withdraw')}>Withdraw</Button>}
-          {ticket.capabilities.canCreateBounty && <Button onClick={() => openAction('bounty')}>Make this a bounty</Button>}
+          {ticket.capabilities.canCreateBounty && <Button disabled={!catalog || catalogLoading} onClick={() => openAction('bounty')}>Make this a bounty</Button>}
           {ticket.capabilities.canManage && ticket.toolId && <Button onClick={() => openAction('outage')}>{ticket.outOfService ? 'Restore service' : 'Mark out of service'}</Button>}
           {ticket.capabilities.canReveal && <Button onClick={() => openAction('reveal')}>Reveal reporter</Button>}
           {ticket.capabilities.canReviewReward && <><Button disabled={busy} onClick={() => mutate(`${base}/${id}/reward`, { decision: 'approve' })}>Approve reporter point</Button><Button disabled={busy} onClick={() => mutate(`${base}/${id}/reward`, { decision: 'reject' })}>Reject reporter point</Button></>}
@@ -204,7 +221,7 @@ export default function FixTicketsPage() {
         {Object.entries(e.changes).map(([key, value]) => <Typography key={key} variant="body2">{fixLabel(key)}: {JSON.stringify(value)}</Typography>)}
       </Paper>)}
     </Stack>}
-    <Dialog open={!!action} onClose={() => !busy && setAction('')} fullWidth maxWidth="sm">
+    <Dialog open={!!action && !!ticket} onClose={() => !busy && setAction('')} fullWidth maxWidth="sm">
       <DialogTitle>{fixLabel(action)}</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
         {needsNoteRole && <FormControl required><FormLabel id="note-role-label">Respond as:</FormLabel>
           <RadioGroup aria-labelledby="note-role-label" value={form.respond_as || ''} onChange={e => set('respond_as', e.target.value)}>
@@ -245,7 +262,7 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} catalogLoading={loading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={catalogLoading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
   </Box>;
 }
 
