@@ -1,0 +1,97 @@
+/** @jest-environment node */
+const mockRequest = jest.fn();
+const mockCookies = jest.fn();
+jest.mock('@capacitor/core', () => ({
+  Capacitor: { isNativePlatform: () => true, getPlatform: () => 'android' },
+  CapacitorCookies: { getCookies: (...args: any[]) => mockCookies(...args) },
+  CapacitorHttp: { request: (...args: any[]) => mockRequest(...args) },
+}));
+import axios from 'axios';
+import { installNativeTransport } from '../../../src/native/transport';
+describe('native portal session transport', () => {
+  const originalAdapter = axios.defaults.adapter;
+  let fallback: jest.Mock;
+  beforeEach(() => {
+    jest.clearAllMocks(); axios.defaults.adapter = originalAdapter;
+    process.env.NATIVE_API_ORIGIN = 'https://members.example.org';
+    fallback = jest.fn().mockResolvedValue(new Response('{}'));
+    (globalThis as any).window = { location: { origin: 'https://localhost' }, fetch: fallback };
+    mockCookies.mockResolvedValue({ 'XSRF-TOKEN': 'remote%2Btoken' });
+    mockRequest.mockResolvedValue({ status: 200, data: {}, headers: { 'Content-Type': 'application/json' } });
+  });
+  afterEach(() => { axios.defaults.adapter = originalAdapter; delete process.env.NATIVE_API_ORIGIN; delete (globalThis as any).window; });
+  it('bootstraps CSRF and maps requests while overriding local/stale credentials', async () => {
+    await installNativeTransport();
+    expect(mockRequest.mock.calls[0][0].url).toBe('https://members.example.org/api/config');
+    await window.fetch('/api/admin/cards/card1', { method: 'DELETE', headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': 'stale', Origin: 'https://localhost', Cookie: 'local=secret' }, body: '{"version":"one"}' });
+    const request = mockRequest.mock.calls[1][0];
+    expect(request.headers['x-xsrf-token']).toBe('remote+token');
+    expect(request.headers.origin).toBeUndefined(); expect(request.headers.cookie).toBeUndefined();
+    expect(request.data).toEqual({ version: 'one' }); expect(request.disableRedirects).toBe(true);
+  });
+  it('does not send remote credentials to another origin', async () => {
+    await installNativeTransport(); await window.fetch('https://elsewhere.test/api/cards');
+    expect(mockRequest).toHaveBeenCalledTimes(1); expect(fallback).toHaveBeenCalledTimes(1);
+  });
+  it('does not dispatch a release canceled while reading cookies', async () => {
+    await installNativeTransport();
+    mockRequest.mockClear();
+    let resolveCookies!: (cookies: Record<string, string>) => void;
+    mockCookies.mockReturnValueOnce(new Promise(resolve => { resolveCookies = resolve; }));
+    const controller = new AbortController();
+    const request = window.fetch('/api/admin/cards/card1', { method: 'DELETE', signal: controller.signal });
+    expect(mockCookies).toHaveBeenCalledTimes(1);
+    controller.abort();
+    resolveCookies({ 'XSRF-TOKEN': 'remote%2Btoken' });
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+  it('does not dispatch a release canceled while reading a Request body', async () => {
+    await installNativeTransport();
+    mockRequest.mockClear();
+    const controller = new AbortController();
+    const input = new Request('https://localhost/api/admin/cards/card1', {
+      method: 'DELETE', signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' }, body: '{"version":"one"}',
+    });
+    let resolveBody!: (body: string) => void;
+    let bodyStarted!: () => void;
+    const started = new Promise<void>(resolve => { bodyStarted = resolve; });
+    const clone = input.clone();
+    jest.spyOn(clone, 'text').mockImplementation(() => {
+      bodyStarted();
+      return new Promise(resolve => { resolveBody = resolve; });
+    });
+    jest.spyOn(input, 'clone').mockReturnValue(clone);
+    const request = window.fetch(input);
+    await started;
+    controller.abort();
+    resolveBody('{"version":"one"}');
+    await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+    expect(mockRequest).not.toHaveBeenCalled();
+  });
+  it('maps Axios instances through the same transport and propagates failures', async () => {
+    await installNativeTransport();
+    const api = axios.create();
+    mockRequest.mockResolvedValue({ status: 403, data: { error: 'Forbidden' }, headers: { 'Content-Type': 'application/json' } });
+    await expect(api.get('/api/admin/cards/lookup?uid=000AFF')).rejects.toMatchObject({ response: { status: 403, data: { error: 'Forbidden' } } });
+  });
+  it('returns binary API downloads without corrupting the bytes', async () => {
+    await installNativeTransport();
+    mockRequest.mockResolvedValue({ status: 200, data: 'AAH/', headers: { 'Content-Type': 'application/pdf' } });
+    const response = await window.fetch('/api/documents/agreement');
+    expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual([0, 1, 255]);
+  });
+  it.each(['/api/documents/member_contract', '/api/admin/billing/receipts/one'])('decodes native HTML responses for %s', async path => {
+    await installNativeTransport();
+    const html = '<html><body>Agreement & receipt — café</body></html>';
+    mockRequest.mockResolvedValue({ status: 200, data: Buffer.from(html).toString('base64'), headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    const response = await window.fetch('https://members.example.org' + path, { headers: { Accept: 'text/html' } });
+    expect(await response.text()).toBe(html);
+    expect(mockRequest.mock.calls[mockRequest.mock.calls.length - 1][0]).toMatchObject({ url: 'https://members.example.org' + path, responseType: 'arraybuffer' });
+  });
+  it('rejects insecure native origins', async () => {
+    process.env.NATIVE_API_ORIGIN = 'http://example.org';
+    await expect(installNativeTransport()).rejects.toThrow('HTTPS'); expect(mockRequest).not.toHaveBeenCalled();
+  });
+});

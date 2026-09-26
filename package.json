@@ -11,6 +11,11 @@
   },
   "main": "index.js",
   "dependencies": {
+    "@capacitor/android": "8",
+    "@capacitor/app": "8",
+    "@capacitor/browser": "8",
+    "@capacitor/core": "8",
+    "@capacitor/ios": "8",
     "@emotion/react": "^11.0.0",
     "@emotion/styled": "^11.0.0",
     "@mui/icons-material": "^9.3.1",
@@ -41,6 +46,7 @@
     "@babel/preset-env": "^8.0.2",
     "@babel/preset-react": "^8.0.1",
     "@babel/preset-typescript": "^8.0.1",
+    "@capacitor/cli": "8.5.2",
     "@playwright/test": "^1.62.1",
     "@types/braintree-web": "^3.143.0",
     "@types/jest": "^30.0.0",
@@ -58,6 +64,7 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "mini-css-extract-plugin": "^2.0.0",
+    "plist": "3.1.1",
     "redux-mock-store": "^1.5.3",
     "sass": "^1.103.1",
     "sass-loader": "^17.0.0",
@@ -72,7 +79,8 @@
     "webpack": "^5.110.1",
     "webpack-bundle-analyzer": "^5.3.2",
     "webpack-cli": "^7.2.2",
-    "webpack-dev-server": "^6.0.0"
+    "webpack-dev-server": "^6.0.0",
+    "xcode": "3.0.1"
   },
   "scripts": {
     "clean": "rm -fr ./node_modules ./dist",
@@ -81,7 +89,15 @@
     "build": "cross-env NODE_ENV=production webpack --config prod.config.js && node scripts/build_rails_manifest.js",
     "test": "jest --no-cache",
     "test-watch": "yarn test --watch",
-    "typecheck": "tsc --noEmit -p tsconfig.test.json --ignoreDeprecations 6.0"
+    "typecheck": "tsc --noEmit -p tsconfig.test.json --ignoreDeprecations 6.0",
+    "build:native": "cross-env NODE_ENV=production webpack --config native.config.js",
+    "android:sync": "yarn build:native && cap sync android",
+    "android:open": "cap open android",
+    "android:debug": "node scripts/android-build.js assembleDebug",
+    "android:release": "node scripts/android-build.js bundleRelease",
+    "ios:add": "cap add ios && node scripts/configure-ios.js",
+    "ios:sync": "yarn build:native && node scripts/configure-ios.js && cap sync ios",
+    "ios:open": "cap open ios"
   },
   "jest": {
     "collectCoverage": false,
@@ -105,7 +121,8 @@
       "/node_modules/(?!lodash-es)"
     ],
     "moduleNameMapper": {
-      "^(api|app|ui|documents|components|pages|hooks)[/](.*)$": "<rootDir>/src/$1/$2"
+      "^(api|app|ui|documents|components|pages|hooks)[/](.*)$": "<rootDir>/src/$1/$2",
+      "^(nfc|native)[/](.*)$": "<rootDir>/src/$1/$2"
     },
     "moduleFileExtensions": [
       "js",
