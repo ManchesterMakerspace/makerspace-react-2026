@@ -76,7 +76,7 @@ export class FixTicketsPage {
       await this.page.getByRole('heading', { name: `#${id}: ${title}`, exact: true }).waitFor({ state: 'visible', timeout: remaining() });
       await this.page.getByRole('progressbar', { name: 'Loading tickets', exact: true }).waitFor({ state: 'hidden', timeout: remaining() });
     } catch {
-      const errors = await this.page.locator('.MuiAlert-standardError').allTextContents();
+      const errors = await this.page.locator('.MuiAlert-colorError').allTextContents();
       throw new Error(`Ticket detail did not become ready within 15 seconds. ${JSON.stringify({ path: new URL(this.page.url()).pathname, requests, errors })}`);
     } finally {
       this.page.off('response', record);
