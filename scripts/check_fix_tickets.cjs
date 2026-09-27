@@ -129,12 +129,15 @@ async function main() {
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.waitForURL(`${origin}/fix-tickets`);
+      await page.getByText('Report submitted.', { exact: true }).waitFor();
       await page.getByRole('link', { name: ticket.title }).waitFor();
+      const catalogReads = requests.filter(r => new URL(r.url).pathname.endsWith('/catalog')).length;
       await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
       await page.getByRole('option', { name: 'Metalworking / Drill press', exact: true }).waitFor();
       await page.keyboard.press('Escape');
       await page.getByRole('combobox', { name: 'Shop', exact: true }).click();
       await page.getByRole('option', { name: ticket.shopName, exact: true }).click();
+      await page.getByText('Report submitted.', { exact: true }).waitFor({ state: 'hidden' });
       await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
       assert.equal(await page.getByRole('option').count(), 2);
       await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
@@ -151,8 +154,21 @@ async function main() {
       await page.getByRole('button', { name: 'Created', exact: true }).click();
       assert.equal(new URL((await sorting).url()).searchParams.get('direction'), 'asc');
       await page.getByRole('link', { name: ticket.title }).waitFor();
-      await page.goto(`${origin}/fix-tickets/${id}`);
+      const listQuery = new URL(page.url()).search;
+      await page.evaluate(() => { window.ticketNavigationMarker = true; });
+      const watermarkCss = fs.readFileSync(path.join(root, 'tests/fixtures/development-watermark.css'), 'utf8');
+      await page.addStyleTag({ content: watermarkCss });
+      await page.evaluate(() => { const mark = document.createElement('div'); mark.className = 'watermark'; mark.textContent = 'DEVELOPMENT'; Object.assign(mark.style, { position: 'fixed', inset: '0', zIndex: '9999' }); document.body.appendChild(mark); });
+      await page.getByRole('link', { name: ticket.title, exact: true }).click();
       await page.getByRole('heading', { name: `#${id}: ${ticket.title}`, exact: true }).waitFor();
+      assert.equal(await page.evaluate(() => window.ticketNavigationMarker), true, 'Ticket links must not reload the document');
+      assert.equal(requests.filter(r => new URL(r.url).pathname.endsWith('/catalog')).length, catalogReads, 'Filtering/navigation must reuse the catalog');
+      await page.getByRole('link', { name: 'All tickets', exact: true }).click();
+      await page.getByRole('link', { name: ticket.title, exact: true }).waitFor();
+      assert.equal(new URL(page.url()).search, listQuery);
+      await page.goBack();
+      await page.getByRole('heading', { name: `#${id}: ${ticket.title}`, exact: true }).waitFor();
+      await page.evaluate(() => document.querySelector('.watermark').remove());
       await page.getByRole('heading', { name: ticket.title }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Detail overflow at ${width}`);
       await page.getByRole('button', { name: 'Edit ticket', exact: true }).click();
@@ -286,7 +302,14 @@ async function main() {
     await page.reload();
     await page.getByRole('link', { name: ticket.title }).waitFor();
     assert.equal(await page.getByRole('dialog').count(), 0);
-    for (const [path, destination] of [['/api/fix_tickets/catalog', '/fix-tickets'], ['/api/fix_tickets', '/fix-tickets'], [`/api/fix_tickets/${id}`, `/fix-tickets/${id}`]]) {
+    failTicketPath = '/api/fix_tickets/catalog';
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    await page.getByRole('button', { name: 'Retry ticket options' }).waitFor();
+    await page.getByRole('button', { name: 'Add note', exact: true }).waitFor();
+    assert(await page.getByRole('button', { name: 'Edit ticket', exact: true }).isDisabled());
+    await page.getByRole('button', { name: 'Retry ticket options' }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Edit ticket' && !b.disabled));
+    for (const [path, destination] of [['/api/fix_tickets', '/fix-tickets'], [`/api/fix_tickets/${id}`, `/fix-tickets/${id}`]]) {
       failTicketPath = path;
       await page.goto(`${origin}${destination}`);
       await page.getByRole('button', { name: 'Retry loading tickets' }).waitFor();
@@ -296,6 +319,47 @@ async function main() {
       if (destination.endsWith(id)) await page.getByRole('heading', { name: ticket.title }).waitFor();
       else await page.getByRole('link', { name: ticket.title }).waitFor();
     }
+    // A slow catalog must not gate detail rendering or independent actions.
+    let releaseCatalog;
+    const catalogGate = new Promise(resolve => { releaseCatalog = resolve; });
+    const slowCatalog = async route => { await catalogGate; await route.continue(); };
+    await page.route('**/api/fix_tickets/catalog', slowCatalog);
+    await page.goto(`${origin}/fix-tickets/${id}`);
+    await page.getByRole('heading', { name: `#${id}: ${ticket.title}`, exact: true }).waitFor();
+    assert(await page.getByRole('button', { name: 'Edit ticket', exact: true }).isDisabled());
+    assert(await page.getByRole('button', { name: 'Report a problem', exact: true }).isDisabled());
+    await page.getByRole('button', { name: 'Add note', exact: true }).click();
+    await page.getByRole('dialog').getByText(/Full notes may also be shared/).waitFor();
+    await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+    releaseCatalog();
+    await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent === 'Edit ticket' && !b.disabled));
+    await page.unroute('**/api/fix_tickets/catalog', slowCatalog);
+
+    // Capture aborts without mocking fetch behavior, then leave a delayed detail.
+    await page.addInitScript(() => {
+      window.ticketAborts = [];
+      const original = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        init?.signal?.addEventListener('abort', () => window.ticketAborts.push(String(input)));
+        return original(input, init);
+      };
+    });
+    await page.goto(`${origin}/fix-tickets`);
+    await page.getByRole('link', { name: ticket.title, exact: true }).waitFor();
+    let releaseDetail, detailStarted;
+    const detailGate = new Promise(resolve => { releaseDetail = resolve; });
+    const started = new Promise(resolve => { detailStarted = resolve; });
+    const slowDetail = async route => { detailStarted(); await detailGate; await route.fulfill({ json: ticket }).catch(() => {}); };
+    await page.route(`**/api/fix_tickets/${id}`, slowDetail);
+    await page.getByRole('link', { name: ticket.title, exact: true }).click();
+    await started;
+    await page.getByRole('link', { name: 'All tickets', exact: true }).click();
+    await page.getByRole('link', { name: noShopTicket.title, exact: true }).click();
+    await page.getByRole('heading', { name: `#${noShopTicket.id}: ${noShopTicket.title}`, exact: true }).waitFor();
+    assert(await page.evaluate(expected => window.ticketAborts.some(url => url.endsWith(expected)), `/api/fix_tickets/${id}`));
+    releaseDetail();
+    await page.unroute(`**/api/fix_tickets/${id}`, slowDetail);
+    assert.equal(await page.getByRole('heading', { name: `#${id}: ${ticket.title}`, exact: true }).count(), 0);
     ticket.status = 'resolved';
     await page.goto(`${origin}/fix-tickets/${id}`);
     await page.getByRole('button', { name: 'Change status', exact: true }).click();
@@ -464,6 +528,62 @@ async function main() {
       await page.getByText('0.5', { exact: true }).waitFor();
     }
     assert.equal(errors.length, 0, errors.join('\n'));
+    if (process.argv.includes('--tickets-only')) {
+      // Exercise the same page helper used by the reported failing E2E test.
+      const Module = require('module');
+      const helperPath = path.join(root, 'tests/e2e/pages/FixTicketsPage.ts');
+      const helper = new Module(helperPath, module);
+      helper.filename = helperPath; helper.paths = Module._nodeModulePaths(path.dirname(helperPath));
+      helper._compile(require('typescript').transpileModule(fs.readFileSync(helperPath, 'utf8'), {
+        compilerOptions: { module: require('typescript').ModuleKind.CommonJS, target: require('typescript').ScriptTarget.ES2020 }
+      }).outputText, helperPath);
+      const lifecycle = { ...ticket, status: 'open', events: [] };
+      const lifecycleRoute = async route => {
+        const req = route.request();
+        const body = req.postDataJSON();
+        if (req.method() === 'POST' && req.url().endsWith('/notes')) {
+          lifecycle.events.push({ id: 'note', actor: 'Member', kind: 'note', note: body.note, createdAt: new Date().toISOString(), changes: {} });
+        }
+        if (req.method() === 'PATCH') {
+          lifecycle.status = body.status;
+          lifecycle.events.push({ id: 'resolved', actor: 'Member', kind: 'updated', note: body.note, createdAt: new Date().toISOString(), changes: {} });
+        }
+        await route.fulfill({ json: lifecycle });
+      };
+      await page.route(`**/api/fix_tickets/${id}`, lifecycleRoute);
+      await page.route(`**/api/fix_tickets/${id}/notes`, lifecycleRoute);
+      const tickets = new helper.exports.FixTicketsPage(page);
+      await page.goto(`${origin}/fix-tickets`);
+      await tickets.openTicketByTitle(ticket.title);
+      const beforeNote = requests.filter(r => new URL(r.url).pathname.endsWith('/catalog')).length;
+      await tickets.addNote('Looked into this, ordering a replacement part.');
+      await page.getByText('Looked into this, ordering a replacement part.', { exact: true }).waitFor();
+      assert.equal(requests.filter(r => new URL(r.url).pathname.endsWith('/catalog')).length, beforeNote + 1);
+      await tickets.changeStatus({ status: 'Resolved', note: 'Replacement part installed and tested.' });
+      await page.getByText('Replacement part installed and tested.', { exact: true }).waitFor();
+      assert.equal(lifecycle.status, 'resolved');
+      await page.getByText('Saved.', { exact: true }).waitFor();
+      await page.getByRole('link', { name: 'All tickets', exact: true }).click();
+      await page.getByRole('heading', { name: 'Fix tickets', exact: true }).waitFor();
+      await page.getByText('Saved.', { exact: true }).waitFor({ state: 'hidden' });
+      await tickets.openTicketByTitle(ticket.title);
+      assert.equal(await page.getByText('Saved.', { exact: true }).count(), 0);
+      console.log('PASS success feedback clears on query changes and SPA ticket navigation.');
+      console.log('PASS exact E2E page helper: open ticket, add note, resolve, refresh catalog after mutation.');
+      await page.unroute(`**/api/fix_tickets/${id}`, lifecycleRoute);
+      await page.route(`**/api/fix_tickets/${id}`, route => route.fulfill({ status: 503, json: { error: 'Ticket load failed' } }));
+      await page.goto(`${origin}/fix-tickets`);
+      const failedAt = Date.now();
+      await assert.rejects(() => tickets.openTicketByTitle(ticket.title), error => {
+        assert(error.message.includes('503') && error.message.includes('Ticket load failed'), error.message);
+        assert(!error.message.includes(lifecycle.description));
+        return true;
+      });
+      assert(Date.now() - failedAt < 17000, 'Detail failures must not consume the 180-second test timeout');
+      console.log('PASS detail helper failure deadline and sanitized HTTP/error diagnostics.');
+      console.log('PASS ticket browser checks at 320/600/900/1440px, SPA navigation/history, watermark clicks, catalog reuse/failure/delay, and aborted stale details.');
+      return;
+    }
     for (const mode of ['new', 'edit']) {
       await page.goto(`${origin}/tool-name/${mode}`);
       const name = mode === 'new' ? page.getByRole('textbox', { name: 'Tool Name', exact: true }) : page.getByPlaceholder('Tool name', { exact: true });
