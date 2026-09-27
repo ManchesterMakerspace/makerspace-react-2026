@@ -7,9 +7,9 @@ import { Capacitor } from '@capacitor/core';
 import { getMember, isApiErrorResponse } from 'makerspace-ts-api-client';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
-import { lookupNfcCard, NfcCard, nfcRequest, releaseNfcCard } from 'api/nfc';
+import { lookupNfcCard, NfcCard, releaseNfcCard } from 'api/nfc';
 import { nfcCapabilities, scanNfc, ScanResult } from '../../nfc/scanner';
-import { classifyNfcUrl, NfcDestination } from '../../nfc/urls';
+import { ScanDestination as NfcDestination, resolveScanLink } from 'app/scanLinks';
 import { portalOrigin } from '../../native/transport';
 
 export interface NfcController { start: () => void; }
@@ -71,12 +71,7 @@ const ScanNfc = React.forwardRef<NfcController, { hiddenTrigger?: boolean; onUid
           setCard(found || undefined);
           if (!found) setMessage('No registered card found for this UID.');
         } else if (onUid) { throw new Error('No UID available. Try the Android app for non-NDEF fobs.'); }
-        const destinations = await Promise.all(result.urls.map(async url => {
-          const destination = classifyNfcUrl(url, portalOrigin());
-          if (!destination.code) return destination;
-          const response = await nfcRequest(`/api/shortcodes/${destination.code}`, { signal: controller.signal });
-          return classifyNfcUrl(new URL(response.target_path, portalOrigin()).href, portalOrigin());
-        }));
+        const destinations = await Promise.all(result.urls.map(url => resolveScanLink(url, portalOrigin(), controller.signal)));
         if (version !== generation.current) return;
         setLinks(destinations);
         if (!caps.canManageNfcCards && destinations.length === 1 && destinations[0].path) {

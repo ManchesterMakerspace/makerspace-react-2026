@@ -11,7 +11,7 @@ describe('NDEF destinations', () => {
   });
   it('requires exact trusted origin and route', () => {
     expect(classifyNfcUrl(`https://members.example.org.evil.test/shop/${id}/public.html`, origin).path).toBeUndefined();
-    expect(classifyNfcUrl(`${origin}/members/${id}`, origin).path).toBeUndefined();
+    expect(classifyNfcUrl(`${origin}/api/members/${id}`, origin).path).toBeUndefined();
     expect(classifyNfcUrl(`${origin}:444/shop/${id}/public.html`, origin).path).toBeUndefined();
   });
   it.each(['javascript:alert(1)', 'data:text/html,test', 'https://user:pass@members.example.org/', 'bad-url'])('does not open %s', url => {

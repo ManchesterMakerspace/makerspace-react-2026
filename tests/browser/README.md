@@ -1,5 +1,14 @@
 # Browser checks
 
+## QR scanning
+
+Build web assets, then run `node tests/browser/qr.cjs`. This check uses generated
+QR fixtures in a synthetic camera stream, forces the bundled fallback decoder,
+and mocks portal APIs. It checks routing, permissions/retry, camera selection,
+cleanup, and layouts at 320/600/900/1280 px. Failures return nonzero. Screenshots
+are saved in `tmp/qr-browser`. It launches headless Edge on Windows and Chromium
+elsewhere; physical camera acceptance is still required.
+
 ## Optional checkout-link check
 
 Build with `npm run build`. `node tests/browser/checkout-links.cjs` skips by

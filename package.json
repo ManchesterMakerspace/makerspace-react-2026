@@ -29,6 +29,7 @@
     "makerspace-ts-api-client": "2.9.0",
     "moment-timezone": "^0.6.3",
     "prop-types": "^15.8.1",
+    "qr-scanner": "1.4.2",
     "qrcode": "^1.5.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

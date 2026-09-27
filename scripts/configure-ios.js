@@ -21,6 +21,7 @@ fs.writeFileSync(projectFile, project.writeSync());
 const infoPath = path.join(app, 'Info.plist');
 const info = plist.parse(fs.readFileSync(infoPath, 'utf8'));
 info.NFCReaderUsageDescription = 'Read Makerspace NFC tags and register access cards.';
+info.NSCameraUsageDescription = 'Scan Makerspace QR codes to open tools, shops, checkouts, and rentals.';
 fs.writeFileSync(infoPath, plist.build(info));
 const storyboard = path.join(app, 'Base.lproj/Main.storyboard');
 fs.writeFileSync(storyboard, fs.readFileSync(storyboard, 'utf8').replace('customClass="CAPBridgeViewController" customModule="Capacitor"', 'customClass="MakerspaceViewController" customModule="App" customModuleProvider="target"'));

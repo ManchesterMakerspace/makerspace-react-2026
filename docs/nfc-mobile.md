@@ -1,5 +1,8 @@
 # NFC, PWA and native builds
 
+Camera-based QR scanning is also available across all three platforms. See
+[QR scanning](qr-scanning.md) for supported links, camera permissions, and checks.
+
 The account menu offers **SCAN NFC** to signed-in `activeMember` users whose expirationTime is in the future. Ordinary members receive NDEF content only. Admin/board members also get UID lookup, optional member details, and eligible card release. Register/Replace Fob offers NFC next to front-door import on supported devices; scanning fills the identifier and does not submit the form.
 
 UIDs are uppercase hexadecimal ASCII byte pairs, without separators or prefix. Byte order and leading zeroes are preserved: `1b:1a:4d:2f` becomes `1B1A4D2F`. Both browser and native readings use the same codec. Existing front-door identifiers remain unchanged; compare representative cards before enabling NFC enrollment if historical database identifiers use another format.
