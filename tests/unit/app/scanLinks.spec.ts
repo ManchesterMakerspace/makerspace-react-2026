@@ -17,6 +17,15 @@ describe('scanned destinations', () => {
   it.each(['23456789AB', 'L23456789AB', '/L23456789AB', 'HTTPS://MEMBERS.EXAMPLE.ORG/L23456789AB'])('recognizes %s', input => {
     expect(classifyScanLink(input, origin)).toMatchObject({ kind: 'shortcode', code: '23456789AB' });
   });
+  it.each(['payment-methods', 'security'])('opens nested settings resource %s internally', resource => {
+    const path = `/members/${id}/settings/${resource}?from=qr#details`;
+    for (const value of [path, `${origin}${path}`]) {
+      expect(classifyScanLink(value, origin)).toMatchObject({ kind: 'internal', path });
+    }
+  });
+  it.each([`/members/${id}/profile/payment-methods`, `/members/${id}/settings/payment-methods/extra`])('does not broaden member routes to %s', path => {
+    expect(classifyScanLink(path, origin).kind).toBe('external');
+  });
   it.each(['https://other.example/workshops', 'https://members.example.org.evil.test/workshops',
     'http://members.example.org/workshops', '/logout', '/unknown'])('never automatically opens %s', input => {
     expect(classifyScanLink(input, origin).kind).toBe('external');
@@ -31,6 +40,11 @@ describe('scanned destinations', () => {
     it.each([`/shop/${id}/public.html`, `/tools/${id}/request-checkout`, `/rentals/spots/${id}`, `/volunteer/tasks/${id}`])('resolves %s', target_path => {
       respond({ target_path });
       return expect(resolveScanLink('23456789AB', origin)).resolves.toMatchObject({ kind: 'internal' });
+    });
+    it('accepts a shortcode response targeting a nested settings page', async () => {
+      const path = `/members/${id}/settings/payment-methods`;
+      respond({ target_path: path });
+      await expect(resolveScanLink('23456789AB', origin)).resolves.toMatchObject({ kind: 'internal', path });
     });
     it.each(['/L23456789AC', '//evil.test/workshops', 'https://members.example.org/workshops', '/api/members', null])('rejects invalid response %s', target_path => {
       respond({ target_path });
