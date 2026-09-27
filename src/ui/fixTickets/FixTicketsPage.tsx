@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Link as RouterLink, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Alert, Autocomplete, Box, Button, Checkbox, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, FormControl, FormControlLabel, FormLabel, Link, MenuItem, Paper,
   Radio, RadioGroup, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -22,6 +22,7 @@ const opts = (values: string[]) => values.map(v => ({ id: v, name: fixLabel(v) }
 export default function FixTicketsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [query, setQuery] = useSearchParams();
   const [catalog, setCatalog] = React.useState<FixCatalog>();
   const [loadedTicket, setTicket] = React.useState<FixTicket>();
@@ -65,6 +66,17 @@ export default function FixTicketsPage() {
     if (key !== 'page') next.set('page', '0');
     setQuery(next);
   };
+  React.useEffect(() => {
+    // Clear navigation feedback without clearing a mutation's subsequent refresh.
+    setMessage('');
+    setOutageReview(undefined);
+  }, [id, query.toString()]);
+  React.useEffect(() => {
+    // Consume the report confirmation once so browser history cannot replay it.
+    if (!location.state?.ticketMessage) return;
+    setMessage(location.state.ticketMessage);
+    navigate(location.pathname + location.search, { replace: true, state: null });
+  }, [location.state]);
   React.useEffect(() => {
     const controller = new AbortController();
     setCatalogLoading(true); setCatalogError(''); setCatalog(undefined);
@@ -262,7 +274,7 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} catalogLoading={catalogLoading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true }); setRefresh(n => n + 1); setMessage('Report submitted.'); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={catalogLoading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true, state: { ticketMessage: 'Report submitted.' } }); setRefresh(n => n + 1); }} />
   </Box>;
 }
 

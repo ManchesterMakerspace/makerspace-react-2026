@@ -129,6 +129,7 @@ async function main() {
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       await page.waitForURL(`${origin}/fix-tickets`);
+      await page.getByText('Report submitted.', { exact: true }).waitFor();
       await page.getByRole('link', { name: ticket.title }).waitFor();
       const catalogReads = requests.filter(r => new URL(r.url).pathname.endsWith('/catalog')).length;
       await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
@@ -136,6 +137,7 @@ async function main() {
       await page.keyboard.press('Escape');
       await page.getByRole('combobox', { name: 'Shop', exact: true }).click();
       await page.getByRole('option', { name: ticket.shopName, exact: true }).click();
+      await page.getByText('Report submitted.', { exact: true }).waitFor({ state: 'hidden' });
       await page.getByRole('combobox', { name: 'Tool', exact: true }).click();
       assert.equal(await page.getByRole('option').count(), 2);
       await page.getByRole('option', { name: 'Drill press - Out of service', exact: true }).click();
@@ -154,7 +156,7 @@ async function main() {
       await page.getByRole('link', { name: ticket.title }).waitFor();
       const listQuery = new URL(page.url()).search;
       await page.evaluate(() => { window.ticketNavigationMarker = true; });
-      const watermarkCss = fs.readFileSync(path.join(root, '../makerspace-rails-2026/app/assets/stylesheets/application.css'), 'utf8').match(/\.watermark\s*\{[^}]*\}/)[0];
+      const watermarkCss = fs.readFileSync(path.join(root, 'tests/fixtures/development-watermark.css'), 'utf8');
       await page.addStyleTag({ content: watermarkCss });
       await page.evaluate(() => { const mark = document.createElement('div'); mark.className = 'watermark'; mark.textContent = 'DEVELOPMENT'; Object.assign(mark.style, { position: 'fixed', inset: '0', zIndex: '9999' }); document.body.appendChild(mark); });
       await page.getByRole('link', { name: ticket.title, exact: true }).click();
@@ -560,6 +562,13 @@ async function main() {
       await tickets.changeStatus({ status: 'Resolved', note: 'Replacement part installed and tested.' });
       await page.getByText('Replacement part installed and tested.', { exact: true }).waitFor();
       assert.equal(lifecycle.status, 'resolved');
+      await page.getByText('Saved.', { exact: true }).waitFor();
+      await page.getByRole('link', { name: 'All tickets', exact: true }).click();
+      await page.getByRole('heading', { name: 'Fix tickets', exact: true }).waitFor();
+      await page.getByText('Saved.', { exact: true }).waitFor({ state: 'hidden' });
+      await tickets.openTicketByTitle(ticket.title);
+      assert.equal(await page.getByText('Saved.', { exact: true }).count(), 0);
+      console.log('PASS success feedback clears on query changes and SPA ticket navigation.');
       console.log('PASS exact E2E page helper: open ticket, add note, resolve, refresh catalog after mutation.');
       await page.unroute(`**/api/fix_tickets/${id}`, lifecycleRoute);
       await page.route(`**/api/fix_tickets/${id}`, route => route.fulfill({ status: 503, json: { error: 'Ticket load failed' } }));
