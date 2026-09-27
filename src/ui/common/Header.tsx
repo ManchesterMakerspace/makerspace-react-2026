@@ -28,6 +28,8 @@ import { Routing, Whitelists } from "app/constants";
 import Help from "ui/common/Help";
 import ScanNfc, { NfcController } from 'ui/nfc/ScanNfc';
 import NfcIcon from '@mui/icons-material/Nfc';
+import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
+import ScanQr, { QrController } from 'ui/qr/ScanQr';
 import { computeCapabilities } from 'app/permissions';
 
 const logoUrl = "/assets/FilledLaserableLogo.svg";
@@ -94,6 +96,7 @@ const roleBadge = (currentUser: AuthMember): JSX.Element | null => {
 
 class Header extends React.Component<Props, State> {
   private nfcScanner = React.createRef<NfcController>();
+  private qrScanner = React.createRef<QrController>();
 
   constructor(props: Props) {
     super(props);
@@ -218,6 +221,9 @@ class Header extends React.Component<Props, State> {
           {/* Member section */}
           {this.renderMenuNavLink(settingsUrl, "Account Settings", "settings")}
           {this.renderMenuNavLink(profileUrl, "My Profile", "profile")}
+          <MenuItem onClick={() => { this.detachMenu(); this.qrScanner.current?.start(); }} sx={{ gap: 1 }}>
+            <QrCodeScannerIcon fontSize="small" />Scan QR
+          </MenuItem>
           {computeCapabilities(currentUser).canScanNfc && <MenuItem onClick={() => { this.detachMenu(); this.nfcScanner.current?.start(); }} sx={{ gap: 1 }}>
             <NfcIcon fontSize="small" />SCAN NFC
           </MenuItem>}
@@ -239,6 +245,7 @@ class Header extends React.Component<Props, State> {
           </MenuItem>
         </Menu>
         <ScanNfc ref={this.nfcScanner} hiddenTrigger />
+        <ScanQr ref={this.qrScanner} />
       </>
     );
   }
