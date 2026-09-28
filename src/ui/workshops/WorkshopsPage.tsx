@@ -1,4 +1,4 @@
-import { AddToolModal as SharedAddToolModal } from "ui/toolCheckouts/ToolManager";
+import AddToolModal from "./AddToolModal";
 import ToolGroupList from 'ui/toolCheckouts/ToolGroupList';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
@@ -76,26 +76,6 @@ const SlackChannel: React.FC<{
     : <>{label}</>;
 };
 
-const AddToolModal: React.FC<{ workshop: Workshop; onClose: () => void; onCreated: () => void }> = ({ workshop, onClose, onCreated }) => {
-  const [tools, setTools] = React.useState<Tool[]>([]);
-  const [shops, setShops] = React.useState<Shop[]>([]);
-  const [error, setError] = React.useState('');
-  const [saving, setSaving] = React.useState(false);
-  React.useEffect(() => {
-    Promise.all([listTools({ shopId: workshop.id }), listManagedShops()]).then(([toolResult, shopResult]) => {
-      if (toolResult.error || shopResult.error) setError(toolResult.error?.message || shopResult.error?.message || 'Unable to load tools');
-      else { setTools(toolResult.data || []); setShops((shopResult.data || []).filter(shop => shop.id === workshop.id)); }
-    });
-  }, [workshop.id]);
-  if (!shops.length) return <Dialog open onClose={onClose}><DialogTitle>Add Tool</DialogTitle><DialogContent>{error || 'Loading tools…'}</DialogContent></Dialog>;
-  return <SharedAddToolModal shops={shops} tools={tools} onClose={onCreated} loading={saving} error={error}
-    onSave={async body => {
-      setSaving(true);
-      const result = await adminCreateTool({ body });
-      setSaving(false);
-      if (result.error) setError(result.error.message); else onCreated();
-    }} />;
-};
 const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
   <>
     <Typography variant="h6">{workshop.name}</Typography>

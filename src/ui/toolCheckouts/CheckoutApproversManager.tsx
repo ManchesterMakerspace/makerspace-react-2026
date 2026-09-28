@@ -63,6 +63,7 @@ export const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, exis
     setShopIds(prev => {
       if (prev.includes(id)) return prev.filter(s => s !== id);
       setToolIds(current => current.filter(toolId => tools.find(t => t.id === toolId)?.shopId !== id));
+      setToolGroupIds(current => current.filter(groupId => groups.find(group => group.id === groupId)?.shopId !== id));
       return [...prev, id];
     });
   };

@@ -3,7 +3,9 @@
 ## Tool group controls
 
 Add Tool dialogs in Workshops and tool management share the same component and
-begin with Tool/Group radio buttons, defaulting to Tool. Group create/edit uses
+begin with Tool/Group radio buttons, defaulting to Tool. Workshop resource loading
+shows an in-dialog Retry resources action on failure; retry reloads both tools and
+managed shops, clears stale errors and shows loading before reopening the form. Group create/edit uses
 `ToolGroupForm`: a name, optional description, disjoint physical-tool selectors,
 Requestable/Reservable/Announce flags and optional announcement channel.
 Groups follow individual tools and carry a Group chip. Group details reuse each
@@ -16,7 +18,9 @@ Available checkout tools and groups share one filtered, sorted and paginated
 catalog, with physical tools preceding groups. The group overview shows loading
 and retry on failure, and clears load errors when automatic refresh recovers.
 Approver tables show explicit named group assignments with Group chips in an
-Authorized Groups column, separately from effective tool grants. Group catalog loads in checkout
+Authorized Groups column, separately from effective tool grants. Selecting a whole
+shop clears its selected individual tools and groups; removing the shop does not
+restore those independent grants. Group catalog loads in checkout
 and approver-scope dialogs expose a loading state and recoverable error with Retry
 tool groups; submission stays disabled until the catalog is complete. An all-held
 group review with an open request offers Resolve request without new checkouts.

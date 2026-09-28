@@ -1,0 +1,45 @@
+import * as React from 'react';
+import { Alert, Button, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { AddToolModal as SharedAddToolModal } from 'ui/toolCheckouts/ToolManager';
+import { listTools, listManagedShops, adminCreateTool } from 'api/toolCheckouts';
+import { Shop, Tool } from 'app/entities/toolCheckout';
+import { Workshop } from 'app/entities/workshop';
+
+export const AddToolModal: React.FC<{ workshop: Workshop; onClose: () => void; onCreated: () => void }> = ({ workshop, onClose, onCreated }) => {
+  const [tools, setTools] = React.useState<Tool[]>([]);
+  const [shops, setShops] = React.useState<Shop[]>([]);
+  const [error, setError] = React.useState('');
+  const [saving, setSaving] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [attempt, setAttempt] = React.useState(0);
+  React.useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+    setShops([]);
+    Promise.all([listTools({ shopId: workshop.id }), listManagedShops()]).then(([toolResult, shopResult]) => {
+      if (!active) return;
+      if (toolResult.error || shopResult.error) setError(toolResult.error?.message || shopResult.error?.message || 'Unable to load tools');
+      else { setTools(toolResult.data || []); setShops((shopResult.data || []).filter(shop => shop.id === workshop.id)); }
+    }).catch(() => { if (active) setError('Unable to load tools'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [workshop.id, attempt]);
+  if (loading || !shops.length) return <Dialog open onClose={onClose} aria-labelledby="workshop-add-tool-title">
+    <DialogTitle id="workshop-add-tool-title">Add Tool</DialogTitle><DialogContent>
+      {loading ? <Typography role="status">Loading tools…</Typography> : <>
+        <Alert severity="error">{error || 'This workshop is unavailable for tool management.'}</Alert>
+        <Button onClick={() => setAttempt(value => value + 1)}>Retry resources</Button>
+      </>}
+      <Button onClick={onClose}>Cancel</Button>
+    </DialogContent></Dialog>;
+  return <SharedAddToolModal shops={shops} tools={tools} onClose={onCreated} loading={saving} error={error}
+    onSave={async body => {
+      setSaving(true);
+      const result = await adminCreateTool({ body });
+      setSaving(false);
+      if (result.error) setError(result.error.message); else onCreated();
+    }} />;
+};
+
+export default AddToolModal;

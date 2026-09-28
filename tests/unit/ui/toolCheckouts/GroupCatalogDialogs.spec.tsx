@@ -51,6 +51,22 @@ describe('group catalog dialog recovery', () => {
       expect(save).toHaveBeenCalledWith('member', [], [], 'assignment', ['kit']);
     }
   });
+  it('clears only the selected shop child scopes and does not restore them when deselected', async () => {
+    mockGroups.mockResolvedValue({ data: [
+      { id: 'kit', shopId: 'wood', name: 'Kit' }, { id: 'other', shopId: 'metal', name: 'Other' }
+    ] });
+    const save = jest.fn();
+    const existing = { id: 'assignment', memberId: 'member', memberName: 'Member', shopIds: [], toolIds: ['saw'], toolGroupIds: ['kit', 'other'] } as any;
+    await act(async () => root.render(<ApproverModal shops={shops} tools={[{ id: 'saw', shopId: 'wood', name: 'Saw' }] as any}
+      existing={existing} onClose={jest.fn()} onSave={save} loading={false} error="" />));
+    const shop = Array.from(host.querySelectorAll('[role="button"]')).find(button => button.textContent?.includes('Woodshop')) as HTMLElement;
+    await act(async () => shop.click());
+    await act(async () => host.querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
+    expect(save).toHaveBeenLastCalledWith('member', ['wood'], [], 'assignment', ['other']);
+    await act(async () => shop.click());
+    await act(async () => host.querySelector<HTMLButtonElement>('button[type="submit"]')!.click());
+    expect(save).toHaveBeenLastCalledWith('member', [], [], 'assignment', ['other']);
+  });
   it('shows API errors when adding an approver and restores group choices after retry', async () => {
     mockGroups.mockResolvedValueOnce({ error: { message: 'Unavailable' } })
       .mockResolvedValueOnce({ data: [{ id: 'kit', shopId: 'wood', name: 'Kit' }] });

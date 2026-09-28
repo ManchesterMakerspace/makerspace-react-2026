@@ -41,3 +41,23 @@ export function useRead(transaction: any, args: any, delay: boolean) {
   return { data, refresh: () => {}, isRequesting: false, error: '' };
 }
 export const useWrite = () => ({ call: () => {}, isRequesting: false, error: '' });
+
+let resourceLoadFailed = false;
+export const listTools = async () => {
+  (window as any).toolLoads = ((window as any).toolLoads || 0) + 1;
+  if (location.search.includes('failure') && !resourceLoadFailed) {
+    resourceLoadFailed = true;
+    return { error: { message: 'Resources unavailable' } };
+  }
+  return { data: tools };
+};
+export const listManagedShops = async () => {
+  (window as any).shopLoads = ((window as any).shopLoads || 0) + 1;
+  return { data: shops };
+};
+export const adminCreateTool = listMyToolCheckoutRequests;
+
+export const adminUpdateToolAnnotation = listMyToolCheckoutRequests;
+export const adminUpdateToolNotes = listMyToolCheckoutRequests;
+export const adminUpdateTool = listMyToolCheckoutRequests;
+export const adminDeleteTool = listMyToolCheckoutRequests;
