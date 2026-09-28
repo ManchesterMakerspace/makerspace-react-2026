@@ -85,6 +85,7 @@ const RevokeModal: React.FC<RevokeModalProps> = ({ target, onClose, onRevoke, lo
 
 interface CheckoutModalProps {
   shops: Shop[];
+  allShops?: Shop[];
   tools: Tool[];
   preselectedMember?: { id: string; name: string };
   onClose: () => void;
@@ -95,7 +96,7 @@ interface CheckoutModalProps {
 }
 
 export const CheckoutModal: React.FC<CheckoutModalProps> = ({
-  shops, tools, preselectedMember, onClose, onCheckout, loading, error, unmetPrerequisites
+  shops, allShops = shops, tools, preselectedMember, onClose, onCheckout, loading, error, unmetPrerequisites
 }) => {
   const [selectedMember, setSelectedMember] = React.useState<SelectOption | null>(
     preselectedMember ? { id: preselectedMember.id, value: preselectedMember.id, label: preselectedMember.name } : null
@@ -105,6 +106,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [groups, setGroups] = React.useState([]);
   const [reviewingGroup, setReviewingGroup] = React.useState(false);
   React.useEffect(() => { listToolGroups().then(result => setGroups((result.data || []).filter(group => group.canApprove))); }, []);
+  const groupShopIds = new Set(groups.map(group => group.shopId));
+  const selectableShops = allShops.filter(shop => shops.some(allowed => allowed.id === shop.id) || groupShopIds.has(shop.id));
   const selectedGroup = groups.find(group => `group:${group.id}` === toolId);
 
   const shopTools = tools.filter(t => t.shopId === shopId);
@@ -143,7 +146,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           <Select native fullWidth value={shopId} inputProps={{ 'aria-label': 'Shop' }}
             onChange={e => { setShopId((e.target as HTMLSelectElement).value); setToolId(""); }}>
             <option value="">— select shop —</option>
-            {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {selectableShops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
@@ -404,7 +407,7 @@ const CheckoutRoster: React.FC<Props> = ({
 
       {checkoutOpen && (
         <CheckoutModal
-          shops={modalShops} tools={modalTools}
+          shops={modalShops} allShops={shops} tools={modalTools}
           preselectedMember={preselectedMember}
           onClose={() => { setCheckoutOpen(false); refreshRef.current(); refreshCatalog(); }}
           onCheckout={handleCheckout}

@@ -12,6 +12,7 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import RequestorAnnotationTooltip from "./RequestorAnnotationTooltip";
+import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -118,13 +119,28 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   const { data: shops = [] } = useCheckoutCatalog('shops', canManage);
   const [groups, setGroups] = React.useState([]);
   const [groupRequest, setGroupRequest] = React.useState(null);
+  const [groupLoading, setGroupLoading] = React.useState(true);
+  const [groupError, setGroupError] = React.useState('');
   const groupLoad = React.useRef(0);
   const refreshGroups = React.useCallback(() => {
     const generation = ++groupLoad.current;
     setGroups([]);
-    listToolGroups(shopId).then(result => { if (generation === groupLoad.current) setGroups(result.data || []); });
+    setGroupLoading(true);
+    setGroupError('');
+    listToolGroups(shopId).then(result => {
+      if (generation !== groupLoad.current) return;
+      if (result.error) throw new Error('Unable to load tool groups.');
+      setGroups(result.data || []);
+    }).catch(() => {
+      if (generation === groupLoad.current) setGroupError('Unable to load tool groups. Retry to load the complete catalog.');
+    }).finally(() => {
+      if (generation === groupLoad.current) setGroupLoading(false);
+    });
   }, [shopId]);
-  React.useEffect(refreshGroups, [refreshGroups]);
+  React.useEffect(() => {
+    refreshGroups();
+    return () => { ++groupLoad.current; };
+  }, [refreshGroups]);
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | undefined>(undefined);
@@ -150,7 +166,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
   const catalog = requestCatalog(availableRead.data || [], groups, params, defaultItemsPerPage);
-  const availableTools = catalog.rows;
+  const availableTools = groupLoading || groupError ? [] : catalog.rows;
   const canRequestTool = React.useCallback((tool: Tool) =>
     !!tool.requestable && !tool.requestPending && !tool.unmetPrerequisiteNames?.length,
   []);
@@ -260,6 +276,12 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
         </Grid>
       </Grid>
 
+      {groupError && <Grid size={{ xs: 12 }}>
+        <Alert severity="error" action={<Button color="inherit" onClick={refreshGroups}>Retry tool groups</Button>}>
+          {groupError}
+        </Alert>
+      </Grid>}
+
       {(requestRead.error || createError || updateError || deleteError || approveError) && (
         <Grid size={{ xs: 12 }}><ErrorMessage error={requestRead.error || createError || updateError || deleteError || approveError} /></Grid>
       )}
@@ -292,9 +314,9 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
           </Grid>
           <Grid size={{ xs: 12 }}>
             <StatefulTable id="available-tools-table" title="Available Tools"
-              loading={availableRead.isRequesting} data={availableTools}
+              loading={availableRead.isRequesting || groupLoading} data={availableTools}
               error={availableRead.error} columns={toolColumns} rowId={toolRowId}
-              totalItems={catalog.total}
+              totalItems={groupLoading || groupError ? 0 : catalog.total}
               selectedIds={selectedToolId} setSelectedIds={setSelectedToolId} renderSearch={true}
               isRowSelectable={canRequestTool} />
           </Grid>

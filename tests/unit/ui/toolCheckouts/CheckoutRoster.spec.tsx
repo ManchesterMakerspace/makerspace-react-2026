@@ -7,13 +7,15 @@ jest.mock('api/toolCheckouts', () => ({ listToolGroups: jest.fn().mockResolvedVa
 jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: {} }) }));
 jest.mock("ui/hooks/useReadTransaction", () => () => ({ data: mockRows, refresh: jest.fn() }));
 jest.mock("ui/hooks/useWriteTransaction", () => () => ({ call: jest.fn() }));
-jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({ useCheckoutCatalog: () => ({ data: [], refresh: jest.fn() }) }));
+jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({ useCheckoutCatalog: () => ({ data: [{ id: "wood", name: "Woodshop" }, { id: "other", name: "Other shop" }], refresh: jest.fn() }) }));
 jest.mock("ui/common/Filters/QueryContext", () => ({ withQueryContext: (component: any) => component }));
 jest.mock("ui/common/table/StatefulTable", () => ({ data, columns }: any) => <>
   {data.map((row: any) => <div key={row.id}>{columns.find((column: any) => column.id === "toolName").cell(row)}</div>)}
 </>);
-jest.mock("ui/common/FormModal", () => ({ isOpen, children }: any) => isOpen ? <div>{children}</div> : null);
+jest.mock("ui/common/FormModal", () => ({ isOpen, children, onSubmit }: any) => isOpen ? <div>{children}<button onClick={onSubmit}>Submit checkout</button></div> : null);
 jest.mock("ui/common/MemberSearchInput", () => (props: any) => <input data-fully-active={props.fullyActiveUnexpired} />);
+jest.mock("ui/toolCheckouts/GroupApproval", () => ({ group, memberId }: any) => <div>Review {group.name} for {memberId}</div>);
+import { listToolGroups } from 'api/toolCheckouts';
 import CheckoutRoster from "ui/toolCheckouts/CheckoutRoster";
 
 describe("checkout roster notes and member selection", () => {
@@ -52,4 +54,22 @@ describe("checkout roster notes and member selection", () => {
     });
     expect(container.querySelector('input[data-fully-active="true"]')).not.toBeNull();
   });
+  it("allows group-only approvers to select their group shop and reach manual review", async () => {
+    (listToolGroups as jest.Mock).mockResolvedValueOnce({ data: [
+      { id: 'kit', name: 'Wood kit', shopId: 'wood', canApprove: true },
+      { id: 'other-kit', name: 'Other kit', shopId: 'other', canApprove: false },
+    ] });
+    await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} preselectedMember={{ id: 'trainee', name: 'Trainee' }} />));
+    await act(async () => { Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Add Checkout')!.click(); });
+    const shop = container.querySelector<HTMLSelectElement>('select[aria-label="Shop"]')!;
+    expect(Array.from(shop.options).map(option => option.value)).toEqual(['', 'wood']);
+    await act(async () => { shop.value = 'wood'; shop.dispatchEvent(new Event('change', { bubbles: true })); });
+    const tool = container.querySelector<HTMLSelectElement>('select[aria-label="Tool"]')!;
+    expect(tool.disabled).toBe(false);
+    expect(Array.from(tool.options).map(option => option.value)).toEqual(['', 'group:kit']);
+    await act(async () => { tool.value = 'group:kit'; tool.dispatchEvent(new Event('change', { bubbles: true })); });
+    await act(async () => { Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Submit checkout')!.click(); });
+    expect(container.textContent).toContain('Review Wood kit for trainee');
+  });
+
 });
