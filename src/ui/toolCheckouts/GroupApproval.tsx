@@ -20,7 +20,7 @@ export default function GroupApproval({ group, memberId, requestId, onClose, onS
     return () => { active = false; };
   }, [group.id, memberId]);
   const submit = async () => {
-    if (!review || review.missingPrerequisiteIds.length || !review.createToolIds.length) return;
+    if (!review || review.missingPrerequisiteIds.length || (!review.createToolIds.length && !requestId)) return;
     setSaving(true);
     const result = await approveToolGroup(group.id, memberId, review.revision, requestId);
     setSaving(false);
@@ -28,7 +28,8 @@ export default function GroupApproval({ group, memberId, requestId, onClose, onS
     else onSaved();
   };
   return <FormModal id="approve-group" isOpen title={`Approve ${group.name}`} closeHandler={onClose}
-    onSubmit={submit} submitText="Approve group" loading={saving || (!review && !error)} error={error}>
+    onSubmit={submit} submitText={review && !review.createToolIds.length && requestId ? 'Resolve request' : 'Approve group'}
+    submitDisabled={!review || !!review.missingPrerequisiteIds.length || (!review.createToolIds.length && !requestId)} loading={saving || (!review && !error)} error={error}>
     <Stack spacing={2}>
       <Chip label="Group" size="small" sx={{ alignSelf: 'flex-start' }} />
       {review && <GroupDetails group={review.group} />}
@@ -37,7 +38,7 @@ export default function GroupApproval({ group, memberId, requestId, onClose, onS
         <Typography>New checkouts: {review.group.includedTools.filter(tool => review.createToolIds.includes(tool.id)).map(tool => tool.name).join(', ') || 'None'}</Typography>
         <Typography>External prerequisites: {review.prerequisiteNames.join(', ') || 'None'}</Typography>
         {!!review.missingPrerequisiteIds.length && <Alert severity="error">Complete all prerequisite checkouts before approval.</Alert>}
-        {!review.createToolIds.length && <Alert severity="info">All included tools already have active checkouts.</Alert>}
+        {!review.createToolIds.length && <Alert severity="info">All included tools already have active checkouts.{requestId && ' Resolve this request without creating new checkouts.'}</Alert>}
       </>}
     </Stack>
   </FormModal>;

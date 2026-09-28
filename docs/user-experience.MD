@@ -13,7 +13,10 @@ held/proposed checkouts and prerequisites, and stale submissions require reopeni
 the review. Group delete explains that open requests are cancelled while saved
 checkouts and reservations remain.
 Available checkout tools and groups share one filtered, sorted and paginated
-catalog, with physical tools preceding groups.
+catalog, with physical tools preceding groups. Group catalog loads in checkout
+and approver-scope dialogs expose a loading state and recoverable error with Retry
+tool groups; submission stays disabled until the catalog is complete. An all-held
+group review with an open request offers Resolve request without new checkouts.
 The Available Tools shop selector defaults to All shops and scopes both tool and
 group requests on the server; changing shops clears the selected resource and
 resets pagination. Search and pagination then apply to the combined scoped catalog.

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
-import { listToolGroups } from 'api/toolCheckouts';
+import useToolGroups from './useToolGroups';
 import GroupApproval from './GroupApproval';
 import { useCheckoutCatalog } from './CheckoutCatalog';
 import { requestCatalog } from './requestCatalog';
@@ -117,30 +117,8 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   const { params, setParam } = useQueryContext();
   const shopId = canManage ? undefined : params.shopId || undefined;
   const { data: shops = [] } = useCheckoutCatalog('shops', canManage);
-  const [groups, setGroups] = React.useState([]);
+  const { groups, loading: groupLoading, error: groupError, refresh: refreshGroups } = useToolGroups(shopId);
   const [groupRequest, setGroupRequest] = React.useState(null);
-  const [groupLoading, setGroupLoading] = React.useState(true);
-  const [groupError, setGroupError] = React.useState('');
-  const groupLoad = React.useRef(0);
-  const refreshGroups = React.useCallback(() => {
-    const generation = ++groupLoad.current;
-    setGroups([]);
-    setGroupLoading(true);
-    setGroupError('');
-    listToolGroups(shopId).then(result => {
-      if (generation !== groupLoad.current) return;
-      if (result.error) throw new Error('Unable to load tool groups.');
-      setGroups(result.data || []);
-    }).catch(() => {
-      if (generation === groupLoad.current) setGroupError('Unable to load tool groups. Retry to load the complete catalog.');
-    }).finally(() => {
-      if (generation === groupLoad.current) setGroupLoading(false);
-    });
-  }, [shopId]);
-  React.useEffect(() => {
-    refreshGroups();
-    return () => { ++groupLoad.current; };
-  }, [refreshGroups]);
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | undefined>(undefined);

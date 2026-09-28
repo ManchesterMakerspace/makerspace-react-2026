@@ -1,7 +1,8 @@
 // @ts-nocheck
 import ToolAvailability, { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import * as React from "react";
-import { listToolGroups } from 'api/toolCheckouts';
+import useToolGroups from './useToolGroups';
+import ToolGroupLoadStatus from './ToolGroupLoadStatus';
 import GroupApproval from './GroupApproval';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -103,9 +104,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   );
   const [shopId, setShopId] = React.useState("");
   const [toolId, setToolId] = React.useState("");
-  const [groups, setGroups] = React.useState([]);
+  const groupCatalog = useToolGroups();
+  const groups = groupCatalog.groups.filter(group => group.canApprove);
   const [reviewingGroup, setReviewingGroup] = React.useState(false);
-  React.useEffect(() => { listToolGroups().then(result => setGroups((result.data || []).filter(group => group.canApprove))); }, []);
   const groupShopIds = new Set(groups.map(group => group.shopId));
   const selectableShops = allShops.filter(shop => shops.some(allowed => allowed.id === shop.id) || groupShopIds.has(shop.id));
   const selectedGroup = groups.find(group => `group:${group.id}` === toolId);
@@ -116,10 +117,14 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   return (
     <FormModal id="create-checkout" isOpen={true} title="Check Out Member on Tool"
       closeHandler={onClose}
-      onSubmit={() => selectedMember && toolId && (selectedGroup ? setReviewingGroup(true) : onCheckout(selectedMember.value, toolId))}
+      submitDisabled={groupCatalog.loading || !!groupCatalog.error}
+      onSubmit={() => !groupCatalog.loading && !groupCatalog.error && selectedMember && toolId && (selectedGroup ? setReviewingGroup(true) : onCheckout(selectedMember.value, toolId))}
       submitText="Check Out" loading={loading} error={error}
     >
       <Grid container spacing={2}>
+        {(groupCatalog.loading || groupCatalog.error) && <Grid size={{ xs: 12 }}>
+          <ToolGroupLoadStatus loading={groupCatalog.loading} error={groupCatalog.error} onRetry={groupCatalog.refresh} />
+        </Grid>}
         {unmetPrerequisites && unmetPrerequisites.length > 0 && (
           <Grid size={{ xs: 12 }}>
             <Typography variant="body2" style={{ color: "#e65100", padding: "8px", backgroundColor: "#fff8e1", borderRadius: 4 }}>

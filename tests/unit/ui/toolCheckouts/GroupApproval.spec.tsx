@@ -8,7 +8,7 @@ jest.mock('api/toolCheckouts', () => ({
   reviewToolGroup: (...args: unknown[]) => mockReview(...args),
   approveToolGroup: (...args: unknown[]) => mockApprove(...args),
 }));
-jest.mock('ui/common/FormModal', () => ({ children, onSubmit, error }: any) => <div>{children}{error}<button onClick={onSubmit}>Approve</button></div>);
+jest.mock('ui/common/FormModal', () => ({ children, onSubmit, error, submitDisabled, submitText }: any) => <div>{children}{error}<button disabled={submitDisabled} onClick={onSubmit}>{submitText}</button></div>);
 import GroupApproval from 'ui/toolCheckouts/GroupApproval';
 
 describe('group approval review', () => {
@@ -40,4 +40,19 @@ describe('group approval review', () => {
     expect(mockApprove).toHaveBeenCalledTimes(1);
     expect(container.textContent).toContain('Refresh the review');
   });
+  it.each([undefined, 'request'])('handles all-held reviews with requestId=%s', async requestId => {
+    mockReview.mockResolvedValueOnce({ data: { revision: 4, group, heldToolIds: ['tool'], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } });
+    mockApprove.mockResolvedValueOnce({ data: {} });
+    const saved = jest.fn();
+    await act(async () => root.render(<GroupApproval group={group} memberId="member" requestId={requestId} onClose={jest.fn()} onSaved={saved} />));
+    const button = container.querySelector('button')!;
+    expect(button.disabled).toBe(!requestId);
+    await act(async () => button.click());
+    if (requestId) {
+      expect(button.textContent).toBe('Resolve request');
+      expect(mockApprove).toHaveBeenCalledWith('group', 'member', 4, 'request');
+      expect(saved).toHaveBeenCalledTimes(1);
+    } else expect(mockApprove).not.toHaveBeenCalled();
+  });
+
 });
