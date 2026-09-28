@@ -136,8 +136,8 @@ export interface ToolCheckoutRequest {
   memberName: string;
   memberEmail: string;
   memberSlackUrl?: string;
-  toolId: string;
-  toolName: string;
+  toolId?: string;
+  toolName?: string;
   shopId: string;
   shopName: string;
   note?: string;

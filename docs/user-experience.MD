@@ -12,6 +12,13 @@ copy restricted child content. Group approval displays the current revision's
 held/proposed checkouts and prerequisites, and stale submissions require reopening
 the review. Group delete explains that open requests are cancelled while saved
 checkouts and reservations remain.
+Available checkout tools and groups share one filtered, sorted and paginated
+catalog, with physical tools preceding groups.
+The Available Tools shop selector defaults to All shops and scopes both tool and
+group requests on the server; changing shops clears the selected resource and
+resets pagination. Search and pagination then apply to the combined scoped catalog.
+Saved reservation group snapshots remain visible on ordinary edits; changing resources drops groups that are no
+longer selectable from the new selection.
 
 This document records the user-interface conventions currently used by the
 Manchester Makerspace member portal. It is both an inventory of the existing

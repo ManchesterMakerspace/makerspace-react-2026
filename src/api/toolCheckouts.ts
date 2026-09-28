@@ -191,8 +191,8 @@ const tableParams = (params?: any) => ({
   ...(params?.search && { search: params.search }),
 });
 
-export const listAvailableTools = (params?: any) =>
-  buildResponse<Tool[]>(api.get("/api/tools", { params: tableParams(params) }));
+export const listAvailableTools = (params?: { shopId?: string }) =>
+  buildResponse<Tool[]>(api.get("/api/tools", { params: params?.shopId ? { shop_id: params.shopId } : {} }));
 
 // ── Tool Checkouts ────────────────────────────────────────────────────────────
 

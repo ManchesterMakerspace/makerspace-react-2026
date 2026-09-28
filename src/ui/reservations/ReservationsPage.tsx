@@ -1,4 +1,5 @@
 import ToolAvailability from "ui/common/ToolAvailability";
+import { selectableGroupIds } from './selectableGroupIds';
 import { reservationResourceLabel } from './resourceLabel';
 import * as React from "react";
 import Grid from "@mui/material/Grid";
@@ -512,12 +513,12 @@ const ReservationsPage: React.FC = () => {
                 Saved resources: {reservationResourceLabel(editing)}. These original tools are retained until you change the resource selection.
               </Alert>}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {shopTools.map(tool => <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} disabled={tool.outOfService && !toolIds.includes(tool.id)} clickable onClick={() => { setResourcesChanged(true); toggleTool(tool.id); }}
+                {shopTools.map(tool => <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} disabled={tool.outOfService && !toolIds.includes(tool.id)} clickable onClick={() => { setResourcesChanged(true); setToolGroupIds(ids => selectableGroupIds(ids, shopGroups)); toggleTool(tool.id); }}
                   color={toolIds.includes(tool.id) ? "primary" : "default"}
                   variant={toolIds.includes(tool.id) ? "filled" : "outlined"} />)}
                 {shopGroups.map(group => <Chip key={group.id} label={`${group.name} · Group`} clickable
                   color={toolGroupIds.includes(group.id) ? 'primary' : 'default'}
-                  onClick={() => { setResourcesChanged(true); setToolGroupIds(ids => ids.includes(group.id) ? ids.filter(id => id !== group.id) : [...ids, group.id]); }} />)}
+                  onClick={() => { setResourcesChanged(true); setToolGroupIds(ids => selectableGroupIds(ids.includes(group.id) ? ids.filter(id => id !== group.id) : [...ids, group.id], shopGroups)); }} />)}
                 {editing && editing.toolIds.filter(id => !shopTools.some(tool => tool.id === id)).map(id => {
                   const index = editing.toolIds.indexOf(id);
                   return <Chip key={id} label={`${editing.toolNames[index] || "Tool"} (existing)`}
