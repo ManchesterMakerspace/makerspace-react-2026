@@ -24,6 +24,10 @@ restore those independent grants. Group catalog loads in checkout
 and approver-scope dialogs expose a loading state and recoverable error with Retry
 tool groups; submission stays disabled until the catalog is complete. An all-held
 group review with an open request offers Resolve request without new checkouts.
+Group approval review loading is visible within the dialog; load failures appear
+immediately with Retry review, independent of form edits. Retrying clears the old
+error and keeps approval disabled until a fresh review arrives. Stale-revision
+conflicts offer the same recovery.
 The Available Tools shop selector defaults to All shops and scopes both tool and
 group requests on the server; changing shops clears the selected resource and
 resets pagination. Search and pagination then apply to the combined scoped catalog.

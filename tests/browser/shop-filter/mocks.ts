@@ -25,7 +25,14 @@ export const updateToolCheckoutRequest = listMyToolCheckoutRequests;
 export const deleteToolCheckoutRequest = listMyToolCheckoutRequests;
 export const adminCreateToolCheckout = listMyToolCheckoutRequests;
 export const approveToolGroup = listMyToolCheckoutRequests;
-export const reviewToolGroup = async () => ({ data: { group: groups[0], revision: 1, heldToolIds: ['wood'], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } });
+let reviewFailed = false;
+export const reviewToolGroup = async () => {
+  if (location.search.includes('failure') && !reviewFailed) {
+    reviewFailed = true;
+    return { error: { message: 'Review unavailable' } };
+  }
+  return { data: { group: groups[0], revision: 1, heldToolIds: ['wood'], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } };
+};
 export const listCheckoutApprovers = async () => ({ data: [{ id: 'approver', memberName: 'Group trainer', memberEmail: 'trainer@example.test',
   toolIds: ['wood'], toolNames: ['Woodshop saw'], shopIds: [], shopNames: [],
   toolGroups: [{ id: 'wood-group', name: 'Woodshop introduction', shopId: 'wood' }] }] });

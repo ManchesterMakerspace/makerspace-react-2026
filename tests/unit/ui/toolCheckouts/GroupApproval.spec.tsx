@@ -18,6 +18,7 @@ describe('group approval review', () => {
   beforeEach(() => {
     (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    mockReview.mockReset();
     mockReview.mockResolvedValue({ data: { revision: 4, group: { ...group, includedTools: [{ id: 'tool', name: 'Current tool', wikiUrl: 'https://example.test/tool' }] },
       heldToolIds: [], createToolIds: ['tool'], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } });
     mockApprove.mockReset();
@@ -36,9 +37,35 @@ describe('group approval review', () => {
     mockApprove.mockResolvedValue({ error: { status: 409, message: 'Refresh the review' } });
     await act(async () => root.render(<GroupApproval group={group} memberId="member" onClose={jest.fn()} onSaved={jest.fn()} />));
     await act(async () => container.querySelector('button')!.click());
-    await act(async () => container.querySelector('button')!.click());
+    const submit = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Approve group')!;
+    expect(submit.disabled).toBe(true);
+    await act(async () => submit.click());
     expect(mockApprove).toHaveBeenCalledTimes(1);
-    expect(container.textContent).toContain('Refresh the review');
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Refresh the review');
+    await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Retry review')!.click());
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(submit.disabled).toBe(false);
+  });
+  it.each(['api', 'rejected', 'empty'])('shows %s load failures immediately and retries in place', async failure => {
+    if (failure === 'rejected') mockReview.mockRejectedValueOnce(new Error('offline'));
+    else mockReview.mockResolvedValueOnce(failure === 'api' ? { error: { message: 'Review unavailable' } } : {});
+    await act(async () => root.render(<GroupApproval group={group} memberId="member" requestId="request" onClose={jest.fn()} onSaved={jest.fn()} />));
+    expect(container.querySelector('[role="alert"]')).not.toBeNull();
+    const submit = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Approve group')!;
+    expect(submit.disabled).toBe(true);
+    let resolve: (value: any) => void;
+    mockReview.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+    await act(async () => Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Retry review')!.click());
+    expect(container.querySelector('[role="status"]')?.textContent).toContain('Loading group review');
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(submit.disabled).toBe(true);
+    await act(async () => resolve!({ data: { revision: 5, group, heldToolIds: [], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } }));
+    expect(submit.textContent).toBe('Resolve request');
+    expect(submit.disabled).toBe(false);
+    mockApprove.mockResolvedValueOnce({ data: {} });
+    await act(async () => submit.click());
+    expect(mockApprove).toHaveBeenCalledWith('group', 'member', 5, 'request');
+    expect(mockReview).toHaveBeenCalledTimes(2);
   });
   it.each([undefined, 'request'])('handles all-held reviews with requestId=%s', async requestId => {
     mockReview.mockResolvedValueOnce({ data: { revision: 4, group, heldToolIds: ['tool'], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } });
