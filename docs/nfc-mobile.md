@@ -13,9 +13,20 @@ Shop/tool public links route to the selected resource in Workshops; bounty links
 
 ## Deploying the web/PWA feature
 
-Deploy the companion Rails change first. It supplies lookup, conditional release and transactional assignment, plus `/manifest.webmanifest`, `/service-worker.js`, `/offline.html` and `/pwa-icon.png`. Serve those public files at the origin root (Rails static serving or the existing reverse proxy). The app registers the worker on secure web origins. No worker runs inside Capacitor.
+Deploy the companion Rails change first. It supplies lookup, conditional release
+and transactional assignment. The React production build supplies
+`manifest.webmanifest`, `service-worker.js`, `offline.html`, the 192 px Android
+launcher icon as `pwa-icon-192.png`, and the existing 563 px `favicon.png` as
+the large install icon. Publish those files at the origin root (not under
+`/assets`) using Rails static serving or the existing reverse proxy. The
+manifest declares each icon's real dimensions so Android can validate them.
+The app registers the worker on secure web origins. No worker runs inside
+Capacitor.
 
-The service worker caches only the generic offline page and icon. It never stores authenticated pages, card/member responses, or offline mutations. Worker updates wait until existing clients close; users are not reloaded during fob operations. Use the browser's Install/Add to home screen action.
+The service worker caches only the generic offline page and install icons. It
+never stores authenticated pages, card/member responses, or offline mutations.
+Worker updates wait until existing clients close; users are not reloaded during
+fob operations. Use the browser's Install/Add to home screen action.
 
 The Rails database must be a MongoDB replica set supporting transactions. Ensure the existing unique `cards.uid` index is deployed. No unsafe standalone-database fallback exists. Release is conditional on the lookup version and fresh membership status, and writes an audit in the same transaction. Missing or failed lookups cannot authorize enrollment. Do not migrate or reinterpret legacy UIDs without a separate collision/data audit.
 
