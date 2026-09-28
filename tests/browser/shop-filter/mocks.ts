@@ -26,7 +26,9 @@ export const deleteToolCheckoutRequest = listMyToolCheckoutRequests;
 export const adminCreateToolCheckout = listMyToolCheckoutRequests;
 export const approveToolGroup = listMyToolCheckoutRequests;
 export const reviewToolGroup = async () => ({ data: { group: groups[0], revision: 1, heldToolIds: ['wood'], createToolIds: [], prerequisiteIds: [], prerequisiteNames: [], missingPrerequisiteIds: [] } });
-export const listCheckoutApprovers = listMyToolCheckoutRequests;
+export const listCheckoutApprovers = async () => ({ data: [{ id: 'approver', memberName: 'Group trainer', memberEmail: 'trainer@example.test',
+  toolIds: ['wood'], toolNames: ['Woodshop saw'], shopIds: [], shopNames: [],
+  toolGroups: [{ id: 'wood-group', name: 'Woodshop introduction', shopId: 'wood' }] }] });
 export const adminCreateCheckoutApprover = listMyToolCheckoutRequests;
 export const adminUpdateCheckoutApprover = listMyToolCheckoutRequests;
 export const adminDeleteCheckoutApprover = listMyToolCheckoutRequests;

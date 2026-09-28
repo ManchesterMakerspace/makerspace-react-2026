@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { Alert, Button, Chip, Paper, Stack, Typography } from '@mui/material';
 import { ToolGroup, Tool, Shop } from 'app/entities/toolCheckout';
-import { archiveToolGroup, listToolGroups, saveToolGroup } from 'api/toolCheckouts';
+import { archiveToolGroup, saveToolGroup } from 'api/toolCheckouts';
 import FormModal from 'ui/common/FormModal';
 import ToolGroupForm from './ToolGroupForm';
+import useToolGroups from './useToolGroups';
+import ToolGroupLoadStatus from './ToolGroupLoadStatus';
 
 export function GroupDetails({ group }: { group: ToolGroup }) {
   return <Stack spacing={1}>
@@ -19,16 +21,15 @@ export function GroupDetails({ group }: { group: ToolGroup }) {
 }
 
 export default function ToolGroupList({ shops, tools, shopId }: { shops: Shop[]; tools: Tool[]; shopId?: string }) {
-  const [groups, setGroups] = React.useState<ToolGroup[]>([]);
+  const { groups, loading, error: loadError, refresh } = useToolGroups(shopId);
   const [editing, setEditing] = React.useState<Partial<ToolGroup> | null>(null);
   const [deleting, setDeleting] = React.useState<ToolGroup | null>(null);
   const [error, setError] = React.useState('');
   const [saving, setSaving] = React.useState(false);
-  const refresh = React.useCallback(async () => {
-    const result = await listToolGroups(shopId);
-    if (result.error) setError(result.error.message); else setGroups(result.data || []);
-  }, [shopId]);
-  React.useEffect(() => { void refresh(); }, [refresh, tools]);
+  const previousTools = React.useRef(tools);
+  React.useEffect(() => {
+    if (previousTools.current !== tools) { previousTools.current = tools; refresh(); }
+  }, [refresh, tools]);
   React.useEffect(() => {
     const changed = () => { void refresh(); };
     window.addEventListener('tool-groups-changed', changed);
@@ -49,6 +50,7 @@ export default function ToolGroupList({ shops, tools, shopId }: { shops: Shop[];
     if (result.error) setError(result.error.message); else { setDeleting(null); setError(''); await refresh(); }
   };
   return <Stack spacing={2}>
+    <ToolGroupLoadStatus loading={loading} error={loadError} onRetry={refresh} />
     {error && <Alert severity="error">{error}</Alert>}
     {groups.map(group => <Paper key={group.id} sx={{ p: 2, overflowWrap: 'anywhere' }}>
       <Typography variant="h6">{group.name} <Chip label="Group" size="small" /></Typography>

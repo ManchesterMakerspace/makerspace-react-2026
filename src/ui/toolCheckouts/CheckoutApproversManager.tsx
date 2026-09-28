@@ -237,6 +237,15 @@ const CheckoutApproversManager: React.FC = () => {
       cell: (row: CheckoutApprover) => <ApproverTools approver={row} />,
     },
     {
+      id: "toolGroups",
+      label: "Authorized Groups",
+      cell: (row: CheckoutApprover) => <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(row.toolGroups || []).map(group => <Typography key={group.id} variant="body2">
+          {group.name} <Chip label="Group" size="small" />
+        </Typography>)}
+      </div>,
+    },
+    {
       id: "shopNames",
       label: "Authorized Shops",
       cell: (row: CheckoutApprover) => (
@@ -257,7 +266,7 @@ const CheckoutApproversManager: React.FC = () => {
             <Typography variant="h6">Checkout Approvers</Typography>
             <Typography variant="body2" color="textSecondary">
               Members who can sign off tool checkouts via the portal or Slack slash command,
-              scoped to whole shops, individual tools, or both. RM authority remains separate.
+              scoped to whole shops, individual tools, or groups. RM authority remains separate.
             </Typography>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
