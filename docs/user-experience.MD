@@ -1,5 +1,18 @@
 # User experience and visual design standard
 
+## Tool group controls
+
+Add Tool dialogs in Workshops and tool management share the same component and
+begin with Tool/Group radio buttons, defaulting to Tool. Group create/edit uses
+`ToolGroupForm`: a name, optional description, disjoint physical-tool selectors,
+Requestable/Reservable/Announce flags and optional announcement channel.
+Groups follow individual tools and carry a Group chip. Group details reuse each
+child's wiki/Drive links, annotation and authorized notes; group records do not
+copy restricted child content. Group approval displays the current revision's
+held/proposed checkouts and prerequisites, and stale submissions require reopening
+the review. Group delete explains that open requests are cancelled while saved
+checkouts and reservations remain.
+
 This document records the user-interface conventions currently used by the
 Manchester Makerspace member portal. It is both an inventory of the existing
 application and the standard to follow when adding or changing UI.

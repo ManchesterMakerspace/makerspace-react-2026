@@ -1,6 +1,8 @@
 // @ts-nocheck
 import ToolAvailability, { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import * as React from "react";
+import { listToolGroups } from 'api/toolCheckouts';
+import GroupApproval from './GroupApproval';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -100,6 +102,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   );
   const [shopId, setShopId] = React.useState("");
   const [toolId, setToolId] = React.useState("");
+  const [groups, setGroups] = React.useState([]);
+  const [reviewingGroup, setReviewingGroup] = React.useState(false);
+  React.useEffect(() => { listToolGroups().then(result => setGroups((result.data || []).filter(group => group.canApprove))); }, []);
+  const selectedGroup = groups.find(group => `group:${group.id}` === toolId);
 
   const shopTools = tools.filter(t => t.shopId === shopId);
   const selectedTool = tools.find(t => t.id === toolId);
@@ -107,7 +113,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   return (
     <FormModal id="create-checkout" isOpen={true} title="Check Out Member on Tool"
       closeHandler={onClose}
-      onSubmit={() => selectedMember && toolId && onCheckout(selectedMember.value, toolId)}
+      onSubmit={() => selectedMember && toolId && (selectedGroup ? setReviewingGroup(true) : onCheckout(selectedMember.value, toolId))}
       submitText="Check Out" loading={loading} error={error}
     >
       <Grid container spacing={2}>
@@ -146,6 +152,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
             onChange={e => setToolId((e.target as HTMLSelectElement).value)}>
             <option value="">— select tool —</option>
             {shopTools.map(t => <option key={t.id} value={t.id}>{toolAvailabilityLabel(t)}</option>)}
+            {groups.filter(group => group.shopId === shopId).map(group => <option key={group.id} value={`group:${group.id}`}>{group.name} (Group)</option>)}
           </Select>
         </Grid>
         {selectedTool?.prerequisiteNames?.length > 0 && (
@@ -156,6 +163,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           </Grid>
         )}
       </Grid>
+      {reviewingGroup && selectedGroup && selectedMember && <GroupApproval group={selectedGroup}
+        memberId={selectedMember.value} onClose={() => setReviewingGroup(false)} onSaved={onClose} />}
     </FormModal>
   );
 };
@@ -397,7 +406,7 @@ const CheckoutRoster: React.FC<Props> = ({
         <CheckoutModal
           shops={modalShops} tools={modalTools}
           preselectedMember={preselectedMember}
-          onClose={() => setCheckoutOpen(false)}
+          onClose={() => { setCheckoutOpen(false); refreshRef.current(); refreshCatalog(); }}
           onCheckout={handleCheckout}
           loading={creating} error={createError}
           unmetPrerequisites={unmetPrerequisites}

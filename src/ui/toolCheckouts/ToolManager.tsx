@@ -2,6 +2,10 @@
 import ToolAvailability from "ui/common/ToolAvailability";
 import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
+import { Radio, RadioGroup } from '@mui/material';
+import ToolGroupForm, { emptyGroup } from './ToolGroupForm';
+import ToolGroupList from './ToolGroupList';
+import { saveToolGroup } from 'api/toolCheckouts';
 import Grid from "@mui/material/Grid";
 import { duplicateToolName, wouldCreatePrerequisiteLoop } from "./toolValidation";
 import Box from "@mui/material/Box";
@@ -55,6 +59,9 @@ interface AddToolModalProps {
 }
 
 export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
+  const [kind, setKind] = React.useState('tool');
+  const [group, setGroup] = React.useState(emptyGroup(shops[0]?.id || ''));
+  const [groupSaving, setGroupSaving] = React.useState(false);
   const [name, setName] = React.useState("");
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
@@ -78,7 +85,15 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
     setPrerequisiteIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
 
   const availablePrereqs = tools.filter(t => t.shopId === shopId);
-  const submit = () => {
+  const submit = async () => {
+    if (kind === 'group') {
+      if (!group.name?.trim() || !group.includedToolIds?.length) { setLocalError('Enter a name and include at least one tool.'); return; }
+      setGroupSaving(true);
+      const result = await saveToolGroup(group);
+      setGroupSaving(false);
+      if (result.error) setLocalError(result.error.message); else { onClose(); window.dispatchEvent(new Event('tool-groups-changed')); }
+      return;
+    }
     const trimmedName = name.trim();
     if (!trimmedName || !shopId) return;
 
@@ -95,8 +110,13 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
     <FormModal id="add-tool" isOpen={true} title="Add Tool"
       closeHandler={onClose}
       onSubmit={submit}
-      submitText="Add Tool" loading={loading} error={localError || error}
+      submitText={kind === 'group' ? 'Add Group' : 'Add Tool'} loading={loading || groupSaving} error={localError || error}
     >
+      <RadioGroup row aria-label="Resource type" value={kind} onChange={event => setKind(event.target.value)}>
+        <FormControlLabel value="tool" control={<Radio />} label="Tool" />
+        <FormControlLabel value="group" control={<Radio />} label="Group" />
+      </RadioGroup>
+      {kind === 'group' ? <ToolGroupForm value={group} onChange={setGroup} tools={tools} shops={shops} /> : <>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
@@ -168,6 +188,7 @@ export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClos
           tools={availablePrereqs}
         />
       </Grid>
+      </>}
     </FormModal>
   );
 };
@@ -584,6 +605,8 @@ const ToolManager: React.FC = () => {
           loading={creating} error={createError}
         />
       )}
+
+      <Grid size={{ xs: 12 }}><ToolGroupList shops={shops as Shop[]} tools={allManageableTools} shopId={shopFilter || undefined} /></Grid>
 
       {qrTool && <ToolQrCodeModal key={qrTool.id} tool={qrTool} onClose={() => setQrTool(null)} />}
 

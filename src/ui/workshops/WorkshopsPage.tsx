@@ -1,3 +1,5 @@
+import { AddToolModal as SharedAddToolModal } from "ui/toolCheckouts/ToolManager";
+import ToolGroupList from 'ui/toolCheckouts/ToolGroupList';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
@@ -74,74 +76,26 @@ const SlackChannel: React.FC<{
     : <>{label}</>;
 };
 
-const AddToolModal: React.FC<{
-  workshop: Workshop;
-  onClose: () => void;
-  onCreated: () => void;
-}> = ({ workshop, onClose, onCreated }) => {
-  const [open, setOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [wikiUrl, setWikiUrl] = React.useState("");
-  const [gdriveId, setGdriveId] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [usersChannel, setUsersChannel] = React.useState("");
+const AddToolModal: React.FC<{ workshop: Workshop; onClose: () => void; onCreated: () => void }> = ({ workshop, onClose, onCreated }) => {
+  const [tools, setTools] = React.useState<Tool[]>([]);
+  const [shops, setShops] = React.useState<Shop[]>([]);
+  const [error, setError] = React.useState('');
   const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    const result = await adminCreateTool({
-      body: {
-        open,
-        name: name.trim(),
-        shopId: workshop.id,
-        wikiUrlOverride: wikiUrl,
-        gdriveId,
-        description,
-        usersChannel,
-        prerequisiteIds: [],
-        reservationPrerequisiteToolIds: []
-      }
+  React.useEffect(() => {
+    Promise.all([listTools({ shopId: workshop.id }), listManagedShops()]).then(([toolResult, shopResult]) => {
+      if (toolResult.error || shopResult.error) setError(toolResult.error?.message || shopResult.error?.message || 'Unable to load tools');
+      else { setTools(toolResult.data || []); setShops((shopResult.data || []).filter(shop => shop.id === workshop.id)); }
     });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onCreated();
-  };
-
-  return (
-    <FormModal id="workshops-add-tool" isOpen title={`Add Tool to ${workshop.name}`}
-      closeHandler={onClose} onSubmit={submit} submitText="Add Tool"
-      loading={saving} error={error}>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}><FormControlLabel label="No checkout required"
-          control={<Checkbox checked={open} onChange={event => setOpen(event.target.checked)} />} /></Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth required label="Tool Name" value={name}
-            onChange={event => setName(event.target.value)} autoFocus />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Description" value={description}
-            onChange={event => setDescription(event.target.value)} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Wiki URL" value={wikiUrl}
-            onChange={event => setWikiUrl(event.target.value)}
-            helperText="Leave blank to generate the workshop/tool Wiki URL." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="GDrive ID" value={gdriveId}
-            onChange={event => setGdriveId(event.target.value)} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Users Channel" value={usersChannel}
-            onChange={event => setUsersChannel(normalizeChannel(event.target.value))} />
-        </Grid>
-      </Grid>
-    </FormModal>
-  );
+  }, [workshop.id]);
+  if (!shops.length) return <Dialog open onClose={onClose}><DialogTitle>Add Tool</DialogTitle><DialogContent>{error || 'Loading tools…'}</DialogContent></Dialog>;
+  return <SharedAddToolModal shops={shops} tools={tools} onClose={onCreated} loading={saving} error={error}
+    onSave={async body => {
+      setSaving(true);
+      const result = await adminCreateTool({ body });
+      setSaving(false);
+      if (result.error) setError(result.error.message); else onCreated();
+    }} />;
 };
-
 const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
   <>
     <Typography variant="h6">{workshop.name}</Typography>
@@ -325,6 +279,7 @@ const WorkshopTools: React.FC<{
         </Paper>
       ))}
 
+      <ToolGroupList shopId={workshop.id} shops={managedShop ? [managedShop] : []} tools={managedTools} />
       {addOpen && <AddToolModal workshop={workshop}
         onClose={() => setAddOpen(false)}
         onCreated={() => { setAddOpen(false); onRefresh(); }} />}

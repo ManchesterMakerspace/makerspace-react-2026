@@ -27,6 +27,7 @@ jest.mock("ui/toolCheckouts/ToolQrCodeModal", () => () => null);
 jest.mock("ui/toolCheckouts/ReservationSettingsFields", () => () => null);
 jest.mock("ui/toolCheckouts/ShopColorField", () => () => null);
 jest.mock("api/toolCheckouts", () => ({
+  listToolGroups: jest.fn().mockResolvedValue({ data: [] }),
   adminCreateShop: jest.fn(), adminUpdateShop: jest.fn(), adminDeleteShop: jest.fn(),
   adminCreateTool: jest.fn(), adminUpdateTool: jest.fn(), adminDeleteTool: jest.fn(),
   adminUpdateToolNotes: jest.fn()

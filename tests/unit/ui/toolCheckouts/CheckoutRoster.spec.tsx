@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 
 let mockRows: any[] = [];
+jest.mock('api/toolCheckouts', () => ({ listToolGroups: jest.fn().mockResolvedValue({ data: [] }) }));
 jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: {} }) }));
 jest.mock("ui/hooks/useReadTransaction", () => () => ({ data: mockRows, refresh: jest.fn() }));
 jest.mock("ui/hooks/useWriteTransaction", () => () => ({ call: jest.fn() }));

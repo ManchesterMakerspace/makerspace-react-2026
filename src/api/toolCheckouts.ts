@@ -1,7 +1,7 @@
 import axios from "axios";
 import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
 import {
-  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor
+  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor, ToolGroup, GroupCheckoutReview
 } from "app/entities/toolCheckout";
 import { apiErrorMessage } from "ui/common/apiErrors";
 import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
@@ -248,19 +248,20 @@ export const adminRevokeToolCheckout = ({ id, body }: {
 
 export const listToolCheckoutRequests = (params?: any) =>
   buildResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests", {
-    params: tableParams(params)
+    params: { ...tableParams(params), include_groups: true }
   }));
 
 export const listMyToolCheckoutRequests = (params?: any) =>
   buildResponse<ToolCheckoutRequest[]>(api.get("/api/tool_checkout_requests", {
-    params: tableParams(params)
+    params: { ...tableParams(params), include_groups: true }
   }));
 
 export const createToolCheckoutRequest = ({ body }: {
-  body: { toolId: string; note?: string }
+  body: { toolId?: string; toolGroupId?: string; note?: string }
 }) =>
   buildResponse<ToolCheckoutRequest>(api.post("/api/tool_checkout_requests", {
     tool_id: body.toolId,
+    tool_group_id: body.toolGroupId,
     note: body.note,
   }));
 
@@ -281,25 +282,47 @@ export const listCheckoutApprovers = (_params?: any) =>
   buildResponse<CheckoutApprover[]>(api.get("/api/admin/checkout_approvers"));
 
 export const adminCreateCheckoutApprover = ({ body }: {
-  body: { memberId: string; shopIds: string[]; toolIds: string[] }
+  body: { memberId: string; shopIds: string[]; toolIds: string[]; toolGroupIds?: string[] }
 }) =>
   buildResponse<CheckoutApprover>(api.post("/api/admin/checkout_approvers", {
     member_id: body.memberId,
     shop_ids: body.shopIds,
     tool_ids: body.toolIds,
+    tool_group_ids: body.toolGroupIds,
   }));
 
 export const adminUpdateCheckoutApprover = ({ id, body }: {
   id: string;
-  body: { shopIds: string[]; toolIds: string[] }
+  body: { shopIds: string[]; toolIds: string[]; toolGroupIds?: string[] }
 }) =>
   buildResponse<CheckoutApprover>(api.put(`/api/admin/checkout_approvers/${id}`, {
     shop_ids: body.shopIds,
     tool_ids: body.toolIds,
+    tool_group_ids: body.toolGroupIds,
   }));
 
 export const adminDeleteCheckoutApprover = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/checkout_approvers/${id}`));
+
+export const listToolGroups = (shopId?: string) => buildResponse<ToolGroup[]>(
+  api.get('/api/tool_groups', { params: { shop_id: shopId } }));
+export const saveToolGroup = (body: Partial<ToolGroup>) => {
+  const data = {
+    name: body.name, shop_id: body.shopId, description: body.description,
+    prerequisite_ids: body.prerequisiteIds, included_tool_ids: body.includedToolIds,
+    reservable: body.reservable, requestable: body.requestable, announce: body.announce,
+    announce_channel: body.announceChannel, revision: body.revision,
+  };
+  return buildResponse<ToolGroup>(body.id
+    ? api.put(`/api/tool_groups/${body.id}`, data) : api.post('/api/tool_groups', data));
+};
+export const archiveToolGroup = (group: ToolGroup) => buildResponse<{}>(
+  api.delete(`/api/tool_groups/${group.id}`, { data: { revision: group.revision } }));
+export const reviewToolGroup = (id: string, memberId?: string) => buildResponse<GroupCheckoutReview>(
+  api.get(`/api/tool_groups/${id}/review`, { params: { member_id: memberId } }));
+export const approveToolGroup = (id: string, memberId: string, revision: number, requestId?: string) =>
+  buildResponse<{ checkouts: ToolCheckout[]; skipped: ToolCheckout[]; approvalBatchId: string }>(
+    api.post(`/api/tool_groups/${id}/approve`, { member_id: memberId, revision, request_id: requestId }));
 
 // This endpoint is intentionally available to admin/board, the tool's shop
 // resource managers, and every additional checkout approver for the tool.

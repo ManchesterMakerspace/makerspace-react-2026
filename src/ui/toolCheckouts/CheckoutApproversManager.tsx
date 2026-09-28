@@ -1,5 +1,6 @@
 // @ts-nocheck
 import * as React from "react";
+import { listToolGroups } from 'api/toolCheckouts';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -51,6 +52,9 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
   );
   const [shopIds, setShopIds] = React.useState<string[]>(existing ? existing.shopIds : []);
   const [toolIds, setToolIds] = React.useState<string[]>(existing ? existing.toolIds || [] : []);
+  const [groups, setGroups] = React.useState([]);
+  const [toolGroupIds, setToolGroupIds] = React.useState(existing?.toolGroupIds || []);
+  React.useEffect(() => { listToolGroups().then(result => setGroups(result.data || [])); }, []);
 
   // When member selection changes in Add mode, check if they're already an approver
   // (handled by parent via existing prop — if user picks existing member, parent sets existing)
@@ -69,11 +73,11 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
   const submitText = isEditing ? "Save Changes" : "Add Approver";
 
   const handleSubmit = () => {
-    if (!shopIds.length && !toolIds.length) return;
+    if (!shopIds.length && !toolIds.length && !toolGroupIds.length) return;
     if (isEditing) {
-      onSave(existing.memberId, shopIds, toolIds, existing.id);
+      onSave(existing.memberId, shopIds, toolIds, existing.id, toolGroupIds);
     } else if (selectedMember) {
-      onSave(selectedMember.value, shopIds, toolIds);
+      onSave(selectedMember.value, shopIds, toolIds, undefined, toolGroupIds);
     }
   };
 
@@ -131,6 +135,10 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
                     clickable
                   />
                 ))}
+                {groups.filter(group => group.shopId === shop.id).map(group => <Chip key={group.id}
+                  label={`${group.name} · Group`} clickable disabled={shopIds.includes(shop.id)}
+                  color={toolGroupIds.includes(group.id) ? 'primary' : 'default'}
+                  onClick={() => setToolGroupIds(ids => ids.includes(group.id) ? ids.filter(id => id !== group.id) : [...ids, group.id])} />)}
               </div>
             </div>
           ))}
@@ -197,11 +205,11 @@ const CheckoutApproversManager: React.FC = () => {
 
   const selectedApprover = approvers.find((a: CheckoutApprover) => a.id === selectedId) || null;
 
-  const handleSave = (memberId: string, shopIds: string[], toolIds: string[], existingId?: string) => {
+  const handleSave = (memberId: string, shopIds: string[], toolIds: string[], existingId?: string, toolGroupIds: string[] = []) => {
     if (existingId) {
-      updateApprover({ id: existingId, body: { shopIds, toolIds } });
+      updateApprover({ id: existingId, body: { shopIds, toolIds, toolGroupIds } });
     } else {
-      createApprover({ body: { memberId, shopIds, toolIds } });
+      createApprover({ body: { memberId, shopIds, toolIds, toolGroupIds } });
     }
   };
 

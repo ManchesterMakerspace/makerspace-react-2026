@@ -1,6 +1,9 @@
 // @ts-nocheck
 import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
+import { listToolGroups } from 'api/toolCheckouts';
+import GroupApproval from './GroupApproval';
+import { GroupDetails } from './ToolGroupList';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -61,6 +64,7 @@ export const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onS
           <Grid size={{ xs: 12 }}>
             <Typography><strong>{target.name}</strong> in <strong>{target.shopName}</strong></Typography>
             <ToolAvailability outOfService={target.outOfService} />
+            {target.targetType === 'group' && <><Chip label="Group" size="small" /><GroupDetails group={target} /></>}
             {target.prerequisiteNames?.length > 0 && (
               <Typography variant="caption" color="textSecondary">
                 Prerequisites: {target.prerequisiteNames.join(", ")}
@@ -106,6 +110,10 @@ interface Props {
 }
 
 const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
+  const [groups, setGroups] = React.useState([]);
+  const [groupRequest, setGroupRequest] = React.useState(null);
+  const refreshGroups = React.useCallback(() => { listToolGroups().then(result => setGroups(result.data || [])); }, []);
+  React.useEffect(refreshGroups, [refreshGroups]);
   const { params } = useQueryContext();
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
@@ -131,7 +139,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   React.useEffect(() => { refreshAvailableRef.current = availableRead.refresh; }, [availableRead.refresh]);
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
-  const availableTools = (availableRead.data || []) as Tool[];
+  const availableTools = [...(availableRead.data || []), ...groups.map(group => ({ ...group, requestable: group.canRequest }))] as Tool[];
   const canRequestTool = React.useCallback((tool: Tool) =>
     !!tool.requestable && !tool.requestPending && !tool.unmetPrerequisiteNames?.length,
   []);
@@ -145,6 +153,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
     setSelectedToolId(undefined);
     refreshRequestsRef.current();
     refreshAvailableRef.current();
+    refreshGroups();
   }, []);
 
   const { call: createRequest, isRequesting: creating, error: createError } =
@@ -161,7 +170,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "toolName", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.toolName}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
+          <Typography variant="body2"><strong>{row.toolName}</strong> {row.targetType === 'group' && <Chip label="Group" size="small" />} <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
           {!canManage && <RequestorAnnotationTooltip annotation={row.requestorAnnotation} />}
         </div>
@@ -188,7 +197,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "name", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.name}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
+          <Typography variant="body2"><strong>{row.name}</strong> {row.targetType === 'group' && <Chip label="Group" size="small" />} <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
         </div>
       ),
@@ -232,7 +241,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
             )}
             {canManage && selectedRequest && (
               <Button variant="contained" color="primary" startIcon={<CheckIcon />}
-                onClick={() => approveRequest({ body: { memberId: selectedRequest.memberId, toolId: selectedRequest.toolId } })}>
+                onClick={() => selectedRequest.toolGroupId ? setGroupRequest(selectedRequest) : approveRequest({ body: { memberId: selectedRequest.memberId, toolId: selectedRequest.toolId } })}>
                 Check Out Member
               </Button>
             )}
@@ -276,11 +285,14 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       )}
 
       <RequestModal target={requestTarget} onClose={() => setRequestTarget(null)}
-        onSave={note => requestTarget && createRequest({ body: { toolId: requestTarget.id, note } })}
+        onSave={note => requestTarget && createRequest({ body: { ...(requestTarget.targetType === 'group' ? { toolGroupId: requestTarget.id } : { toolId: requestTarget.id }), note } })}
         loading={creating} error={createError} />
       <EditNoteModal target={editTarget} onClose={() => setEditTarget(null)}
         onSave={note => editTarget && updateRequest({ id: editTarget.id, body: { note } })}
         loading={updating} error={updateError} />
+      {groupRequest && groups.find(group => group.id === groupRequest.toolGroupId) && <GroupApproval
+        group={groups.find(group => group.id === groupRequest.toolGroupId)} memberId={groupRequest.memberId} requestId={groupRequest.id}
+        onClose={() => setGroupRequest(null)} onSaved={() => { setGroupRequest(null); onSuccess(); }} />}
     </Grid>
   );
 };

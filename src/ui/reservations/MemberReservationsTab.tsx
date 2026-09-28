@@ -13,6 +13,7 @@ import { Reservation } from "app/entities/reservation";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
 import ApprovalDetails from "./ApprovalDetails";
+import { reservationResourceLabel } from './resourceLabel';
 import { isReservationCreationEligible } from "./eligibility";
 
 const ZONE = "America/New_York";
@@ -47,9 +48,7 @@ const ReservationTitle: React.FC<{ reservation: Reservation }> = ({
 const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
   reservation,
 }) => {
-  const resources = reservation.toolNames?.length
-    ? reservation.toolNames.join(", ")
-    : reservation.shopName;
+  const resources = reservationResourceLabel(reservation);
 
   return (
     <Paper
