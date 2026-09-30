@@ -18,7 +18,7 @@ import { Location, Shop, Tool } from "app/entities/toolCheckout";
 import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from "api/locations";
 import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
-import { boundingBoxOf, paddedBox, cropViewBoxToBox, ViewBox } from "./locationGeometry";
+import { boundingBoxOf, paddedBox, cropViewBoxToBox, wrapperPctToLocalPct, ViewBox } from "./locationGeometry";
 import { LOCATION_KIND_OPTIONS, colorForKind, TOOL_MARKER_COLOR } from "./locationKinds";
 
 // One SVG per building floor, shared by every shop on that floor (a real
@@ -202,6 +202,11 @@ const ShopMapManager: React.FC<{
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const originalViewBoxRef = React.useRef<ViewBox | null>(null);
   const currentParent = zoomStack[zoomStack.length - 1];
+  // Read from the corner-drag mousemove handler below, which is mounted
+  // once (empty dependency array) and would otherwise close over whatever
+  // `currentParent` was at mount time forever.
+  const currentParentRef = React.useRef(currentParent);
+  currentParentRef.current = currentParent;
 
   const selectedShop = shops.find(s => s.id === shopId);
   const floorName = selectedShop?.floorName;
@@ -282,8 +287,14 @@ const ShopMapManager: React.FC<{
       const wrapper = wrapperRef.current;
       if (index == null || !wrapper) return;
       const rect = wrapper.getBoundingClientRect();
-      const x = Math.round(Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)));
-      const y = Math.round(Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100)));
+      let x = Math.round(Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)));
+      let y = Math.round(Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100)));
+      const parent = currentParentRef.current;
+      if (parent) {
+        const box = boundingBoxOf(parent);
+        x = Math.round(wrapperPctToLocalPct(x, box.minX, box.maxX));
+        y = Math.round(wrapperPctToLocalPct(y, box.minY, box.maxY));
+      }
       setAdjusting(current => current && {
         ...current,
         points: current.points.map((p, i) => (i === index ? { x, y } : p)),
@@ -650,8 +661,19 @@ const ShopMapManager: React.FC<{
     }
 
     const rect = wrapper.getBoundingClientRect();
-    const xPct = Math.round(((event.clientX - rect.left) / rect.width) * 100);
-    const yPct = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    let xPct = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+    let yPct = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    // The visible wrapper shows a *padded* crop when zoomed in (a bit of
+    // margin beyond the current parent's exact edges, for visual breathing
+    // room) -- but every stored point must be percent-of-the-true-unpadded-
+    // parent-box, or composing through multiple nesting levels compounds
+    // that margin and can push a deeply-nested item outside its ancestor's
+    // real boundary. Remap raw wrapper percent into that frame before use.
+    if (currentParent) {
+      const box = boundingBoxOf(currentParent);
+      xPct = Math.round(wrapperPctToLocalPct(xPct, box.minX, box.maxX));
+      yPct = Math.round(wrapperPctToLocalPct(yPct, box.minY, box.maxY));
+    }
 
     if (drawing) {
       setDrawPoints(points => [...points, { x: xPct, y: yPct }]);
