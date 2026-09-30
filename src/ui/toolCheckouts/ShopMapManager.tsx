@@ -15,6 +15,7 @@ import { Location, Shop } from "app/entities/toolCheckout";
 import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from "api/locations";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
+import { boundingBoxOf, ZOOM_PADDING_PCT } from "./locationGeometry";
 
 // One SVG per building floor, shared by every shop on that floor (a real
 // floor plan covers multiple rooms/shops at once, not one shop in
@@ -32,21 +33,6 @@ interface PendingPlacement {
 }
 
 interface ViewBox { x: number; y: number; width: number; height: number; }
-
-// A location's own footprint, in whatever percent-space it was drawn in
-// (percent of its immediate parent's box -- the floor, if top-level, or the
-// parent location's own crop once nested). A pin gets a small fixed-size box
-// around its point since it has no extent of its own.
-const boundingBoxOf = (loc: Location) => {
-  if (loc.shapePoints?.length) {
-    const xs = loc.shapePoints.map(p => p.x), ys = loc.shapePoints.map(p => p.y);
-    return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
-  }
-  const x = loc.xPct ?? 50, y = loc.yPct ?? 50;
-  return { minX: x - 5, maxX: x + 5, minY: y - 5, maxY: y + 5 };
-};
-
-const ZOOM_PADDING_PCT = 5;
 
 // Composes each zoomed-into location's own bounding box (in percent of
 // *its* parent) down onto the SVG's true original viewBox, one level at a
@@ -292,7 +278,12 @@ const ShopMapManager: React.FC = () => {
       });
       wrapper.appendChild(handle);
     });
-  }, [adjusting]);
+    // No dependency array: same reset risk as the viewBox-crop effect above
+    // (React re-applies dangerouslySetInnerHTML -- and wipes every appended
+    // child, including these handles -- on any unrelated re-render of this
+    // component), so this needs to reassert on every render, not just when
+    // `adjusting` itself changes.
+  });
 
   // Captures the injected SVG's true original viewBox once per floor-plan
   // load, before any zoom crop is applied to it -- so repeated zooms always
@@ -312,6 +303,25 @@ const ShopMapManager: React.FC = () => {
   // Everything else -- click math, clip-path overlays, the draw-preview --
   // keeps operating in "percent of the currently displayed box" terms and
   // needs no changes; only the SVG's own internal coordinate window moves.
+  //
+  // Deliberately no dependency array -- confirmed via direct instrumentation
+  // (patching the wrapper's innerHTML setter) that React re-applies
+  // dangerouslySetInnerHTML on this wrapper on EVERY re-render of this
+  // component, even though `svgMarkup` itself never changes, silently
+  // resetting the injected SVG's viewBox back to its embedded default. A
+  // dependency array of [svgMarkup, zoomStack] looks correct but only
+  // reruns when those specific values change -- so clicking to place a pin
+  // (which only touches `pending` state) still re-renders the component,
+  // resets the viewBox, and this effect never notices to reapply the crop.
+  // This is almost certainly also the true, never-fully-explained cause of
+  // the earlier imperative-inline-style-getting-cleared mystery (see the
+  // CSS-rule workaround below) -- same reset, different casualty. The
+  // pins/shapes effect a bit further down never showed this symptom only
+  // because its own dependencies (activeLocations/otherLocations) are
+  // freshly-filtered arrays on every render, so it was already effectively
+  // running on every render by accident. Running this unconditionally too
+  // is cheap (two attribute writes) and makes the fix explicit instead of
+  // relying on that same accident.
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
     const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
@@ -330,7 +340,7 @@ const ShopMapManager: React.FC = () => {
     // axes independently, same assumption the draw-preview overlay already
     // makes explicit with its own preserveAspectRatio="none").
     svgRoot.setAttribute("preserveAspectRatio", "none");
-  }, [svgMarkup, zoomStack]);
+  });
 
   // Re-applies highlights/pins whenever the map or the location list changes
   // -- not React-rendered JSX, since these need to live inside markup that
@@ -506,7 +516,9 @@ const ShopMapManager: React.FC = () => {
       });
       wrapper.appendChild(dot);
     });
-  }, [drawPoints]);
+    // No dependency array, same reset risk as the other overlay effects
+    // here -- see the viewBox-crop effect's comment above.
+  });
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressNextClickRef.current) {
@@ -645,10 +657,11 @@ const ShopMapManager: React.FC = () => {
             )}
           </div>
           {/* A CSS rule, not an imperative style on the injected <svg> --
-              something (never fully root-caused; flagged for the broader
-              debug pass) keeps clearing a JS-applied inline style on that
-              node, but a stylesheet rule isn't an attribute of the node
-              itself, so nothing can reset it out from under us. Forces the
+              confirmed (see the viewBox-crop effect above) that React
+              re-applies dangerouslySetInnerHTML on this wrapper on every
+              re-render, clearing any JS-applied inline style on that node,
+              but a stylesheet rule isn't an attribute of the node itself,
+              so nothing can reset it out from under us. Forces the
               SVG's own intrinsic size (often mm units from an Inkscape
               export) to exactly fill the wrapper -- every click/overlay
               calculation here assumes the visible map exactly matches the
