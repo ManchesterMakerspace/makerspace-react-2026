@@ -17,15 +17,30 @@ export const KIND_LABELS: Record<string, string> = Object.fromEntries(
 
 // One fixed color per kind, independent of any shop's own color -- used
 // wherever multiple nesting levels render on the same image at once (so a
-// cabinet doesn't blend into the color of the room it sits inside).
+// cabinet doesn't blend into the color of the room it sits inside). Chosen
+// to be mutually distinct from each other AND from FALLBACK_NESTED_COLOR
+// and TOOL_MARKER_COLOR below -- table used to share the exact same hex as
+// the generic nested fallback, so an unkinded tool marker (like a
+// precisely-placed tool with no kind set) visually vanished into any
+// "table"-kind container it happened to sit inside.
 export const KIND_COLORS: Record<string, string> = {
   area: "#1976d2",
   cabinet: "#6d4c41",
   shelf: "#8e24aa",
   drawer: "#00897b",
-  table: "#e65100",
-  bin: "#fbc02d",
+  table: "#f9a825",
+  bin: "#9e9d24",
 };
+
+// Fallback for a nested location with no recognized kind (the admin editor
+// passes its own plain blue instead -- see colorForKind's own comment).
+export const FALLBACK_NESTED_COLOR = "#e65100";
+
+// Reserved for ANY location that has a tool assigned to it, regardless of
+// its own kind -- takes priority over kind/fallback color everywhere a
+// tool's exact spot needs to be unmistakable at a glance, per instruction:
+// tools get their own color, not whatever their container happens to be.
+export const TOOL_MARKER_COLOR = "#2e7d32";
 
 // No single global default -- what an unset/unrecognized kind should fall
 // back to depends on context (the admin editor only ever shows one zoom

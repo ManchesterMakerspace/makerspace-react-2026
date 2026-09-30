@@ -50,6 +50,10 @@ export interface Location {
   yPct?: number;
   shapePoints?: { x: number; y: number }[];
   toolNames?: string[];
+  // Index-aligned with toolNames (both derive from the same server-side
+  // fetch, not two separate queries, so a given index always names/ids the
+  // same tool).
+  toolIds?: string[];
 }
 
 export interface GoogleCalendarColor {

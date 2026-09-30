@@ -19,7 +19,7 @@ import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDele
 import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { boundingBoxOf, paddedBox, cropViewBoxToBox, ViewBox } from "./locationGeometry";
-import { LOCATION_KIND_OPTIONS, colorForKind } from "./locationKinds";
+import { LOCATION_KIND_OPTIONS, colorForKind, TOOL_MARKER_COLOR } from "./locationKinds";
 
 // One SVG per building floor, shared by every shop on that floor (a real
 // floor plan covers multiple rooms/shops at once, not one shop in
@@ -471,6 +471,11 @@ const ShopMapManager: React.FC = () => {
       const label = location.toolNames?.length
         ? `${location.name} — ${location.toolNames.join(", ")}`
         : location.name;
+      // Same priority as the read-only Workshops-page map: a location
+      // holding a tool always renders in the reserved tool color, ahead of
+      // its own kind color, so it stays consistent regardless of which
+      // view an admin is looking at.
+      const color = location.toolNames?.length ? TOOL_MARKER_COLOR : colorForKind(location.kind, "#1976d2");
       if (location.shapePoints && location.shapePoints.length >= 3) {
         const shape = document.createElement("div");
         shape.setAttribute("data-location-shape", location.id);
@@ -479,7 +484,7 @@ const ShopMapManager: React.FC = () => {
           position: "absolute",
           inset: "0",
           clipPath: `polygon(${location.shapePoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-          background: colorForKind(location.kind, "#1976d2"),
+          background: color,
           opacity: "0.35",
           cursor: "pointer",
         });
@@ -502,7 +507,7 @@ const ShopMapManager: React.FC = () => {
           width: "16px",
           height: "16px",
           borderRadius: "50% 50% 50% 0",
-          background: colorForKind(location.kind, "#1976d2"),
+          background: color,
           cursor: "pointer",
         });
         pin.addEventListener("click", event => {

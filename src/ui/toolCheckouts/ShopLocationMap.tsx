@@ -1,6 +1,7 @@
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import Link from "@mui/material/Link";
 
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
@@ -9,7 +10,7 @@ import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
 import { paddedBox, cropViewBoxToBox, resolveAbsolutePoint } from "./locationGeometry";
-import { colorForKind, labelForKind } from "./locationKinds";
+import { colorForKind, labelForKind, FALLBACK_NESTED_COLOR, TOOL_MARKER_COLOR } from "./locationKinds";
 import { Location } from "app/entities/toolCheckout";
 
 // Same per-floor SVG convention as ShopMapManager/ShopMapView.
@@ -42,7 +43,17 @@ const remap = (pct: number, min: number, max: number) => ((pct - min) / (max - m
 // percent, then remaps into that cropped frame, so the overlay -- shop
 // boundary, cabinets, shelves, whatever's nested inside them -- stays
 // aligned with the visibly-zoomed SVG underneath it.
-const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopId, shopName }) => {
+const ShopLocationMap: React.FC<{
+  shopId: string;
+  shopName: string;
+  // Lets a click on a tool's name jump straight to that tool on the
+  // Workshops page's Tools tab, where a member can actually act on it
+  // (request checkout, reserve, etc.) instead of just seeing its name.
+  onSelectTool?: (toolId: string) => void;
+  // The reverse direction: "Find tool" on a Tools-tab row lands here with
+  // this set, so the map can ring whichever marker holds that tool.
+  highlightToolId?: string;
+}> = ({ shopId, shopName, onSelectTool, highlightToolId }) => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const shop = shops.find(s => s.id === shopId);
   const floorName = shop?.floorName;
@@ -76,6 +87,14 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
     })();
     return () => { cancelled = true; };
   }, [floorName]);
+
+  // "Find tool" on the Tools tab sets this and switches to this tab -- pull
+  // the map into view the same way the reverse direction (WorkshopTools)
+  // scrolls to a specific row.
+  React.useEffect(() => {
+    if (!highlightToolId) return;
+    wrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightToolId]);
 
   const topLevelLocations = locations.filter(l => !l.parentId);
   const box = unionBoundingBox(topLevelLocations);
@@ -111,7 +130,7 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper || !box) return;
-    wrapper.querySelectorAll("[data-shop-location]").forEach(el => el.remove());
+    wrapper.querySelectorAll("[data-shop-location], [data-shop-location-ring]").forEach(el => el.remove());
     const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
     // Every location, not just top-level -- a nested cabinet/shelf/table's
     // own shapePoints/pin are stored relative to its immediate parent, not
@@ -126,12 +145,46 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
       // flattens every nesting level onto one image. A fixed, non-shop
       // color at a higher opacity keeps anything nested clearly readable
       // as "an object", regardless of which shop's color it sits inside.
+      // A NESTED location holding a tool gets the reserved tool color ahead
+      // of its own kind color -- a tool's exact spot needs to be
+      // unmistakable regardless of what kind of container it sits inside.
+      // Deliberately not applied at the top level: the shop's own boundary
+      // shape needs to stay in the shop's own color for shop identification
+      // even when a tool happens to be attached directly to the room
+      // itself rather than to a dedicated spot within it.
       const isNested = !!location.parentId;
-      const color = isNested ? colorForKind(location.kind, "#e65100") : shopColor;
+      const hasTool = isNested && !!location.toolNames?.length;
+      const color = hasTool
+        ? TOOL_MARKER_COLOR
+        : isNested ? colorForKind(location.kind, FALLBACK_NESTED_COLOR) : shopColor;
       const opacity = isNested ? "0.55" : "0.3";
       const label = location.toolNames?.length
         ? `${location.name} — ${location.toolNames.join(", ")}`
         : location.name;
+      const isHighlighted = !!highlightToolId && !!location.toolIds?.includes(highlightToolId);
+      // "Find tool" on the Tools tab lands here with this location's tool
+      // highlighted -- an animated ring, centered on the marker's own
+      // position, so it's unmistakable at a glance without hiding anything
+      // else on the map.
+      const addRing = (centerXPct: number, centerYPct: number) => {
+        const ring = document.createElement("div");
+        ring.setAttribute("data-shop-location-ring", location.id);
+        Object.assign(ring.style, {
+          position: "absolute",
+          left: `${centerXPct}%`,
+          top: `${centerYPct}%`,
+          width: "34px",
+          height: "34px",
+          marginLeft: "-17px",
+          marginTop: "-17px",
+          borderRadius: "50%",
+          border: "3px solid #d32f2f",
+          boxSizing: "border-box",
+          pointerEvents: "none",
+          animation: "shop-location-map-ring-pulse 1.4s ease-in-out infinite",
+        });
+        wrapper.appendChild(ring);
+      };
       if (location.shapePoints && location.shapePoints.length >= 3) {
         const absPoints = location.shapePoints.map(p =>
           resolveAbsolutePoint(location.parentId, p.x, p.y, byId)
@@ -149,6 +202,11 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
           opacity,
         });
         wrapper.appendChild(shape);
+        if (isHighlighted) {
+          const centerX = absPoints.reduce((sum, p) => sum + p.x, 0) / absPoints.length;
+          const centerY = absPoints.reduce((sum, p) => sum + p.y, 0) / absPoints.length;
+          addRing(remap(centerX, box.minX, box.maxX), remap(centerY, box.minY, box.maxY));
+        }
         return;
       }
       if (location.xPct != null && location.yPct != null) {
@@ -168,6 +226,12 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
           opacity,
         });
         wrapper.appendChild(dot);
+        if (isHighlighted) {
+          // The pin's own box is anchored bottom-center (translate -50%,
+          // -100%) to look like a map pin -- the ring centers on that same
+          // anchor point, not the div's own top-left.
+          addRing(remap(abs.x, box.minX, box.maxX), remap(abs.y, box.minY, box.maxY));
+        }
       }
     });
     // No dependency array -- see the crop effect above.
@@ -185,7 +249,7 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
           </Typography>
         ) : (
           <>
-            <style>{"[data-shop-location-map-wrapper] > svg { width: 100% !important; height: auto !important; display: block !important; }"}</style>
+            <style>{"[data-shop-location-map-wrapper] > svg { width: 100% !important; height: auto !important; display: block !important; } @keyframes shop-location-map-ring-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.6; } }"}</style>
             <div
               ref={wrapperRef}
               data-shop-location-map-wrapper
@@ -199,6 +263,11 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
             {flattenTree(locations).flatMap(entry => {
               const location = byId.get(entry.id);
               const toolNames = location?.toolNames || [];
+              const toolIds = location?.toolIds || [];
+              const toolLink = (toolName: string, toolId: string | undefined) =>
+                onSelectTool && toolId
+                  ? <Link component="button" variant="body2" onClick={() => onSelectTool(toolId)}>{toolName}</Link>
+                  : toolName;
               const hasChildren = locations.some(l => l.parentId === entry.id);
               // A location that exists purely to mark one tool's exact spot
               // -- no children, exactly one tool, sharing its name -- is
@@ -210,7 +279,7 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
               if (!hasChildren && toolNames.length === 1 && toolNames[0] === location?.name) {
                 return [
                   <Typography key={entry.id} variant="body2" color="textSecondary">
-                    {"—".repeat(entry.depth)}{entry.depth ? " " : ""}Tool: {toolNames[0]}
+                    {"—".repeat(entry.depth)}{entry.depth ? " " : ""}Tool: {toolLink(toolNames[0], toolIds[0])}
                   </Typography>,
                 ];
               }
@@ -221,7 +290,7 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
                 // sub-location.
                 ...toolNames.map((toolName, i) => (
                   <Typography key={`${entry.id}-tool-${i}`} variant="body2" color="textSecondary">
-                    {"—".repeat(entry.depth + 1)} Tool: {toolName}
+                    {"—".repeat(entry.depth + 1)} Tool: {toolLink(toolName, toolIds[i])}
                   </Typography>
                 )),
               ];
