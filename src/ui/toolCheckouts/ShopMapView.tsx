@@ -65,11 +65,21 @@ const ShopMapView: React.FC = () => {
     return () => { cancelled = true; };
   }, [floorName]);
 
+  // Top-level locations only -- a nested cabinet/shelf/tool's own
+  // xPct/yPct/shapePoints are stored relative to its immediate parent, not
+  // the floor, so plotting them directly here (as this floor-wide overview
+  // does for every other location) would place them at a essentially
+  // random spot on the whole floor. This view is "every shop's own area at
+  // a glance," not a room-by-room breakdown, so top-level shapes/pins are
+  // the right scope regardless -- the Workshops page's ShopLocationMap is
+  // where nested contents actually get drawn accurately.
+  const topLevelLocations = locations.filter(l => !l.parentId);
+
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     wrapper.querySelectorAll("[data-shop-location]").forEach(el => el.remove());
-    locations.forEach(location => {
+    topLevelLocations.forEach(location => {
       const ownerShop = shops.find(s => s.id === location.shopId);
       const color = (ownerShop?.colorId && shopColors[ownerShop.colorId]) || "#1976d2";
       const label = `${ownerShop?.name || "Shop"}: ${location.name}`;
@@ -104,7 +114,7 @@ const ShopMapView: React.FC = () => {
         wrapper.appendChild(dot);
       }
     });
-  }, [svgMarkup, locations, shops, shopColors]);
+  }, [svgMarkup, topLevelLocations, shops, shopColors]);
 
   return (
     <Grid container spacing={2}>
