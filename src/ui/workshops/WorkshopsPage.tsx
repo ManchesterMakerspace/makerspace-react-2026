@@ -55,6 +55,7 @@ import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 import { workshopReservationRows } from "./workshopReservations";
 import { AddShopModal, EditShopModal } from "ui/toolCheckouts/ShopManager";
 import { EditToolRow } from "ui/toolCheckouts/ToolManager";
+import ShopLocationMap from "ui/toolCheckouts/ShopLocationMap";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -199,7 +200,9 @@ const WorkshopTools: React.FC<{
   managedShop?: Shop;
   managedTools: Tool[];
   onRefresh: () => void;
-}> = ({ workshop, managedShop, managedTools, onRefresh, selectedToolId }) => {
+  highlightToolId?: string;
+  onFindTool?: (toolId: string) => void;
+}> = ({ workshop, managedShop, managedTools, onRefresh, selectedToolId, highlightToolId, onFindTool }) => {
   React.useEffect(() => {
     if (selectedToolId) document.getElementById(`tool-${selectedToolId}`)?.scrollIntoView({ block: 'center' });
   }, [selectedToolId]);
@@ -208,6 +211,14 @@ const WorkshopTools: React.FC<{
   const [editTool, setEditTool] = React.useState<Tool | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [editError, setEditError] = React.useState("");
+
+  // Scrolls to and briefly highlights a specific tool when arriving here
+  // from the shop's map (clicking a tool name there lands on this tab).
+  React.useEffect(() => {
+    if (!highlightToolId) return;
+    document.getElementById(`tool-${highlightToolId}`)
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightToolId]);
 
   const saveTool = async (id: string, body: Partial<Tool>, notes?: string) => {
     setSaving(true);
@@ -241,7 +252,8 @@ const WorkshopTools: React.FC<{
         <Paper key={tool.id} id={`tool-${tool.id}`} variant="outlined" sx={{ borderColor: selectedToolId === tool.id ? 'primary.main' : 'divider' }} style={{
           padding: 12,
           marginTop: 10,
-          opacity: tool.disabled ? 0.65 : 1
+          opacity: tool.disabled ? 0.65 : 1,
+          outline: tool.id === highlightToolId ? "2px solid #1976d2" : undefined
         }}>
           <Grid container spacing={1} justifyContent="space-between">
             {selectedToolId === tool.id && <Grid size={12}><Chip label="Scanned tool" size="small" /></Grid>}
@@ -255,6 +267,8 @@ const WorkshopTools: React.FC<{
               <Button href={`/fix-tickets?new=true&shop_id=${workshop.id}&tool_id=${tool.id}`}>Report a problem</Button>
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
+              {tool.locationName &&
+                <Typography variant="body2" color="textSecondary">Location: {tool.locationName}</Typography>}
               {tool.prerequisiteNames.length > 0 &&
                 <Typography variant="caption" style={{ display: "block" }}>
                   Checkout prerequisites: {tool.prerequisiteNames.join(", ")}
@@ -296,6 +310,10 @@ const WorkshopTools: React.FC<{
               flexWrap: "wrap"
             }}>
               {workshop.isShopManager && <ToolOutageAction tool={tool} onSaved={onRefresh} />}
+              {tool.locationName && onFindTool &&
+                <Button size="small" variant="outlined" onClick={() => onFindTool(tool.id)}>
+                  Find tool
+                </Button>}
               {tool.gdriveId &&
                 <Button size="small" variant="outlined"
                   href={`https://drive.google.com/drive/folders/${encodeURIComponent(tool.gdriveId)}`}
@@ -540,6 +558,7 @@ const WorkshopsPage: React.FC = () => {
   });
   const [selectedId, setSelectedId] = React.useState("");
   const [tab, setTab] = React.useState<WorkshopTab>("details");
+  const [highlightToolId, setHighlightToolId] = React.useState<string | undefined>(undefined);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [addOpen, setAddOpen] = React.useState(false);
@@ -674,22 +693,30 @@ const WorkshopsPage: React.FC = () => {
           </Tabs>
 
           <div style={{ marginTop: 18 }}>
-            {tab === "details" && <>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
-              {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
-                onClick={() => setEditOpen(true)}>
-                Edit
-              </Button>}
-              {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
-                onClick={() => setQrOpen(true)}>QR Code</Button>}
-              </div>
-              <WorkshopDetails workshop={workshop} />
-            </>}
+            {tab === "details" && <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
+                {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
+                  onClick={() => setEditOpen(true)}>
+                  Edit
+                </Button>}
+                {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
+                  onClick={() => setQrOpen(true)}>QR Code</Button>}
+                </div>
+                <WorkshopDetails workshop={workshop} />
+              </Grid>
+              <Grid size={{ xs: 12, md: 5 }}>
+                <ShopLocationMap shopId={workshop.id} shopName={workshop.name}
+                  onSelectTool={toolId => { setHighlightToolId(toolId); setTab("tools"); }}
+                  highlightToolId={tab === "details" ? highlightToolId : undefined} />
+              </Grid>
+            </Grid>}
             {tab === "tools" &&
               <WorkshopTools workshop={workshop} managedShop={managedShop} selectedToolId={requestedTool}
                 managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
-                onRefresh={load} />}
+                onRefresh={load} highlightToolId={tab === "tools" ? highlightToolId : undefined}
+                onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }} />}
             {tab === "reservations" &&
               <WorkshopReservations workshop={workshop} />}
             {tab === "documentation" && workshop.gdriveId &&
@@ -714,6 +741,7 @@ const WorkshopsPage: React.FC = () => {
       {qrOpen && workshop && <PublicCatalogQrCodeModal key={workshop.id} kind="shop" resource={workshop} onClose={() => setQrOpen(false)} />}
       {editOpen && workshop && managedShop && <EditShopModal
         shop={{ ...managedShop, resourceManagers: managedShop.resourceManagers || workshop.resourceManagers }}
+        shops={managedShops}
         tools={managedTools.filter(tool => tool.shopId === workshop.id)}
         onCancel={() => setEditOpen(false)}
         onSave={updateShop}

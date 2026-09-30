@@ -37,6 +37,7 @@ export interface WorkshopTool {
   description?: string;
   disabled: boolean;
   reservable: boolean;
+  locationName?: string;
   prerequisiteIds: string[];
   prerequisiteNames: string[];
   unmetPrerequisiteIds: string[];
