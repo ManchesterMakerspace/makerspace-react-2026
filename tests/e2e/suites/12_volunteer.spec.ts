@@ -52,7 +52,7 @@ test.describe('Bounty task lifecycle', () => {
     const volunteer = new MemberVolunteerPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await volunteer.goToVolunteerTab();
 
@@ -94,7 +94,7 @@ test.describe('Bounty task lifecycle', () => {
     const volunteer = new MemberVolunteerPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await volunteer.goToVolunteerTab();
 

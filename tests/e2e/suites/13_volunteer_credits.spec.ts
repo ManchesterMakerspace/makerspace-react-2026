@@ -112,7 +112,7 @@ test.describe('Admin directly awards a volunteer credit', () => {
 
     // Member views their OWN profile — isOwnProfile = true, tab shows
     await auth.signIn(CREDIT_MEMBER_EMAIL, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Volunteer');
     await page.waitForTimeout(1000);
@@ -228,7 +228,7 @@ test.describe('Admin reverses an approved volunteer credit', () => {
 
     // Member views own profile — Volunteer tab is visible
     await auth.signIn(CREDIT_MEMBER_EMAIL, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Volunteer');
     await page.waitForTimeout(1000);

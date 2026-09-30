@@ -4,22 +4,26 @@ export class SettingsPage {
   constructor(private page: Page) {}
 
   async goto(): Promise<void> {
-    // Use Account Settings button if on profile, else menu
+    if (/\/members\/[^/]+\/settings(?:\/|$)/.test(new URL(this.page.url()).pathname)) {
+      await this.reload();
+      return;
+    }
+    // Account Settings is on the member profile and Home, not the dropdown.
     const acctBtn = this.page.getByRole('button', { name: 'Account Settings' });
     if (await acctBtn.isVisible({ timeout: 2_000 })) {
       await acctBtn.click();
     } else {
-      await this.page.getByRole('button', { name: 'Menu' }).click();
-      await this.page.getByRole('link', { name: 'Account Settings' }).click();
+      if (new URL(this.page.url()).pathname !== '/home') await this.page.goto('/home');
+      await this.page.getByRole('link', { name: 'Account Settings', exact: true }).click();
     }
     await this.page.waitForURL(/\/settings/, { timeout: 15_000 });
-    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('#settings-profile')).toBeVisible();
   }
 
   async reload(): Promise<void> {
     await this.page.reload();
     await this.page.waitForURL(/\/settings/, { timeout: 15_000 });
-    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('#settings-profile')).toBeVisible();
   }
 
   async goToSubscriptionsTab(): Promise<void> {

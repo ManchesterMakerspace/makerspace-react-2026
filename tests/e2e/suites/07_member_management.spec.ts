@@ -103,13 +103,10 @@ test.describe('Admin revokes a member', () => {
     await page.getByRole('textbox', { name: 'Password' }).fill('password');
     await page.getByRole('button', { name: 'Sign In' }).click();
 
-    // Should stay on login page — not redirect to /members/
-    await page.waitForTimeout(3000);
-    expect(page.url()).not.toMatch(/\/members\//);
-
     // Devise error message for revoked: "Login failed, email board@manchestermakerspace.org with error code R2026"
     await expect(page.getByText(/login failed|error code R2026/i).first())
       .toBeVisible({ timeout: 10_000 });
+    await expect(page).toHaveURL(/\/login(?:[?#]|$)/);
   });
 });
 
@@ -131,7 +128,7 @@ test.describe('Member self-service profile update', () => {
     const settings = new SettingsPage(page);
 
     await auth.signIn(MEMBER_EMAIL, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
 
     // Member self-service edit is via Account Settings → Personal Information
@@ -191,13 +188,6 @@ test.describe('Member self-service password change', () => {
 
     // Sign in and navigate to Account Settings
     await auth.signIn(MEMBER_EMAIL, ORIGINAL_PASS);
-    await page.waitForURL(/\/members\//, { timeout: 15_000 });
-    // Dismiss any notification modal before navigating to settings
-    const notifModal = page.locator('#notification-modal-submit');
-    if (await notifModal.isVisible({ timeout: 3_000 })) {
-      await notifModal.click();
-      await notifModal.waitFor({ state: 'hidden', timeout: 5_000 });
-    }
     await settings.goto();
 
     // Navigate to Security tab (id="settings-security") — contains password change form

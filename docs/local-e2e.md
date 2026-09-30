@@ -53,6 +53,23 @@ Global setup runs `bundle exec rake db:db_reset`. Use `SKIP_DB_RESET=true` only
 when deliberately reusing an already prepared disposable fixture database.
 Screenshots, videos and retry traces are in `tmp/playwright-results`.
 
+## Member landing and page helpers
+
+`AuthPage.signIn` asserts the default destination from the signed-in member:
+regular members land on `/home` (`?newMember=true` for pending members), while
+admins, board members, and resource managers retain their own profile landing.
+Tests that need profile tabs must call `MemberPage.gotoOwnProfile()` explicitly.
+`waitForProfile()` only waits for a profile that was already requested; it never
+changes the login destination. Signup tests assert the welcome Home destination
+before opening the profile for follow-up checks. `SettingsPage.goto()` uses the
+Home Account Settings link or the existing profile button, not the dropdown.
+
+After building web assets, `node tests/browser/home.cjs` exercises these same
+page objects against the built UI with mocked APIs, including active/pending
+members, staff, restored sessions, and explicit profile/settings navigation.
+This check does not require backend credentials or reset a database; the full
+Rails/Braintree E2E suite remains a separate check.
+
 ## Ticket UI checks without backend credentials
 
 `node scripts/check_fix_tickets.cjs --tickets-only` builds an isolated UI fixture
