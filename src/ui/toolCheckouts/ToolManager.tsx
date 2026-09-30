@@ -39,6 +39,7 @@ import {
   adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
 import { adminListLocations } from "api/locations";
+import { flattenTree } from "./locationTree";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 
 const rowId = (t: Tool) => t.id;
@@ -64,7 +65,7 @@ const ToolLocationField: React.FC<{
       <FormLabel style={{ fontSize: 12 }}>Location</FormLabel>
       <Select native fullWidth value={value} onChange={e => onChange((e.target as HTMLSelectElement).value)}>
         <option value="">— no location —</option>
-        {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        {flattenTree(locations).map(entry => <option key={entry.id} value={entry.id}>{entry.label}</option>)}
       </Select>
     </>
   );
