@@ -19,6 +19,9 @@ New signup completion, including choosing no membership, goes to
 `/home?newMember=true`. The signup workflow captures this intent before agreement
 signing and shares the completion destination with the membership and payment
 steps. Existing-member membership changes continue to their profile.
+Signing a rental agreement returns to the profile's Dues tab at
+`/members/:id/dues`, where the member can pay the new rental invoice. Declining
+an agreement returns to `/members/:id/rentals`.
 
 Only the exact query value `newMember=true` displays the Welcome banner and
 onboarding paragraph. Plain Home shows membership coverage, status, and

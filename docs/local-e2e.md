@@ -63,10 +63,13 @@ Tests that need profile tabs must call `MemberPage.gotoOwnProfile()` explicitly.
 changes the login destination. Signup tests assert the welcome Home destination
 before opening the profile for follow-up checks. `SettingsPage.goto()` uses the
 Home Account Settings link or the existing profile button, not the dropdown.
+`MemberRentalsPage.clickProceed()` verifies that signing an agreement opens
+`/members/:id/dues` with the Dues tab selected, rather than falling back to Home.
 
 After building web assets, `node tests/browser/home.cjs` exercises these same
 page objects against the built UI with mocked APIs, including active/pending
-members, staff, restored sessions, and explicit profile/settings navigation.
+members, staff, restored sessions, explicit profile/settings navigation, and
+rental-agreement signing through to the rental invoice payment action.
 This check does not require backend credentials or reset a database; the full
 Rails/Braintree E2E suite remains a separate check.
 
