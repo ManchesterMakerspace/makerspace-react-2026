@@ -65,16 +65,22 @@ const LocationFormModal: React.FC<{
   // from `tools`/`onToggleTool` above, which lets an EXISTING location's
   // edit form say "these tools are generally somewhere in here".
   linkableTools?: Tool[];
+  // Preselects one of linkableTools (e.g. arriving here via the Tools
+  // tab's "Place on map" button) instead of making the admin find it
+  // themselves in the dropdown.
+  initialToolId?: string;
   loading: boolean;
   error: string;
 }> = ({
   initialName, initialKind, shops, initialShopId, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
-  locationId, tools, onToggleTool, linkableTools, loading, error
+  locationId, tools, onToggleTool, linkableTools, initialToolId, loading, error
 }) => {
-  const [name, setName] = React.useState(initialName);
   const [kind, setKind] = React.useState(initialKind || "");
   const [shopId, setShopId] = React.useState(initialShopId || "");
-  const [toolId, setToolId] = React.useState("");
+  const [toolId, setToolId] = React.useState(initialToolId || "");
+  const [name, setName] = React.useState(
+    initialName || linkableTools?.find(t => t.id === initialToolId)?.name || ""
+  );
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -160,9 +166,18 @@ const LocationFormModal: React.FC<{
   );
 };
 
-const ShopMapManager: React.FC = () => {
+const ShopMapManager: React.FC<{
+  // Set by the Tools tab's "Place on map" button -- jumps straight to this
+  // shop and, once the current shop selection matches, preselects this
+  // tool in the "place a specific tool here" picker for the next new
+  // marker, instead of making the admin hunt for the shop/tool themselves.
+  preset?: { shopId: string; toolId: string };
+}> = ({ preset }) => {
   const { data: shops = [] } = useCheckoutCatalog("managedShops");
-  const [shopId, setShopId] = React.useState("");
+  const [shopId, setShopId] = React.useState(preset?.shopId || "");
+  React.useEffect(() => {
+    if (preset?.shopId) setShopId(preset.shopId);
+  }, [preset?.shopId]);
   const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<PendingPlacement | null>(null);
   const [editing, setEditing] = React.useState<Location | null>(null);
@@ -405,6 +420,7 @@ const ShopMapManager: React.FC = () => {
     wrapper.querySelectorAll("[data-location-pin]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-shape]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-other-shop-location]").forEach(el => el.remove());
+    wrapper.querySelectorAll("[data-zoom-parent-outline]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-highlighted]").forEach(el => {
       el.removeAttribute("data-location-highlighted");
       (el as unknown as SVGElement).style.outline = "";
@@ -452,6 +468,35 @@ const ShopMapManager: React.FC = () => {
         wrapper.appendChild(dot);
       }
     });
+
+    // While zoomed in, the location you zoomed into is otherwise invisible
+    // -- activeLocations only ever holds its CHILDREN, so with nothing else
+    // drawn inside it yet (or a floor plan that has no real walls matching
+    // where it was drawn), the crop can look like a blank screen with no
+    // frame of reference for where you actually are. Draw its own outline
+    // (stroke only, no fill) so there's always something to place items
+    // against. A plain clip-path div can't do this -- clip-path crops what
+    // shows through a div's own rectangular box, it doesn't trace the
+    // clipped shape's edges as a border -- so this uses a real SVG polygon
+    // instead, same convention as the draw-preview overlay elsewhere here.
+    if (currentParent?.shapePoints && currentParent.shapePoints.length >= 3) {
+      const svgNs = "http://www.w3.org/2000/svg";
+      const outlineSvg = document.createElementNS(svgNs, "svg");
+      outlineSvg.setAttribute("data-zoom-parent-outline", currentParent.id);
+      outlineSvg.setAttribute("viewBox", "0 0 100 100");
+      outlineSvg.setAttribute("preserveAspectRatio", "none");
+      Object.assign(outlineSvg.style, {
+        position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
+      });
+      const polygon = document.createElementNS(svgNs, "polygon");
+      polygon.setAttribute("points", currentParent.shapePoints.map(p => `${p.x},${p.y}`).join(" "));
+      polygon.setAttribute("fill", "none");
+      polygon.setAttribute("stroke", "#1976d2");
+      polygon.setAttribute("stroke-width", "0.6");
+      polygon.setAttribute("stroke-dasharray", "2,1");
+      outlineSvg.appendChild(polygon);
+      wrapper.appendChild(outlineSvg);
+    }
 
     activeLocations.forEach(location => {
       // Its geometry is already fully represented by the adjust-preview
@@ -756,6 +801,7 @@ const ShopMapManager: React.FC = () => {
         <LocationFormModal
           initialName=""
           linkableTools={shopTools}
+          initialToolId={shopId === preset?.shopId ? preset?.toolId : undefined}
           onClose={() => setPending(null)}
           onSave={async (name, _shopId, kind, toolId) => {
             const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });

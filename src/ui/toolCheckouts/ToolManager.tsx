@@ -213,9 +213,13 @@ interface EditToolRowProps {
   onSave: (id: string, body: Partial<Tool>, notes?: string) => void;
   onCancel: () => void;
   saving: boolean;
+  // Jumps straight to this tool's shop on the Map tab, ready to place (or
+  // re-place) this specific tool's home location -- saves hunting for the
+  // right shop in the map's own picker.
+  onPlaceOnMap?: (shopId: string, toolId: string) => void;
 }
 
-export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
+export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving, onPlaceOnMap }) => {
   const [name, setName] = React.useState(tool.name);
   const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
@@ -314,6 +318,10 @@ export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, on
       </div>
       <div style={{ gridColumn: "1 / -1" }}>
         <ToolLocationField shopId={shopId} value={locationId} onChange={setLocationId} />
+        {onPlaceOnMap &&
+          <Button size="small" onClick={() => onPlaceOnMap(shopId, tool.id)}>
+            Place on map
+          </Button>}
       </div>
       <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
         placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
@@ -449,7 +457,7 @@ const DeleteToolModal: React.FC<DeleteToolModalProps> = ({ target, onClose, onDe
 
 // ── ToolManager ───────────────────────────────────────────────────────────────
 
-const ToolManager: React.FC = () => {
+const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) => void }> = ({ onPlaceOnMap }) => {
   const [qrTool, setQrTool] = React.useState<Tool | null>(null);
   const [addOpen,      setAddOpen]      = React.useState(false);
   const [editingId,    setEditingId]    = React.useState<string | null>(null);
@@ -513,7 +521,7 @@ const ToolManager: React.FC = () => {
       id: "name", label: "Tool",
       defaultSortDirection: SortDirection.Asc,
       cell: (row: Tool) => editingId === row.id
-        ? <EditToolRow tool={row} tools={allManageableTools} shops={shops as Shop[]} onSave={handleSave} onCancel={handleCancel} saving={updating} />
+        ? <EditToolRow tool={row} tools={allManageableTools} shops={shops as Shop[]} onSave={handleSave} onCancel={handleCancel} saving={updating} onPlaceOnMap={onPlaceOnMap} />
         : (
           <div>
             <Typography variant="body2"><strong>{row.name}</strong></Typography>
