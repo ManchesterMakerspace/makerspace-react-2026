@@ -46,7 +46,7 @@ test.describe('Shop fee lifecycle', () => {
 
     // ── Member logs in and pays the invoice ──
     await auth.signIn(FEE_MEMBER_EMAIL, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
 
     // Select the shop fee invoice

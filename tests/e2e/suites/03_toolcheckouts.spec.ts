@@ -105,7 +105,7 @@ test.describe('Members view their tool checkout status', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Checkouts');
 
@@ -120,7 +120,7 @@ test.describe('Members view their tool checkout status', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(basicMember1.email, basicMember1.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Checkouts');
 

@@ -4,10 +4,14 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert/strict');
+require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'commonjs', rootDir: path.resolve(__dirname, '../..'), ignoreDeprecations: '6.0' } });
+const { AuthPage } = require('../e2e/pages/AuthPage.ts');
+const { MemberPage } = require('../e2e/pages/MemberPage.ts');
+const { SettingsPage } = require('../e2e/pages/SettingsPage.ts');
 const root = path.resolve(__dirname, '../..');
 const screenshotDir = path.join(root, 'tmp/home-browser');
 const toolId = '0123456789abcdef01234567';
-const member = { id: 'member1', email: 'test@example.com', firstname: 'Test', lastname: 'Member', role: 'member', status: 'activeMember', memberContractOnFile: true, subscription: true, expirationTime: 4102444800000 };
+const member = { id: 'member1', email: 'test@example.com', firstname: 'Test', lastname: 'Member', role: 'member', status: 'activeMember', memberContractOnFile: true, subscription: true, expirationTime: 4102444800000, address: { street: '12 Main St', city: 'Manchester', state: 'NH', postalCode: '03101' } };
 const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="/assets/makerspace-react.css"><script defer src="/assets/makerspace-react.js"></script></head><body></body></html>';
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost').pathname;
@@ -40,6 +44,8 @@ async function mockApi(page, options = {}) {
         if (options.totp) { status = 202; body = { totp_required: true }; }
         else { authenticated = true; body = sessionMember; }
       } else { status = 401; body = { error: 'Sign in required' }; }
+    } else if (url.pathname === '/api/members/sign_out') {
+      authenticated = false; body = {};
     } else if (url.pathname === '/api/members/totp_sessions') {
       authenticated = true; body = sessionMember;
     } else if (url.pathname.endsWith('/permissions')) body = { billing: true };
@@ -58,7 +64,7 @@ async function mockApi(page, options = {}) {
     } else if (/^\/api\/volunteer\/events\/[^/]+\/checkin$/.test(url.pathname)) {
       assert.equal(req.method(), 'POST');
       claimedOpportunities.add(`event-${url.pathname.split('/')[4]}`); body = { id: 'event1' };
-    } else if (url.pathname === '/api/invoices') {
+    } else if (url.pathname === '/api/invoices' && url.searchParams.has('pastDue')) {
       assert.equal(url.searchParams.get('settled'), 'false');
       assert.equal(url.searchParams.get('pastDue'), 'true');
       assert.equal(url.searchParams.get('orderBy'), 'due_date');
@@ -67,8 +73,8 @@ async function mockApi(page, options = {}) {
       body = [{ id: url.searchParams.get('pageNum') === '1' ? 'invoice2' : 'invoice1', name: url.searchParams.get('pageNum') === '1' ? 'Automatic monthly membership' : 'Orientation membership dues', memberId: member.id, memberName: 'Test Member', resourceClass: 'member', dueDate: Date.now() - 86400000, pastDue: true, amount: '65.00', settled: false, subscriptionId: url.searchParams.get('pageNum') === '1' ? 'subscription1' : null }];
     } else if (url.pathname.endsWith('/coreq.html')) body = { tool: { id: toolId, name: 'Orientation' }, eligible: !requested };
     else if (url.pathname === '/api/tool_checkout_requests' && req.method() === 'POST') { requested = true; body = { id: 'request1' }; }
-    else if (url.pathname === `/api/members/${member.id}`) body = sessionMember;
-    else if (/invoices|rentals|tool_checkouts|reports/.test(url.pathname)) body = [];
+    else if (url.pathname === `/api/members/${member.id}` || url.pathname === `/api/admin/members/${member.id}`) body = sessionMember;
+    else if (/invoices|rentals|tool_checkouts|reports|shops/.test(url.pathname)) body = [];
     await route.fulfill({ status, contentType: 'application/json', headers, body: JSON.stringify(body) });
   });
   return { homeLoads: () => homeLoads };
@@ -166,6 +172,34 @@ async function mockApi(page, options = {}) {
     await page.screenshot({ path: path.join(screenshotDir, 'membership.png'), fullPage: true });
     console.log('PASS protected Home login, accepted Slack and request/return refresh');
     await page.close();
+
+    // Exercise the same page objects as the Rails-backed E2E suites. Login must
+    // leave regular members on Home; profile-based tests navigate explicitly.
+    for (const scenario of [
+      { role: 'member', status: 'activeMember', authenticated: false },
+      { role: 'member', status: 'pending', authenticated: false },
+      { role: 'member', status: 'activeMember', authenticated: true },
+      { role: 'admin', status: 'activeMember', authenticated: false },
+      { role: 'board_member', status: 'activeMember', authenticated: false },
+      { role: 'resource_manager', status: 'activeMember', authenticated: false },
+    ]) {
+      const helperPage = await browser.newPage({ baseURL: base });
+      await mockApi(helperPage, { authenticated: scenario.authenticated, member: { role: scenario.role, status: scenario.status } });
+      const auth = new AuthPage(helperPage);
+      const profile = new MemberPage(helperPage);
+      const settings = new SettingsPage(helperPage);
+      await auth.signIn(member.email, 'Password123');
+      const expected = scenario.role !== 'member' ? `/members/${member.id}` : scenario.status === 'pending' ? '/home?newMember=true' : '/home';
+      assert.equal(new URL(helperPage.url()).pathname + new URL(helperPage.url()).search, expected);
+      await settings.goto();
+      assert.equal(new URL(helperPage.url()).pathname, `/members/${member.id}/settings`);
+      await settings.goto(); // Returning to settings must not need a removed menu link.
+      await helperPage.goto('/home');
+      await profile.gotoOwnProfile();
+      assert.equal(new URL(await profile.getProfileUrl()).pathname, `/members/${member.id}`);
+      await helperPage.close();
+      console.log(`PASS E2E page helpers: ${scenario.role}/${scenario.status}${scenario.authenticated ? ' restored session' : ''}`);
+    }
 
     for (const width of [320, 600, 900, 1280]) {
       const volunteer = await browser.newPage({ viewport: { width, height: 1000 } });

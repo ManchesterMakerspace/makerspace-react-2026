@@ -17,7 +17,7 @@ test.describe('Expired member portal experience', () => {
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
     await auth.signIn(expiredMember.email, expiredMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
   });
 

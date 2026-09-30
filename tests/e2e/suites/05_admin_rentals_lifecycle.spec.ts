@@ -65,7 +65,7 @@ test.describe('Admin approves a rental request', () => {
 
     // Member requests spot
     await auth.signIn(APPROVE_MEMBER, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
     await member.clickTab('Rentals');
@@ -149,7 +149,7 @@ test.describe('Admin denies a rental request', () => {
 
     // Member requests spot
     await auth.signIn(DENY_MEMBER, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
     await member.clickTab('Rentals');
@@ -219,7 +219,7 @@ test.describe('Member cancels their rental', () => {
     const rentals = new MemberRentalsPage(page);
 
     await auth.signIn(CANCEL_MEMBER, 'password');
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
     await member.clickTab('Rentals');

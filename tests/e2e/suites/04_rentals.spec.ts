@@ -60,7 +60,7 @@ test.describe('Member self-assigns rental spot', () => {
     const payment = new PaymentPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
 

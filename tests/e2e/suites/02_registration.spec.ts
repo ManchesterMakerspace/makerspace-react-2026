@@ -73,7 +73,7 @@ test.describe('Self-registration from home page', () => {
       .toBeVisible({ timeout: 30_000 });
   });
 
-  test('Member completes full self-registration and lands on profile', async ({ page }) => {
+  test('Member completes full self-registration and lands on welcome Home', async ({ page }) => {
     // Mock document routes BEFORE navigation to prevent Google Drive loop
     const payment = new PaymentPage(page);
     const member  = new MemberPage(page);
@@ -127,7 +127,9 @@ test.describe('Self-registration from home page', () => {
     await page.getByRole('checkbox', { name: 'I agree' }).check();
     await page.getByRole('button', { name: 'Submit Payment' }).click();
 
-    await member.waitForProfile();
+    await expect(page).toHaveURL(url => url.pathname === '/home' && url.search === '?newMember=true');
+    await expect(page.getByRole('heading', { name: 'Welcome!', exact: true })).toBeVisible();
+    await member.gotoOwnProfile();
     memberProfileUrl = await member.getProfileUrl();
     await member.dismissNotificationModal();
     await expect(page.locator('#member-detail-type')).toBeVisible({ timeout: 15_000 });
@@ -138,6 +140,7 @@ test.describe('Self-registration from home page', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
+    expect(memberProfileUrl, 'Registration must capture the new member profile before FOB checks').toMatch(/\/members\/[^/?]+$/);
     await page.goto(memberProfileUrl);
     await member.waitForProfile();
     await member.openFobModal();
@@ -237,7 +240,9 @@ test.describe('Registration via URL with discount code', () => {
     const closeBtn = page.getByRole('button', { name: 'Close' });
     if (await closeBtn.isVisible({ timeout: 5_000 })) await closeBtn.click();
 
-    await member.waitForProfile();
+    await expect(page).toHaveURL(url => url.pathname === '/home' && url.search === '?newMember=true');
+    await expect(page.getByRole('heading', { name: 'Welcome!', exact: true })).toBeVisible();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await expect(page.locator('#member-detail-type')).toBeVisible({ timeout: 15_000 });
 
