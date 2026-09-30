@@ -174,10 +174,31 @@ async function mockApi(page, options = {}) {
       await signup.keyboard.type('5x-');
       assert.equal(await postal.inputValue(), '03101-1234');
       await signup.keyboard.press('Tab');
+      const phone = signup.getByRole('textbox', { name: 'Phone Number', exact: true });
+      assert.equal(await phone.inputValue(), '');
+      assert.equal(await phone.getAttribute('required'), null);
+      await phone.fill('call +1 (603) 555-0123!');
+      assert.equal(await phone.inputValue(), ' +1 (603) 555-0123');
+      await phone.press('End');
+      await signup.keyboard.type('x/.#');
+      assert.equal(await phone.inputValue(), ' +1 (603) 555-0123');
+      await phone.fill('');
+      assert.equal(await phone.inputValue(), '');
+      await signup.getByRole('textbox', { name: 'Email', exact: true }).fill('foobar@example.com');
+      const password = signup.getByLabel('Password', { exact: false });
+      for (const value of ['foobar@example.com1', '123FOOBAR@EXAMPLE.COM567']) {
+        await password.fill(value);
+        await signup.getByText('Guessable', { exact: true }).waitFor();
+        assert.equal(await signup.getByRole('progressbar').getAttribute('aria-valuenow'), '25');
+      }
+      await signup.getByRole('textbox', { name: 'Email', exact: true }).fill('other@example.com');
+      await signup.getByText('Strong', { exact: true }).waitFor();
+      await signup.getByRole('textbox', { name: 'Email', exact: true }).fill('foobar@example.com');
+      await signup.getByText('Guessable', { exact: true }).waitFor();
       assert(await signup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Signup overflow at ${width}px`);
       await signup.screenshot({ path: path.join(screenshotDir, `signup-${width}.png`), fullPage: true });
       await signup.close();
-      console.log(`PASS signup ZIP input and layout at ${width}px`);
+      console.log(`PASS signup ZIP, optional phone, email-based password strength and layout at ${width}px`);
     }
   } finally {
     if (browser) await browser.close();

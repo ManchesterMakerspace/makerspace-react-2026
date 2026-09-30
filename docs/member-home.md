@@ -57,6 +57,12 @@ The details dialog is read-only on Home.
 The signup Postal Code field accepts US ZIP (`#####`) or ZIP+4 (`#####-####`).
 It preserves leading zeros, filters nonnumeric characters, inserts the ZIP+4
 hyphen automatically, and blocks submission of incomplete codes.
+The signup Phone Number field remains optional and accepts only ASCII digits,
+`+`, `-`, `(`, `)`, and spaces. Other characters are filtered from typed or pasted
+input. The shared password strength checker treats a password containing the
+member's full email address as guessable, even with extra characters before or
+after it; comparison ignores case. Guessable passwords receive a weak score and
+are blocked by password form validation.
 
 ## Delivery and checks
 
