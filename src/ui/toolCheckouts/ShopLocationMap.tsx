@@ -8,20 +8,20 @@ import { listLocations } from "api/locations";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
+import { ZOOM_PADDING_PCT, resolveAbsolutePoint } from "./locationGeometry";
 import { Location } from "app/entities/toolCheckout";
 
 // Same per-floor SVG convention as ShopMapManager/ShopMapView.
 const floorPlanUrl = (floorName: string) => `/assets/shopFloorPlans/floor-${floorName}.svg`;
 const floorPlanFallbackUrl = "/assets/shopFloorPlans/placeholder.svg";
 
-const ZOOM_PADDING_PCT = 5;
-
 // Bounding box of a shop's own top-level locations, in floor-relative
-// percent -- only top-level locations contribute, since nested
-// cabinets/shelves are shown as a text list below rather than drawn (their
-// stored percentages are relative to their own parent, not the floor; see
-// the remap note below for why that matters).
-const boundingBoxOf = (locations: Location[]) => {
+// percent -- only top-level locations set the crop (a nested item's own
+// stored percentages aren't floor-relative, so they can't contribute
+// directly; resolveAbsolutePoint below converts them before they're
+// rendered, but the crop itself is sized off the top-level shape/pins,
+// which comfortably contain whatever's nested inside them).
+const unionBoundingBox = (locations: Location[]) => {
   const xs: number[] = [], ys: number[] = [];
   locations.forEach(l => {
     if (l.shapePoints?.length) l.shapePoints.forEach(p => { xs.push(p.x); ys.push(p.y); });
@@ -41,9 +41,11 @@ const remap = (pct: number, min: number, max: number) => ((pct - min) / (max - m
 // Read-only, zoomed-to-one-shop map -- embedded on the Workshops page's
 // Details tab, distinct from ShopMapView (every shop on a floor, at
 // overview scale) and ShopMapManager (the interactive admin editor). Crops
-// the floor plan to just this shop's own area and remaps its top-level
-// locations' stored floor-relative percentages into that cropped frame, so
-// the overlay stays aligned with the visibly-zoomed SVG underneath it.
+// the floor plan to just this shop's own area, resolves every location
+// (including ones nested several levels deep) back to floor-relative
+// percent, then remaps into that cropped frame, so the overlay -- shop
+// boundary, cabinets, shelves, whatever's nested inside them -- stays
+// aligned with the visibly-zoomed SVG underneath it.
 const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopId, shopName }) => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const shop = shops.find(s => s.id === shopId);
@@ -80,7 +82,8 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
   }, [floorName]);
 
   const topLevelLocations = locations.filter(l => !l.parentId);
-  const box = boundingBoxOf(topLevelLocations);
+  const box = unionBoundingBox(topLevelLocations);
+  const byId = React.useMemo(() => new Map(locations.map(l => [l.id, l])), [locations]);
 
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -108,42 +111,62 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
     const wrapper = wrapperRef.current;
     if (!wrapper || !box) return;
     wrapper.querySelectorAll("[data-shop-location]").forEach(el => el.remove());
-    const color = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
-    topLevelLocations.forEach(location => {
+    const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
+    // Every location, not just top-level -- a nested cabinet/shelf/table's
+    // own shapePoints/pin are stored relative to its immediate parent, not
+    // the floor, so resolveAbsolutePoint composes them back through every
+    // ancestor (the same math the admin editor's zoomed canvas uses when
+    // placing them) before the usual floor-percent -> crop-percent remap.
+    locations.forEach(location => {
+      // A nested item (cabinet, table, tool) rendered in the same shop
+      // color as its containing room at the same opacity would be
+      // indistinguishable from it wherever they overlap -- unlike the admin
+      // editor, which only ever shows one zoom level at a time, this view
+      // flattens every nesting level onto one image. A fixed, non-shop
+      // color at a higher opacity keeps anything nested clearly readable
+      // as "an object", regardless of which shop's color it sits inside.
+      const isNested = !!location.parentId;
+      const color = isNested ? "#e65100" : shopColor;
+      const opacity = isNested ? "0.55" : "0.3";
       if (location.shapePoints && location.shapePoints.length >= 3) {
+        const absPoints = location.shapePoints.map(p =>
+          resolveAbsolutePoint(location.parentId, p.x, p.y, byId)
+        );
         const shape = document.createElement("div");
         shape.setAttribute("data-shop-location", location.id);
         shape.title = location.name;
         Object.assign(shape.style, {
           position: "absolute",
           inset: "0",
-          clipPath: `polygon(${location.shapePoints.map(p =>
+          clipPath: `polygon(${absPoints.map(p =>
             `${remap(p.x, box.minX, box.maxX)}% ${remap(p.y, box.minY, box.maxY)}%`
           ).join(", ")})`,
           background: color,
-          opacity: "0.3",
+          opacity,
         });
         wrapper.appendChild(shape);
         return;
       }
       if (location.xPct != null && location.yPct != null) {
+        const abs = resolveAbsolutePoint(location.parentId, location.xPct, location.yPct, byId);
         const dot = document.createElement("div");
         dot.setAttribute("data-shop-location", location.id);
         dot.title = location.name;
         Object.assign(dot.style, {
           position: "absolute",
-          left: `${remap(location.xPct, box.minX, box.maxX)}%`,
-          top: `${remap(location.yPct, box.minY, box.maxY)}%`,
+          left: `${remap(abs.x, box.minX, box.maxX)}%`,
+          top: `${remap(abs.y, box.minY, box.maxY)}%`,
           transform: "translate(-50%, -100%)",
           width: "14px",
           height: "14px",
           borderRadius: "50% 50% 50% 0",
           background: color,
+          opacity,
         });
         wrapper.appendChild(dot);
       }
     });
-  }, [svgMarkup, topLevelLocations, box, shop, shopColors]);
+  }, [svgMarkup, locations, box, shop, shopColors, byId]);
 
   if (!floorName) return null;
 
