@@ -49,6 +49,7 @@ export interface Location {
   xPct?: number;
   yPct?: number;
   shapePoints?: { x: number; y: number }[];
+  toolNames?: string[];
 }
 
 export interface GoogleCalendarColor {

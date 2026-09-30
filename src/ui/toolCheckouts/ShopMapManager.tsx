@@ -5,17 +5,21 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Alert from "@mui/material/Alert";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import { Location, Shop } from "app/entities/toolCheckout";
+import { isApiErrorResponse } from "makerspace-ts-api-client";
+import { Location, Shop, Tool } from "app/entities/toolCheckout";
 import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from "api/locations";
-import { listGoogleCalendarColors } from "api/toolCheckouts";
+import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
-import { boundingBoxOf, ZOOM_PADDING_PCT } from "./locationGeometry";
+import { boundingBoxOf, paddedBox, cropViewBoxToBox, ViewBox } from "./locationGeometry";
+import { LOCATION_KIND_OPTIONS, colorForKind } from "./locationKinds";
 
 // One SVG per building floor, shared by every shop on that floor (a real
 // floor plan covers multiple rooms/shops at once, not one shop in
@@ -32,45 +36,49 @@ interface PendingPlacement {
   shapePoints?: { x: number; y: number }[];
 }
 
-interface ViewBox { x: number; y: number; width: number; height: number; }
-
 // Composes each zoomed-into location's own bounding box (in percent of
 // *its* parent) down onto the SVG's true original viewBox, one level at a
 // time -- since every level's stored percentages are already relative to
 // its immediate parent's box, this is a plain nested crop, not a coordinate
-// transform.
+// transform. cropViewBoxToBox (shared with ShopLocationMap's single-level
+// crop) does the actual percent-box -> SVG-viewBox arithmetic.
 const cropViewBox = (original: ViewBox, stack: Location[]): ViewBox =>
-  stack.reduce((current, loc) => {
-    const box = boundingBoxOf(loc);
-    const minX = Math.max(0, box.minX - ZOOM_PADDING_PCT), maxX = Math.min(100, box.maxX + ZOOM_PADDING_PCT);
-    const minY = Math.max(0, box.minY - ZOOM_PADDING_PCT), maxY = Math.min(100, box.maxY + ZOOM_PADDING_PCT);
-    return {
-      x: current.x + (minX / 100) * current.width,
-      y: current.y + (minY / 100) * current.height,
-      width: ((maxX - minX) / 100) * current.width,
-      height: ((maxY - minY) / 100) * current.height,
-    };
-  }, original);
+  stack.reduce((current, loc) => cropViewBoxToBox(current, paddedBox(boundingBoxOf(loc))), original);
 
 const LocationFormModal: React.FC<{
   initialName: string;
+  initialKind?: string;
   shops?: Shop[];
   initialShopId?: string;
   onClose: () => void;
-  onSave: (name: string, shopId?: string) => void;
+  onSave: (name: string, shopId?: string, kind?: string, toolId?: string) => void;
   onDelete?: () => void;
   onRedraw?: () => void;
   onAdjustCorners?: () => void;
   onZoomIn?: () => void;
+  locationId?: string;
+  tools?: Tool[];
+  onToggleTool?: (toolId: string, checked: boolean) => void;
+  // Offered only when placing a brand-new marker (not editing an existing
+  // one) -- picking a tool here means "this marker IS that tool's precise
+  // spot", prefilling the name and linking the tool to it on save. Distinct
+  // from `tools`/`onToggleTool` above, which lets an EXISTING location's
+  // edit form say "these tools are generally somewhere in here".
+  linkableTools?: Tool[];
   loading: boolean;
   error: string;
-}> = ({ initialName, shops, initialShopId, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn, loading, error }) => {
+}> = ({
+  initialName, initialKind, shops, initialShopId, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
+  locationId, tools, onToggleTool, linkableTools, loading, error
+}) => {
   const [name, setName] = React.useState(initialName);
+  const [kind, setKind] = React.useState(initialKind || "");
   const [shopId, setShopId] = React.useState(initialShopId || "");
+  const [toolId, setToolId] = React.useState("");
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onSave(trimmed, shops ? shopId : undefined);
+    onSave(trimmed, shops ? shopId : undefined, kind || undefined, toolId || undefined);
   };
   return (
     <FormModal id="location-form" isOpen={true} title={initialName ? "Edit location" : "Name this location"}
@@ -81,11 +89,50 @@ const LocationFormModal: React.FC<{
           <TextField fullWidth required label="Name" placeholder="e.g. Drill bit bin"
             value={name} onChange={e => setName(e.target.value)} autoFocus />
         </Grid>
+        {linkableTools && linkableTools.length > 0 && (
+          <Grid size={{ xs: 12 }}>
+            <Typography variant="caption" color="textSecondary">Or place a specific tool here</Typography>
+            <Select native fullWidth value={toolId} onChange={e => {
+              const id = (e.target as HTMLSelectElement).value;
+              setToolId(id);
+              const tool = linkableTools.find(t => t.id === id);
+              if (tool && !name.trim()) setName(tool.name);
+            }}>
+              <option value="">— none, just a plain marker —</option>
+              {linkableTools.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name}{t.locationName ? ` (currently: ${t.locationName})` : ""}
+                </option>
+              ))}
+            </Select>
+          </Grid>
+        )}
+        <Grid size={{ xs: 12 }}>
+          <Select native fullWidth value={kind} onChange={e => setKind((e.target as HTMLSelectElement).value)}>
+            {LOCATION_KIND_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+          </Select>
+        </Grid>
         {shops && (
           <Grid size={{ xs: 12 }}>
             <Select native fullWidth value={shopId} onChange={e => setShopId((e.target as HTMLSelectElement).value)}>
               {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </Select>
+          </Grid>
+        )}
+        {locationId && tools && tools.length > 0 && (
+          <Grid size={{ xs: 12 }}>
+            <Typography variant="subtitle2">Tools here</Typography>
+            {tools.map(tool => (
+              <FormControlLabel key={tool.id} style={{ display: "block" }}
+                control={
+                  <Checkbox
+                    checked={tool.locationId === locationId}
+                    onChange={e => onToggleTool?.(tool.id, e.target.checked)}
+                  />
+                }
+                label={tool.name}
+              />
+            ))}
           </Grid>
         )}
         {onRedraw && (
@@ -176,6 +223,14 @@ const ShopMapManager: React.FC = () => {
   const create = useWriteTransaction(adminCreateLocation, () => { refresh(); setPending(null); });
   const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); setAdjusting(null); });
   const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); });
+
+  // The selected shop's tools, so the edit form can show/toggle which
+  // tool(s) live at a given location directly from the map, instead of only
+  // through the separate Tools tab's location picker.
+  const { data: shopTools = [], refresh: refreshTools } = useReadTransaction(
+    listTools, { shopId }, !shopId, `admin-tools-for-map-${shopId}`, true
+  );
+  const toggleTool = useWriteTransaction(adminUpdateTool, () => refreshTools());
 
   React.useEffect(() => {
     if (!floorName) { setSvgMarkup(null); return; }
@@ -315,13 +370,12 @@ const ShopMapManager: React.FC = () => {
   // resets the viewBox, and this effect never notices to reapply the crop.
   // This is almost certainly also the true, never-fully-explained cause of
   // the earlier imperative-inline-style-getting-cleared mystery (see the
-  // CSS-rule workaround below) -- same reset, different casualty. The
-  // pins/shapes effect a bit further down never showed this symptom only
-  // because its own dependencies (activeLocations/otherLocations) are
-  // freshly-filtered arrays on every render, so it was already effectively
-  // running on every render by accident. Running this unconditionally too
-  // is cheap (two attribute writes) and makes the fix explicit instead of
-  // relying on that same accident.
+  // CSS-rule workaround below) -- same reset, different casualty. Every
+  // other effect in this component that appends content into this same
+  // wrapper (pins/shapes below, the draw-preview, the adjust-corners
+  // handles) has the identical no-dependency-array treatment for the same
+  // reason -- none of them can safely rely on a specific value changing to
+  // know when to reassert their DOM content.
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
     const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
@@ -414,15 +468,19 @@ const ShopMapManager: React.FC = () => {
         }
         return;
       }
+      const label = location.toolNames?.length
+        ? `${location.name} — ${location.toolNames.join(", ")}`
+        : location.name;
       if (location.shapePoints && location.shapePoints.length >= 3) {
         const shape = document.createElement("div");
         shape.setAttribute("data-location-shape", location.id);
-        shape.title = location.name;
+        shape.title = label;
         Object.assign(shape.style, {
           position: "absolute",
           inset: "0",
           clipPath: `polygon(${location.shapePoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-          background: "rgba(25, 118, 210, 0.25)",
+          background: colorForKind(location.kind, "#1976d2"),
+          opacity: "0.35",
           cursor: "pointer",
         });
         shape.addEventListener("click", event => {
@@ -435,7 +493,7 @@ const ShopMapManager: React.FC = () => {
       if (location.xPct != null && location.yPct != null) {
         const pin = document.createElement("div");
         pin.setAttribute("data-location-pin", location.id);
-        pin.title = location.name;
+        pin.title = label;
         Object.assign(pin.style, {
           position: "absolute",
           left: `${location.xPct}%`,
@@ -444,7 +502,7 @@ const ShopMapManager: React.FC = () => {
           width: "16px",
           height: "16px",
           borderRadius: "50% 50% 50% 0",
-          background: "#1976d2",
+          background: colorForKind(location.kind, "#1976d2"),
           cursor: "pointer",
         });
         pin.addEventListener("click", event => {
@@ -454,7 +512,13 @@ const ShopMapManager: React.FC = () => {
         wrapper.appendChild(pin);
       }
     });
-  }, [svgMarkup, activeLocations, otherLocations, shops, shopColors, adjusting]);
+    // No dependency array -- see the viewBox-crop effect's comment above.
+    // (activeLocations/otherLocations happen to be freshly-filtered arrays
+    // every render today, which would have masked the need for this too,
+    // but that's exactly the kind of accidental correctness this file
+    // shouldn't depend on -- a future `useMemo` on either would silently
+    // reintroduce the reset bug.)
+  });
 
   // Live feedback for an in-progress "draw shop area" click sequence --
   // separate from the effect above since it re-runs on every vertex placed,
@@ -686,8 +750,21 @@ const ShopMapManager: React.FC = () => {
       {pending && (
         <LocationFormModal
           initialName=""
+          linkableTools={shopTools}
           onClose={() => setPending(null)}
-          onSave={name => create.call({ body: { name, shopId, parentId: currentParent?.id, ...pending } })}
+          onSave={async (name, _shopId, kind, toolId) => {
+            const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
+            // Fire-and-forget: create's own onSuccess (above) closes this
+            // modal as soon as the location itself is saved, so a failure
+            // in this second call surfaces only via the "Tools here"
+            // checklist not reflecting it next time this location is
+            // edited, not as an error in this form. Acceptable here since
+            // the only realistic failure mode (a shop mismatch) can't
+            // happen -- linkableTools is always scoped to this same shop.
+            if (toolId && !isApiErrorResponse(result)) {
+              toggleTool.call({ id: toolId, body: { locationId: result.data.id } });
+            }
+          }}
           loading={create.isRequesting}
           error={create.error}
         />
@@ -695,10 +772,11 @@ const ShopMapManager: React.FC = () => {
       {editing && (
         <LocationFormModal
           initialName={editing.name}
+          initialKind={editing.kind}
           shops={shops}
           initialShopId={editing.shopId}
           onClose={() => setEditing(null)}
-          onSave={(name, newShopId) => update.call({ id: editing.id, body: { name, shopId: newShopId } })}
+          onSave={(name, newShopId, kind) => update.call({ id: editing.id, body: { name, shopId: newShopId, kind } })}
           onDelete={() => remove.call({ id: editing.id })}
           onRedraw={
             (editing.shapePoints?.length || (editing.xPct != null && editing.yPct != null))
@@ -711,8 +789,11 @@ const ShopMapManager: React.FC = () => {
               : undefined
           }
           onZoomIn={() => { setZoomStack(stack => [...stack, editing]); setEditing(null); }}
-          loading={update.isRequesting || remove.isRequesting}
-          error={update.error || remove.error}
+          locationId={editing.id}
+          tools={shopTools}
+          onToggleTool={(toolId, checked) => toggleTool.call({ id: toolId, body: { locationId: checked ? editing.id : "" } })}
+          loading={update.isRequesting || remove.isRequesting || toggleTool.isRequesting}
+          error={update.error || remove.error || toggleTool.error}
         />
       )}
     </Grid>

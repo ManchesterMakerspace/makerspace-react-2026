@@ -8,7 +8,8 @@ import { listLocations } from "api/locations";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
-import { ZOOM_PADDING_PCT, resolveAbsolutePoint } from "./locationGeometry";
+import { paddedBox, cropViewBoxToBox, resolveAbsolutePoint } from "./locationGeometry";
+import { colorForKind, labelForKind } from "./locationKinds";
 import { Location } from "app/entities/toolCheckout";
 
 // Same per-floor SVG convention as ShopMapManager/ShopMapView.
@@ -28,12 +29,7 @@ const unionBoundingBox = (locations: Location[]) => {
     else if (l.xPct != null && l.yPct != null) { xs.push(l.xPct); ys.push(l.yPct); }
   });
   if (!xs.length) return null;
-  return {
-    minX: Math.max(0, Math.min(...xs) - ZOOM_PADDING_PCT),
-    maxX: Math.min(100, Math.max(...xs) + ZOOM_PADDING_PCT),
-    minY: Math.max(0, Math.min(...ys) - ZOOM_PADDING_PCT),
-    maxY: Math.min(100, Math.max(...ys) + ZOOM_PADDING_PCT),
-  };
+  return paddedBox({ minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) });
 };
 
 const remap = (pct: number, min: number, max: number) => ((pct - min) / (max - min)) * 100;
@@ -91,12 +87,10 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
     const svgRoot = wrapper.querySelector(":scope > svg") as SVGSVGElement | null;
     const baseVal = svgRoot?.viewBox?.baseVal;
     if (!svgRoot || !baseVal || !box) return;
-    const cropped = {
-      x: baseVal.x + (box.minX / 100) * baseVal.width,
-      y: baseVal.y + (box.minY / 100) * baseVal.height,
-      width: ((box.maxX - box.minX) / 100) * baseVal.width,
-      height: ((box.maxY - box.minY) / 100) * baseVal.height,
-    };
+    const cropped = cropViewBoxToBox(
+      { x: baseVal.x, y: baseVal.y, width: baseVal.width, height: baseVal.height },
+      box
+    );
     svgRoot.setAttribute("viewBox", `${cropped.x} ${cropped.y} ${cropped.width} ${cropped.height}`);
     // Without this, the floor plan's fixed absolute width/height attributes
     // (not its viewBox) drive the wrapper's on-page aspect ratio via the
@@ -105,7 +99,14 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
     // rather than stretched -- breaking the 0-100%-of-wrapper assumption
     // every remap() call here depends on.
     svgRoot.setAttribute("preserveAspectRatio", "none");
-  }, [svgMarkup, box]);
+    // No dependency array -- React can re-apply dangerouslySetInnerHTML on
+    // this wrapper on any unrelated re-render (confirmed via direct
+    // instrumentation while building the admin editor's equivalent zoom
+    // feature -- see ShopMapManager.tsx's crop effect for the full story),
+    // silently resetting the injected SVG's viewBox back to its embedded
+    // default. Reasserting the crop every render is cheap and removes any
+    // dependence on `box` happening to be a fresh object each time.
+  });
 
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -126,15 +127,18 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
       // color at a higher opacity keeps anything nested clearly readable
       // as "an object", regardless of which shop's color it sits inside.
       const isNested = !!location.parentId;
-      const color = isNested ? "#e65100" : shopColor;
+      const color = isNested ? colorForKind(location.kind, "#e65100") : shopColor;
       const opacity = isNested ? "0.55" : "0.3";
+      const label = location.toolNames?.length
+        ? `${location.name} — ${location.toolNames.join(", ")}`
+        : location.name;
       if (location.shapePoints && location.shapePoints.length >= 3) {
         const absPoints = location.shapePoints.map(p =>
           resolveAbsolutePoint(location.parentId, p.x, p.y, byId)
         );
         const shape = document.createElement("div");
         shape.setAttribute("data-shop-location", location.id);
-        shape.title = location.name;
+        shape.title = label;
         Object.assign(shape.style, {
           position: "absolute",
           inset: "0",
@@ -151,7 +155,7 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
         const abs = resolveAbsolutePoint(location.parentId, location.xPct, location.yPct, byId);
         const dot = document.createElement("div");
         dot.setAttribute("data-shop-location", location.id);
-        dot.title = location.name;
+        dot.title = label;
         Object.assign(dot.style, {
           position: "absolute",
           left: `${remap(abs.x, box.minX, box.maxX)}%`,
@@ -166,7 +170,8 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
         wrapper.appendChild(dot);
       }
     });
-  }, [svgMarkup, locations, box, shop, shopColors, byId]);
+    // No dependency array -- see the crop effect above.
+  });
 
   if (!floorName) return null;
 
@@ -191,9 +196,17 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
         )}
         {locations.length > 0 && (
           <div style={{ marginTop: 10 }}>
-            {flattenTree(locations).map(entry => (
-              <Typography key={entry.id} variant="body2">{entry.label}</Typography>
-            ))}
+            {flattenTree(locations).flatMap(entry => {
+              const toolNames = byId.get(entry.id)?.toolNames || [];
+              return [
+                <Typography key={entry.id} variant="body2">{entry.label}</Typography>,
+                ...toolNames.map((toolName, i) => (
+                  <Typography key={`${entry.id}-tool-${i}`} variant="body2" color="textSecondary">
+                    {"—".repeat(entry.depth + 1)} {toolName}
+                  </Typography>
+                )),
+              ];
+            })}
           </div>
         )}
       </Grid>

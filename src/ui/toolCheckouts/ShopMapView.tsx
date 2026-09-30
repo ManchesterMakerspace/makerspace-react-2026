@@ -114,7 +114,12 @@ const ShopMapView: React.FC = () => {
         wrapper.appendChild(dot);
       }
     });
-  }, [svgMarkup, topLevelLocations, shops, shopColors]);
+    // No dependency array -- React can re-apply dangerouslySetInnerHTML on
+    // this wrapper on any unrelated re-render, wiping every appended pin/
+    // shape along with it (see ShopMapManager.tsx's crop effect for the
+    // full story). Reasserting every render removes any dependence on
+    // topLevelLocations happening to be a fresh array each time.
+  });
 
   return (
     <Grid container spacing={2}>

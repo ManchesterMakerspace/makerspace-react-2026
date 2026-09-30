@@ -19,11 +19,29 @@ export const boundingBoxOf = (loc: Location): Box => {
 
 export const ZOOM_PADDING_PCT = 5;
 
-const padded = (box: Box): Box => ({
+export const paddedBox = (box: Box): Box => ({
   minX: Math.max(0, box.minX - ZOOM_PADDING_PCT),
   maxX: Math.min(100, box.maxX + ZOOM_PADDING_PCT),
   minY: Math.max(0, box.minY - ZOOM_PADDING_PCT),
   maxY: Math.min(100, box.maxY + ZOOM_PADDING_PCT),
+});
+const padded = paddedBox;
+
+// An SVG viewBox, in the SVG's own user-unit coordinate system (not
+// percent).
+export interface ViewBox { x: number; y: number; width: number; height: number; }
+
+// Maps a percent-space Box onto a real SVG viewBox's coordinate system --
+// shared by the admin editor's zoomed canvas (ShopMapManager, which crops
+// down through a stack of nested locations one level at a time) and the
+// Workshops-page single-shop map (ShopLocationMap, which crops once to a
+// shop's own top-level bounding box), so both derive a crop from the same
+// formula instead of maintaining separate copies of this arithmetic.
+export const cropViewBoxToBox = (original: ViewBox, box: Box): ViewBox => ({
+  x: original.x + (box.minX / 100) * original.width,
+  y: original.y + (box.minY / 100) * original.height,
+  width: ((box.maxX - box.minX) / 100) * original.width,
+  height: ((box.maxY - box.minY) / 100) * original.height,
 });
 
 // Maps a point given in percent-of-`container` into whatever absolute frame
