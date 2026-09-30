@@ -197,12 +197,31 @@ const ShopLocationMap: React.FC<{ shopId: string; shopName: string }> = ({ shopI
         {locations.length > 0 && (
           <div style={{ marginTop: 10 }}>
             {flattenTree(locations).flatMap(entry => {
-              const toolNames = byId.get(entry.id)?.toolNames || [];
+              const location = byId.get(entry.id);
+              const toolNames = location?.toolNames || [];
+              const hasChildren = locations.some(l => l.parentId === entry.id);
+              // A location that exists purely to mark one tool's exact spot
+              // -- no children, exactly one tool, sharing its name -- is
+              // exactly what "place a specific tool here" creates (it
+              // prefills the marker's name from the tool). Showing the
+              // location's own row above an identically-named tool row is
+              // pure redundancy, so collapse the two into one "Tool:" line
+              // at the location's own depth instead.
+              if (!hasChildren && toolNames.length === 1 && toolNames[0] === location?.name) {
+                return [
+                  <Typography key={entry.id} variant="body2" color="textSecondary">
+                    {"—".repeat(entry.depth)}{entry.depth ? " " : ""}Tool: {toolNames[0]}
+                  </Typography>,
+                ];
+              }
               return [
                 <Typography key={entry.id} variant="body2">{entry.label}</Typography>,
+                // "Tool:" (not another dash level) so a tool sharing its
+                // location's name can't be mistaken for a real nested
+                // sub-location.
                 ...toolNames.map((toolName, i) => (
                   <Typography key={`${entry.id}-tool-${i}`} variant="body2" color="textSecondary">
-                    {"—".repeat(entry.depth + 1)} {toolName}
+                    {"—".repeat(entry.depth + 1)} Tool: {toolName}
                   </Typography>
                 )),
               ];
