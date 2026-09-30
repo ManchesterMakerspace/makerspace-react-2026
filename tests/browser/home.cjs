@@ -50,10 +50,11 @@ async function mockApi(page, options = {}) {
       };
     } else if (url.pathname === '/api/invoices') {
       assert.equal(url.searchParams.get('settled'), 'false');
+      assert.equal(url.searchParams.get('pastDue'), 'true');
       assert.equal(url.searchParams.get('orderBy'), 'due_date');
       assert.equal(url.searchParams.get('order'), 'asc');
       headers['total-items'] = '2';
-      body = [{ id: url.searchParams.get('pageNum') === '1' ? 'invoice2' : 'invoice1', name: url.searchParams.get('pageNum') === '1' ? 'Automatic monthly membership' : 'Orientation membership dues', memberId: member.id, memberName: 'Test Member', resourceClass: 'member', dueDate: 4102444800000, amount: '65.00', settled: false, subscriptionId: url.searchParams.get('pageNum') === '1' ? 'subscription1' : null }];
+      body = [{ id: url.searchParams.get('pageNum') === '1' ? 'invoice2' : 'invoice1', name: url.searchParams.get('pageNum') === '1' ? 'Automatic monthly membership' : 'Orientation membership dues', memberId: member.id, memberName: 'Test Member', resourceClass: 'member', dueDate: Date.now() - 86400000, pastDue: true, amount: '65.00', settled: false, subscriptionId: url.searchParams.get('pageNum') === '1' ? 'subscription1' : null }];
     } else if (url.pathname.endsWith('/coreq.html')) body = { tool: { id: toolId, name: 'Orientation' }, eligible: !requested };
     else if (url.pathname === '/api/tool_checkout_requests' && req.method() === 'POST') { requested = true; body = { id: 'request1' }; }
     else if (url.pathname === `/api/members/${member.id}`) body = sessionMember;
@@ -79,7 +80,9 @@ async function mockApi(page, options = {}) {
       await page.getByRole('heading', { name: 'Welcome!', exact: true }).waitFor();
       await page.getByRole('link', { name: 'Request Safety Checkout for Orientation' }).waitFor();
       await page.getByRole('button', { name: 'Pay invoice Orientation membership dues' }).waitFor();
+      assert.equal(await page.getByRole('link', { name: 'Account Settings', exact: true }).getAttribute('href'), '/members/member1/settings');
       assert((await page.locator('main').innerText()).includes('Annotation for requestors'));
+      assert(!(await page.locator('main').innerText()).includes('Upcoming'));
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`);
       const checkout = page.getByRole('link', { name: 'Request Safety Checkout for Orientation' });
       await checkout.focus();
@@ -87,6 +90,13 @@ async function mockApi(page, options = {}) {
       await page.keyboard.press('Tab');
       assert(await page.evaluate(() => document.activeElement.tagName === 'BUTTON'));
       await page.screenshot({ path: path.join(screenshotDir, `welcome-${width}.png`), fullPage: true });
+      await page.getByRole('button', { name: 'Menu', exact: true }).click();
+      const menu = page.locator('#menu-appbar');
+      assert.equal(await menu.getByText('Account Settings', { exact: true }).count(), 0);
+      assert.equal(await menu.getByText('Personal Information', { exact: true }).count(), 0);
+      const links = await menu.locator('a').allTextContents();
+      assert.equal(links[links.indexOf('Subscriptions') + 1], 'Payment Methods');
+      await page.keyboard.press('Escape');
       await page.getByRole('button', { name: 'Next', exact: true }).click();
       await page.getByRole('link', { name: 'Manage Subscription' }).waitFor();
       assert.equal(await page.getByRole('button', { name: /^Pay invoice/ }).count(), 0);
@@ -113,6 +123,15 @@ async function mockApi(page, options = {}) {
         await page.getByRole('button', { name: 'Verify', exact: true }).click();
       }
       await page.waitForURL(`${base}${scenario.path}`);
+      if (scenario.role === 'admin') {
+        await page.goto(`${base}/home`);
+        await page.getByRole('link', { name: 'Account Settings', exact: true }).waitFor();
+        await page.getByRole('button', { name: 'Menu', exact: true }).click();
+        const menu = page.locator('#menu-appbar');
+        const links = await menu.locator('a').allTextContents();
+        assert.equal(links[links.indexOf('Subscriptions') + 1], 'Payment Methods');
+        assert.equal(await menu.getByText('Account Settings', { exact: true }).count(), 0);
+      }
       console.log(`PASS root login ${scenario.role || scenario.status}${scenario.totp ? ' + TOTP' : ''}`);
       await page.close();
     }
@@ -136,6 +155,30 @@ async function mockApi(page, options = {}) {
     await page.screenshot({ path: path.join(screenshotDir, 'membership.png'), fullPage: true });
     console.log('PASS protected Home login, accepted Slack and request/return refresh');
     await page.close();
+
+    for (const width of [320, 600, 900, 1280]) {
+      const signup = await browser.newPage({ viewport: { width, height: 1000 } });
+      await mockApi(signup, { authenticated: false });
+      await signup.goto(`${base}/signup`);
+      const postal = signup.getByRole('textbox', { name: 'Postal Code', exact: false });
+      await postal.fill('031010123');
+      assert.equal(await postal.inputValue(), '03101-0123');
+      await postal.fill('ab03101');
+      assert.equal(await postal.inputValue(), '03101');
+      await postal.fill('03101--12');
+      assert.equal(await postal.inputValue(), '03101-12');
+      await postal.focus();
+      await signup.keyboard.press('End');
+      await signup.keyboard.type('34');
+      assert.equal(await postal.inputValue(), '03101-1234');
+      await signup.keyboard.type('5x-');
+      assert.equal(await postal.inputValue(), '03101-1234');
+      await signup.keyboard.press('Tab');
+      assert(await signup.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Signup overflow at ${width}px`);
+      await signup.screenshot({ path: path.join(screenshotDir, `signup-${width}.png`), fullPage: true });
+      await signup.close();
+      console.log(`PASS signup ZIP input and layout at ${width}px`);
+    }
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

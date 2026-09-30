@@ -22,7 +22,7 @@ const HomeInvoices: React.FC = () => {
   const [selected, setSelected] = React.useState<Invoice>();
   // Always the self-service endpoint, including when staff open their own Home.
   const { data = [], response, isRequesting, error, refresh } = useReadTransaction(listInvoices,
-    { settled: false, orderBy: "due_date", order: "asc", pageNum }, false, "home-invoices", true, true);
+    { settled: false, pastDue: true, orderBy: "due_date", order: "asc", pageNum }, false, "home-invoices", true, true);
   const total = extractTotalItems(response) || 0;
   React.useEffect(() => {
     if (!isRequesting && !error && response) {
@@ -41,7 +41,7 @@ const HomeInvoices: React.FC = () => {
     <Typography id="home-invoices-title" component="h2" variant="h5" gutterBottom>Open unpaid invoices</Typography>
     {isRequesting ? <CircularProgress aria-label="Loading unpaid invoices" /> : error ?
       <Alert severity="error" action={<Button color="inherit" onClick={refresh}>Retry invoices</Button>}>{error}</Alert>
-      : !data.length ? <Typography>No unpaid invoices</Typography> : <>
+      : !data.length ? <Typography>No unpaid invoices are currently due</Typography> : <>
         <List disablePadding>
           {data.map(invoice => <ListItem key={invoice.id} disableGutters divider sx={{ py: 2, display: "block" }}>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "space-between" }}>

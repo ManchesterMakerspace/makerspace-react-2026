@@ -5,7 +5,8 @@
 Build web assets, then run `node tests/browser/home.cjs`. This check uses mocked
 APIs and headless Edge on Windows (Chromium elsewhere). It verifies member/staff
 and TOTP login destinations, protected Home links, checkout request/return refresh,
-invoice pagination/actions, and keyboard/layout behavior at 320/600/900/1280 px.
+due-invoice filtering/pagination/actions, account settings and menu ordering,
+signup ZIP/ZIP+4 input, and keyboard/layout behavior at 320/600/900/1280 px.
 Failures return nonzero. Screenshots are saved under `tmp/home-browser`.
 
 ## QR scanning

@@ -18,7 +18,7 @@ jest.mock("ui/checkout/cart", () => ({ useEmptyCart: () => emptyCart, useAddToCa
 import HomePage, { membershipCoverage } from "ui/home/HomePage";
 
 const Location = () => { const location = useLocation(); return <span data-location>{location.pathname}</span>; };
-const invoice = (overrides = {}) => ({ id: "invoice-1", memberId: "me", name: "Membership dues", resourceClass: "member", amount: "65.00", dueDate: Date.now(), settled: false, ...overrides });
+const invoice = (overrides = {}) => ({ id: "invoice-1", memberId: "me", name: "Membership dues", resourceClass: "member", amount: "65.00", dueDate: Date.now() - 1000, pastDue: true, settled: false, ...overrides });
 
 describe("Home page", () => {
   let root: Root;
@@ -45,13 +45,14 @@ describe("Home page", () => {
   it("renders welcome, Slack guidance, inline annotations and invoices in order", async () => {
     await render("/home?newMember=true");
     expect(container.querySelector("h1")?.textContent).toBe("Welcome!");
+    expect(container.querySelector('a[href="/members/me/settings"]')?.textContent).toBe("Account Settings");
     expect(container.textContent).toContain("Thank you for joining the Makerspace, you will receive several email messages");
     expect(container.textContent).toContain("in-person orientation and receive your access card.");
     expect(container.textContent).toContain("Please accept your Slack Invite (check your email)");
     expect(container.textContent).toContain("Annotation for requestorsBring ID");
     expect(container.querySelector('a[href="/tools/orientation/request-checkout"]')?.textContent).toBe("Request Safety Checkout");
     expect(Array.from(container.querySelectorAll("h2")).map(node => node.textContent)).toEqual(["Available safety checkouts", "Open unpaid invoices"]);
-    expect(container.textContent).toContain("No unpaid invoices");
+    expect(container.textContent).toContain("No unpaid invoices are currently due");
     expect(read).toHaveBeenCalledWith(getHome, {}, false, "member-home", true, true);
   });
 
@@ -103,7 +104,7 @@ describe("Home page", () => {
     invoiceState.data = [invoice()];
     invoiceState.response.response.headers.get = () => "2";
     await render();
-    expect(read).toHaveBeenCalledWith(listInvoices, { settled: false, orderBy: "due_date", order: "asc", pageNum: 0 }, false, "home-invoices", true, true);
+    expect(read).toHaveBeenCalledWith(listInvoices, { settled: false, pastDue: true, orderBy: "due_date", order: "asc", pageNum: 0 }, false, "home-invoices", true, true);
     await act(async () => button("Next").click());
     expect(read).toHaveBeenLastCalledWith(listInvoices, expect.objectContaining({ pageNum: 1 }), false, "home-invoices", true, true);
     await act(async () => button("Pay").click());

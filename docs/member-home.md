@@ -11,6 +11,9 @@ Pending regular members go to `/home?newMember=true`. Admins, board members, and
 resource managers retain their profile landing. Everyone can use the Home menu
 entry, which opens plain `/home`. Explicit destinations and required TOTP setup
 take precedence over these defaults, including across provider callbacks.
+Home includes an Account Settings link to `/members/:id/settings`. The dropdown
+omits Account Settings and Personal Information; for members with billing access,
+Payment Methods appears directly below Subscriptions.
 
 New signup completion, including choosing no membership, goes to
 `/home?newMember=true`. The signup workflow captures this intent before agreement
@@ -43,11 +46,17 @@ override shop annotations and appear inline. “Request Safety Checkout” opens
 existing request page, which revalidates eligibility before submission. Returning
 to Home or refocusing the tab refreshes the recommendations.
 
-Invoices always use the self-service `GET /api/invoices?settled=false` endpoint,
-including for staff. Results are ordered by due date ascending and paginated.
+Invoices always use the self-service `GET /api/invoices?settled=false&pastDue=true`
+endpoint, including for staff. Only due/overdue unpaid invoices appear; upcoming
+invoices are excluded by the server before sorting and pagination. Results are
+ordered by due date ascending and paginated.
 Manual invoices use the existing cart/checkout flow; automatic invoices link to
 subscription settings. Payment controls follow the existing billing permission.
 The details dialog is read-only on Home.
+
+The signup Postal Code field accepts US ZIP (`#####`) or ZIP+4 (`#####-####`).
+It preserves leading zeros, filters nonnumeric characters, inserts the ZIP+4
+hyphen automatically, and blocks submission of incomplete codes.
 
 ## Delivery and checks
 

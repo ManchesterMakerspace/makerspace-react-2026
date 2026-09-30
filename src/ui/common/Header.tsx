@@ -180,10 +180,6 @@ class Header extends React.Component<Props, State> {
 
     // Settings submenu items - shown when privilegedItems.length < 5
     const settingsSubRoutes = [
-      { route: "profile", label: "Personal Information", id: "settings-submenu-profile" },
-      ...(billingEnabled ? [
-        { route: "subscriptions", label: "Subscriptions", id: "settings-submenu-subscriptions" },
-      ] : []),
       { route: "security", label: "Security", id: "settings-submenu-security" },
     ];
 
@@ -220,7 +216,6 @@ class Header extends React.Component<Props, State> {
         >
           {/* Member section */}
           {this.renderMenuNavLink(Routing.Home, "Home", "home")}
-          {this.renderMenuNavLink(settingsUrl, "Account Settings", "settings")}
           {this.renderMenuNavLink(profileUrl, "My Profile", "profile")}
           <MenuItem onClick={() => { this.detachMenu(); this.qrScanner.current?.start(); }} sx={{ gap: 1 }}>
             <QrCodeScannerIcon fontSize="small" />Scan QR
@@ -228,6 +223,7 @@ class Header extends React.Component<Props, State> {
           {computeCapabilities(currentUser).canScanNfc && <MenuItem onClick={() => { this.detachMenu(); this.nfcScanner.current?.start(); }} sx={{ gap: 1 }}>
             <NfcIcon fontSize="small" />SCAN NFC
           </MenuItem>}
+          {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/subscriptions`, "Subscriptions", "settings-submenu-subscriptions")}
           {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/payment-methods`, "Payment Methods", "settings-submenu-payment-methods", <AddCardIcon fontSize="small" />)}
 
           {/* Privileged section */}

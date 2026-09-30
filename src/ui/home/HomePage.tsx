@@ -2,7 +2,9 @@ import * as React from "react";
 import { Link as RouterLink, useLocation } from "react-router-dom";
 import { Alert, Box, Button, CircularProgress, Link, List, ListItem, Paper, Stack, Typography } from "@mui/material";
 import { getHome, HomeMember } from "api/home";
+import { Routing } from "app/constants";
 import useReadTransaction from "ui/hooks/useReadTransaction";
+import { useAuthState } from "ui/reducer/hooks";
 import { timeToDate } from "ui/utils/timeToDate";
 import HomeInvoices from "./HomeInvoices";
 
@@ -31,6 +33,7 @@ export const MembershipSummary: React.FC<{ member: HomeMember }> = ({ member }) 
 };
 
 const HomePage: React.FC = () => {
+  const { currentUser } = useAuthState();
   const { search } = useLocation();
   const welcome = new URLSearchParams(search).get("newMember") === "true";
   const { data, isRequesting, error, refresh } = useReadTransaction(getHome, {}, false, "member-home", true, true);
@@ -54,6 +57,10 @@ const HomePage: React.FC = () => {
             <Link variant="body1" href={data.slack.newMembersChannelUrl} target="_blank" rel="noopener noreferrer">Get started with Slack</Link>
             : <Typography color="text.secondary">Slack channel link is temporarily unavailable.</Typography>}
         </>}
+      <Box sx={{ mt: 2 }}>
+        <Link component={RouterLink as React.ElementType} variant="body1"
+          to={Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUser.id)}>Account Settings</Link>
+      </Box>
     </Paper>
     <Paper component="section" aria-labelledby="home-checkouts-title" sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography id="home-checkouts-title" component="h2" variant="h5" gutterBottom>Available safety checkouts</Typography>
