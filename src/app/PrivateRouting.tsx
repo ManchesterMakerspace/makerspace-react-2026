@@ -19,8 +19,10 @@ import RentalSpotDeepLink from 'ui/rentalSpots/RentalSpotDeepLink';
 import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
 import LoadingOverlay from 'ui/common/LoadingOverlay';
+import { defaultLoginDestination } from 'ui/auth/loginDestination';
 
 const lazyRoute = <T extends React.ComponentType<any>>(factory: () => Promise<{ default: T }>) => React.lazy(factory);
+const HomePage = lazyRoute(() => import(/* webpackChunkName: "member-home" */ 'ui/home/HomePage'));
 
 const RentalsList = lazyRoute(() => import(/* webpackChunkName: "member-rentals", webpackPrefetch: true */ 'ui/rentals/RentalsList'));
 const EarnedMembershipsList = lazyRoute(() => import(/* webpackChunkName: "earned-memberships", webpackPrefetch: true */ 'ui/earnedMemberships/EarnedMembershipsList'));
@@ -44,11 +46,12 @@ interface Props {
 }
 
 /**
- * Logs unauthorized route access and redirects authenticated user to their profile.
+ * Logs unauthorized route access and returns to the member's default landing.
  */
 const RedirectHome: React.FC<{ currentUserId: string }> = ({ currentUserId }) => {
   const { pathname } = useLocation();
-  const { currentUser: { id: userId } } = useAuthState();
+  const { currentUser } = useAuthState();
+  const userId = currentUser.id;
 
   React.useEffect(() => {
     console.warn(
@@ -56,7 +59,7 @@ const RedirectHome: React.FC<{ currentUserId: string }> = ({ currentUserId }) =>
     );
   }, [pathname, userId]);
 
-  return <Navigate to={`${Routing.Members}/${currentUserId}`} replace />;
+  return <Navigate to={defaultLoginDestination(currentUser)} replace />;
 };
 
 const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
@@ -80,6 +83,11 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
   return (
     <React.Suspense fallback={<LoadingOverlay id="body" />}>
     <Routes>
+      <Route path={Routing.Home} element={<HomePage />} />
+      {/* App owns these authenticated handoffs, preventing competing redirects. */}
+      <Route path={Routing.Root} element={null} />
+      <Route path={Routing.Login} element={null} />
+      <Route path='/auth/callback' element={null} />
       <Route path={Routing.Members} element={<MembersList />} />
       <Route path={`${Routing.Documents}`} element={<AgreementContainer />} />
       <Route path={Routing.SignUp} element={<SignUpWorkflow />} />

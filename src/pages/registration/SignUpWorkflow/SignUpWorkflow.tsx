@@ -7,7 +7,7 @@
 //      - We can fake it for now... A specific code === 10% discount?
 // MembershipSelect proceeds to payment method. Select the method, Acknowledge subscription and payment method if applicable
 // ReviewStep is last that goes over everything, allows to return to membership and payment step to change selection
-// On submit success, redirect to member profile page with dialog saying what the page is and add a toast w/ a link to the receipt.
+// New signup completion goes to Home; existing membership changes return to the profile.
 
 import * as React from "react";
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +35,7 @@ import { paymentMethodQueryParam } from "../PaymentMethods";
 import { useAuthState } from "ui/reducer/hooks";
 import { ToastStatus, useToastContext } from "components/Toast/Toast";
 import { Routing } from "app/constants";
-import { buildNewMemberProfileRoute, buildProfileRouting } from "ui/member/utils";
+import { buildNewMemberHomeRoute, buildProfileRouting } from "ui/member/utils";
 import Link from "@mui/material/Link";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { invoiceOptionParam, noneInvoiceOption } from "../MembershipOptions/constants";
@@ -82,7 +82,9 @@ export const SignUpWorkflow: React.FC = () => (
 const SignUpWorkflowContent: React.FC = () => {
   const { currentUser, isRequesting } = useAuthState();
   const { current: authLoadingOnMount } = React.useRef(isRequesting);
-  const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile);
+  // Capture once, before signing the agreement or refreshing the paid member.
+  const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile || currentUser.status === "pending");
+  const completionDestination = isNewMember ? buildNewMemberHomeRoute() : buildProfileRouting(currentUser.id);
 
   const {
     invoiceOptionId: invoiceOptionIdParam,
@@ -113,7 +115,7 @@ const SignUpWorkflowContent: React.FC = () => {
 
   React.useEffect(() => {
     if (activeStep < 0 || activeStep > stepOrder.length - 1) {
-      navigate(buildNewMemberProfileRoute(currentUser?.id));
+      navigate(completionDestination);
     }
   }, [activeStep]);
 
@@ -122,8 +124,8 @@ const SignUpWorkflowContent: React.FC = () => {
   React.useEffect(() => {
     if (authLoadingOnMount && currentUser?.id) {
       const { subscriptionId } = currentUser;
-      const url = isNewMember ? buildNewMemberProfileRoute(currentUser.id) : buildProfileRouting(currentUser.id);
-      // Redirect to profile with a notification if they already have a membership
+      const url = completionDestination;
+      // Leave the workflow with a notification if they already have a membership.
       if (subscriptionId) {
         create({
           status: ToastStatus.Info,
@@ -174,7 +176,7 @@ const SignUpWorkflowContent: React.FC = () => {
   const nextLabel = activeStep === stepOrder.indexOf(ReviewStep) ? "Submit Payment" :
                     (activeStep === stepOrder.length - 1 ? "Submit" : "Next");
   return (
-    <SignUpContextProvider setActiveStep={setActiveStep}>
+    <SignUpContextProvider setActiveStep={setActiveStep} completionDestination={completionDestination}>
         {({ allowLeave, nextDisabled, prevDisabled }) => (
           <Grid container justifyContent="center" spacing={2}>
             <Grid size={{ xs: 12, sm: 10 }}>

@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 import Link from "@mui/material/Link";
 
 import { InvoiceOption } from "makerspace-ts-api-client";
-import { buildNewMemberProfileRoute } from "ui/member/utils";
+import { useSignUpContext } from "./SignUpContext";
 import { useAuthState } from "ui/reducer/hooks";
 import { ToastStatus, useToastContext } from "components/Toast/Toast";
 import { Routing } from "app/constants";
@@ -18,6 +18,7 @@ export const MembershipSelectStep: React.FC<Props & { children?: React.ReactNode
   const navigate = useNavigate();
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
+  const { completionDestination } = useSignUpContext();
 
   const onSubmit = React.useCallback(async (invoiceOption: InvoiceOption) => {
     const isNoneOption = invoiceOption?.id === noneInvoiceOption.id;
@@ -37,11 +38,11 @@ export const MembershipSelectStep: React.FC<Props & { children?: React.ReactNode
         )
       });
 
-      navigate(buildNewMemberProfileRoute(currentUser.id));
+      navigate(completionDestination);
       return;
     };
     return true;
-  }, []);
+  }, [create, currentUser.id, completionDestination, navigate]);
 
   return (
     <>

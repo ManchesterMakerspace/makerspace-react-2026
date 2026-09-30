@@ -78,7 +78,7 @@ const server = http.createServer((req,res) => {
     await page.getByRole('textbox',{name:'Email',exact:true}).fill('test@example.com');
     await page.getByLabel('Password',{exact:false}).fill('Password123');
     await page.getByRole('button',{name:'Sign In',exact:true}).click();
-    await page.waitForURL(url => redirect ? url.pathname === '/workshops' : url.pathname.startsWith('/members/'));
+    await page.waitForURL(url => redirect ? url.pathname === '/workshops' : url.pathname === '/home');
     assert(!page.url().includes('request-checkout'));
     console.log(`PASS abandoned checkout login respects ${redirect || 'normal sign-in'}`);
     await page.close();

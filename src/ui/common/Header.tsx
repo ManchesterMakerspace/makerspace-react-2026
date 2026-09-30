@@ -219,6 +219,7 @@ class Header extends React.Component<Props, State> {
           onClose={this.detachMenu}
         >
           {/* Member section */}
+          {this.renderMenuNavLink(Routing.Home, "Home", "home")}
           {this.renderMenuNavLink(settingsUrl, "Account Settings", "settings")}
           {this.renderMenuNavLink(profileUrl, "My Profile", "profile")}
           <MenuItem onClick={() => { this.detachMenu(); this.qrScanner.current?.start(); }} sx={{ gap: 1 }}>

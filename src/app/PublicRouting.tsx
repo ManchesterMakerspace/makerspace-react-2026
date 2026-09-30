@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
 import { Routing } from 'app/constants';
 import LandingPage from 'pages/registration/LandingPage';
@@ -35,8 +35,10 @@ const PublicSignUpRoute: React.FC<{}> = () => {
 };
 
 const PublicRouting: React.FC<{}> = () => {
+  const location = useLocation();
   return (
     <Routes>
+      <Route path={Routing.Home} element={<Navigate replace to={`${Routing.Login}?redirect=${encodeURIComponent(location.pathname + location.search + location.hash)}`} />} />
       <Route path={`${Routing.PasswordReset}/:token`} element={<PasswordReset />} />
       <Route path={Routing.Login} element={<LoginPage />} />
       <Route path={Routing.SignUp} element={<PublicSignUpRoute />} />

@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { checkoutDestination } from "./checkoutDestination";
 import * as React from "react";
 import { connect } from "react-redux";
 
@@ -94,14 +93,7 @@ class LoginForm extends React.Component<Props, State> {
   }
 
   public async componentDidMount() {
-    checkoutDestination();
-    const { auth, pushLocation } = this.props;
-    if (auth) {
-      const destination = checkoutDestination();
-      if (destination) window.location.assign(destination);
-      else pushLocation(Routing.Members);
-      return;
-    }
+    if (this.props.auth) return;
 
     // Popup authentication must be initialized before the click so that the
     // browser's transient user activation is still valid when Firebase opens it.
@@ -113,20 +105,6 @@ class LoginForm extends React.Component<Props, State> {
       console.error('[Firebase Auth] Firebase preload failed', err);
       const message = err instanceof Error ? err.message : 'Sign in is unavailable. Please try again.';
       this.setState({ firebaseLoading: false, firebaseError: message });
-    }
-  }
-
-  public componentDidUpdate(prevProps: Props) {
-    const { isRequesting: wasRequesting } = prevProps;
-    const { isRequesting, auth, error, pushLocation, totpEnrollmentRequired, currentUserId } = this.props;
-    if (wasRequesting && !isRequesting && !error && auth && !totpEnrollmentRequired) {
-      const destination = checkoutDestination();
-      if (destination) window.location.assign(destination);
-      else pushLocation(Routing.Members);
-    }
-    // Privileged member needs to enroll in TOTP — redirect to security settings
-    if (totpEnrollmentRequired && !prevProps.totpEnrollmentRequired && auth) {
-      pushLocation(`/members/${currentUserId}/settings/security`);
     }
   }
 

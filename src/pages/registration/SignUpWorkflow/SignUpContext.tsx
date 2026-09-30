@@ -3,6 +3,7 @@ import * as React from "react";
 export type BeforeLeave = () => (boolean | Promise<boolean>);
 
 interface SignUpContext {
+  completionDestination: string;
   setAllowLeave(cb: BeforeLeave): void;
   setNextDisabled(isDisabled?: boolean): void;
   setPrevDisabled(isDisabled?: boolean): void;
@@ -20,6 +21,7 @@ export function useAllowLeave(cb: BeforeLeave): void {
 }
 
 const SignUpContext = React.createContext<SignUpContext>({
+  completionDestination: "/home?newMember=true",
   setAllowLeave: () => {},
   setNextDisabled: () => {},
   setPrevDisabled: () => {},
@@ -39,11 +41,12 @@ interface RenderProps {
 }
 
 interface Props {
+  completionDestination: string;
   setActiveStep: React.Dispatch<React.SetStateAction<number>>;
   children(props: RenderProps): JSX.Element
 }
 
-export const SignUpContextProvider: React.FC<Props> = ({ children, setActiveStep }) => {
+export const SignUpContextProvider: React.FC<Props> = ({ children, setActiveStep, completionDestination }) => {
   const [allowLeave, setAllowLeave] = React.useState<BeforeLeave>();
   const [nextDisabled, setNextDisabled] = React.useState<boolean | undefined>();
   const [prevDisabled, setPrevDisabled] = React.useState<boolean | undefined>();
@@ -77,6 +80,7 @@ export const SignUpContextProvider: React.FC<Props> = ({ children, setActiveStep
 
   const context: SignUpContext = React.useMemo(() => {
     return {
+      completionDestination,
       setNextDisabled,
       setPrevDisabled,
       setActiveStep,
@@ -84,7 +88,7 @@ export const SignUpContextProvider: React.FC<Props> = ({ children, setActiveStep
       goNext,
       nextDisabled,
     }
-  }, [updateAllowLeave, setNextDisabled, setPrevDisabled, setActiveStep, goNext, nextDisabled]);
+  }, [completionDestination, updateAllowLeave, setNextDisabled, setPrevDisabled, setActiveStep, goNext, nextDisabled]);
 
   return (
     <SignUpContext.Provider value={context}>
