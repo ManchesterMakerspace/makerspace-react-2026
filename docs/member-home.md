@@ -29,7 +29,8 @@ active earned memberships, and prepaid terms are distinguished.
 ## Data and actions
 
 `GET /api/home` returns the current member, confirmed Slack acceptance and the
-New Members channel link, and up to ten eligible safety checkouts. This response
+New Members channel link, up to ten eligible safety checkouts, and up to five
+randomly chosen eligible volunteer tasks/events. This response
 is private and must not be cached. It never accepts a different member selector.
 Home and invoices load independently and expose their own retry actions.
 
@@ -45,6 +46,22 @@ Orientation sorts first, followed by names alphabetically. Tool annotations
 override shop annotations and appear inline. “Request Safety Checkout” opens the
 existing request page, which revalidates eligibility before submission. Returning
 to Home or refocusing the tab refreshes the recommendations.
+
+For members with status `activeMember`, **Available Volunteer Opportunities**
+appears above safety checkouts when recommendations exist. The server samples
+five items from the combined eligible pool after applying the existing task and
+event claim rules (including prerequisite checkouts and linked repair-bounty
+restrictions). It excludes child tasks, recurring tasks in cooldown, reusable
+tasks already claimed/completed, and repeatable/recurring tasks the member already
+has claimed or pending. Completed repeatable tasks can be recommended again.
+Events must be open, dated after today, and not already joined by the member;
+undated, same-day, and past events are omitted from Home. Hidden shop names remain
+redacted. Task descriptions, credit values, shop names and event dates are shown.
+**Claim Task** uses the existing member task claim API; **Join Event** uses the
+existing event check-in API. These actions revalidate eligibility and refresh Home
+after success. Claim failures show an inline error and allow retry. Loading Home
+does not claim anything or send notifications. Other statuses and empty results
+omit the section.
 
 Invoices always use the self-service `GET /api/invoices?settled=false&pastDue=true`
 endpoint, including for staff. Only due/overdue unpaid invoices appear; upcoming

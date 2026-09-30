@@ -24,6 +24,8 @@ async function mockApi(page, options = {}) {
   let authenticated = options.authenticated !== false;
   let requested = false;
   let homeLoads = 0;
+  const claimedOpportunities = new Set();
+  let failClaim = !!options.failClaimOnce;
   let sessionMember = { ...member, ...options.member };
   await page.route('**/api/**', async route => {
     const req = route.request();
@@ -47,7 +49,15 @@ async function mockApi(page, options = {}) {
         member: sessionMember,
         slack: { accepted: !!options.acceptedSlack, newMembersChannelUrl: options.acceptedSlack ? 'https://slack.com/app_redirect?team=T1&channel=new_members' : null },
         availableCheckouts: requested ? [] : [{ id: toolId, name: 'Orientation', shopName: 'Facilities', requestorAnnotation: 'Bring your photo ID. Meet the team near the front door.\nAllow enough time for your in-person orientation and access card.' }],
+        availableVolunteerOpportunities: (options.opportunities || []).filter(item => !claimedOpportunities.has(`${item.kind}-${item.id}`)),
       };
+    } else if (/^\/api\/volunteer\/tasks\/[^/]+\/claim$/.test(url.pathname)) {
+      assert.equal(req.method(), 'POST');
+      if (failClaim) { failClaim = false; status = 422; body = { error: 'This task is temporarily unavailable. Please retry.' }; }
+      else { claimedOpportunities.add(`task-${url.pathname.split('/')[4]}`); body = { id: 'claim1' }; }
+    } else if (/^\/api\/volunteer\/events\/[^/]+\/checkin$/.test(url.pathname)) {
+      assert.equal(req.method(), 'POST');
+      claimedOpportunities.add(`event-${url.pathname.split('/')[4]}`); body = { id: 'event1' };
     } else if (url.pathname === '/api/invoices') {
       assert.equal(url.searchParams.get('settled'), 'false');
       assert.equal(url.searchParams.get('pastDue'), 'true');
@@ -83,6 +93,7 @@ async function mockApi(page, options = {}) {
       assert.equal(await page.getByRole('link', { name: 'Account Settings', exact: true }).getAttribute('href'), '/members/member1/settings');
       assert((await page.locator('main').innerText()).includes('Annotation for requestors'));
       assert(!(await page.locator('main').innerText()).includes('Upcoming'));
+      assert.equal(await page.getByRole('heading', { name: 'Available Volunteer Opportunities', exact: true }).count(), 0);
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`);
       const checkout = page.getByRole('link', { name: 'Request Safety Checkout for Orientation' });
       await checkout.focus();
@@ -155,6 +166,36 @@ async function mockApi(page, options = {}) {
     await page.screenshot({ path: path.join(screenshotDir, 'membership.png'), fullPage: true });
     console.log('PASS protected Home login, accepted Slack and request/return refresh');
     await page.close();
+
+    for (const width of [320, 600, 900, 1280]) {
+      const volunteer = await browser.newPage({ viewport: { width, height: 1000 } });
+      const errors = [];
+      volunteer.on('pageerror', error => errors.push(error.message));
+      const state = await mockApi(volunteer, { failClaimOnce: true, opportunities: [
+        { id: 'task1', kind: 'task', title: 'Organize shared supplies', description: 'Sort the storage bins and label supplies for your fellow members.\nReturn spare tools to the shop.', creditValue: 1, shopName: 'Woodshop', eventDate: null },
+        { id: 'event1', kind: 'event', title: 'Help at the community open house', description: 'Welcome visitors and help demonstrate projects.', creditValue: 2, shopName: null, eventDate: '2030-10-05' },
+      ] });
+      await volunteer.goto(`${base}/home`);
+      await volunteer.getByRole('button', { name: 'Claim Task: Organize shared supplies', exact: true }).waitFor();
+      assert.deepEqual(await volunteer.locator('main h2').allTextContents(), ['Available Volunteer Opportunities', 'Available safety checkouts', 'Open unpaid invoices']);
+      assert((await volunteer.locator('main').innerText()).includes('05 Oct 2030'));
+      assert(await volunteer.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Volunteer overflow at ${width}px`);
+      await volunteer.screenshot({ path: path.join(screenshotDir, `volunteer-${width}.png`), fullPage: true });
+      const claim = volunteer.getByRole('button', { name: 'Claim Task: Organize shared supplies', exact: true });
+      await claim.focus();
+      await volunteer.keyboard.press('Enter');
+      await volunteer.getByText('This task is temporarily unavailable. Please retry.', { exact: true }).waitFor();
+      await claim.click();
+      await volunteer.getByText('Task claimed: Organize shared supplies.', { exact: true }).waitFor();
+      await claim.waitFor({ state: 'detached' });
+      await volunteer.getByRole('button', { name: 'Join Event: Help at the community open house', exact: true }).click();
+      await volunteer.getByText('Joined event: Help at the community open house.', { exact: true }).waitFor();
+      await volunteer.getByRole('heading', { name: 'Available Volunteer Opportunities', exact: true }).waitFor({ state: 'detached' });
+      assert(state.homeLoads() >= 3);
+      assert.deepEqual(errors, []);
+      await volunteer.close();
+      console.log(`PASS volunteer claims, retries, refresh and layout at ${width}px`);
+    }
 
     for (const width of [320, 600, 900, 1280]) {
       const signup = await browser.newPage({ viewport: { width, height: 1000 } });

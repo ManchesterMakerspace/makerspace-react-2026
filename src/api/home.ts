@@ -10,9 +10,20 @@ export type HomeMember = Member & {
   paidPendingStart?: boolean;
 };
 
+export interface HomeVolunteerOpportunity {
+  id: string;
+  kind: "task" | "event";
+  title: string;
+  description: string | null;
+  creditValue: number;
+  shopName: string | null;
+  eventDate: string | null;
+}
+
 export interface HomeData {
   member: HomeMember;
   slack: { accepted: boolean; newMembersChannelUrl: string | null };
+  availableVolunteerOpportunities: HomeVolunteerOpportunity[];
   availableCheckouts: Array<{
     id: string;
     name: string;

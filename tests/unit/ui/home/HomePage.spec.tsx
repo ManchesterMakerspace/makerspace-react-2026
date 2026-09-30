@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { getHome } from "api/home";
+import { claimVolunteerTask, checkinVolunteerEvent } from "api/volunteer";
 import { listInvoices } from "makerspace-ts-api-client";
 
 let homeState: any;
@@ -15,10 +16,12 @@ const read = jest.fn();
 jest.mock("ui/hooks/useReadTransaction", () => ({ __esModule: true, default: (...args: any[]) => read(...args) }));
 jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: { id: "me", role: "admin" }, permissions: { billing: true } }) }));
 jest.mock("ui/checkout/cart", () => ({ useEmptyCart: () => emptyCart, useAddToCart: () => addToCart }));
+jest.mock("api/volunteer", () => ({ claimVolunteerTask: jest.fn(), checkinVolunteerEvent: jest.fn() }));
 import HomePage, { membershipCoverage } from "ui/home/HomePage";
 
 const Location = () => { const location = useLocation(); return <span data-location>{location.pathname}</span>; };
 const invoice = (overrides = {}) => ({ id: "invoice-1", memberId: "me", name: "Membership dues", resourceClass: "member", amount: "65.00", dueDate: Date.now() - 1000, pastDue: true, settled: false, ...overrides });
+const opportunity = (overrides = {}) => ({ id: "task1", kind: "task", title: "Organize supplies", description: "Sort the storage bins", shopName: "Woodshop", creditValue: 1, eventDate: null, ...overrides });
 
 describe("Home page", () => {
   let root: Root;
@@ -26,9 +29,13 @@ describe("Home page", () => {
   beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
   beforeEach(() => {
     jest.clearAllMocks();
+    refreshHome.mockReset();
+    (claimVolunteerTask as jest.Mock).mockReset();
+    (checkinVolunteerEvent as jest.Mock).mockReset();
     homeState = { data: {
       member: { id: "me", status: "pending", subscription: false, expirationTime: null },
       slack: { accepted: false, newMembersChannelUrl: null },
+      availableVolunteerOpportunities: [],
       availableCheckouts: [{ id: "orientation", name: "Orientation", shopName: "Facilities", requestorAnnotation: "Bring ID\nMeet at the front door" }],
     }, isRequesting: false, refresh: refreshHome };
     invoiceState = { data: [], isRequesting: false, refresh: refreshInvoices,
@@ -120,5 +127,75 @@ describe("Home page", () => {
     expect(container.querySelector('a[href="/members/me/settings/subscriptions"]')?.textContent).toBe("Manage Subscription");
     await act(async () => button("View").click());
     expect(document.querySelector('[role="dialog"]')?.getAttribute("aria-labelledby")).toBe("home-invoice-details-title");
+  });
+
+  it("shows volunteer tasks and events before safety checkouts for active members", async () => {
+    homeState.data.member.status = "activeMember";
+    homeState.data.availableVolunteerOpportunities = [opportunity(), opportunity({ id: "event1", kind: "event", title: "Open house", eventDate: "2030-10-05", creditValue: 2 })];
+    await render();
+    expect(Array.from(container.querySelectorAll("h2")).map(node => node.textContent)).toEqual([
+      "Available Volunteer Opportunities", "Available safety checkouts", "Open unpaid invoices",
+    ]);
+    expect(container.textContent).toContain("Task · 1 volunteer credit · Woodshop");
+    expect(container.textContent).toContain("Event · 2 volunteer credits · Woodshop · 05 Oct 2030");
+    expect(container.textContent).toContain("Sort the storage bins");
+    expect(button("Claim Task").getAttribute("aria-label")).toBe("Claim Task: Organize supplies");
+    expect(button("Join Event").getAttribute("aria-label")).toBe("Join Event: Open house");
+  });
+
+  it.each(["pending", "inactive", "nonMember", "revoked", "suspended"])("omits volunteer opportunities for %s members", async status => {
+    homeState.data.member.status = status;
+    homeState.data.availableVolunteerOpportunities = [opportunity()];
+    await render();
+    expect(container.querySelector("#home-volunteer-title")).toBeNull();
+  });
+
+  it("omits the section for empty lists and older API responses", async () => {
+    homeState.data.member.status = "activeMember";
+    await render();
+    expect(container.querySelector("#home-volunteer-title")).toBeNull();
+    delete homeState.data.availableVolunteerOpportunities;
+    await render();
+    expect(container.querySelector("#home-volunteer-title")).toBeNull();
+  });
+
+  it.each(["task", "event"])("claims a %s, refreshes Home and announces success even when the list becomes empty", async kind => {
+    homeState.data.member.status = "activeMember";
+    homeState.data.availableVolunteerOpportunities = [opportunity({ kind })];
+    const api = kind === "task" ? claimVolunteerTask : checkinVolunteerEvent;
+    (api as jest.Mock).mockResolvedValue({ data: {} });
+    refreshHome.mockImplementation(() => { homeState.data.availableVolunteerOpportunities = []; });
+    await render();
+    await act(async () => button(kind === "task" ? "Claim Task" : "Join Event").click());
+    expect(api).toHaveBeenCalledWith({ id: "task1" });
+    expect(refreshHome).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("#home-volunteer-title")).toBeNull();
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(kind === "task" ? "Task claimed" : "Joined event");
+  });
+
+  it("shows claim errors and permits retry without hiding the opportunities", async () => {
+    homeState.data.member.status = "activeMember";
+    homeState.data.availableVolunteerOpportunities = [opportunity()];
+    (claimVolunteerTask as jest.Mock).mockResolvedValueOnce({ error: { message: "Task is no longer available" } }).mockResolvedValueOnce({ data: {} });
+    await render();
+    await act(async () => button("Claim Task").click());
+    expect(container.querySelector('[role="alert"]')?.textContent).toBe("Task is no longer available");
+    expect(refreshHome).not.toHaveBeenCalled();
+    await act(async () => button("Claim Task").click());
+    expect(refreshHome).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables all claim actions and prevents duplicate submissions while a claim is pending", async () => {
+    homeState.data.member.status = "activeMember";
+    homeState.data.availableVolunteerOpportunities = [opportunity(), opportunity({ id: "event1", kind: "event" })];
+    let finish: (value: unknown) => void;
+    (claimVolunteerTask as jest.Mock).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    await render();
+    await act(async () => { button("Claim Task").click(); button("Claim Task").click(); });
+    expect(claimVolunteerTask).toHaveBeenCalledTimes(1);
+    expect(button("Submitting…").disabled).toBe(true);
+    expect(button("Join Event").disabled).toBe(true);
+    await act(async () => finish!({ data: {} }));
+    expect(refreshHome).toHaveBeenCalledTimes(1);
   });
 });

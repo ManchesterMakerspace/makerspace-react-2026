@@ -7,6 +7,7 @@ import useReadTransaction from "ui/hooks/useReadTransaction";
 import { useAuthState } from "ui/reducer/hooks";
 import { timeToDate } from "ui/utils/timeToDate";
 import HomeInvoices from "./HomeInvoices";
+import HomeVolunteerOpportunities from "./HomeVolunteerOpportunities";
 
 export const membershipCoverage = (member: HomeMember): string => {
   const householdRole = member.household?.role || member.householdRole;
@@ -36,6 +37,7 @@ const HomePage: React.FC = () => {
   const { currentUser } = useAuthState();
   const { search } = useLocation();
   const welcome = new URLSearchParams(search).get("newMember") === "true";
+  const [volunteerNotice, setVolunteerNotice] = React.useState("");
   const { data, isRequesting, error, refresh } = useReadTransaction(getHome, {}, false, "member-home", true, true);
 
   return <Stack component="main" spacing={3} sx={{ maxWidth: 1000, mx: "auto", my: 3, overflowWrap: "anywhere" }}>
@@ -47,7 +49,7 @@ const HomePage: React.FC = () => {
       {welcome && <Typography component="p" sx={{ mb: 2 }}>
         Thank you for joining the Makerspace, you will receive several email messages with your onboarding documents and an invitation to our Google Drive and Slack workspace. Next step as a new member is to complete your in-person orientation and receive your access card.
       </Typography>}
-      {isRequesting ? <CircularProgress aria-label="Loading membership and safety checkouts" /> : error ?
+      {isRequesting ? <CircularProgress aria-label="Loading member home" /> : error ?
         <Alert severity="error" action={<Button color="inherit" onClick={refresh}>Retry</Button>}>{error}</Alert>
         : data && <>
           {!welcome && <MembershipSummary member={data.member} />}
@@ -62,6 +64,12 @@ const HomePage: React.FC = () => {
           to={Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUser.id)}>Account Settings</Link>
       </Box>
     </Paper>
+    {volunteerNotice && <Alert severity="success" role="status" onClose={() => setVolunteerNotice("")}>{volunteerNotice}</Alert>}
+    {!isRequesting && !error && data?.member.status === "activeMember" && !!data.availableVolunteerOpportunities?.length &&
+      <HomeVolunteerOpportunities opportunities={data.availableVolunteerOpportunities} onClaim={opportunity => {
+        setVolunteerNotice(`${opportunity.kind === "task" ? "Task claimed" : "Joined event"}: ${opportunity.title}.`);
+        refresh();
+      }} />}
     <Paper component="section" aria-labelledby="home-checkouts-title" sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography id="home-checkouts-title" component="h2" variant="h5" gutterBottom>Available safety checkouts</Typography>
       {isRequesting ? <Typography role="status">Loading safety checkouts…</Typography>
