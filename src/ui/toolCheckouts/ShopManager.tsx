@@ -140,7 +140,8 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ShopColorField value={colorId} onChange={setColorId} />
+          <ShopColorField value={colorId} onChange={setColorId}
+            takenColorIds={shops.map(s => s.colorId).filter((id): id is string => !!id)} />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>
@@ -167,6 +168,10 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
 interface EditShopModalProps {
   shop: Shop;
   tools: Tool[];
+  // Every other shop, so the color picker can exclude colors already taken
+  // -- optional since not every caller has the full list handy; the color
+  // field just won't narrow itself down in that case.
+  shops?: Shop[];
   onSave: (id: string, body: Partial<Shop>) => void;
   onCancel: () => void;
   saving: boolean;
@@ -175,7 +180,7 @@ interface EditShopModalProps {
 }
 
 export const EditShopModal: React.FC<EditShopModalProps> = ({
-  shop, tools, onSave, onCancel, saving, error, canManageResourceManagers
+  shop, tools, shops, onSave, onCancel, saving, error, canManageResourceManagers
 }) => {
   const [requestorAnnotation, setRequestorAnnotation] = React.useState(shop.requestorAnnotation || "");
   const [name, setName] = React.useState(shop.name);
@@ -237,7 +242,8 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ShopColorField value={colorId} onChange={setColorId} />
+          <ShopColorField value={colorId} onChange={setColorId}
+            takenColorIds={shops?.filter(s => s.id !== shop.id).map(s => s.colorId).filter((id): id is string => !!id)} />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>
@@ -442,6 +448,7 @@ const ShopManager: React.FC = () => {
         <EditShopModal
           key={editingShop.id}
           shop={editingShop}
+          shops={shops as Shop[]}
           tools={(tools as Tool[]).filter(tool => tool.shopId === editingShop.id)}
           onSave={handleSave}
           onCancel={handleCancel}

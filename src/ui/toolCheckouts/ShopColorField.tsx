@@ -25,7 +25,12 @@ export const FALLBACK_COLORS: GoogleCalendarColor[] = [
 const ShopColorField: React.FC<{
   value?: string;
   onChange: (colorId: string) => void;
-}> = ({ value = "", onChange }) => {
+  // Color ids already used by OTHER shops (the caller excludes this shop's
+  // own current color, if editing one, so it stays selectable) -- each shop
+  // should have its own identifying color, so the picker only offers ones
+  // nothing else is already using.
+  takenColorIds?: string[];
+}> = ({ value = "", onChange, takenColorIds = [] }) => {
   const [colors, setColors] = React.useState<GoogleCalendarColor[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -41,7 +46,8 @@ const ShopColorField: React.FC<{
         }));
         setColors(available);
         if (available[0] && !available.some(color => color.id === value)) {
-          onChange(available[0].id);
+          const defaultColor = available.find(color => !takenColorIds.includes(color.id)) || available[0];
+          onChange(defaultColor.id);
         }
       } else {
         setColors(FALLBACK_COLORS);
@@ -50,7 +56,8 @@ const ShopColorField: React.FC<{
           "Using the fallback color palette."
         );
         if (!FALLBACK_COLORS.some(color => color.id === value)) {
-          onChange(FALLBACK_COLORS[0].id);
+          const defaultColor = FALLBACK_COLORS.find(color => !takenColorIds.includes(color.id)) || FALLBACK_COLORS[0];
+          onChange(defaultColor.id);
         }
       }
       setLoading(false);
@@ -63,7 +70,7 @@ const ShopColorField: React.FC<{
       <TextField
         select
         fullWidth
-        label="Shop calendar color"
+        label="Shop color"
         value={value}
         onChange={event => onChange(event.target.value)}
         disabled={loading}
@@ -89,7 +96,7 @@ const ShopColorField: React.FC<{
         }}
       >
         <MenuItem value=""><em>No color selected</em></MenuItem>
-        {colors.map(color => (
+        {colors.filter(color => color.id === value || !takenColorIds.includes(color.id)).map(color => (
           <MenuItem key={color.id} value={color.id}>
             <span style={{
               display: "inline-flex", alignItems: "center", gap: 8
