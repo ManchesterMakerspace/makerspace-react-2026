@@ -1,5 +1,10 @@
 import * as React from "react";
 import { connect } from "react-redux";
+import HomeIcon from '@mui/icons-material/Home';
+import HelpCenterIcon from '@mui/icons-material/HelpCenter';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ChatIcon from '@mui/icons-material/Chat';
+import MailIcon from '@mui/icons-material/Mail';
 
 import { ScopedThunkDispatch } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
@@ -59,20 +64,20 @@ const FooterBase: React.FC<Props> = ({ logout }) => {
   return (
     <footer style={footerStyle}>
       <a href="https://manchestermakerspace.org/" style={linkStyle} aria-label="Public Home" title="Public Home" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/")}>
-        <span className="material-symbols-rounded" style={iconStyle}>home</span>
+        <HomeIcon style={iconStyle} />
       </a>
       {wikiUrl &&
         <a href={wikiUrl} style={linkStyle} aria-label="Public Wiki" title="Public Wiki" onClick={(e) => logoutAndGo(e, wikiUrl)}>
-          <span className="material-symbols-rounded" style={iconStyle}>help_center</span>
+          <HelpCenterIcon style={iconStyle} />
         </a>}
       <a href="https://manchestermakerspace.org/calendar" style={linkStyle} aria-label="Event Calendar" title="Event Calendar" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.org/calendar")}>
-        <span className="material-symbols-rounded" style={iconStyle}>calendar_month</span>
+        <CalendarMonthIcon style={iconStyle} />
       </a>
       <a href="https://manchestermakerspace.slack.com/archives/C29L2UMDF" style={linkStyle} aria-label="Chat with us on Slack" title="Chat with us on Slack" onClick={(e) => logoutAndGo(e, "https://manchestermakerspace.slack.com/archives/C29L2UMDF")}>
-        <span className="material-symbols-rounded" style={iconStyle}>chat</span>
+        <ChatIcon style={iconStyle} />
       </a>
       <a href={mailtoHref} style={linkStyle} aria-label="Contact us via Email" title="Contact Us" onClick={(e) => logoutAndGo(e, mailtoHref)}>
-        <span className="material-symbols-rounded" style={iconStyle}>mail</span>
+        <MailIcon style={iconStyle} />
       </a>
     </footer>
   );

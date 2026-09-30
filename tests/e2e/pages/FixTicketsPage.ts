@@ -1,11 +1,11 @@
-import { Page, expect } from '@playwright/test';
+import { Page, Response, expect } from '@playwright/test';
 
 export class FixTicketsPage {
   constructor(private page: Page) {}
 
   async goto(): Promise<void> {
     await this.page.goto('/fix-tickets');
-    await this.page.getByRole('heading', { name: 'Fix tickets' }).waitFor({ state: 'visible', timeout: 15_000 });
+    await this.page.getByRole('heading', { name: 'Fix tickets', exact: true }).waitFor({ state: 'visible', timeout: 15_000 });
   }
 
   // ── Report a problem ──────────────────────────────────────────────────────
@@ -57,13 +57,30 @@ export class FixTicketsPage {
   // ── Navigation ────────────────────────────────────────────────────────────
 
   async openTicketByTitle(title: string): Promise<void> {
-    // The dev-environment watermark banner is fixed at the top of the
-    // viewport and can overlap table rows while Playwright scrolls to bring
-    // the link into view, which otherwise causes an endless scroll/retry
-    // loop rather than a clean timeout. force: true skips that check --
-    // the target element itself is still correctly resolved.
-    await this.page.getByRole('link', { name: title, exact: true }).click({ force: true });
-    await this.page.getByRole('heading', { name: 'Fix ticket' }).waitFor({ state: 'visible', timeout: 10_000 });
+    const start = Date.now();
+    const remaining = () => Math.max(1, 15_000 - (Date.now() - start));
+    const requests: { path: string; status: number; elapsedMs: number }[] = [];
+    const record = (response: Response) => {
+      const path = new URL(response.url()).pathname;
+      if (path.startsWith('/api/fix_tickets')) requests.push({ path, status: response.status(), elapsedMs: Date.now() - start });
+    };
+    this.page.on('response', record);
+    try {
+      const link = this.page.getByRole('link', { name: title, exact: true });
+      const href = await link.getAttribute('href', { timeout: remaining() });
+      const destination = new URL(href!, this.page.url());
+      await link.click({ timeout: remaining() });
+      await this.page.waitForURL(url => url.pathname === destination.pathname && url.search === destination.search, { timeout: remaining() });
+      await this.page.getByRole('heading', { name: 'Fix ticket', exact: true }).waitFor({ state: 'visible', timeout: remaining() });
+      const id = destination.pathname.split('/').pop();
+      await this.page.getByRole('heading', { name: `#${id}: ${title}`, exact: true }).waitFor({ state: 'visible', timeout: remaining() });
+      await this.page.getByRole('progressbar', { name: 'Loading tickets', exact: true }).waitFor({ state: 'hidden', timeout: remaining() });
+    } catch {
+      const errors = await this.page.locator('.MuiAlert-colorError').allTextContents();
+      throw new Error(`Ticket detail did not become ready within 15 seconds. ${JSON.stringify({ path: new URL(this.page.url()).pathname, requests, errors })}`);
+    } finally {
+      this.page.off('response', record);
+    }
   }
 
   // ── Ticket detail actions ─────────────────────────────────────────────────

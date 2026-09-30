@@ -16,6 +16,7 @@ const Receipt: React.FC = () => {
   const { currentUser: { id: userId } } = useAuthState();
   const { invoiceId } = useParams();
   const navigate = useNavigate();
+  const [receiptReady, setReceiptReady] = React.useState(false);
   const goToProfile = React.useCallback(() => navigate(buildProfileRouting(userId)), [history, userId]);
   const printReceipt = React.useCallback(() => {
     window.frames[receiptContainerId].focus();
@@ -40,6 +41,7 @@ const Receipt: React.FC = () => {
           />
           <ActionButton
             label="Print Receipt"
+            disabled={!receiptReady}
             style={{float: "right"}}
             color="primary"
             variant="contained"
@@ -47,7 +49,7 @@ const Receipt: React.FC = () => {
           />
         </Grid>
       </Grid>
-      <DocumentFrame id={receiptContainerId} src={buildReceiptUrl(invoiceId, false)} fullHeight={true}/>
+      <DocumentFrame id={receiptContainerId} src={buildReceiptUrl(invoiceId, false)} fullHeight={true} onReadyChange={setReceiptReady}/>
     </>
   )
 }

@@ -28,9 +28,9 @@ export const activeStatuses = statuses.slice(0, 3);
 export const confirmations = ['unverified', 'confirmed', 'could_not_confirm'];
 export const categories = ['damaged', 'broken', 'missing', 'donation_offer', 'other'];
 export const fixLabel = (value: string) => value.replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-export async function fixRequest<T>(path: string, body?: unknown, method = 'POST'): Promise<T> {
+export async function fixRequest<T>(path: string, body?: unknown, method = 'POST', signal?: AbortSignal): Promise<T> {
   const token = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/)?.[1];
-  const response = await fetch(path, { credentials: 'include', cache: 'no-store',
+  const response = await fetch(path, { credentials: 'include', cache: 'no-store', signal,
     method: body === undefined ? 'GET' : method,
     headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token ? decodeURIComponent(token) : '' },
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}) });

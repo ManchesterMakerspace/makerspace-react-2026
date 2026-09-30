@@ -7,7 +7,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
 import ShopOutageAction from './ShopOutageAction';
 import ToolOutageAction from 'ui/fixTickets/ToolOutageAction';
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
@@ -195,13 +195,17 @@ const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
 );
 
 const WorkshopTools: React.FC<{
+  selectedToolId?: string;
   workshop: Workshop;
   managedShop?: Shop;
   managedTools: Tool[];
   onRefresh: () => void;
   highlightToolId?: string;
   onFindTool?: (toolId: string) => void;
-}> = ({ workshop, managedShop, managedTools, onRefresh, highlightToolId, onFindTool }) => {
+}> = ({ workshop, managedShop, managedTools, onRefresh, selectedToolId, highlightToolId, onFindTool }) => {
+  React.useEffect(() => {
+    if (selectedToolId) document.getElementById(`tool-${selectedToolId}`)?.scrollIntoView({ block: 'center' });
+  }, [selectedToolId]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
   const [editTool, setEditTool] = React.useState<Tool | null>(null);
@@ -212,7 +216,7 @@ const WorkshopTools: React.FC<{
   // from the shop's map (clicking a tool name there lands on this tab).
   React.useEffect(() => {
     if (!highlightToolId) return;
-    document.getElementById(`workshop-tool-${highlightToolId}`)
+    document.getElementById(`tool-${highlightToolId}`)
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightToolId]);
 
@@ -245,13 +249,14 @@ const WorkshopTools: React.FC<{
       {workshop.tools.length === 0 &&
         <Typography color="textSecondary">No visible tools in this workshop.</Typography>}
       {workshop.tools.map(tool => (
-        <Paper key={tool.id} id={`workshop-tool-${tool.id}`} variant="outlined" style={{
+        <Paper key={tool.id} id={`tool-${tool.id}`} variant="outlined" sx={{ borderColor: selectedToolId === tool.id ? 'primary.main' : 'divider' }} style={{
           padding: 12,
           marginTop: 10,
           opacity: tool.disabled ? 0.65 : 1,
           outline: tool.id === highlightToolId ? "2px solid #1976d2" : undefined
         }}>
           <Grid container spacing={1} justifyContent="space-between">
+            {selectedToolId === tool.id && <Grid size={12}><Chip label="Scanned tool" size="small" /></Grid>}
             <Grid size={{ xs: 12, md: 8 }}>
               <a href={tool.wikiUrl} target="_blank" rel="noopener noreferrer">
                 <strong>{tool.name}</strong>
@@ -544,6 +549,9 @@ const WorkshopVolunteer: React.FC<{
 };
 
 const WorkshopsPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedShop = searchParams.get('shop');
+  const requestedTool = searchParams.get('tool');
   const [data, setData] = React.useState<WorkshopsResponse>({
     canAddShop: false,
     workshops: [],
@@ -595,6 +603,12 @@ const WorkshopsPage: React.FC = () => {
   React.useEffect(() => { load(); }, [load]);
 
   const workshop = data.workshops.find(shop => shop.id === selectedId);
+  React.useEffect(() => {
+    if (loading || (!requestedShop && !requestedTool)) return;
+    const found = data.workshops.find(shop => requestedTool ? shop.tools.some(tool => tool.id === requestedTool) : shop.id === requestedShop);
+    if (!found) { setError('This shop or tool is unavailable.'); return; }
+    setSelectedId(found.id); setTab(requestedTool ? 'tools' : 'details'); setError('');
+  }, [data, loading, requestedShop, requestedTool]);
   const managedShop = managedShops.find(shop => shop.id === selectedId);
 
   const createShop = async (body: Partial<Shop>) => {
@@ -649,7 +663,7 @@ const WorkshopsPage: React.FC = () => {
         <FormControl fullWidth>
           <InputLabel>Workshop</InputLabel>
           <Select value={selectedId} label="Workshop"
-            onChange={event => { setSelectedId(event.target.value); setTab("details"); }}>
+            onChange={event => { setSearchParams({}); setError(""); setSelectedId(event.target.value); setTab("details"); }}>
             {data.workshops.map(shop => (
               <MenuItem key={shop.id} value={shop.id}>
                 {shop.name}{shop.outOfService ? " (out of service)" : ""}{shop.disabled ? " (disabled)" : ""}
@@ -699,7 +713,7 @@ const WorkshopsPage: React.FC = () => {
               </Grid>
             </Grid>}
             {tab === "tools" &&
-              <WorkshopTools workshop={workshop} managedShop={managedShop}
+              <WorkshopTools workshop={workshop} managedShop={managedShop} selectedToolId={requestedTool}
                 managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
                 onRefresh={load} highlightToolId={tab === "tools" ? highlightToolId : undefined}
                 onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }} />}

@@ -11,6 +11,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Theme, ThemeProvider, createTheme } from '@mui/material/styles';
 
 import App from 'app/App';
+import { registerPwa } from './pwa';
 import { State as ReduxState, getRootReducer } from 'ui/reducer';
 import { ToastContextProvider } from 'components/Toast/Toast';
 
@@ -37,6 +38,7 @@ const theme: Theme = createTheme({
 });
 
 const container = document.body.appendChild(document.createElement('div'));
+registerPwa();
 const root = createRoot(container);
 
 root.render(

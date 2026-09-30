@@ -10,6 +10,9 @@ API's server, it uses relative paths in `production`.  If you want to use an abs
 
 ## Testing
 
+See [Local Playwright E2E setup](docs/local-e2e.md) for the current Rails-backed
+suite, required services and sandbox credentials, and focused ticket UI checks.
+
 Tests are currently written as Jest selenium tests using a mocked backend via `mockserver-client`. It would be better to write unit tests with `react-testing-library` 
 since selenium can be flaky. There are also integration tests for the real API written in Jest selenium.
 
@@ -30,3 +33,7 @@ All pull requests require Travis CI tests to pass before being merged.
 # LICENSE
 
 The app is available as open source under the terms of the MIT License.
+# NFC and native mobile
+
+See [NFC, PWA and native build instructions](docs/nfc-mobile.md) for scanning,
+Android builds, optional iOS builds and required backend deployment.
