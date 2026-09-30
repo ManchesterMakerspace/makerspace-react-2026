@@ -130,6 +130,8 @@ export interface ToolCheckout {
 }
 
 export interface CheckoutApprover {
+  toolGroups?: { id: string; name: string; shopId: string }[];
+  toolGroupIds?: string[];
   tools?: { id: string; name: string; shopId: string; outOfService: boolean }[];
   outOfServiceToolNames?: string[];
   id: string;
@@ -143,6 +145,11 @@ export interface CheckoutApprover {
 }
 
 export interface ToolCheckoutRequest {
+  toolGroupId?: string;
+  targetType?: 'tool' | 'group';
+  targetName?: string;
+  groupRevision?: number;
+  includedToolIds?: string[];
   outOfService?: boolean;
   requestorAnnotation?: string | null;
   id: string;
@@ -150,8 +157,8 @@ export interface ToolCheckoutRequest {
   memberName: string;
   memberEmail: string;
   memberSlackUrl?: string;
-  toolId: string;
-  toolName: string;
+  toolId?: string;
+  toolName?: string;
   shopId: string;
   shopName: string;
   note?: string;
@@ -159,4 +166,35 @@ export interface ToolCheckoutRequest {
   status: "open" | "closed" | "deleted";
   messageId?: string;
   checkedOutId?: string;
+}
+
+export interface ToolGroup {
+  id: string;
+  shopId: string;
+  name: string;
+  description?: string;
+  prerequisiteIds: string[];
+  includedToolIds: string[];
+  includedTools: Tool[];
+  reservable: boolean;
+  requestable: boolean;
+  announce: boolean;
+  announceChannel?: string;
+  archived: boolean;
+  revision: number;
+  targetType: 'group';
+  canManage: boolean;
+  canApprove: boolean;
+  canRequest: boolean;
+}
+
+export interface GroupCheckoutReview {
+  group: ToolGroup;
+  prerequisiteNames: string[];
+  revision: number;
+  includedToolIds: string[];
+  heldToolIds: string[];
+  createToolIds: string[];
+  prerequisiteIds: string[];
+  missingPrerequisiteIds: string[];
 }

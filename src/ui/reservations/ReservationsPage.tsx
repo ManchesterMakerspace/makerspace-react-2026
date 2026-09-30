@@ -1,4 +1,6 @@
 import ToolAvailability from "ui/common/ToolAvailability";
+import { selectableGroupIds } from './selectableGroupIds';
+import { reservationResourceLabel } from './resourceLabel';
 import * as React from "react";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -74,6 +76,9 @@ const ReservationsPage: React.FC = () => {
   const [shopId, setShopId] = React.useState("");
   const [scope, setScope] = React.useState<"shop" | "tools">("tools");
   const [toolIds, setToolIds] = React.useState<string[]>([]);
+  const [toolGroupIds, setToolGroupIds] = React.useState<string[]>([]);
+  const [resourcesChanged, setResourcesChanged] = React.useState(false);
+  const shopGroups = (catalog.toolGroups || []).filter(group => group.shopId === shopId);
   const [title, setTitle] = React.useState("");
   const [date, setDate] = React.useState(initialStart.format("YYYY-MM-DD"));
   const [startTime, setStartTime] = React.useState(initialStart.format("HH:mm"));
@@ -131,7 +136,10 @@ const ReservationsPage: React.FC = () => {
   });
   const selectedShop = availableShops.find(shop => shop.id === shopId);
   const shopTools = catalog.tools.filter(tool => tool.shopId === shopId);
-  const selectedTools = shopTools.filter(tool => toolIds.includes(tool.id));
+  const selectedTools = Array.from(new Map([
+    ...shopTools.filter(tool => toolIds.includes(tool.id)),
+    ...shopGroups.filter(group => toolGroupIds.includes(group.id)).flatMap(group => group.includedTools)
+  ].map(tool => [tool.id, tool])).values());
   const resourceConfiguredMaximum = scope === "shop"
     ? Number(selectedShop?.maxReservationDurationHours || 8)
     : selectedTools.length
@@ -167,7 +175,8 @@ const ReservationsPage: React.FC = () => {
   const endMoment = validStart ? (fullDay ? parseStart(endDate, "00:00") : startMoment.clone().add(durationHours, "hours")) : null;
   const usesMeridiem = /\b(am|pm)\b/i.test(startTime);
   const input: ReservationInput = {
-    title, shopId, reservationScope: scope, toolIds, fullDay,
+    title, shopId, reservationScope: scope, toolIds, toolGroupIds, fullDay,
+    preserveResourceSelection: !!editing && !resourcesChanged && editing.shopId === shopId && editing.reservationScope === scope,
     feeConfirmation: feeAccepted || undefined,
     startAt: validStart ? startMoment.toISOString() : "",
     endAt: endMoment ? endMoment.toISOString() : ""
@@ -225,7 +234,7 @@ const ReservationsPage: React.FC = () => {
         availableShops.some(shop => shop.id === shopId)) return;
     const first = availableShops[0];
     setShopId(first?.id || "");
-    setToolIds([]);
+    setToolIds([]); setToolGroupIds([]); setResourcesChanged(true);
     setScope(first?.reservable ? "shop" : "tools");
   }, [creatingForMember, editingManaged, shopId,
       availableShops.map(shop => shop.id).join(",")]);
@@ -236,7 +245,7 @@ const ReservationsPage: React.FC = () => {
     const requestGeneration = ++previewRequestGeneration.current;
     if (!canUseCreateUi || !validStart || !title.trim() || !shopId ||
         (creatingForMember && !targetMemberId) ||
-        (scope === "tools" && toolIds.length === 0)) {
+        (scope === "tools" && toolIds.length === 0 && toolGroupIds.length === 0)) {
       setPreview(null);
       return;
     }
@@ -261,9 +270,9 @@ const ReservationsPage: React.FC = () => {
       }
     };
   }, [canUseCreateUi, creatingForMember, targetMemberId, validStart, title, shopId, scope,
-      toolIds.join(","), date, startTime, durationHours, fullDay, endDate, editingManaged, editing?.id, previewRevision]);
+      toolIds.join(","), toolGroupIds.join(','), resourcesChanged, date, startTime, durationHours, fullDay, endDate, editingManaged, editing?.id, previewRevision]);
 
-  React.useEffect(() => { setFeeAccepted(""); }, [title, shopId, scope, toolIds.join(","), date, startTime, durationHours, fullDay, endDate, targetMemberId, editing?.id]);
+  React.useEffect(() => { setFeeAccepted(""); }, [title, shopId, scope, toolIds.join(","), toolGroupIds.join(","), date, startTime, durationHours, fullDay, endDate, targetMemberId, editing?.id]);
 
   React.useEffect(() => {
     if (fullDay) return;
@@ -288,7 +297,7 @@ const ReservationsPage: React.FC = () => {
     setTitle("");
     setShopId(resetShop?.id || "");
     setScope(resetShop?.reservable ? "shop" : "tools");
-    setToolIds([]);
+    setToolIds([]); setToolGroupIds([]); setResourcesChanged(true);
     setFullDayChoice(false);
     setFeeAccepted("");
     setEndDate(nextStart.clone().add(1, "day").format("YYYY-MM-DD"));
@@ -358,7 +367,9 @@ const ReservationsPage: React.FC = () => {
     setTitle(reservation.title);
     setShopId(reservation.shopId);
     setScope(reservation.reservationScope);
-    setToolIds(reservation.toolIds || []);
+    setToolIds(reservation.toolGroupIds?.length ? reservation.selectedToolIds || [] : reservation.toolIds || []);
+    setToolGroupIds(reservation.toolGroupIds || []);
+    setResourcesChanged(false);
     setDate(moment(reservation.startAt).tz(ZONE).format("YYYY-MM-DD"));
     setStartTime(moment(reservation.startAt).tz(ZONE).format("HH:mm"));
     setDurationHours(moment(reservation.endAt).diff(moment(reservation.startAt), "minutes") / 60);
@@ -477,7 +488,7 @@ const ReservationsPage: React.FC = () => {
               <Select native fullWidth value={shopId} onChange={event => {
                 const next = event.target.value as string;
                 const shop = availableShops.find(item => item.id === next);
-                setShopId(next); setToolIds([]); setScope(shop?.reservable ? "shop" : "tools");
+                setShopId(next); setToolIds([]); setToolGroupIds([]); setResourcesChanged(true); setScope(shop?.reservable ? "shop" : "tools");
               }}>
                 {editing && !catalog.shops.some(shop => shop.id === editing.shopId) &&
                   <option value={editing.shopId}>{editing.shopName} (existing reservation)</option>}
@@ -486,20 +497,28 @@ const ReservationsPage: React.FC = () => {
             </Grid>
             <Grid size={{ xs: 12 }}>
               <FormLabel>Resource</FormLabel>
-              <Select native fullWidth value={scope} onChange={event => setScope(event.target.value as any)}>
+              <Select native fullWidth value={scope} onChange={event => {
+                setScope(event.target.value as any); setResourcesChanged(true); setToolIds([]); setToolGroupIds([]);
+              }}>
                 {selectedShop?.reservable && <option value="shop">Entire shop</option>}
-                {shopTools.length > 0 && <option value="tools">One or more tools</option>}
+                {(shopTools.length > 0 || shopGroups.length > 0) && <option value="tools">One or more tools or groups</option>}
                 {editing && editing.reservationScope === "shop" && !selectedShop?.reservable &&
                   <option value="shop">Entire shop (existing reservation)</option>}
-                {editing && editing.reservationScope === "tools" && shopTools.length === 0 &&
+                {editing && editing.reservationScope === "tools" && shopTools.length === 0 && shopGroups.length === 0 &&
                   <option value="tools">Tools (existing reservation)</option>}
               </Select>
             </Grid>
             {scope === "tools" && <Grid size={{ xs: 12 }}>
+              {editing && !resourcesChanged && !!editing.groupSnapshots?.length && <Alert severity="info">
+                Saved resources: {reservationResourceLabel(editing)}. These original tools are retained until you change the resource selection.
+              </Alert>}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {shopTools.map(tool => <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} disabled={tool.outOfService && !toolIds.includes(tool.id)} clickable onClick={() => toggleTool(tool.id)}
+                {shopTools.map(tool => <Chip key={tool.id} label={`${tool.name}${tool.outOfService ? " — Out of service" : ""}`} disabled={tool.outOfService && !toolIds.includes(tool.id)} clickable onClick={() => { setResourcesChanged(true); setToolGroupIds(ids => selectableGroupIds(ids, shopGroups)); toggleTool(tool.id); }}
                   color={toolIds.includes(tool.id) ? "primary" : "default"}
                   variant={toolIds.includes(tool.id) ? "filled" : "outlined"} />)}
+                {shopGroups.map(group => <Chip key={group.id} label={`${group.name} · Group`} clickable
+                  color={toolGroupIds.includes(group.id) ? 'primary' : 'default'}
+                  onClick={() => { setResourcesChanged(true); setToolGroupIds(ids => selectableGroupIds(ids.includes(group.id) ? ids.filter(id => id !== group.id) : [...ids, group.id], shopGroups)); }} />)}
                 {editing && editing.toolIds.filter(id => !shopTools.some(tool => tool.id === id)).map(id => {
                   const index = editing.toolIds.indexOf(id);
                   return <Chip key={id} label={`${editing.toolNames[index] || "Tool"} (existing)`}
@@ -613,7 +632,7 @@ const ReservationsPage: React.FC = () => {
             <Grid size={{ xs: 12, sm: 7 }}>
               <strong><ReservationTitle reservation={item} /></strong>{" "}
               <Chip label={item.status} color={statusColor(item.status)} size="small" />
-              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")} · {item.toolNames?.join(", ") || item.shopName}</Typography>
+              <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")} · {reservationResourceLabel(item)}</Typography>
               {item.status === "pending" && <ApprovalDetails details={item.approvalDetails} compact />}
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -631,7 +650,7 @@ const ReservationsPage: React.FC = () => {
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
-            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
           </Typography>
           <ApprovalDetails details={item.approvalDetails} compact />
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -648,7 +667,7 @@ const ReservationsPage: React.FC = () => {
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
-            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
           </Typography>
         </Paper>)}
       </Grid>}
@@ -662,7 +681,7 @@ const ReservationsPage: React.FC = () => {
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
-            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {item.toolNames?.join(", ") || item.shopName}
+            {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
           </Typography>
         </Paper>)}
       </Grid>}
@@ -676,7 +695,7 @@ const ReservationsPage: React.FC = () => {
               <Grid size={{ xs: 12, sm: 8 }}>
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
                 <Chip label={item.status} color={statusColor(item.status)} size="small" />
-                <Typography variant="body2">{item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}</Typography>
+                <Typography variant="body2">{item.shopName}: {reservationResourceLabel(item)} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}</Typography>
                 <ApprovalDetails details={item.approvalDetails} compact />
               </Grid>
               <Grid size={{ xs: 12, sm: 4 }} style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
@@ -696,7 +715,7 @@ const ReservationsPage: React.FC = () => {
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
                 <Chip label={item.status} color={statusColor(item.status)} size="small" />
                 <Typography variant="body2">
-                  {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}
+                  {item.shopName}: {reservationResourceLabel(item)} ·{" "}
                   {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–
                   {moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}
                 </Typography>
@@ -720,7 +739,7 @@ const ReservationsPage: React.FC = () => {
           <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
           <Chip label={item.status} color={statusColor(item.status)} size="small" />
           <Typography variant="body2">
-            {item.shopName}: {item.toolNames?.join(", ") || "Entire shop"} ·{" "}
+            {item.shopName}: {reservationResourceLabel(item)} ·{" "}
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")}
           </Typography>
