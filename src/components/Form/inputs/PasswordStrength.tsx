@@ -53,6 +53,9 @@ export const isGuessablePassword = (password: string, profile?: PasswordStrength
   const normalizedPassword = normalize(password);
   if (!normalizedPassword) return false;
 
+  const normalizedEmail = normalize(profile?.email);
+  if (normalizedEmail && normalizedPassword.includes(normalizedEmail)) return true;
+
   return profileValues(profile).some(value => (
     normalizedPassword === value || value.includes(normalizedPassword)
   ));

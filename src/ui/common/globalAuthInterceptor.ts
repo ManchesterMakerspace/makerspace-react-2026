@@ -92,8 +92,18 @@ const handle401 = (dispatch: Function | null = globalDispatch) => {
   const currentPath = window.location.pathname;
 
   if (shouldRedirectToLogin(currentPath)) {
-    window.location.href = Routing.Login + (/^\/tools\/[^/]+\/request-checkout$/.test(currentPath) ? `?return_to=${encodeURIComponent(currentPath)}` : "");
+    window.location.href = loginUrlForLocation(window.location);
   }
+};
+
+export const loginUrlForLocation = ({ pathname, search, hash }: Pick<Location, "pathname" | "search" | "hash">): string => {
+  if (/^\/tools\/[^/]+\/request-checkout$/.test(pathname)) {
+    return `${Routing.Login}?return_to=${encodeURIComponent(pathname)}`;
+  }
+  if (pathname === Routing.Home) {
+    return `${Routing.Login}?redirect=${encodeURIComponent(pathname + search + hash)}`;
+  }
+  return Routing.Login;
 };
 
 const interceptAxiosError = (error: any) => {

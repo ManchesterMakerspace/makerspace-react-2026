@@ -1,5 +1,16 @@
 # Browser checks
 
+## Member Home
+
+Build web assets, then run `node tests/browser/home.cjs`. This check uses mocked
+APIs and headless Edge on Windows (Chromium elsewhere). It verifies member/staff
+and TOTP login destinations, protected Home links, checkout request/return refresh,
+due-invoice filtering/pagination/actions, volunteer task/event claims and retries,
+account settings and menu ordering,
+signup ZIP/ZIP+4 and optional phone input, email-based password strength, and
+keyboard/layout behavior at 320/600/900/1280 px.
+Failures return nonzero. Screenshots are saved under `tmp/home-browser`.
+
 ## QR scanning
 
 Build web assets, then run `node tests/browser/qr.cjs`. This check uses generated

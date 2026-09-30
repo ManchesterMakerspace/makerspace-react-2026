@@ -34,5 +34,4 @@ export const buildProfileRouting = (memberId: string) => {
   return Routing.Profile.replace(Routing.PathPlaceholder.MemberId, memberId);
 };
 
-export const buildNewMemberProfileRoute = (memberId: string) =>
-  buildProfileRouting(memberId) + "?newMember=true";
+export const buildNewMemberHomeRoute = () => `${Routing.Home}?newMember=true`;
