@@ -8,6 +8,7 @@ require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'c
 const { AuthPage } = require('../e2e/pages/AuthPage.ts');
 const { MemberPage } = require('../e2e/pages/MemberPage.ts');
 const { SettingsPage } = require('../e2e/pages/SettingsPage.ts');
+const { MemberRentalsPage } = require('../e2e/pages/MemberRentalsPage.ts');
 const root = path.resolve(__dirname, '../..');
 const screenshotDir = path.join(root, 'tmp/home-browser');
 const toolId = '0123456789abcdef01234567';
@@ -87,6 +88,41 @@ async function mockApi(page, options = {}) {
   let browser;
   try {
     browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined), headless: true });
+    for (const width of [320, 600, 900, 1280]) {
+      const rentalPage = await browser.newPage({ viewport: { width, height: 1000 } });
+      const state = await mockApi(rentalPage);
+      let signed = false;
+      await rentalPage.route('**/api/documents/rental_agreement?*', route => route.fulfill({
+        contentType: 'text/html', body: '<h1>Rental agreement</h1><p>Test rental terms.</p>',
+      }));
+      await rentalPage.route('**/api/rentals/rental1', route => {
+        if (route.request().method() === 'PUT') {
+          assert.match(route.request().postDataJSON().signature, /^data:image\/png;base64,/);
+          signed = true;
+        }
+        return route.fulfill({ json: { id: 'rental1', memberId: member.id, status: signed ? 'active' : 'pending_agreement', contractOnFile: signed } });
+      });
+      await rentalPage.route('**/api/invoices?*', route => route.fulfill({
+        headers: { 'total-items': signed ? '1' : '0' },
+        json: signed ? [{ id: 'rental-invoice', memberId: member.id, name: 'GT1 rental', resourceClass: 'rental', dueDate: Date.now() - 1000, pastDue: true, amount: '10.00', settled: false }] : [],
+      }));
+      await rentalPage.goto(`${base}/agreements/rental/rental1`);
+      const rentals = new MemberRentalsPage(rentalPage);
+      await rentals.acceptAndSignAgreement();
+      await rentals.clickProceed();
+      await rentalPage.getByRole('cell', { name: '$10.00', exact: true }).waitFor();
+      const pay = rentalPage.getByRole('button', { name: 'Pay Selected Dues', exact: true });
+      await pay.waitFor();
+      await pay.focus();
+      assert(await pay.evaluate(element => element === document.activeElement));
+      await pay.click();
+      await rentalPage.waitForURL(`${base}/checkout`);
+      assert.equal(signed, true);
+      assert.equal(state.homeLoads(), 0, 'Signing a rental agreement must not load Home');
+      await rentalPage.close();
+      console.log(`PASS rental agreement returns to Dues and rental payment at ${width}px`);
+    }
+
     for (const width of [320, 600, 900, 1280]) {
       const page = await browser.newPage({ viewport: { width, height: 1000 } });
       const errors = [];
