@@ -55,6 +55,7 @@ import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 import { workshopReservationRows } from "./workshopReservations";
 import { AddShopModal, EditShopModal } from "ui/toolCheckouts/ShopManager";
 import { EditToolRow } from "ui/toolCheckouts/ToolManager";
+import ShopLocationMap from "ui/toolCheckouts/ShopLocationMap";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
@@ -660,18 +661,23 @@ const WorkshopsPage: React.FC = () => {
           </Tabs>
 
           <div style={{ marginTop: 18 }}>
-            {tab === "details" && <>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
-              {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
-                onClick={() => setEditOpen(true)}>
-                Edit
-              </Button>}
-              {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
-                onClick={() => setQrOpen(true)}>QR Code</Button>}
-              </div>
-              <WorkshopDetails workshop={workshop} />
-            </>}
+            {tab === "details" && <Grid container spacing={3}>
+              <Grid size={{ xs: 12, md: 7 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
+                {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
+                  onClick={() => setEditOpen(true)}>
+                  Edit
+                </Button>}
+                {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
+                  onClick={() => setQrOpen(true)}>QR Code</Button>}
+                </div>
+                <WorkshopDetails workshop={workshop} />
+              </Grid>
+              <Grid size={{ xs: 12, md: 5 }}>
+                <ShopLocationMap shopId={workshop.id} shopName={workshop.name} />
+              </Grid>
+            </Grid>}
             {tab === "tools" &&
               <WorkshopTools workshop={workshop} managedShop={managedShop}
                 managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
