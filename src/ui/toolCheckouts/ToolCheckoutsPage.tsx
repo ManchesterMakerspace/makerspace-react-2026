@@ -3,21 +3,21 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import { CheckoutCatalogProvider } from "./CheckoutCatalog";
 import CheckoutRoster from "./CheckoutRoster";
 import ShopManager from "./ShopManager";
 import ToolManager from "./ToolManager";
-import ShopMapManager from "./ShopMapManager";
 import ShopMapView from "./ShopMapView";
 import CheckoutApproversManager from "./CheckoutApproversManager";
 import ToolCheckoutRequestsManager from "./ToolCheckoutRequestsManager";
 import { useAuthState } from "ui/reducer/hooks";
 import { memberIsResourceManager } from "ui/member/utils";
 import { useCapabilities } from "app/permissions";
+import { Routing } from "app/constants";
 
-type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "map" | "shopMap" | "approvers";
+type TabKey = "active" | "requests" | "roster" | "shops" | "tools" | "shopMap" | "approvers";
 
 const ToolCheckoutsPage: React.FC = () => {
   const { currentUser } = useAuthState();
@@ -25,6 +25,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const managesShops = isRM && ((currentUser as any).resourceManagerShopIds || []).length > 0;
   const caps = useCapabilities();
   const { search } = useLocation();
+  const navigate = useNavigate();
   const selfService = React.useMemo(
     () => new URLSearchParams(search).get("mode") === "self-service",
     [search]
@@ -36,11 +37,6 @@ const ToolCheckoutsPage: React.FC = () => {
       : "active";
   const [activeTab, setActiveTab] = React.useState<TabKey>(defaultTab);
   const [userSelectedTab, setUserSelectedTab] = React.useState(false);
-  // Set by the Tools tab's "Place on map" button -- consumed once by the
-  // Map tab to jump straight to the right shop (and, for a new marker,
-  // preselect this tool in the "place a specific tool here" picker)
-  // instead of making the admin hunt for the shop themselves.
-  const [mapPreset, setMapPreset] = React.useState<{ shopId: string; toolId: string } | null>(null);
 
   React.useEffect(() => {
     if (!userSelectedTab) setActiveTab(defaultTab);
@@ -52,7 +48,6 @@ const ToolCheckoutsPage: React.FC = () => {
     { key: "roster", label: "Checkout Roster", adminOnly: true },
     { key: "shops", label: "Shops", adminOnly: true },
     { key: "tools", label: "Tools", adminOnly: true },
-    { key: "map", label: "Map", adminOnly: true },
     { key: "shopMap", label: "Shop Map" },
     { key: "approvers", label: "Approvers", adminOnly: true },
   ];
@@ -60,7 +55,7 @@ const ToolCheckoutsPage: React.FC = () => {
   const visibleTabs = tabs.filter(t => {
     if (!t.adminOnly) return true;
     if (t.key === "approvers") return caps.canManageCheckoutApprovers;
-    if (t.key === "shops" || t.key === "map") return caps.canViewShopQrCodes;
+    if (t.key === "shops") return caps.canViewShopQrCodes;
     // Tools tab also needs to reach a plain (non-shop-manager) checkout
     // approver so they can set a tool's notes -- see #189.
     if (t.key === "tools") return managesShops || caps.canManageCheckoutApprovers || caps.canManageCheckouts;
@@ -99,12 +94,15 @@ const ToolCheckoutsPage: React.FC = () => {
         {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={managesShops} />}
         {activeTab === "shops" && <ShopManager />}
         {activeTab === "tools" && <ToolManager
-          onPlaceOnMap={(shopId, toolId) => {
-            setMapPreset({ shopId, toolId });
-            setUserSelectedTab(true);
-            setActiveTab("map");
-          }} />}
-        {activeTab === "map" && <ShopMapManager preset={mapPreset || undefined} />}
+          // Editing a shop's map now happens on that shop's own Workshops
+          // page (ShopLocationMap, gated there by admin/board/RM-for-this-
+          // shop), not a separate shop-picker-based admin tab -- jump
+          // straight there with the tool preselected in the "place a
+          // specific tool here" picker instead of making the admin hunt
+          // for the shop and tool themselves.
+          onPlaceOnMap={(shopId, toolId) =>
+            navigate(`${Routing.Workshops}?shop=${shopId}&placeTool=${toolId}`)
+          } />}
         {activeTab === "shopMap" && <ShopMapView />}
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>
