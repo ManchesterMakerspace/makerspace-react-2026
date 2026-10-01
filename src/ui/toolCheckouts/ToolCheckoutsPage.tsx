@@ -36,6 +36,11 @@ const ToolCheckoutsPage: React.FC = () => {
       : "active";
   const [activeTab, setActiveTab] = React.useState<TabKey>(defaultTab);
   const [userSelectedTab, setUserSelectedTab] = React.useState(false);
+  // Set by the Tools tab's "Place on map" button -- consumed once by the
+  // Map tab to jump straight to the right shop (and, for a new marker,
+  // preselect this tool in the "place a specific tool here" picker)
+  // instead of making the admin hunt for the shop themselves.
+  const [mapPreset, setMapPreset] = React.useState<{ shopId: string; toolId: string } | null>(null);
 
   React.useEffect(() => {
     if (!userSelectedTab) setActiveTab(defaultTab);
@@ -93,8 +98,13 @@ const ToolCheckoutsPage: React.FC = () => {
         )}
         {activeTab === "roster" && caps.canManageCheckouts && <CheckoutRoster isAdmin={caps.canManageCheckouts} isResourceManager={managesShops} />}
         {activeTab === "shops" && <ShopManager />}
-        {activeTab === "tools" && <ToolManager />}
-        {activeTab === "map" && <ShopMapManager />}
+        {activeTab === "tools" && <ToolManager
+          onPlaceOnMap={(shopId, toolId) => {
+            setMapPreset({ shopId, toolId });
+            setUserSelectedTab(true);
+            setActiveTab("map");
+          }} />}
+        {activeTab === "map" && <ShopMapManager preset={mapPreset || undefined} />}
         {activeTab === "shopMap" && <ShopMapView />}
         {activeTab === "approvers" && caps.canManageCheckoutApprovers && <CheckoutApproversManager />}
       </Grid>

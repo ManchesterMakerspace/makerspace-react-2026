@@ -18,7 +18,7 @@ import { Location, Shop, Tool } from "app/entities/toolCheckout";
 import { adminListLocations, adminCreateLocation, adminUpdateLocation, adminDeleteLocation } from "api/locations";
 import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
-import { boundingBoxOf, paddedBox, cropViewBoxToBox, ViewBox } from "./locationGeometry";
+import { boundingBoxOf, paddedBox, cropViewBoxToBox, wrapperPctToLocalPct, ViewBox } from "./locationGeometry";
 import { LOCATION_KIND_OPTIONS, colorForKind, TOOL_MARKER_COLOR } from "./locationKinds";
 
 // One SVG per building floor, shared by every shop on that floor (a real
@@ -65,16 +65,22 @@ const LocationFormModal: React.FC<{
   // from `tools`/`onToggleTool` above, which lets an EXISTING location's
   // edit form say "these tools are generally somewhere in here".
   linkableTools?: Tool[];
+  // Preselects one of linkableTools (e.g. arriving here via the Tools
+  // tab's "Place on map" button) instead of making the admin find it
+  // themselves in the dropdown.
+  initialToolId?: string;
   loading: boolean;
   error: string;
 }> = ({
   initialName, initialKind, shops, initialShopId, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
-  locationId, tools, onToggleTool, linkableTools, loading, error
+  locationId, tools, onToggleTool, linkableTools, initialToolId, loading, error
 }) => {
-  const [name, setName] = React.useState(initialName);
   const [kind, setKind] = React.useState(initialKind || "");
   const [shopId, setShopId] = React.useState(initialShopId || "");
-  const [toolId, setToolId] = React.useState("");
+  const [toolId, setToolId] = React.useState(initialToolId || "");
+  const [name, setName] = React.useState(
+    initialName || linkableTools?.find(t => t.id === initialToolId)?.name || ""
+  );
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -160,11 +166,25 @@ const LocationFormModal: React.FC<{
   );
 };
 
-const ShopMapManager: React.FC = () => {
+const ShopMapManager: React.FC<{
+  // Set by the Tools tab's "Place on map" button -- jumps straight to this
+  // shop and, once the current shop selection matches, preselects this
+  // tool in the "place a specific tool here" picker for the next new
+  // marker, instead of making the admin hunt for the shop/tool themselves.
+  preset?: { shopId: string; toolId: string };
+}> = ({ preset }) => {
   const { data: shops = [] } = useCheckoutCatalog("managedShops");
-  const [shopId, setShopId] = React.useState("");
+  const [shopId, setShopId] = React.useState(preset?.shopId || "");
+  React.useEffect(() => {
+    if (preset?.shopId) setShopId(preset.shopId);
+  }, [preset?.shopId]);
   const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<PendingPlacement | null>(null);
+  // Set once the pending placement's own `create` call has succeeded, so if
+  // the follow-up tool-link call then fails and the admin clicks Save again,
+  // this skips straight to retrying the link instead of creating a second,
+  // duplicate location for the same click.
+  const [pendingLocationId, setPendingLocationId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<Location | null>(null);
   const [drawing, setDrawing] = React.useState(false);
   const [drawPoints, setDrawPoints] = React.useState<{ x: number; y: number }[]>([]);
@@ -187,6 +207,11 @@ const ShopMapManager: React.FC = () => {
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const originalViewBoxRef = React.useRef<ViewBox | null>(null);
   const currentParent = zoomStack[zoomStack.length - 1];
+  // Read from the corner-drag mousemove handler below, which is mounted
+  // once (empty dependency array) and would otherwise close over whatever
+  // `currentParent` was at mount time forever.
+  const currentParentRef = React.useRef(currentParent);
+  currentParentRef.current = currentParent;
 
   const selectedShop = shops.find(s => s.id === shopId);
   const floorName = selectedShop?.floorName;
@@ -220,7 +245,13 @@ const ShopMapManager: React.FC = () => {
     ? allLocations.filter(l => l.shopId !== shopId)
     : [];
 
-  const create = useWriteTransaction(adminCreateLocation, () => { refresh(); setPending(null); });
+  // Closing the modal is handled explicitly in the pending-placement form's
+  // onSave below, not here -- creating the location is only half of that
+  // flow when a tool is being linked too (a separate call, see `toggleTool`),
+  // and auto-closing on just this success previously let the modal close
+  // (looking like everything saved) even when that second call silently
+  // failed afterward, leaving an orphaned, unlinked location behind.
+  const create = useWriteTransaction(adminCreateLocation, () => refresh());
   const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); setAdjusting(null); });
   const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); });
 
@@ -267,8 +298,14 @@ const ShopMapManager: React.FC = () => {
       const wrapper = wrapperRef.current;
       if (index == null || !wrapper) return;
       const rect = wrapper.getBoundingClientRect();
-      const x = Math.round(Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)));
-      const y = Math.round(Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100)));
+      let x = Math.round(Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100)));
+      let y = Math.round(Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100)));
+      const parent = currentParentRef.current;
+      if (parent) {
+        const box = boundingBoxOf(parent);
+        x = Math.round(wrapperPctToLocalPct(x, box.minX, box.maxX));
+        y = Math.round(wrapperPctToLocalPct(y, box.minY, box.maxY));
+      }
       setAdjusting(current => current && {
         ...current,
         points: current.points.map((p, i) => (i === index ? { x, y } : p)),
@@ -405,6 +442,7 @@ const ShopMapManager: React.FC = () => {
     wrapper.querySelectorAll("[data-location-pin]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-shape]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-other-shop-location]").forEach(el => el.remove());
+    wrapper.querySelectorAll("[data-zoom-parent-outline]").forEach(el => el.remove());
     wrapper.querySelectorAll("[data-location-highlighted]").forEach(el => {
       el.removeAttribute("data-location-highlighted");
       (el as unknown as SVGElement).style.outline = "";
@@ -452,6 +490,49 @@ const ShopMapManager: React.FC = () => {
         wrapper.appendChild(dot);
       }
     });
+
+    // While zoomed in, the location you zoomed into is otherwise invisible
+    // -- activeLocations only ever holds its CHILDREN, so with nothing else
+    // drawn inside it yet (or a floor plan that has no real walls matching
+    // where it was drawn), the crop can look like a blank screen with no
+    // frame of reference for where you actually are. Draw its own outline
+    // (stroke only, no fill) so there's always something to place items
+    // against. A plain clip-path div can't do this -- clip-path crops what
+    // shows through a div's own rectangular box, it doesn't trace the
+    // clipped shape's edges as a border -- so this uses a real SVG polygon
+    // instead, same convention as the draw-preview overlay elsewhere here.
+    if (currentParent?.shapePoints && currentParent.shapePoints.length >= 3) {
+      // currentParent.shapePoints are stored in percent-of-ITS-OWN-parent
+      // (the frame the map was in *before* zooming into it) -- not in the
+      // 0-100 frame this zoomed view itself displays. The wrapper right now
+      // shows currentParent's own *padded* crop (see cropViewBox above)
+      // stretched to fill 0-100%, so each point has to be remapped from
+      // "percent of currentParent's parent" into "percent of that padded
+      // crop," or the outline is drawn in the wrong place/scale entirely --
+      // it can end up as a small, misplaced rectangle instead of tracing
+      // the room actually shown on screen.
+      const cropBox = paddedBox(boundingBoxOf(currentParent));
+      const remapPt = (p: { x: number; y: number }) => ({
+        x: ((p.x - cropBox.minX) / (cropBox.maxX - cropBox.minX)) * 100,
+        y: ((p.y - cropBox.minY) / (cropBox.maxY - cropBox.minY)) * 100,
+      });
+      const svgNs = "http://www.w3.org/2000/svg";
+      const outlineSvg = document.createElementNS(svgNs, "svg");
+      outlineSvg.setAttribute("data-zoom-parent-outline", currentParent.id);
+      outlineSvg.setAttribute("viewBox", "0 0 100 100");
+      outlineSvg.setAttribute("preserveAspectRatio", "none");
+      Object.assign(outlineSvg.style, {
+        position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
+      });
+      const polygon = document.createElementNS(svgNs, "polygon");
+      polygon.setAttribute("points", currentParent.shapePoints.map(p => { const r = remapPt(p); return `${r.x},${r.y}`; }).join(" "));
+      polygon.setAttribute("fill", "none");
+      polygon.setAttribute("stroke", "#1976d2");
+      polygon.setAttribute("stroke-width", "0.6");
+      polygon.setAttribute("stroke-dasharray", "2,1");
+      outlineSvg.appendChild(polygon);
+      wrapper.appendChild(outlineSvg);
+    }
 
     activeLocations.forEach(location => {
       // Its geometry is already fully represented by the adjust-preview
@@ -605,8 +686,19 @@ const ShopMapManager: React.FC = () => {
     }
 
     const rect = wrapper.getBoundingClientRect();
-    const xPct = Math.round(((event.clientX - rect.left) / rect.width) * 100);
-    const yPct = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    let xPct = Math.round(((event.clientX - rect.left) / rect.width) * 100);
+    let yPct = Math.round(((event.clientY - rect.top) / rect.height) * 100);
+    // The visible wrapper shows a *padded* crop when zoomed in (a bit of
+    // margin beyond the current parent's exact edges, for visual breathing
+    // room) -- but every stored point must be percent-of-the-true-unpadded-
+    // parent-box, or composing through multiple nesting levels compounds
+    // that margin and can push a deeply-nested item outside its ancestor's
+    // real boundary. Remap raw wrapper percent into that frame before use.
+    if (currentParent) {
+      const box = boundingBoxOf(currentParent);
+      xPct = Math.round(wrapperPctToLocalPct(xPct, box.minX, box.maxX));
+      yPct = Math.round(wrapperPctToLocalPct(yPct, box.minY, box.maxY));
+    }
 
     if (drawing) {
       setDrawPoints(points => [...points, { x: xPct, y: yPct }]);
@@ -755,23 +847,39 @@ const ShopMapManager: React.FC = () => {
       {pending && (
         <LocationFormModal
           initialName=""
-          linkableTools={shopTools}
-          onClose={() => setPending(null)}
+          // Only tools that don't already have a location -- picking an
+          // already-placed tool here would just reassign it to this new
+          // marker, silently leaving its old marker behind with the same
+          // name but no tool link (confirmed in production: a "Bambu X1C"
+          // marker picked twice left an orphaned, unlinked duplicate).
+          // The preset tool (from the Tools tab's "Place on map" button) is
+          // always included even if already placed, since that button is
+          // also how an admin re-places/moves an existing tool's marker.
+          linkableTools={shopTools.filter(t => !t.locationId || t.id === preset?.toolId)}
+          initialToolId={shopId === preset?.shopId ? preset?.toolId : undefined}
+          onClose={() => { setPending(null); setPendingLocationId(null); }}
           onSave={async (name, _shopId, kind, toolId) => {
-            const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
-            // Fire-and-forget: create's own onSuccess (above) closes this
-            // modal as soon as the location itself is saved, so a failure
-            // in this second call surfaces only via the "Tools here"
-            // checklist not reflecting it next time this location is
-            // edited, not as an error in this form. Acceptable here since
-            // the only realistic failure mode (a shop mismatch) can't
-            // happen -- linkableTools is always scoped to this same shop.
-            if (toolId && !isApiErrorResponse(result)) {
-              toggleTool.call({ id: toolId, body: { locationId: result.data.id } });
+            // Once the location itself exists, clicking Save again (e.g.
+            // after the tool-link call below failed) must not create a
+            // second one for the same click -- confirmed in production as a
+            // real way to end up with two same-named, same-click locations,
+            // only one of which actually ends up linked to the tool.
+            let locationId = pendingLocationId;
+            if (!locationId) {
+              const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
+              if (isApiErrorResponse(result)) return;
+              locationId = result.data.id;
+              setPendingLocationId(locationId);
             }
+            if (toolId) {
+              const toolResult = await toggleTool.call({ id: toolId, body: { locationId } });
+              if (isApiErrorResponse(toolResult)) return;
+            }
+            setPending(null);
+            setPendingLocationId(null);
           }}
-          loading={create.isRequesting}
-          error={create.error}
+          loading={create.isRequesting || toggleTool.isRequesting}
+          error={create.error || toggleTool.error}
         />
       )}
       {editing && (

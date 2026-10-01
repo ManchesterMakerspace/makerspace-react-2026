@@ -53,14 +53,17 @@ export const composePoint = (container: Box, x: number, y: number) => ({
 });
 
 // Resolves a location's own floor-relative bounding box, composing through
-// every ancestor's own (padded) box -- mirrors exactly how the admin
-// editor's zoomed canvas crops the viewBox one level at a time, so a
-// location drawn while zoomed two levels deep resolves back to the same
-// floor position wherever else it's displayed (e.g. the read-only
-// Workshops-page map, which never zooms interactively itself).
+// every ancestor's own TRUE (unpadded) box. Padding is a purely visual
+// crop margin (see paddedBox) -- it must never leak into how a child's
+// stored percent is interpreted, or nesting several levels deep compounds
+// the margin at every level (a small cabinet's padding can be ~30% of its
+// own size), pushing deeply-nested items outside their real ancestor's
+// boundary. `ShopMapManager`'s click-to-percent math applies the matching
+// inverse remap (see `wrapperPctToLocalPct`) so a point is captured and
+// interpreted against the same unpadded frame.
 export const resolveAbsoluteBox = (loc: Location, byId: Map<string, Location>): Box => {
   const parent = loc.parentId ? byId.get(loc.parentId) : undefined;
-  const container = parent ? padded(resolveAbsoluteBox(parent, byId)) : FULL_FLOOR_BOX;
+  const container = parent ? resolveAbsoluteBox(parent, byId) : FULL_FLOOR_BOX;
   const local = boundingBoxOf(loc);
   const topLeft = composePoint(container, local.minX, local.minY);
   const bottomRight = composePoint(container, local.maxX, local.maxY);
@@ -73,6 +76,22 @@ export const resolveAbsolutePoint = (
   parentId: string | undefined, x: number, y: number, byId: Map<string, Location>
 ) => {
   const parent = parentId ? byId.get(parentId) : undefined;
-  const container = parent ? padded(resolveAbsoluteBox(parent, byId)) : FULL_FLOOR_BOX;
+  const container = parent ? resolveAbsoluteBox(parent, byId) : FULL_FLOOR_BOX;
   return composePoint(container, x, y);
+};
+
+// Inverse of the visual padding applied to a zoomed-in crop: converts a raw
+// click/drag percent (0-100 across the currently-*displayed*, padded crop)
+// into percent-of-the-true-unpadded-parent-box, which is the frame every
+// stored xPct/yPct/shapePoints value is defined in. Without this, a point
+// captured by clicking within the padded margin would be stored as if that
+// margin were part of the parent's own box, and `resolveAbsoluteBox` above
+// (which composes through unpadded boxes only) would then place it wrong.
+// No-op (identity) when there's no parent, matching top-level placement,
+// which has always been plain percent-of-the-whole-floor with no padding.
+export const wrapperPctToLocalPct = (rawPct: number, min: number, max: number): number => {
+  const paddedMin = Math.max(0, min - ZOOM_PADDING_PCT);
+  const paddedMax = Math.min(100, max + ZOOM_PADDING_PCT);
+  const displayedValue = paddedMin + (rawPct / 100) * (paddedMax - paddedMin);
+  return ((displayedValue - min) / (max - min)) * 100;
 };
