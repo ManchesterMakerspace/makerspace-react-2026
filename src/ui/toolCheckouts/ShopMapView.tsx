@@ -9,17 +9,17 @@ import { listLocations } from "api/locations";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
 
-// Same per-floor SVG convention as the admin map editor (ShopMapManager) --
-// kept as a separate small constant rather than a shared import, since it's
-// two lines and this component has no other dependency on that one.
+// Same per-floor SVG convention as ShopLocationMap -- kept as a separate
+// small constant rather than a shared import, since it's two lines and this
+// component has no other dependency on that one.
 const floorPlanUrl = (floorName: string) => `/assets/shopFloorPlans/floor-${floorName}.svg`;
 const floorPlanFallbackUrl = "/assets/shopFloorPlans/placeholder.svg";
 
-// Read-only, every-shop-at-once view for any member -- unlike the admin
-// editor (ShopMapManager), which shows one shop at a time with the rest as
-// dim reference context while you draw, this is the "just show me the whole
-// floor" view: every shop's area rendered simultaneously in its own
-// calendar color, so overlaps or gaps are visible at a glance.
+// Read-only, every-shop-at-once view for any member -- unlike
+// ShopLocationMap, which shows one shop's own area (with its full edit
+// tooling for an admin/RM), this is the "just show me the whole floor"
+// view: every shop's area rendered simultaneously in its own calendar
+// color, so overlaps or gaps are visible at a glance.
 const ShopMapView: React.FC = () => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const floors = React.useMemo(
@@ -116,7 +116,7 @@ const ShopMapView: React.FC = () => {
     });
     // No dependency array -- React can re-apply dangerouslySetInnerHTML on
     // this wrapper on any unrelated re-render, wiping every appended pin/
-    // shape along with it (see ShopMapManager.tsx's crop effect for the
+    // shape along with it (see ShopLocationMap.tsx's crop effect for the
     // full story). Reasserting every render removes any dependence on
     // topLevelLocations happening to be a fresh array each time.
   });

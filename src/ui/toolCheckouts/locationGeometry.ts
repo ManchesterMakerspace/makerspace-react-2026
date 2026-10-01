@@ -4,10 +4,16 @@ export interface Box { minX: number; maxX: number; minY: number; maxY: number; }
 
 export const FULL_FLOOR_BOX: Box = { minX: 0, maxX: 100, minY: 0, maxY: 100 };
 
-// A location's own footprint, in whatever percent-space it was placed in
-// (percent of its immediate parent's box -- the floor, if top-level, or the
-// parent location's own resolved box once nested). A pin gets a small
-// fixed-size box around its point since it has no extent of its own.
+// Every location's own xPct/yPct/shapePoints are stored in absolute,
+// floor-relative percent (0-100 of the whole floor plan) regardless of how
+// deeply it's nested under other locations -- parentId is purely tree
+// structure (the hierarchy list, zoom breadcrumbs), never geometry. A
+// location's stored position means the same thing everywhere it's read, by
+// construction, with no recursive composition through ancestors required to
+// find out where it "really" is -- and nothing for a future crop/padding
+// tweak to silently reinterpret (the previous percent-of-parent scheme
+// broke exactly this way: a formula change for new placements quietly
+// changed what every already-stored point meant).
 export const boundingBoxOf = (loc: Location): Box => {
   if (loc.shapePoints?.length) {
     const xs = loc.shapePoints.map(p => p.x), ys = loc.shapePoints.map(p => p.y);
@@ -17,6 +23,9 @@ export const boundingBoxOf = (loc: Location): Box => {
   return { minX: x - 5, maxX: x + 5, minY: y - 5, maxY: y + 5 };
 };
 
+// Visual-only margin around a bounding box when it's used as a zoom crop --
+// gives a little breathing room/context beyond the exact shape's edges.
+// Never affects how a stored coordinate is interpreted (see above).
 export const ZOOM_PADDING_PCT = 5;
 
 export const paddedBox = (box: Box): Box => ({
@@ -25,18 +34,12 @@ export const paddedBox = (box: Box): Box => ({
   minY: Math.max(0, box.minY - ZOOM_PADDING_PCT),
   maxY: Math.min(100, box.maxY + ZOOM_PADDING_PCT),
 });
-const padded = paddedBox;
 
 // An SVG viewBox, in the SVG's own user-unit coordinate system (not
 // percent).
 export interface ViewBox { x: number; y: number; width: number; height: number; }
 
-// Maps a percent-space Box onto a real SVG viewBox's coordinate system --
-// shared by the admin editor's zoomed canvas (ShopMapManager, which crops
-// down through a stack of nested locations one level at a time) and the
-// Workshops-page single-shop map (ShopLocationMap, which crops once to a
-// shop's own top-level bounding box), so both derive a crop from the same
-// formula instead of maintaining separate copies of this arithmetic.
+// Maps a percent-space Box onto a real SVG viewBox's coordinate system.
 export const cropViewBoxToBox = (original: ViewBox, box: Box): ViewBox => ({
   x: original.x + (box.minX / 100) * original.width,
   y: original.y + (box.minY / 100) * original.height,
@@ -44,54 +47,21 @@ export const cropViewBoxToBox = (original: ViewBox, box: Box): ViewBox => ({
   height: ((box.maxY - box.minY) / 100) * original.height,
 });
 
-// Maps a point given in percent-of-`container` into whatever absolute frame
-// `container` is itself already expressed in -- floor-relative percent, as
-// long as `container` itself ultimately resolves back to FULL_FLOOR_BOX.
-export const composePoint = (container: Box, x: number, y: number) => ({
-  x: container.minX + (x / 100) * (container.maxX - container.minX),
-  y: container.minY + (y / 100) * (container.maxY - container.minY),
+// Converts a point given as percent-of-`box` into absolute floor-relative
+// percent -- used to turn a raw click (percent of whatever crop is
+// currently displayed) into the absolute coordinate that actually gets
+// saved.
+export const composePoint = (box: Box, x: number, y: number) => ({
+  x: box.minX + (x / 100) * (box.maxX - box.minX),
+  y: box.minY + (y / 100) * (box.maxY - box.minY),
 });
 
-// Resolves a location's own floor-relative bounding box, composing through
-// every ancestor's own TRUE (unpadded) box. Padding is a purely visual
-// crop margin (see paddedBox) -- it must never leak into how a child's
-// stored percent is interpreted, or nesting several levels deep compounds
-// the margin at every level (a small cabinet's padding can be ~30% of its
-// own size), pushing deeply-nested items outside their real ancestor's
-// boundary. `ShopMapManager`'s click-to-percent math applies the matching
-// inverse remap (see `wrapperPctToLocalPct`) so a point is captured and
-// interpreted against the same unpadded frame.
-export const resolveAbsoluteBox = (loc: Location, byId: Map<string, Location>): Box => {
-  const parent = loc.parentId ? byId.get(loc.parentId) : undefined;
-  const container = parent ? resolveAbsoluteBox(parent, byId) : FULL_FLOOR_BOX;
-  const local = boundingBoxOf(loc);
-  const topLeft = composePoint(container, local.minX, local.minY);
-  const bottomRight = composePoint(container, local.maxX, local.maxY);
-  return { minX: topLeft.x, minY: topLeft.y, maxX: bottomRight.x, maxY: bottomRight.y };
-};
-
-// Resolves an arbitrary point stored in percent-of-its-parent (a location's
-// own shapePoints vertex, or its pin xPct/yPct) into floor-relative percent.
-export const resolveAbsolutePoint = (
-  parentId: string | undefined, x: number, y: number, byId: Map<string, Location>
-) => {
-  const parent = parentId ? byId.get(parentId) : undefined;
-  const container = parent ? resolveAbsoluteBox(parent, byId) : FULL_FLOOR_BOX;
-  return composePoint(container, x, y);
-};
-
-// Inverse of the visual padding applied to a zoomed-in crop: converts a raw
-// click/drag percent (0-100 across the currently-*displayed*, padded crop)
-// into percent-of-the-true-unpadded-parent-box, which is the frame every
-// stored xPct/yPct/shapePoints value is defined in. Without this, a point
-// captured by clicking within the padded margin would be stored as if that
-// margin were part of the parent's own box, and `resolveAbsoluteBox` above
-// (which composes through unpadded boxes only) would then place it wrong.
-// No-op (identity) when there's no parent, matching top-level placement,
-// which has always been plain percent-of-the-whole-floor with no padding.
-export const wrapperPctToLocalPct = (rawPct: number, min: number, max: number): number => {
-  const paddedMin = Math.max(0, min - ZOOM_PADDING_PCT);
-  const paddedMax = Math.min(100, max + ZOOM_PADDING_PCT);
-  const displayedValue = paddedMin + (rawPct / 100) * (paddedMax - paddedMin);
-  return ((displayedValue - min) / (max - min)) * 100;
-};
+// Inverse of composePoint: converts an absolute floor-relative point into
+// percent-of-`box` -- used to render a location's stored absolute position
+// as a clip-path/left/top percentage against whatever crop is currently
+// displayed (the whole shop's extent, or a further zoom into one location
+// within it).
+export const remapToBox = (box: Box, x: number, y: number) => ({
+  x: ((x - box.minX) / (box.maxX - box.minX)) * 100,
+  y: ((y - box.minY) / (box.maxY - box.minY)) * 100,
+});

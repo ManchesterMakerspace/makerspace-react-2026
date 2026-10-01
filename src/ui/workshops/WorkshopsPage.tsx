@@ -552,6 +552,11 @@ const WorkshopsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedShop = searchParams.get('shop');
   const requestedTool = searchParams.get('tool');
+  // Set by the Tools tab's "Place on map" button (via a navigation from
+  // ToolCheckoutsPage, not a same-page state update) -- selects this shop's
+  // Details tab, where the map lives, with this tool preselected in its
+  // "place a specific tool here" picker for the next new marker placed.
+  const requestedPlaceTool = searchParams.get('placeTool');
   const [data, setData] = React.useState<WorkshopsResponse>({
     canAddShop: false,
     workshops: [],
@@ -708,8 +713,10 @@ const WorkshopsPage: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 12, md: 5 }}>
                 <ShopLocationMap shopId={workshop.id} shopName={workshop.name}
+                  canEdit={workshop.isShopManager}
                   onSelectTool={toolId => { setHighlightToolId(toolId); setTab("tools"); }}
-                  highlightToolId={tab === "details" ? highlightToolId : undefined} />
+                  highlightToolId={tab === "details" ? highlightToolId : undefined}
+                  preset={requestedPlaceTool ? { toolId: requestedPlaceTool } : undefined} />
               </Grid>
             </Grid>}
             {tab === "tools" &&
