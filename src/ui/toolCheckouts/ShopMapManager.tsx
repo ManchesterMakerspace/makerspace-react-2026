@@ -180,6 +180,11 @@ const ShopMapManager: React.FC<{
   }, [preset?.shopId]);
   const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<PendingPlacement | null>(null);
+  // Set once the pending placement's own `create` call has succeeded, so if
+  // the follow-up tool-link call then fails and the admin clicks Save again,
+  // this skips straight to retrying the link instead of creating a second,
+  // duplicate location for the same click.
+  const [pendingLocationId, setPendingLocationId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<Location | null>(null);
   const [drawing, setDrawing] = React.useState(false);
   const [drawPoints, setDrawPoints] = React.useState<{ x: number; y: number }[]>([]);
@@ -240,7 +245,13 @@ const ShopMapManager: React.FC<{
     ? allLocations.filter(l => l.shopId !== shopId)
     : [];
 
-  const create = useWriteTransaction(adminCreateLocation, () => { refresh(); setPending(null); });
+  // Closing the modal is handled explicitly in the pending-placement form's
+  // onSave below, not here -- creating the location is only half of that
+  // flow when a tool is being linked too (a separate call, see `toggleTool`),
+  // and auto-closing on just this success previously let the modal close
+  // (looking like everything saved) even when that second call silently
+  // failed afterward, leaving an orphaned, unlinked location behind.
+  const create = useWriteTransaction(adminCreateLocation, () => refresh());
   const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); setAdjusting(null); });
   const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); });
 
@@ -836,24 +847,39 @@ const ShopMapManager: React.FC<{
       {pending && (
         <LocationFormModal
           initialName=""
-          linkableTools={shopTools}
+          // Only tools that don't already have a location -- picking an
+          // already-placed tool here would just reassign it to this new
+          // marker, silently leaving its old marker behind with the same
+          // name but no tool link (confirmed in production: a "Bambu X1C"
+          // marker picked twice left an orphaned, unlinked duplicate).
+          // The preset tool (from the Tools tab's "Place on map" button) is
+          // always included even if already placed, since that button is
+          // also how an admin re-places/moves an existing tool's marker.
+          linkableTools={shopTools.filter(t => !t.locationId || t.id === preset?.toolId)}
           initialToolId={shopId === preset?.shopId ? preset?.toolId : undefined}
-          onClose={() => setPending(null)}
+          onClose={() => { setPending(null); setPendingLocationId(null); }}
           onSave={async (name, _shopId, kind, toolId) => {
-            const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
-            // Fire-and-forget: create's own onSuccess (above) closes this
-            // modal as soon as the location itself is saved, so a failure
-            // in this second call surfaces only via the "Tools here"
-            // checklist not reflecting it next time this location is
-            // edited, not as an error in this form. Acceptable here since
-            // the only realistic failure mode (a shop mismatch) can't
-            // happen -- linkableTools is always scoped to this same shop.
-            if (toolId && !isApiErrorResponse(result)) {
-              toggleTool.call({ id: toolId, body: { locationId: result.data.id } });
+            // Once the location itself exists, clicking Save again (e.g.
+            // after the tool-link call below failed) must not create a
+            // second one for the same click -- confirmed in production as a
+            // real way to end up with two same-named, same-click locations,
+            // only one of which actually ends up linked to the tool.
+            let locationId = pendingLocationId;
+            if (!locationId) {
+              const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
+              if (isApiErrorResponse(result)) return;
+              locationId = result.data.id;
+              setPendingLocationId(locationId);
             }
+            if (toolId) {
+              const toolResult = await toggleTool.call({ id: toolId, body: { locationId } });
+              if (isApiErrorResponse(toolResult)) return;
+            }
+            setPending(null);
+            setPendingLocationId(null);
           }}
-          loading={create.isRequesting}
-          error={create.error}
+          loading={create.isRequesting || toggleTool.isRequesting}
+          error={create.error || toggleTool.error}
         />
       )}
       {editing && (
