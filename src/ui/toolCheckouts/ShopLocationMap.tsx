@@ -519,12 +519,21 @@ const ShopLocationMap: React.FC<{
   });
 
   // Live feedback for an in-progress "draw shop area" click sequence.
+  //
+  // drawPoints are stored in absolute floor-relative percent (same as any
+  // saved shapePoints -- see handleMapClick below), not percent of the
+  // currently-displayed crop, so each point has to be remapped through
+  // effectiveBox before plotting it in this 0-100 preview overlay, exactly
+  // like the saved-location render effect above already does. Missing this
+  // was a real, confirmed bug: a click's preview dot could appear far from
+  // where it was actually clicked whenever the view was zoomed/cropped.
   React.useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
     wrapper.querySelectorAll("[data-draw-preview]").forEach(el => el.remove());
-    if (drawPoints.length === 0) return;
+    if (drawPoints.length === 0 || !effectiveBox) return;
 
+    const displayPoints = drawPoints.map(p => remapToBox(effectiveBox, p.x, p.y));
     const svgNs = "http://www.w3.org/2000/svg";
     const overlay = document.createElementNS(svgNs, "svg");
     overlay.setAttribute("data-draw-preview", "overlay");
@@ -533,26 +542,26 @@ const ShopLocationMap: React.FC<{
     Object.assign(overlay.style, {
       position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
     });
-    if (drawPoints.length > 1) {
+    if (displayPoints.length > 1) {
       const line = document.createElementNS(svgNs, "polyline");
-      line.setAttribute("points", drawPoints.map(p => `${p.x},${p.y}`).join(" "));
+      line.setAttribute("points", displayPoints.map(p => `${p.x},${p.y}`).join(" "));
       line.setAttribute("fill", "none");
       line.setAttribute("stroke", "#d32f2f");
       line.setAttribute("stroke-width", "0.6");
       overlay.appendChild(line);
-      if (drawPoints.length >= 3) {
+      if (displayPoints.length >= 3) {
         const close = document.createElementNS(svgNs, "line");
-        close.setAttribute("x1", String(drawPoints[drawPoints.length - 1].x));
-        close.setAttribute("y1", String(drawPoints[drawPoints.length - 1].y));
-        close.setAttribute("x2", String(drawPoints[0].x));
-        close.setAttribute("y2", String(drawPoints[0].y));
+        close.setAttribute("x1", String(displayPoints[displayPoints.length - 1].x));
+        close.setAttribute("y1", String(displayPoints[displayPoints.length - 1].y));
+        close.setAttribute("x2", String(displayPoints[0].x));
+        close.setAttribute("y2", String(displayPoints[0].y));
         close.setAttribute("stroke", "#d32f2f");
         close.setAttribute("stroke-width", "0.6");
         close.setAttribute("stroke-dasharray", "2,1");
         overlay.appendChild(close);
       }
     }
-    drawPoints.forEach(p => {
+    displayPoints.forEach(p => {
       const dot = document.createElementNS(svgNs, "circle");
       dot.setAttribute("cx", String(p.x));
       dot.setAttribute("cy", String(p.y));
@@ -561,7 +570,7 @@ const ShopLocationMap: React.FC<{
       overlay.appendChild(dot);
     });
     wrapper.appendChild(overlay);
-  }, [drawPoints]);
+  }, [drawPoints, effectiveBox]);
 
   const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (suppressNextClickRef.current) {
