@@ -491,6 +491,20 @@ const ShopMapManager: React.FC<{
     // clipped shape's edges as a border -- so this uses a real SVG polygon
     // instead, same convention as the draw-preview overlay elsewhere here.
     if (currentParent?.shapePoints && currentParent.shapePoints.length >= 3) {
+      // currentParent.shapePoints are stored in percent-of-ITS-OWN-parent
+      // (the frame the map was in *before* zooming into it) -- not in the
+      // 0-100 frame this zoomed view itself displays. The wrapper right now
+      // shows currentParent's own *padded* crop (see cropViewBox above)
+      // stretched to fill 0-100%, so each point has to be remapped from
+      // "percent of currentParent's parent" into "percent of that padded
+      // crop," or the outline is drawn in the wrong place/scale entirely --
+      // it can end up as a small, misplaced rectangle instead of tracing
+      // the room actually shown on screen.
+      const cropBox = paddedBox(boundingBoxOf(currentParent));
+      const remapPt = (p: { x: number; y: number }) => ({
+        x: ((p.x - cropBox.minX) / (cropBox.maxX - cropBox.minX)) * 100,
+        y: ((p.y - cropBox.minY) / (cropBox.maxY - cropBox.minY)) * 100,
+      });
       const svgNs = "http://www.w3.org/2000/svg";
       const outlineSvg = document.createElementNS(svgNs, "svg");
       outlineSvg.setAttribute("data-zoom-parent-outline", currentParent.id);
@@ -500,7 +514,7 @@ const ShopMapManager: React.FC<{
         position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
       });
       const polygon = document.createElementNS(svgNs, "polygon");
-      polygon.setAttribute("points", currentParent.shapePoints.map(p => `${p.x},${p.y}`).join(" "));
+      polygon.setAttribute("points", currentParent.shapePoints.map(p => { const r = remapPt(p); return `${r.x},${r.y}`; }).join(" "));
       polygon.setAttribute("fill", "none");
       polygon.setAttribute("stroke", "#1976d2");
       polygon.setAttribute("stroke-width", "0.6");
