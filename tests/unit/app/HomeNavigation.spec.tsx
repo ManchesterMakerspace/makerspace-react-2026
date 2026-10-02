@@ -16,6 +16,9 @@ jest.mock("app/PrivateRouting", () => () => <div>Private</div>);
 jest.mock("app/PublicRouting", () => () => <div>Public</div>);
 import App from "app/App";
 
+const homeVisits = ["member", "admin", "board_member", "resource_manager"].flatMap(role =>
+  ["/home", "/home?newMember=true"].map(target => ({ role, target })));
+
 describe("central post-login navigation", () => {
   let root: Root;
   let container: HTMLDivElement;
@@ -59,11 +62,33 @@ describe("central post-login navigation", () => {
     await signIn();
     expect(location()).toBe(target);
   });
-  it("preserves a direct protected page on restored login", async () => {
-    window.history.replaceState({}, "", "/home?newMember=true");
+  it.each(homeVisits)("keeps $role at $target after restoring a session", async ({ role, target }) => {
+    window.history.replaceState({}, "", target);
     await render();
-    await signIn();
-    expect(location()).toBe("/home?newMember=true");
+    await signIn("activeMember", role);
+    expect(location()).toBe(target);
+  });
+  it.each(homeVisits)("returns $role to $target after sign-in", async ({ role, target }) => {
+    window.history.replaceState({}, "", `/login?redirect=${encodeURIComponent(target)}`);
+    await render();
+    auth.isRequesting = false;
+    await render();
+    await signIn("activeMember", role);
+    expect(location()).toBe(target);
+  });
+  it.each(homeVisits)("honors $role navigating to $target during session restoration", async ({ role, target }) => {
+    window.history.replaceState({}, "", "/members/me");
+    await render();
+    await act(async () => { window.history.pushState({}, "", target); window.dispatchEvent(new PopStateEvent("popstate")); });
+    await signIn("activeMember", role);
+    expect(location()).toBe(target);
+  });
+  it.each(homeVisits)("keeps signed-in $role at an explicitly visited $target", async ({ role, target }) => {
+    window.history.replaceState({}, "", "/login");
+    await render();
+    await signIn("activeMember", role);
+    await act(async () => { window.history.pushState({}, "", target); window.dispatchEvent(new PopStateEvent("popstate")); });
+    expect(location()).toBe(target);
   });
   it("keeps signup in control until it finishes", async () => {
     window.history.replaceState({}, "", "/signup");
@@ -96,5 +121,15 @@ describe("central post-login navigation", () => {
     await signIn("activeMember", "admin");
     expect(location()).toBe("/members/me/settings/security");
     expect(sessionStorage.getItem("login-redirect")).toBe("/home?newMember=true#next");
+  });
+  it.each(homeVisits)("retains $role's latest $target visit through security enrollment", async ({ role, target }) => {
+    window.history.replaceState({}, "", "/members/me");
+    await render();
+    const destination = `${target}#next`;
+    await act(async () => { window.history.pushState({}, "", destination); window.dispatchEvent(new PopStateEvent("popstate")); });
+    auth.totpEnrollmentRequired = true;
+    await signIn("activeMember", role);
+    expect(location()).toBe("/members/me/settings/security");
+    expect(sessionStorage.getItem("login-redirect")).toBe(destination);
   });
 });
