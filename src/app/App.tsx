@@ -61,8 +61,10 @@ const App: React.FC = () => {
       setAuthSettled(false);
       return;
     }
+    // An explicit Home visit wins over an earlier landing, for every role.
+    const homeDestination = pathname === Routing.Home ? pathname + search + hash : null;
     if (totpEnrollmentRequired) {
-      if (!loginReturn) rememberLoginDestination(initialDestinationRef.current);
+      rememberLoginDestination(homeDestination || loginReturn || initialDestinationRef.current);
       initialDestinationRef.current = null;
       setAuthSettled(true);
       navigate(`/members/${currentUserId}/settings/security`, { replace: true });
@@ -80,12 +82,12 @@ const App: React.FC = () => {
       window.location.assign(checkoutReturn);
       return;
     }
-    const destination = loginReturn || initialDestinationRef.current || defaultLoginDestination(currentUser);
+    const destination = homeDestination || loginReturn || initialDestinationRef.current || defaultLoginDestination(currentUser);
     initialDestinationRef.current = null;
     clearLoginDestination();
     setAuthSettled(true);
     navigate(destination, { replace: true });
-  }, [error, isRequesting, loginAttempted, currentUserId, totpEnrollmentRequired, authSettled, pathname, search]);
+  }, [error, isRequesting, loginAttempted, currentUserId, totpEnrollmentRequired, authSettled, pathname, search, hash]);
 
   return (
     <ErrorBoundary>
