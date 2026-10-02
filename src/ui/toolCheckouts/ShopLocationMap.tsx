@@ -45,6 +45,30 @@ interface PendingPlacement {
   shapePoints?: { x: number; y: number }[];
 }
 
+// Deleting a location cascades server-side to every descendant at any
+// depth (child, that child's own children, ...) and unassigns any tool
+// placed anywhere in the subtree -- this walks the same tree client-side
+// purely to describe that impact to the admin before they confirm, using
+// data already loaded (no extra request).
+const describeDeletionImpact = (locationId: string, locations: Location[]) => {
+  const byParent = new Map<string, Location[]>();
+  locations.forEach(l => {
+    if (l.parentId) byParent.set(l.parentId, [...(byParent.get(l.parentId) || []), l]);
+  });
+  const root = locations.find(l => l.id === locationId);
+  const descendantLines: string[] = [];
+  const toolNames: string[] = root?.toolNames ? [...root.toolNames] : [];
+  const walk = (id: string, depth: number) => {
+    (byParent.get(id) || []).forEach(child => {
+      descendantLines.push(`${"—".repeat(depth)} ${child.name}`);
+      if (child.toolNames?.length) toolNames.push(...child.toolNames);
+      walk(child.id, depth + 1);
+    });
+  };
+  walk(locationId, 1);
+  return { descendantLines, toolNames };
+};
+
 const LocationFormModal: React.FC<{
   initialName: string;
   initialKind?: string;
@@ -733,6 +757,25 @@ const ShopLocationMap: React.FC<{
                   </Typography>,
                 ];
               }
+              // No children, no tool -- either genuinely abandoned (a
+              // leftover from an old attempt) or a tool marker whose tool
+              // was later moved elsewhere (the old marker itself is now
+              // auto-deleted going forward, but pre-existing ones can still
+              // linger). Flagged and, for an editor, made clickable straight
+              // into the existing edit/delete form, instead of needing a
+              // separate cleanup screen to find these.
+              const isUnused = !hasChildren && toolNames.length === 0;
+              if (isUnused) {
+                return [
+                  <Typography
+                    key={entry.id} variant="body2" color="textSecondary"
+                    sx={canEdit ? { fontStyle: "italic", cursor: "pointer", "&:hover": { textDecoration: "underline" } } : { fontStyle: "italic" }}
+                    onClick={canEdit && location ? () => setEditing(location) : undefined}
+                  >
+                    {entry.label} (not in use{canEdit ? " -- click to delete" : ""})
+                  </Typography>,
+                ];
+              }
               return [
                 <Typography key={entry.id} variant="body2">{entry.label}</Typography>,
                 ...toolNames.map((toolName, i) => (
@@ -780,7 +823,22 @@ const ShopLocationMap: React.FC<{
           initialKind={editing.kind}
           onClose={() => setEditing(null)}
           onSave={(name, kind) => update.call({ id: editing.id, body: { name, kind } })}
-          onDelete={() => remove.call({ id: editing.id })}
+          onDelete={() => {
+            const { descendantLines, toolNames } = describeDeletionImpact(editing.id, locations);
+            const lines = [`Delete "${editing.name}"?`];
+            if (descendantLines.length) {
+              lines.push(
+                "",
+                "This will also permanently delete everything nested inside it:",
+                ...descendantLines
+              );
+            }
+            if (toolNames.length) {
+              lines.push("", `These tools will be unassigned (not deleted): ${toolNames.join(", ")}`);
+            }
+            if (!window.confirm(lines.join("\n"))) return;
+            remove.call({ id: editing.id });
+          }}
           onRedraw={
             (editing.shapePoints?.length || (editing.xPct != null && editing.yPct != null))
               ? () => startRedraw(editing)
