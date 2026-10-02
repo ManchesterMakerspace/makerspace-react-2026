@@ -126,7 +126,7 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
           </Grid>
           <Grid size={{ xs: 12 }}>
             <TextField select fullWidth label="Location" value={value.locationId}
-              slotProps={{ select: { native: true } }} onChange={event => set("locationId", event.target.value)}
+              slotProps={{ select: { native: true }, inputLabel: { shrink: true } }} onChange={event => set("locationId", event.target.value)}
               error={!!locationError} helperText={locationError}>
               <option value="">— no location —</option>
               {value.locationId && !locationChoices.some(location => location.id === value.locationId) &&
