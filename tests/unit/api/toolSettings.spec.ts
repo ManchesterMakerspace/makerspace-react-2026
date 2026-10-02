@@ -31,6 +31,11 @@ describe("tool settings requests", () => {
     expect(JSON.parse(JSON.stringify(mockPut.mock.calls[0][1]))).toEqual({ location_id: "location" });
   });
 
+  it("omits private notes when the editor did not receive them", async () => {
+    await adminUpdateTool({ id: "tool", body: { name: "Renamed tool", notes: undefined } });
+    expect(JSON.parse(JSON.stringify(mockPut.mock.calls[0][1]))).toEqual({ name: "Renamed tool" });
+  });
+
   it("sends explicit empty values to clear settings", async () => {
     await adminUpdateTool({ id: "tool", body: { allowPending: false, notes: "", locationId: "", wikiUrlOverride: "",
       announceChannel: "", usersChannel: "", prerequisiteIds: [], reservationPrerequisiteToolIds: [], durationFees: [] } });

@@ -29,6 +29,12 @@ async function main() {
     locationId: 'location', locationName: 'Bench', prerequisiteIds: ['prerequisite'], prerequisiteNames: ['Safety prerequisite'], ...settings };
   const requests = [];
   let tool = structuredClone(original), failSave = false, failCatalog = false;
+  let hideNotes = false;
+  const scopedTool = record => {
+    const result = { ...record };
+    if (hideNotes) delete result.notes;
+    return result;
+  };
   let failShopCatalog = false, emptyShopCatalog = false, holdShops = false, releaseShops;
   const server = http.createServer((req, res) => {
     if (req.url.startsWith('/api/')) {
@@ -44,7 +50,7 @@ async function main() {
               tool[camel === 'wikiUrl' ? 'wikiUrlOverride' : camel] = value;
             }
           }
-          res.end(JSON.stringify(tool)); return;
+          res.end(JSON.stringify(scopedTool(tool))); return;
         }
         if (req.url === '/api/workshops') {
           const member = req.headers.referer?.includes('role=member');
@@ -65,7 +71,7 @@ async function main() {
         }
         if (req.url === '/api/admin/tools') {
           if (failCatalog) { res.writeHead(503).end('{"error":"Settings unavailable"}'); return; }
-          res.end(JSON.stringify([tool, { ...original, id: 'prerequisite', name: 'Safety prerequisite', disabled: true, prerequisiteIds: [] }])); return;
+          res.end(JSON.stringify([tool, { ...original, id: 'prerequisite', name: 'Safety prerequisite', disabled: true, prerequisiteIds: [] }].map(scopedTool))); return;
         }
         if (req.url.startsWith('/api/admin/locations')) { res.end(JSON.stringify([{ id: 'location', shopId: 'shop', name: 'Bench', toolIds: [], toolNames: [] }])); return; }
         if (req.url.includes('shop_fee')) { res.end(JSON.stringify([{ id: 'fee', name: 'Hourly fee', amount: 10, disabled: false }])); return; }
@@ -100,6 +106,57 @@ async function main() {
       if (route.startsWith('/workshops')) await page.getByRole('tab', { name: 'Tools', exact: true }).click();
       else await page.getByRole('row').filter({ has: page.getByText(tool.name, { exact: true }) }).getByRole('checkbox').click();
     };
+    const verifyPrivateNotes = async () => {
+      for (const width of [320, 600, 900, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+        for (const route of ['/workshops', '/tool-checkouts']) {
+          tool = structuredClone(original);
+          hideNotes = true;
+          await openPage(route);
+          await page.getByRole('button', { name: 'Edit', exact: true }).click();
+          const dialog = page.getByRole('dialog');
+          await dialog.getByRole('textbox', { name: 'Tool Name', exact: true }).fill('Lathe renamed');
+          assert.equal(await dialog.getByRole('textbox', { name: 'Notes', exact: true }).count(), 0);
+          await dialog.getByRole('checkbox', { name: pendingLabel }).uncheck();
+          assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Hidden notes overflow ${route} ${width}`);
+          await page.screenshot({ path: path.join(output, `private-notes-${route.slice(1)}-${width}.png`), fullPage: true });
+          await dialog.getByRole('button', { name: 'Save Tool', exact: true }).click();
+          await dialog.waitFor({ state: 'hidden' });
+          const saved = requests.filter(request => request.method === 'PUT' && request.url === '/api/admin/tools/tool').at(-1).body;
+          assert.equal(saved.name, 'Lathe renamed');
+          assert.equal(saved.allow_pending, false);
+          assert.equal(Object.hasOwn(saved, 'notes'), false, 'Hidden notes must be absent from the request');
+          assert.equal(tool.notes, 'Lock 1234', 'Editing other fields must preserve stored private notes');
+
+          // A supplied note remains editable and can be explicitly cleared.
+          hideNotes = false;
+          await openPage(route);
+          await page.getByRole('button', { name: 'Edit', exact: true }).click();
+          assert.equal(await dialog.getByRole('textbox', { name: 'Notes', exact: true }).inputValue(), 'Lock 1234');
+          await dialog.getByRole('textbox', { name: 'Notes', exact: true }).fill('');
+          await dialog.getByRole('button', { name: 'Save Tool', exact: true }).click();
+          await dialog.waitFor({ state: 'hidden' });
+          assert.equal(requests.filter(request => request.method === 'PUT' && request.url === '/api/admin/tools/tool').at(-1).body.notes, '');
+          assert.equal(tool.notes, '');
+
+          // A supplied null is visible and empty; it is distinct from omission.
+          tool.notes = null;
+          await openPage(route);
+          await page.getByRole('button', { name: 'Edit', exact: true }).click();
+          assert.equal(await dialog.getByRole('textbox', { name: 'Notes', exact: true }).inputValue(), '');
+          await dialog.getByRole('textbox', { name: 'Notes', exact: true }).fill('New note');
+          await dialog.getByRole('button', { name: 'Save Tool', exact: true }).click();
+          await dialog.waitFor({ state: 'hidden' });
+          assert.equal(tool.notes, 'New note');
+        }
+      }
+    };
+    if (process.argv.includes('--private-notes-only')) {
+      await verifyPrivateNotes();
+      assert.deepEqual(errors, []);
+      console.log('Private notes passed on both edit paths at 320/600/900/1440px: hidden and omitted on save, existing notes preserved, visible notes clearable, and supplied null editable.');
+      return;
+    }
     const verifyCatalogFailures = async () => {
       for (const width of [320, 600, 900, 1440]) {
         await page.setViewportSize({ width, height: 1000 });
@@ -266,6 +323,7 @@ async function main() {
     failCatalog = false;
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+    await verifyPrivateNotes();
     await verifyCatalogFailures();
     assert.equal(requests.filter(request => request.url.endsWith('/notes') && request.method !== 'GET').length, 0);
     assert.deepEqual(errors, []);

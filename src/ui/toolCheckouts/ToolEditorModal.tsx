@@ -22,6 +22,8 @@ interface ToolEditorModalProps {
 // Both catalogs use this editor for creation and updates. Seed only editable
 // fields from the full management record, never the public workshop summary.
 const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, initialShopId, onClose, onSaved, onPlaceOnMap }) => {
+  // An omitted private field is a visibility decision, not an empty note.
+  const canEditNotes = !tool || tool.notes !== undefined;
   const [value, setValue] = React.useState<Partial<Tool>>(() => ({
     name: tool?.name ?? "",
     shopId: tool?.shopId ?? initialShopId ?? shops[0]?.id ?? "",
@@ -30,7 +32,7 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
     gdriveId: tool?.gdriveId ?? "",
     description: tool?.description ?? "",
     requestorAnnotation: tool?.requestorAnnotation ?? "",
-    notes: tool?.notes ?? "",
+    notes: tool ? tool.notes : "",
     open: tool?.open ?? false,
     disabled: tool?.disabled ?? false,
     allowPending: tool?.allowPending ?? false,
@@ -90,7 +92,8 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
     setSaving(true);
     setError("");
     try {
-      const body = { ...value, name, requestorAnnotation: value.requestorAnnotation?.trim() || null };
+      const body = { ...value, name, requestorAnnotation: value.requestorAnnotation?.trim() || null,
+        notes: canEditNotes ? value.notes : undefined };
       const result = tool ? await adminUpdateTool({ id: tool.id, body }) : await adminCreateTool({ body });
       if (result.error) setError(result.error.message);
       else onSaved();
@@ -147,11 +150,11 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
             <TextField fullWidth multiline minRows={2} label="Annotation for requestors" value={value.requestorAnnotation}
               onChange={event => set("requestorAnnotation", event.target.value)} helperText="Leave blank to use the shop annotation." />
           </Grid>
-          <Grid size={{ xs: 12 }}>
-            <TextField fullWidth multiline label="Notes" value={value.notes}
+          {canEditNotes && <Grid size={{ xs: 12 }}>
+            <TextField fullWidth multiline label="Notes" value={value.notes ?? ""}
               onChange={event => set("notes", event.target.value)}
               helperText="Private details such as lock combinations; shown only to managers, approvers, and members with an active checkout." />
-          </Grid>
+          </Grid>}
           <Grid size={{ xs: 12 }}>
             <FormControlLabel label="No checkout required" control={<Checkbox checked={value.open} onChange={event => set("open", event.target.checked)} />} />
             <FormControlLabel label="Hidden" control={<Checkbox checked={value.disabled} onChange={event => set("disabled", event.target.checked)} />} />
