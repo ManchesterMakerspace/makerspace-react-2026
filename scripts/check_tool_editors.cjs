@@ -21,14 +21,15 @@ async function main() {
     minimumAdvanceNoticeHours: 4, prohibitSameDayReservations: true, reservationFullDay: false,
     maxReservationDurationHours: 6, reservationRequiresApproval: true, reservationPrerequisiteToolIds: ['prerequisite'],
     durationFees: [{ invoiceOptionId: 'fee', minimumHours: 2, maximumHours: 4, fullDay: false }] };
-  const shop = { id: 'shop', name: 'Woodworking', wikiUrl: 'https://example.test/wood', resourceManagers: [], disabled: false, ...settings };
-  const otherShop = { ...shop, id: 'other-shop', name: 'Metalworking' };
+  const shop = { id: 'shop', name: 'Woodworking', wikiUrl: 'https://example.test/wood', colorId: '3', resourceManagers: [], disabled: false, ...settings };
+  const otherShop = { ...shop, id: 'other-shop', name: 'Metalworking', colorId: '2' };
   const original = { id: 'tool', name: 'Lathe', shopId: 'shop', shopName: 'Woodworking', wikiUrl: 'https://example.test/lathe',
     wikiUrlOverride: '', gdriveId: 'drive-folder', notes: 'Lock 1234', requestorAnnotation: 'Bring wood', announce: true,
     announceChannel: 'announcements', usersChannel: 'lathe-users', disabled: false, open: false, allowPending: true,
     locationId: 'location', locationName: 'Bench', prerequisiteIds: ['prerequisite'], prerequisiteNames: ['Safety prerequisite'], ...settings };
   const requests = [];
   let tool = structuredClone(original), failSave = false, failCatalog = false;
+  let failShopCatalog = false, emptyShopCatalog = false, holdShops = false, releaseShops;
   const server = http.createServer((req, res) => {
     if (req.url.startsWith('/api/')) {
       let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => {
@@ -53,13 +54,28 @@ async function main() {
             tools: [{ id: tool.id, name: tool.name, wikiUrl: tool.wikiUrl, prerequisiteNames: [], checkoutRequestable: false, reservationAvailable: false }]
           }] })); return;
         }
-        if (req.url === '/api/admin/shops') { res.end(JSON.stringify([shop, otherShop])); return; }
+        if (req.url === '/api/admin/shops') {
+          const respond = () => {
+            if (failShopCatalog) { res.writeHead(503).end('{"error":"Shops unavailable"}'); return; }
+            res.end(JSON.stringify(emptyShopCatalog ? [] : [shop, otherShop]));
+          };
+          if (holdShops) releaseShops = respond;
+          else respond();
+          return;
+        }
         if (req.url === '/api/admin/tools') {
           if (failCatalog) { res.writeHead(503).end('{"error":"Settings unavailable"}'); return; }
           res.end(JSON.stringify([tool, { ...original, id: 'prerequisite', name: 'Safety prerequisite', disabled: true, prerequisiteIds: [] }])); return;
         }
         if (req.url.startsWith('/api/admin/locations')) { res.end(JSON.stringify([{ id: 'location', shopId: 'shop', name: 'Bench', toolIds: [], toolNames: [] }])); return; }
         if (req.url.includes('shop_fee')) { res.end(JSON.stringify([{ id: 'fee', name: 'Hourly fee', amount: 10, disabled: false }])); return; }
+        if (req.url.startsWith('/api/admin/google_calendar/colors')) {
+          res.end(JSON.stringify({ colors: [
+            { id: '1', name: 'Available color', backgroundColor: '#1976d2', foregroundColor: '#ffffff' },
+            { id: '2', name: 'Metalworking color', backgroundColor: '#791100', foregroundColor: '#ffffff' },
+            { id: '3', name: 'Woodworking color', backgroundColor: '#0288d1', foregroundColor: '#ffffff' },
+          ] })); return;
+        }
         res.end('[]');
       }); return;
     }
@@ -84,6 +100,80 @@ async function main() {
       if (route.startsWith('/workshops')) await page.getByRole('tab', { name: 'Tools', exact: true }).click();
       else await page.getByRole('row').filter({ has: page.getByText(tool.name, { exact: true }) }).getByRole('checkbox').click();
     };
+    const verifyCatalogFailures = async () => {
+      for (const width of [320, 600, 900, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+        failCatalog = true;
+        await openPage('/workshops');
+        await page.getByRole('alert').filter({ hasText: 'Tool catalog could not be loaded' }).waitFor();
+        assert.equal(await page.getByRole('button', { name: 'Add Tool', exact: true }).count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Edit', exact: true }).count(), 0);
+        assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isEnabled());
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `Catalog error overflow ${width}`);
+        await page.screenshot({ path: path.join(output, `tool-catalog-failure-${width}.png`), fullPage: true });
+        await page.getByRole('button', { name: 'Add Shop', exact: true }).click();
+        const dialog = page.getByRole('dialog', { name: 'Add Shop', exact: true });
+        assert.equal(await dialog.getByText(/Settings unavailable/).count(), 0, 'Tool error must not become a shop save error');
+        // This shop is absent from the public workshop list: validation must use
+        // the successfully loaded management catalog, including its colors.
+        await dialog.getByRole('textbox', { name: 'Shop Name', exact: true }).fill(' metalWORKING ');
+        const beforeCreate = requests.filter(request => request.method === 'POST' && request.url === '/api/admin/shops').length;
+        await dialog.getByRole('button', { name: 'Add Shop', exact: true }).click();
+        await dialog.getByText('A shop with this name already exists.', { exact: true }).waitFor();
+        assert.equal(requests.filter(request => request.method === 'POST' && request.url === '/api/admin/shops').length, beforeCreate);
+        await dialog.getByRole('combobox', { name: 'Shop color' }).click();
+        await page.getByRole('option', { name: /Available color/ }).waitFor();
+        assert.equal(await page.getByRole('option', { name: /Metalworking color|Woodworking color/ }).count(), 0);
+        await page.keyboard.press('Escape');
+        await dialog.getByRole('heading').scrollIntoViewIfNeeded();
+        assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Shop dialog overflow ${width}`);
+        await page.screenshot({ path: path.join(output, `shop-catalog-preserved-${width}.png`), fullPage: true });
+        await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+        await dialog.waitFor({ state: 'hidden' });
+        failCatalog = false;
+        await page.getByRole('button', { name: 'Retry', exact: true }).focus();
+        await page.keyboard.press('Enter');
+        await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+
+        // A missing shop catalog disables shop creation until retry succeeds.
+        failShopCatalog = true;
+        await openPage('/workshops');
+        await page.getByRole('alert').filter({ hasText: 'Shop catalog could not be loaded' }).waitFor();
+        assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isDisabled());
+        assert.equal(await page.getByRole('button', { name: 'Add Tool', exact: true }).count(), 0);
+        failShopCatalog = false;
+        const shopsLoaded = page.waitForResponse(response => response.url().endsWith('/api/admin/shops'));
+        await page.getByRole('button', { name: 'Retry', exact: true }).click();
+        await shopsLoaded;
+        await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+        assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isEnabled());
+      }
+      holdShops = true;
+      await openPage('/workshops');
+      assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isDisabled());
+      assert.equal(await page.getByRole('dialog').count(), 0);
+      // Synchronize on the held API request before releasing it.
+      await page.waitForFunction(() => document.querySelector('[role="progressbar"]'));
+      assert.equal(typeof releaseShops, 'function');
+      holdShops = false;
+      releaseShops();
+      await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+      assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isEnabled());
+      emptyShopCatalog = true;
+      await openPage('/workshops');
+      await page.waitForFunction(() => {
+        const add = [...document.querySelectorAll('button')].find(button => button.textContent === 'Add Shop');
+        return add && !add.disabled;
+      });
+      assert(await page.getByRole('button', { name: 'Add Shop', exact: true }).isEnabled(), 'An empty catalog still allows the first shop');
+      emptyShopCatalog = false;
+    };
+    if (process.argv.includes('--catalogs-only')) {
+      await verifyCatalogFailures();
+      assert.deepEqual(errors, []);
+      console.log('Workshop catalog failures passed at 320/600/900/1440px: shop validation and colors preserved, dependent editors gated, keyboard retry, loading, and empty catalog.');
+      return;
+    }
     const fields = ['Tool Name', 'Wiki URL', 'GDrive ID', 'Description', 'Annotation for requestors', 'Notes', 'Announce Channel', 'Users Channel'];
     for (const width of [320, 600, 900, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -176,6 +266,7 @@ async function main() {
     failCatalog = false;
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+    await verifyCatalogFailures();
     assert.equal(requests.filter(request => request.url.endsWith('/notes') && request.method !== 'GET').length, 0);
     assert.deepEqual(errors, []);
     console.log('Both tool create/edit paths passed at 320/600/900/1440px: identical fields, pending access set/clear and reload, notes, annotations, settings preservation, failure retry, shop move, and permissions.');
