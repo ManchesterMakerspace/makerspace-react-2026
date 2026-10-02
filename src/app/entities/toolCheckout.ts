@@ -64,6 +64,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  allowPending?: boolean;
   outOfService?: boolean;
   requestorAnnotation?: string | null;
   open?: boolean;

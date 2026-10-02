@@ -124,59 +124,39 @@ export const listTools = (params?: { shopId?: string }) =>
     params: params?.shopId ? { shop_id: params.shopId } : {}
   }));
 
+const toolSettingsBody = (body: Partial<Tool>) => ({
+  name: body.name,
+  requestor_annotation: body.requestorAnnotation,
+  wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
+  gdrive_id: body.gdriveId,
+  description: body.description,
+  notes: body.notes,
+  allow_pending: body.allowPending,
+  shop_id: body.shopId,
+  location_id: body.locationId,
+  disabled: body.disabled,
+  open: body.open,
+  announce: body.announce,
+  announce_channel: body.announceChannel === undefined ? undefined : normalizeSlackChannel(body.announceChannel),
+  users_channel: body.usersChannel === undefined ? undefined : normalizeSlackChannel(body.usersChannel),
+  prerequisite_ids: body.prerequisiteIds,
+  reservable: body.reservable,
+  max_concurrent_reservations: body.maxConcurrentReservations,
+  reservation_horizon_days: body.reservationHorizonDays,
+  minimum_advance_notice_hours: body.minimumAdvanceNoticeHours,
+  prohibit_same_day_reservations: body.prohibitSameDayReservations,
+  reservation_full_day: body.reservationFullDay,
+  duration_fees: body.durationFees?.map(fee => ({ invoice_option_id: fee.invoiceOptionId, minimum_hours: fee.minimumHours, maximum_hours: fee.maximumHours, full_day: fee.fullDay })),
+  max_reservation_duration_hours: body.maxReservationDurationHours,
+  reservation_requires_approval: body.reservationRequiresApproval,
+  reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds,
+});
+
 export const adminCreateTool = ({ body }: { body: Partial<Tool> }) =>
-  buildResponse<Tool>(api.post("/api/admin/tools", {
-    name: body.name,
-    requestor_annotation: body.requestorAnnotation,
-    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
-    gdrive_id: body.gdriveId,
-    description: body.description,
-    shop_id: body.shopId,
-    location_id: body.locationId,
-    disabled: body.disabled,
-    open: body.open,
-    announce: body.announce,
-    announce_channel: normalizeSlackChannel(body.announceChannel),
-    users_channel: normalizeSlackChannel(body.usersChannel),
-    prerequisite_ids: body.prerequisiteIds || [],
-    reservable: body.reservable,
-    max_concurrent_reservations: body.maxConcurrentReservations,
-    reservation_horizon_days: body.reservationHorizonDays,
-    minimum_advance_notice_hours: body.minimumAdvanceNoticeHours,
-    prohibit_same_day_reservations: body.prohibitSameDayReservations,
-    reservation_full_day: body.reservationFullDay,
-    duration_fees: body.durationFees?.map(fee => ({ invoice_option_id: fee.invoiceOptionId, minimum_hours: fee.minimumHours, maximum_hours: fee.maximumHours, full_day: fee.fullDay })),
-    max_reservation_duration_hours: body.maxReservationDurationHours,
-    reservation_requires_approval: body.reservationRequiresApproval,
-    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
-  }));
+  buildResponse<Tool>(api.post("/api/admin/tools", toolSettingsBody(body)));
 
 export const adminUpdateTool = ({ id, body }: { id: string; body: Partial<Tool> }) =>
-  buildResponse<Tool>(api.put(`/api/admin/tools/${id}`, {
-    name: body.name,
-    requestor_annotation: body.requestorAnnotation,
-    wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
-    gdrive_id: body.gdriveId,
-    description: body.description,
-    shop_id: body.shopId,
-    location_id: body.locationId,
-    disabled: body.disabled,
-    open: body.open,
-    announce: body.announce,
-    announce_channel: normalizeSlackChannel(body.announceChannel),
-    users_channel: normalizeSlackChannel(body.usersChannel),
-    prerequisite_ids: body.prerequisiteIds || [],
-    reservable: body.reservable,
-    max_concurrent_reservations: body.maxConcurrentReservations,
-    reservation_horizon_days: body.reservationHorizonDays,
-    minimum_advance_notice_hours: body.minimumAdvanceNoticeHours,
-    prohibit_same_day_reservations: body.prohibitSameDayReservations,
-    reservation_full_day: body.reservationFullDay,
-    duration_fees: body.durationFees?.map(fee => ({ invoice_option_id: fee.invoiceOptionId, minimum_hours: fee.minimumHours, maximum_hours: fee.maximumHours, full_day: fee.fullDay })),
-    max_reservation_duration_hours: body.maxReservationDurationHours,
-    reservation_requires_approval: body.reservationRequiresApproval,
-    reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
-  }));
+  buildResponse<Tool>(api.put("/api/admin/tools/" + id, toolSettingsBody(body)));
 
 export const adminDeleteTool = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/admin/tools/${id}`));
