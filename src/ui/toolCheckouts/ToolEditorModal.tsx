@@ -53,6 +53,8 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
   }));
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
+  const shopChanged = !!tool && value.shopId !== tool.shopId;
+  const mapPlacementHelpId = React.useId();
   const { data: locations = [], error: locationError } = useReadTransaction(
     adminListLocations, { shopId: value.shopId! }, !value.shopId, `admin-locations-${value.shopId}`, true
   );
@@ -131,7 +133,14 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
                 <option value={value.locationId}>{tool?.locationName || "Current location"}</option>}
               {locationChoices.map(location => <option key={location.id} value={location.id}>{location.label}</option>)}
             </TextField>
-            {tool && onPlaceOnMap && <Button onClick={() => onPlaceOnMap(tool.shopId, tool.id)}>Place on map</Button>}
+            {tool && onPlaceOnMap && <>
+              <Button disabled={saving || shopChanged}
+                aria-describedby={shopChanged ? mapPlacementHelpId : undefined}
+                onClick={() => onPlaceOnMap(tool.shopId, tool.id)}>Place on map</Button>
+              {shopChanged && <Typography id={mapPlacementHelpId} component="p" variant="caption" color="textSecondary">
+                Save the shop change before placing this tool on the map.
+              </Typography>}
+            </>}
           </Grid>
           <Grid size={{ xs: 12 }}>
             <TextField fullWidth label="Wiki URL" value={value.wikiUrlOverride}

@@ -106,6 +106,55 @@ async function main() {
       if (route.startsWith('/workshops')) await page.getByRole('tab', { name: 'Tools', exact: true }).click();
       else await page.getByRole('row').filter({ has: page.getByText(tool.name, { exact: true }) }).getByRole('checkbox').click();
     };
+    const verifyMapPlacement = async () => {
+      for (const width of [320, 600, 900, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+        tool = structuredClone(original);
+        await openPage('/tool-checkouts');
+        await page.getByRole('button', { name: 'Edit', exact: true }).click();
+        const dialog = page.getByRole('dialog');
+        const place = dialog.getByRole('button', { name: 'Place on map', exact: true });
+        const shopPicker = dialog.getByRole('combobox', { name: 'Shop', exact: true });
+        assert(await place.isEnabled());
+        await shopPicker.selectOption('other-shop');
+        assert(await place.isDisabled());
+        const help = dialog.getByText('Save the shop change before placing this tool on the map.', { exact: true });
+        await help.waitFor();
+        assert.equal(await place.getAttribute('aria-describedby'), await help.getAttribute('id'));
+        await place.evaluate(button => button.click());
+        assert.equal(new URL(page.url()).pathname, '/tool-checkouts');
+        assert.equal(await shopPicker.inputValue(), 'other-shop');
+        await help.scrollIntoViewIfNeeded();
+        assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Map placement overflow ${width}`);
+        await page.screenshot({ path: path.join(output, `map-placement-${width}.png`), fullPage: true });
+
+        await shopPicker.selectOption('shop');
+        assert(await place.isEnabled(), 'Reverting the shop selection restores map placement');
+        assert.equal(await help.count(), 0);
+        await shopPicker.selectOption('other-shop');
+        failSave = true;
+        await dialog.getByRole('button', { name: 'Save Tool', exact: true }).click();
+        await dialog.getByText('Save failed', { exact: true }).waitFor();
+        assert(await place.isDisabled(), 'A failed move must not enable map placement');
+        assert.equal(tool.shopId, 'shop');
+        await dialog.getByRole('button', { name: 'Save Tool', exact: true }).click();
+        await dialog.waitFor({ state: 'hidden' });
+        assert.equal(tool.shopId, 'other-shop');
+
+        await openPage('/tool-checkouts');
+        await page.getByRole('button', { name: 'Edit', exact: true }).click();
+        assert(await place.isEnabled());
+        await place.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForURL(`${origin}/workshops?shop=other-shop&placeTool=tool`);
+      }
+    };
+    if (process.argv.includes('--map-placement-only')) {
+      await verifyMapPlacement();
+      assert.deepEqual(errors, []);
+      console.log('Map placement passed at 320/600/900/1440px: unsaved moves and failed saves blocked, reverting re-enables placement, and saved moves navigate to the destination shop.');
+      return;
+    }
     const verifyPrivateNotes = async () => {
       for (const width of [320, 600, 900, 1440]) {
         await page.setViewportSize({ width, height: 1000 });
@@ -323,6 +372,7 @@ async function main() {
     failCatalog = false;
     await page.getByRole('button', { name: 'Retry', exact: true }).click();
     await page.getByRole('button', { name: 'Add Tool', exact: true }).waitFor();
+    await verifyMapPlacement();
     await verifyPrivateNotes();
     await verifyCatalogFailures();
     assert.equal(requests.filter(request => request.url.endsWith('/notes') && request.method !== 'GET').length, 0);
