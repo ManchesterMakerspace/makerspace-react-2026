@@ -2,8 +2,6 @@ import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import { useCapabilities } from "app/permissions";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import * as React from "react";
 import ShopOutageAction from './ShopOutageAction';
 import ToolOutageAction from 'ui/fixTickets/ToolOutageAction';
@@ -12,9 +10,6 @@ import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
@@ -31,8 +26,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
 
 import {
-  adminCreateShop, adminCreateTool, adminUpdateShop, adminUpdateTool,
-  adminUpdateToolNotes, listManagedShops, listTools
+  adminCreateShop, adminUpdateShop, listManagedShops, listTools
 } from "api/toolCheckouts";
 import { listWorkshops } from "api/workshops";
 import {
@@ -47,22 +41,18 @@ import {
 } from "app/entities/reservation";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import { Routing } from "app/constants";
-import FormModal from "ui/common/FormModal";
 import { useAuthState } from "ui/reducer/hooks";
 import moment from "ui/utils/moment";
 import RequestCheckoutModal from "./RequestCheckoutModal";
 import { googleDriveEmbeddedFolderUrl } from "./workshopUrls";
 import { workshopReservationRows } from "./workshopReservations";
 import { AddShopModal, EditShopModal } from "ui/toolCheckouts/ShopManager";
-import { EditToolRow } from "ui/toolCheckouts/ToolManager";
+import ToolEditorModal from "ui/toolCheckouts/ToolEditorModal";
 import ShopLocationMap from "ui/toolCheckouts/ShopLocationMap";
 
 const ZONE = "America/New_York";
 type WorkshopTab =
   "details" | "tools" | "reservations" | "documentation" | "volunteer";
-
-const normalizeChannel = (value: string) =>
-  value.replace(/^#+/, "");
 
 const SlackChannel: React.FC<{
   name?: string;
@@ -73,74 +63,6 @@ const SlackChannel: React.FC<{
   return details?.slackUrl
     ? <a href={details.slackUrl}>{label}</a>
     : <>{label}</>;
-};
-
-const AddToolModal: React.FC<{
-  workshop: Workshop;
-  onClose: () => void;
-  onCreated: () => void;
-}> = ({ workshop, onClose, onCreated }) => {
-  const [open, setOpen] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [wikiUrl, setWikiUrl] = React.useState("");
-  const [gdriveId, setGdriveId] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [usersChannel, setUsersChannel] = React.useState("");
-  const [saving, setSaving] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  const submit = async () => {
-    if (!name.trim()) return;
-    setSaving(true);
-    const result = await adminCreateTool({
-      body: {
-        open,
-        name: name.trim(),
-        shopId: workshop.id,
-        wikiUrlOverride: wikiUrl,
-        gdriveId,
-        description,
-        usersChannel,
-        prerequisiteIds: [],
-        reservationPrerequisiteToolIds: []
-      }
-    });
-    setSaving(false);
-    if (result.error) setError(result.error.message);
-    else onCreated();
-  };
-
-  return (
-    <FormModal id="workshops-add-tool" isOpen title={`Add Tool to ${workshop.name}`}
-      closeHandler={onClose} onSubmit={submit} submitText="Add Tool"
-      loading={saving} error={error}>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}><FormControlLabel label="No checkout required"
-          control={<Checkbox checked={open} onChange={event => setOpen(event.target.checked)} />} /></Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth required label="Tool Name" value={name}
-            onChange={event => setName(event.target.value)} autoFocus />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Description" value={description}
-            onChange={event => setDescription(event.target.value)} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Wiki URL" value={wikiUrl}
-            onChange={event => setWikiUrl(event.target.value)}
-            helperText="Leave blank to generate the workshop/tool Wiki URL." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="GDrive ID" value={gdriveId}
-            onChange={event => setGdriveId(event.target.value)} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Users Channel" value={usersChannel}
-            onChange={event => setUsersChannel(normalizeChannel(event.target.value))} />
-        </Grid>
-      </Grid>
-    </FormModal>
-  );
 };
 
 const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
@@ -197,20 +119,20 @@ const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
 const WorkshopTools: React.FC<{
   selectedToolId?: string;
   workshop: Workshop;
-  managedShop?: Shop;
+  managedShops: Shop[];
   managedTools: Tool[];
+  catalogsReady: boolean;
   onRefresh: () => void;
   highlightToolId?: string;
   onFindTool?: (toolId: string) => void;
-}> = ({ workshop, managedShop, managedTools, onRefresh, selectedToolId, highlightToolId, onFindTool }) => {
+}> = ({ workshop, managedShops, managedTools, catalogsReady, onRefresh, selectedToolId, highlightToolId, onFindTool }) => {
   React.useEffect(() => {
     if (selectedToolId) document.getElementById(`tool-${selectedToolId}`)?.scrollIntoView({ block: 'center' });
   }, [selectedToolId]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
   const [editTool, setEditTool] = React.useState<Tool | null>(null);
-  const [saving, setSaving] = React.useState(false);
-  const [editError, setEditError] = React.useState("");
+  const managedShop = catalogsReady ? managedShops.find(shop => shop.id === workshop.id) : undefined;
 
   // Scrolls to and briefly highlights a specific tool when arriving here
   // from the shop's map (clicking a tool name there lands on this tab).
@@ -220,28 +142,11 @@ const WorkshopTools: React.FC<{
       ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightToolId]);
 
-  const saveTool = async (id: string, body: Partial<Tool>, notes?: string) => {
-    setSaving(true);
-    setEditError("");
-    const results = await Promise.all([
-      adminUpdateTool({ id, body }),
-      ...(notes === undefined ? [] : [adminUpdateToolNotes({ id, notes })]),
-    ]);
-    setSaving(false);
-    const error = results.find(result => result.error)?.error;
-    if (error) {
-      setEditError(error.message);
-      return;
-    }
-    setEditTool(null);
-    onRefresh();
-  };
-
   return (
     <>
       <Grid container justifyContent="space-between" alignItems="center">
         <Typography variant="h6">Tools</Typography>
-        {workshop.canAddTool &&
+        {workshop.canAddTool && managedShop &&
           <Button variant="contained" startIcon={<AddIcon />}
             onClick={() => setAddOpen(true)}>Add Tool</Button>}
       </Grid>
@@ -333,7 +238,6 @@ const WorkshopTools: React.FC<{
               {workshop.canAddTool && managedShop && managedTools.some(candidate => candidate.id === tool.id) &&
                 <Button size="small" variant="outlined" startIcon={<EditIcon />}
                   onClick={() => {
-                    setEditError("");
                     setEditTool(managedTools.find(candidate => candidate.id === tool.id) || null);
                   }}>
                   Edit
@@ -343,30 +247,16 @@ const WorkshopTools: React.FC<{
         </Paper>
       ))}
 
-      {addOpen && <AddToolModal workshop={workshop}
-        onClose={() => setAddOpen(false)}
-        onCreated={() => { setAddOpen(false); onRefresh(); }} />}
+      {(addOpen || editTool) && managedShop && <ToolEditorModal
+        key={editTool?.id || "new-" + workshop.id}
+        tool={editTool || undefined} shops={managedShops} tools={managedTools}
+        initialShopId={workshop.id}
+        onClose={() => { setAddOpen(false); setEditTool(null); }}
+        onSaved={() => { setAddOpen(false); setEditTool(null); onRefresh(); }}
+      />}
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}
         onCreated={() => { setRequestTool(null); onRefresh(); }} />
-      <Dialog fullWidth maxWidth="md" open={!!editTool}
-        onClose={() => !saving && setEditTool(null)}
-        aria-labelledby="workshop-edit-tool-title">
-        <DialogTitle id="workshop-edit-tool-title">
-          Edit {editTool?.name || "Tool"}
-        </DialogTitle>
-        <DialogContent>
-          {editError && <Alert severity="error" sx={{ mb: 2 }}>{editError}</Alert>}
-          {editTool && managedShop && <EditToolRow
-            tool={editTool}
-            tools={managedTools}
-            shops={[managedShop]}
-            onSave={saveTool}
-            onCancel={() => setEditTool(null)}
-            saving={saving}
-          />}
-        </DialogContent>
-      </Dialog>
     </>
   );
 };
@@ -569,8 +459,10 @@ const WorkshopsPage: React.FC = () => {
   const [addOpen, setAddOpen] = React.useState(false);
   const [editOpen, setEditOpen] = React.useState(false);
   const [qrOpen, setQrOpen] = React.useState(false);
-  const [managedShops, setManagedShops] = React.useState<Shop[]>([]);
-  const [managedTools, setManagedTools] = React.useState<Tool[]>([]);
+  // Null means unavailable; an empty array is a successfully loaded catalog.
+  const [managedShops, setManagedShops] = React.useState<Shop[] | null>(null);
+  const [managedTools, setManagedTools] = React.useState<Tool[] | null>(null);
+  const [catalogError, setCatalogError] = React.useState("");
   const [shopSaving, setShopSaving] = React.useState(false);
   const [shopError, setShopError] = React.useState("");
   const { canViewShopQrCodes } = useCapabilities();
@@ -593,13 +485,18 @@ const WorkshopsPage: React.FC = () => {
           listManagedShops(),
           listTools(),
         ]);
-        if (shopsResult.data) setManagedShops(shopsResult.data);
-        if (toolsResult.data) setManagedTools(toolsResult.data);
-        if (shopsResult.error || toolsResult.error) {
-          setShopError(shopsResult.error?.message || toolsResult.error?.message || "Unable to load shop settings.");
-        } else {
-          setShopError("");
-        }
+        // Shop creation needs the shop catalog for duplicate names and colors,
+        // even when the tool catalog (needed by the other editors) fails.
+        setManagedShops(shopsResult.data ?? null);
+        setManagedTools(toolsResult.data ?? null);
+        setCatalogError([
+          !shopsResult.data && `Shop catalog could not be loaded: ${shopsResult.error?.message || "Please retry."}`,
+          !toolsResult.data && `Tool catalog could not be loaded: ${toolsResult.error?.message || "Please retry."}`,
+        ].filter(Boolean).join(" "));
+      } else {
+        setManagedShops(null);
+        setManagedTools(null);
+        setCatalogError("");
       }
     }
     setLoading(false);
@@ -614,7 +511,9 @@ const WorkshopsPage: React.FC = () => {
     if (!found) { setError('This shop or tool is unavailable.'); return; }
     setSelectedId(found.id); setTab(requestedTool ? 'tools' : 'details'); setError('');
   }, [data, loading, requestedShop, requestedTool]);
-  const managedShop = managedShops.find(shop => shop.id === selectedId);
+  const managedShop = managedShops?.find(shop => shop.id === selectedId);
+  const shopCatalogReady = !loading && managedShops !== null;
+  const editorCatalogsReady = shopCatalogReady && managedTools !== null;
 
   const createShop = async (body: Partial<Shop>) => {
     setShopSaving(true);
@@ -655,14 +554,17 @@ const WorkshopsPage: React.FC = () => {
             </Typography>
           </div>
           {data.canAddShop &&
-            <Button startIcon={<AddIcon />} variant="contained" onClick={() => setAddOpen(true)}>
+            <Button startIcon={<AddIcon />} variant="contained" disabled={!shopCatalogReady}
+              onClick={() => { setShopError(""); setAddOpen(true); }}>
               Add Shop
             </Button>}
         </Grid>
       </Grid>
       {error && <Grid size={{ xs: 12, md: 10 }}><Alert severity="error">{error}</Alert></Grid>}
-      {shopError && !addOpen && !editOpen && <Grid size={{ xs: 12, md: 10 }}>
-        <Alert severity="error">Shop management settings could not be loaded: {shopError}</Alert>
+      {catalogError && <Grid size={{ xs: 12, md: 10 }}>
+        <Alert severity="error" action={<Button disabled={loading} onClick={load}>Retry</Button>}>
+          {catalogError}
+        </Alert>
       </Grid>}
       <Grid size={{ xs: 12, md: 10 }}>
         <FormControl fullWidth>
@@ -703,7 +605,8 @@ const WorkshopsPage: React.FC = () => {
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
                 {workshop.isShopManager && <ShopOutageAction key={workshop.id} shop={workshop} onSaved={load} />}
                 {data.canAddShop && managedShop && <Button startIcon={<EditIcon />} variant="outlined"
-                  onClick={() => setEditOpen(true)}>
+                  disabled={!editorCatalogsReady}
+                  onClick={() => { setShopError(""); setEditOpen(true); }}>
                   Edit
                 </Button>}
                 {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
@@ -720,8 +623,8 @@ const WorkshopsPage: React.FC = () => {
               </Grid>
             </Grid>}
             {tab === "tools" &&
-              <WorkshopTools workshop={workshop} managedShop={managedShop} selectedToolId={requestedTool}
-                managedTools={managedTools.filter(tool => tool.shopId === workshop.id)}
+              <WorkshopTools key={workshop.id} workshop={workshop} managedShops={managedShops || []} selectedToolId={requestedTool}
+                managedTools={managedTools || []} catalogsReady={editorCatalogsReady}
                 onRefresh={load} highlightToolId={tab === "tools" ? highlightToolId : undefined}
                 onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }} />}
             {tab === "reservations" &&
@@ -738,7 +641,7 @@ const WorkshopsPage: React.FC = () => {
         </Paper>
       </Grid>}
 
-      {addOpen && <AddShopModal
+      {addOpen && shopCatalogReady && managedShops && <AddShopModal
         shops={managedShops}
         onClose={() => setAddOpen(false)}
         onSave={createShop}
@@ -746,10 +649,10 @@ const WorkshopsPage: React.FC = () => {
         error={shopError}
       />}
       {qrOpen && workshop && <PublicCatalogQrCodeModal key={workshop.id} kind="shop" resource={workshop} onClose={() => setQrOpen(false)} />}
-      {editOpen && workshop && managedShop && <EditShopModal
+      {editOpen && editorCatalogsReady && workshop && managedShop && <EditShopModal
         shop={{ ...managedShop, resourceManagers: managedShop.resourceManagers || workshop.resourceManagers }}
-        shops={managedShops}
-        tools={managedTools.filter(tool => tool.shopId === workshop.id)}
+        shops={managedShops!}
+        tools={managedTools!.filter(tool => tool.shopId === workshop.id)}
         onCancel={() => setEditOpen(false)}
         onSave={updateShop}
         saving={shopSaving}

@@ -176,8 +176,9 @@ When implementing responsive behavior:
 
 ## Interaction, feedback, and accessibility
 
-Shop and tool editing in `/workshops` reuses `EditShopModal` and `EditToolRow`
-from `/tool-checkouts`. Load complete, permission-scoped management records before
+Shop editing in `/workshops` reuses `EditShopModal` from `/tool-checkouts`.
+Tool creation and editing in both catalogs use `ToolEditorModal`, with the same
+fields, validation, and save behavior, including the pending-member checkbox. Load complete, permission-scoped management records before
 rendering these forms; do not seed them from workshop summaries or introduce
 separate reduced edit forms. Shop managers see service status and edit controls
 for their shops and tools.

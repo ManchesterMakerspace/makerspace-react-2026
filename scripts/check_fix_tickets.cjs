@@ -586,9 +586,9 @@ async function main() {
     }
     for (const mode of ['new', 'edit']) {
       await page.goto(`${origin}/tool-name/${mode}`);
-      const name = mode === 'new' ? page.getByRole('textbox', { name: 'Tool Name', exact: true }) : page.getByPlaceholder('Tool name', { exact: true });
+      const name = page.getByRole('textbox', { name: 'Tool Name', exact: true });
       await name.fill('Drill');
-      const save = page.getByRole('button', { name: mode === 'new' ? 'Add Tool' : 'Save', exact: true });
+      const save = page.getByRole('button', { name: mode === 'new' ? 'Add Tool' : 'Save Tool', exact: true });
       await save.click();
       await page.getByText(/A tool with this name already exists/).waitFor();
       assert.equal(await page.getByText('Tool accepted', { exact: true }).count(), 0);
