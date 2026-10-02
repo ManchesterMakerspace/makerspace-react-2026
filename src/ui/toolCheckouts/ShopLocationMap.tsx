@@ -757,25 +757,6 @@ const ShopLocationMap: React.FC<{
                   </Typography>,
                 ];
               }
-              // No children, no tool -- either genuinely abandoned (a
-              // leftover from an old attempt) or a tool marker whose tool
-              // was later moved elsewhere (the old marker itself is now
-              // auto-deleted going forward, but pre-existing ones can still
-              // linger). Flagged and, for an editor, made clickable straight
-              // into the existing edit/delete form, instead of needing a
-              // separate cleanup screen to find these.
-              const isUnused = !hasChildren && toolNames.length === 0;
-              if (isUnused) {
-                return [
-                  <Typography
-                    key={entry.id} variant="body2" color="textSecondary"
-                    sx={canEdit ? { fontStyle: "italic", cursor: "pointer", "&:hover": { textDecoration: "underline" } } : { fontStyle: "italic" }}
-                    onClick={canEdit && location ? () => setEditing(location) : undefined}
-                  >
-                    {entry.label} (not in use{canEdit ? " -- click to delete" : ""})
-                  </Typography>,
-                ];
-              }
               return [
                 <Typography key={entry.id} variant="body2">{entry.label}</Typography>,
                 ...toolNames.map((toolName, i) => (
