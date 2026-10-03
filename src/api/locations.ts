@@ -55,6 +55,8 @@ export const adminCreateLocation = ({ body }: { body: Partial<Location> }) =>
     x_pct: body.xPct,
     y_pct: body.yPct,
     shape_points: body.shapePoints,
+    floor_name: body.floorName,
+    icon: body.icon,
   }));
 
 export const adminUpdateLocation = ({ id, body }: { id: string; body: Partial<Location> }) =>
@@ -67,6 +69,8 @@ export const adminUpdateLocation = ({ id, body }: { id: string; body: Partial<Lo
     x_pct: body.xPct,
     y_pct: body.yPct,
     shape_points: body.shapePoints,
+    floor_name: body.floorName,
+    icon: body.icon,
   }));
 
 export const adminDeleteLocation = ({ id }: { id: string }) =>
