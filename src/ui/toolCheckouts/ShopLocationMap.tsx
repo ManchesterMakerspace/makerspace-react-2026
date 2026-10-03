@@ -8,9 +8,10 @@ import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 
 import FormModal from "ui/common/FormModal";
-import ErrorMessage from "ui/common/ErrorMessage";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
@@ -21,13 +22,12 @@ import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCh
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
 import {
-  Box, FULL_FLOOR_BOX, boundingBoxOf, paddedBox, cropViewBoxToBox, composePoint, remapToBox, ViewBox,
-} from "./locationGeometry";
+  Box, Point, FULL_FLOOR_BOX, FLOOR_NAMES, floorLabel, sortFloors, paddedBox, centroid,
+} from "./floorMapGeometry";
+import { boundingBoxOf } from "./locationGeometry";
 import { LOCATION_KIND_OPTIONS, colorForKind, FALLBACK_NESTED_COLOR, TOOL_MARKER_COLOR } from "./locationKinds";
-
-// One SVG per building floor, shared by every shop on that floor.
-const floorPlanUrl = (floorName: string) => `/assets/shopFloorPlans/floor-${floorName}.svg`;
-const floorPlanFallbackUrl = "/assets/shopFloorPlans/placeholder.svg";
+import { MARKER_ICONS } from "./markerIcons";
+import FloorMap, { MapShape, MapMarker } from "./FloorMap";
 
 const unionBoundingBox = (locations: Location[]): Box | null => {
   const xs: number[] = [], ys: number[] = [];
@@ -69,11 +69,23 @@ const describeDeletionImpact = (locationId: string, locations: Location[]) => {
   return { descendantLines, toolNames };
 };
 
+interface LocationFormValues {
+  name: string;
+  kind?: string;
+  toolId?: string;
+  icon?: string;
+  floorName?: string;
+}
+
 const LocationFormModal: React.FC<{
   initialName: string;
   initialKind?: string;
+  initialIcon?: string;
+  // Offered only for a top-level location -- a nested one always follows its
+  // parent's floor.
+  initialFloor?: string;
   onClose: () => void;
-  onSave: (name: string, kind?: string, toolId?: string) => void;
+  onSave: (values: LocationFormValues) => void;
   onDelete?: () => void;
   onRedraw?: () => void;
   onAdjustCorners?: () => void;
@@ -93,10 +105,12 @@ const LocationFormModal: React.FC<{
   loading: boolean;
   error: string;
 }> = ({
-  initialName, initialKind, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
+  initialName, initialKind, initialIcon, initialFloor, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
   locationId, tools, onToggleTool, linkableTools, initialToolId, loading, error
 }) => {
   const [kind, setKind] = React.useState(initialKind || "");
+  const [icon, setIcon] = React.useState(initialIcon || "");
+  const [floor, setFloor] = React.useState(initialFloor || "");
   const [toolId, setToolId] = React.useState(initialToolId || "");
   const [name, setName] = React.useState(
     initialName || linkableTools?.find(t => t.id === initialToolId)?.name || ""
@@ -104,7 +118,13 @@ const LocationFormModal: React.FC<{
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onSave(trimmed, kind || undefined, toolId || undefined);
+    onSave({
+      name: trimmed,
+      kind: kind || undefined,
+      toolId: toolId || undefined,
+      icon: icon || undefined,
+      floorName: initialFloor !== undefined && floor !== initialFloor ? floor : undefined,
+    });
   };
   return (
     <FormModal id="location-form" isOpen={true} title={initialName ? "Edit location" : "Name this location"}
@@ -133,11 +153,27 @@ const LocationFormModal: React.FC<{
             </Select>
           </Grid>
         )}
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Typography variant="caption" color="textSecondary">Type</Typography>
           <Select native fullWidth value={kind} onChange={e => setKind((e.target as HTMLSelectElement).value)}>
             {LOCATION_KIND_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Select>
         </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Typography variant="caption" color="textSecondary">Marker icon</Typography>
+          <Select native fullWidth value={icon} onChange={e => setIcon((e.target as HTMLSelectElement).value)}>
+            <option value="">Default (pin)</option>
+            {MARKER_ICONS.filter(i => i.value !== "pin").map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+          </Select>
+        </Grid>
+        {initialFloor !== undefined && (
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">Floor</Typography>
+            <Select native fullWidth value={floor} onChange={e => setFloor((e.target as HTMLSelectElement).value)}>
+              {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+            </Select>
+          </Grid>
+        )}
         {locationId && tools && tools.length > 0 && (
           <Grid size={{ xs: 12 }}>
             <Typography variant="subtitle2">Tools here</Typography>
@@ -180,14 +216,18 @@ const LocationFormModal: React.FC<{
 };
 
 // Single map component for one shop, shown on its Workshops page to every
-// member. Always shows the shop's own area, every nested cabinet/shelf/
-// tool inside it (all stored in absolute floor-relative percent, so no
-// recursive resolution is needed to place any of it correctly), and the
-// tool-name hierarchy list below it. When `canEdit` is true (admin/board,
-// or a shop RM for this specific shop -- same rule the API itself already
-// enforces), it also gains the draw/place/zoom/edit tools that used to live
-// on a separate admin-only "Map" tab -- editing a shop's map now happens on
-// that shop's own page instead of a shop-picker elsewhere.
+// member. Shows the shop's own areas, every nested cabinet/shelf/tool inside
+// them (all stored in absolute floor-relative percent, so no recursive
+// resolution is needed to place any of it correctly), and the tool-name
+// hierarchy list below it. A shop can span floors: each location is drawn on
+// its own floor, and a floor switch appears when more than one applies. When
+// `canEdit` is true (admin/board, or a shop RM for this specific shop -- same
+// rule the API itself already enforces), it also gains the draw/place/zoom/
+// edit tools.
+//
+// The map itself is Leaflet (FloorMap): pan, pinch/button zoom, and every
+// click/shape/marker position is converted by one shared helper, instead of
+// hand-rolled percent math over an injected SVG.
 const ShopLocationMap: React.FC<{
   shopId: string;
   shopName: string;
@@ -205,13 +245,14 @@ const ShopLocationMap: React.FC<{
 }> = ({ shopId, shopName, canEdit, onSelectTool, highlightToolId, preset }) => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const shop = shops.find(s => s.id === shopId);
-  const floorName = shop?.floorName;
+  const shopFloor = shop?.floorName;
 
   const { data: locations = [], refresh } = useReadTransaction(
     canEdit ? adminListLocations : listLocations, { shopIds: [shopId] }, !shopId,
     `shop-location-map-${shopId}-${canEdit}`, true
   );
   const byId = React.useMemo(() => new Map(locations.map(l => [l.id, l])), [locations]);
+  const floorOf = React.useCallback((l: Location) => l.floorName || shopFloor || "1", [shopFloor]);
 
   // Only fetched when editing is possible -- the "place a specific tool
   // here" picker and "Tools here" checklist both need the full tool list
@@ -221,46 +262,42 @@ const ShopLocationMap: React.FC<{
     listTools, { shopId }, !canEdit || !shopId, `admin-tools-for-map-${shopId}`, true
   );
 
-  const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
   const [shopColors, setShopColors] = React.useState<Record<string, string>>({});
+  const [floorChoice, setFloorChoice] = React.useState("");
   const [zoomStack, setZoomStack] = React.useState<Location[]>([]);
   const [drawing, setDrawing] = React.useState(false);
-  const [drawPoints, setDrawPoints] = React.useState<{ x: number; y: number }[]>([]);
+  const [drawPoints, setDrawPoints] = React.useState<Point[]>([]);
   const [pending, setPending] = React.useState<PendingPlacement | null>(null);
   const [pendingLocationId, setPendingLocationId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<Location | null>(null);
   const [redrawing, setRedrawing] = React.useState<{ id: string; isPin: boolean } | null>(null);
-  const [adjusting, setAdjusting] = React.useState<{ id: string; points: { x: number; y: number }[] } | null>(null);
-  const draggingIndexRef = React.useRef<number | null>(null);
-  const suppressNextClickRef = React.useRef(false);
+  const [adjusting, setAdjusting] = React.useState<{ id: string; points: Point[] } | null>(null);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const originalViewBoxRef = React.useRef<ViewBox | null>(null);
+
+  // Floors this shop has something on; an editor can add to any floor.
+  const floorOptions = React.useMemo(() => {
+    if (canEdit) return [...FLOOR_NAMES] as string[];
+    const found = new Set(locations.map(floorOf));
+    if (shopFloor) found.add(shopFloor);
+    return sortFloors(Array.from(found));
+  }, [canEdit, locations, floorOf, shopFloor]);
+  const floor = floorChoice && floorOptions.includes(floorChoice)
+    ? floorChoice
+    : (shopFloor && floorOptions.includes(shopFloor) ? shopFloor : floorOptions[0] || "1");
+
+  const floorLocations = React.useMemo(() => locations.filter(l => floorOf(l) === floor), [locations, floorOf, floor]);
 
   const currentParent = zoomStack[zoomStack.length - 1];
-  const currentParentRef = React.useRef(currentParent);
-  currentParentRef.current = currentParent;
-
-  const topLevelLocations = locations.filter(l => !l.parentId);
+  const topLevelLocations = floorLocations.filter(l => !l.parentId);
   const baseBox = unionBoundingBox(topLevelLocations);
-  // The crop currently on screen: the whole shop's extent, or (while
-  // zoomed in) one location's own extent within it. Always a single,
-  // direct padding of that location's own absolute bounding box -- no
-  // composing through ancestors, since every location's own coordinates
-  // are already floor-relative.
-  //
-  // A brand-new shop with nothing drawn yet has no bounding box to crop
-  // to -- for a plain viewer that correctly means "nothing to show," but
-  // an editor's very first job is drawing that initial shape, so they get
-  // the whole floor plan uncropped instead of being locked out by the
-  // "no map set up yet" message before they've had a chance to draw
-  // anything.
-  const effectiveBox: Box | null = zoomStack.length
+  // The area to bring into view: the whole shop's extent on this floor, or
+  // (while zoomed in) one location's own extent. The view refits only when
+  // the floor or zoom level changes -- not on every edit -- so the map never
+  // jumps away while you are placing things.
+  const fitBox: Box = zoomStack.length
     ? paddedBox(boundingBoxOf(currentParent))
-    : (baseBox ? paddedBox(baseBox) : (canEdit ? FULL_FLOOR_BOX : null));
-
-  const activeLocations = locations.filter(
-    l => (l.parentId || undefined) === currentParent?.id
-  );
+    : (baseBox ? paddedBox(baseBox) : FULL_FLOOR_BOX);
+  const fitKey = `${shopId}|${floor}|${currentParent?.id || ""}|${baseBox ? "data" : "empty"}`;
 
   const create = useWriteTransaction(adminCreateLocation, () => refresh());
   const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); setAdjusting(null); });
@@ -277,65 +314,21 @@ const ShopLocationMap: React.FC<{
     return () => { active = false; };
   }, []);
 
-  React.useEffect(() => {
-    if (!floorName) { setSvgMarkup(null); return; }
-    let cancelled = false;
-    (async () => {
-      let response = await fetch(floorPlanUrl(floorName));
-      if (!response.ok) response = await fetch(floorPlanFallbackUrl);
-      const text = await response.text();
-      if (!cancelled) setSvgMarkup(text);
-    })();
-    return () => { cancelled = true; };
-  }, [floorName]);
-
   // "Find tool"/"Place on map" land here from elsewhere on the page --
-  // bring the map into view the same way WorkshopTools scrolls to a row.
+  // bring the map into view the same way WorkshopTools scrolls to a row,
+  // and switch to the floor that tool is on.
   React.useEffect(() => {
     if (!highlightToolId && !preset) return;
     wrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlightToolId, preset]);
-
-  // Captures the injected SVG's true original viewBox once per floor-plan
-  // load, before any zoom crop is applied to it.
   React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
-    const baseVal = svgRoot?.viewBox?.baseVal;
-    originalViewBoxRef.current = baseVal
-      ? { x: baseVal.x, y: baseVal.y, width: baseVal.width, height: baseVal.height }
-      : null;
-  }, [svgMarkup]);
+    if (!highlightToolId) return;
+    const holder = locations.find(l => l.toolIds?.includes(highlightToolId));
+    if (holder) setFloorChoice(floorOf(holder));
+  }, [highlightToolId, locations, floorOf]);
 
-  // Applies (or restores) the viewBox crop for the current zoom level.
-  //
-  // Deliberately no dependency array -- confirmed via direct instrumentation
-  // that React re-applies dangerouslySetInnerHTML on this wrapper on EVERY
-  // re-render, even though `svgMarkup` itself never changes, silently
-  // resetting the injected SVG's viewBox back to its embedded default. A
-  // dependency array that looks correct (e.g. [svgMarkup, zoomStack]) only
-  // reruns when those specific values change, missing re-renders triggered
-  // by anything else (clicking to place a pin, for instance). Every other
-  // effect below that appends content into this same wrapper has the
-  // identical no-dependency-array treatment for the same reason.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
-    const original = originalViewBoxRef.current;
-    if (!svgRoot || !original || !effectiveBox) return;
-    const box = cropViewBoxToBox(original, effectiveBox);
-    svgRoot.setAttribute("viewBox", `${box.x} ${box.y} ${box.width} ${box.height}`);
-    // The floor plan's width/height attributes are fixed absolute lengths,
-    // so the CSS width:100%/height:auto sizing rule derives the wrapper's
-    // on-page aspect ratio from THOSE, not from whatever viewBox is
-    // currently set -- forcing preserveAspectRatio="none" keeps a crop with
-    // a different aspect ratio stretched to fill instead of letterboxed,
-    // which every percent-based click/overlay calculation here assumes.
-    svgRoot.setAttribute("preserveAspectRatio", "none");
-  });
-
-  // Switching the zoom level (or finishing an edit) drops any in-progress
-  // drawing/open form rather than letting it apply to the wrong context.
+  // Switching floor or zoom level drops any in-progress drawing/open form
+  // rather than letting it apply to the wrong context.
   React.useEffect(() => {
     setDrawing(false);
     setDrawPoints([]);
@@ -344,120 +337,23 @@ const ShopLocationMap: React.FC<{
     setEditing(null);
     setRedrawing(null);
     setAdjusting(null);
-  }, [zoomStack.length, currentParent?.id]);
+  }, [floor, zoomStack.length, currentParent?.id]);
+  React.useEffect(() => { setZoomStack([]); }, [floor, shopId]);
 
-  // Global mousemove/mouseup for corner-dragging -- mounted once, gated on
-  // draggingIndexRef rather than the `adjusting` state itself.
-  React.useEffect(() => {
-    const onMove = (event: MouseEvent) => {
-      const index = draggingIndexRef.current;
-      const wrapper = wrapperRef.current;
-      if (index == null || !wrapper || !effectiveBox) return;
-      const rect = wrapper.getBoundingClientRect();
-      const rawX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-      const rawY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
-      const { x, y } = composePoint(effectiveBox, rawX, rawY);
-      setAdjusting(current => current && {
-        ...current,
-        points: current.points.map((p, i) => (i === index ? { x: Math.round(x), y: Math.round(y) } : p)),
-      });
-    };
-    const onUp = () => {
-      if (draggingIndexRef.current != null) {
-        draggingIndexRef.current = null;
-        suppressNextClickRef.current = true;
-      }
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [effectiveBox]);
+  const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
+  const busy = drawing || !!redrawing || !!adjusting;
 
-  // Draggable handle + live preview overlay for adjust-corners mode.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-    wrapper.querySelectorAll("[data-adjust-handle]").forEach(el => el.remove());
-    wrapper.querySelectorAll("[data-adjust-preview]").forEach(el => el.remove());
-    if (!adjusting) return;
-
-    const displayPoints = adjusting.points.map(p => remapToBox(effectiveBox, p.x, p.y));
-    const preview = document.createElement("div");
-    preview.setAttribute("data-adjust-preview", "true");
-    Object.assign(preview.style, {
-      position: "absolute",
-      inset: "0",
-      clipPath: `polygon(${displayPoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-      background: "rgba(211, 47, 47, 0.25)",
-      pointerEvents: "none",
-    });
-    wrapper.appendChild(preview);
-
-    displayPoints.forEach((point, index) => {
-      const handle = document.createElement("div");
-      handle.setAttribute("data-adjust-handle", String(index));
-      Object.assign(handle.style, {
-        position: "absolute",
-        left: `${point.x}%`,
-        top: `${point.y}%`,
-        transform: "translate(-50%, -50%)",
-        width: "16px",
-        height: "16px",
-        borderRadius: "50%",
-        background: "#d32f2f",
-        border: "2px solid white",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
-        cursor: "grab",
-      });
-      handle.addEventListener("mousedown", event => {
-        event.stopPropagation();
-        event.preventDefault();
-        draggingIndexRef.current = index;
-      });
-      wrapper.appendChild(handle);
-    });
-    // No dependency array -- same reset risk as the viewBox-crop effect.
-  });
-
-  // Renders every location (every nesting depth) against the currently
-  // displayed crop -- a plain remap, since every stored coordinate is
-  // already floor-relative. A top-level location keeps its shop's own
-  // color for identification; anything nested gets a fixed kind color (or
-  // the reserved tool color if it holds a tool) so it reads as "an object"
-  // regardless of which shop's color it sits inside.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-    wrapper.querySelectorAll("[data-shop-location], [data-shop-location-ring], [data-zoom-parent-outline]").forEach(el => el.remove());
-    const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
-
-    // While zoomed in, the location you zoomed into is otherwise invisible
-    // -- draw its own outline (stroke only, no fill) so there's always a
-    // frame of reference, even on a blank floor-plan region.
+  // Everything drawn on this floor: a top-level location keeps its shop's
+  // own color for identification; anything nested gets a fixed kind color
+  // (or the reserved tool color if it holds a tool) so it reads as "an
+  // object" regardless of which shop's color it sits inside.
+  const { shapes, markers } = React.useMemo(() => {
+    const shapeList: MapShape[] = [];
+    const markerList: MapMarker[] = [];
     if (currentParent?.shapePoints && currentParent.shapePoints.length >= 3) {
-      const displayPoints = currentParent.shapePoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-      const svgNs = "http://www.w3.org/2000/svg";
-      const outlineSvg = document.createElementNS(svgNs, "svg");
-      outlineSvg.setAttribute("data-zoom-parent-outline", currentParent.id);
-      outlineSvg.setAttribute("viewBox", "0 0 100 100");
-      outlineSvg.setAttribute("preserveAspectRatio", "none");
-      Object.assign(outlineSvg.style, {
-        position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
-      });
-      const polygon = document.createElementNS(svgNs, "polygon");
-      polygon.setAttribute("points", displayPoints.map(p => `${p.x},${p.y}`).join(" "));
-      polygon.setAttribute("fill", "none");
-      polygon.setAttribute("stroke", "#1976d2");
-      polygon.setAttribute("stroke-width", "0.6");
-      polygon.setAttribute("stroke-dasharray", "2,1");
-      outlineSvg.appendChild(polygon);
-      wrapper.appendChild(outlineSvg);
+      shapeList.push({ id: `frame-${currentParent.id}`, points: currentParent.shapePoints, color: "#1976d2", outline: true });
     }
-
-    locations.forEach(location => {
+    floorLocations.forEach(location => {
       if (adjusting?.id === location.id) return;
       // The location you zoomed into gets its own outline above instead of
       // a normal filled overlay (which would otherwise double-render it).
@@ -467,158 +363,44 @@ const ShopLocationMap: React.FC<{
       const color = hasTool
         ? TOOL_MARKER_COLOR
         : isNested ? colorForKind(location.kind, FALLBACK_NESTED_COLOR) : shopColor;
-      const opacity = isNested ? "0.55" : "0.3";
       const label = location.toolNames?.length
         ? `${location.name} — ${location.toolNames.join(", ")}`
         : location.name;
-      const isActive = canEdit && (location.parentId || undefined) === currentParent?.id;
+      const isActive = canEdit && !busy && (location.parentId || undefined) === currentParent?.id;
+      const onClick = isActive ? () => setEditing(location) : undefined;
       const isHighlighted = !!highlightToolId && !!location.toolIds?.includes(highlightToolId);
-      const addRing = (centerXPct: number, centerYPct: number) => {
-        const ring = document.createElement("div");
-        ring.setAttribute("data-shop-location-ring", location.id);
-        Object.assign(ring.style, {
-          position: "absolute",
-          left: `${centerXPct}%`,
-          top: `${centerYPct}%`,
-          width: "34px",
-          height: "34px",
-          marginLeft: "-17px",
-          marginTop: "-17px",
-          borderRadius: "50%",
-          border: "3px solid #d32f2f",
-          boxSizing: "border-box",
-          pointerEvents: "none",
-          animation: "shop-location-map-ring-pulse 1.4s ease-in-out infinite",
-        });
-        wrapper.appendChild(ring);
-      };
 
       if (location.shapePoints && location.shapePoints.length >= 3) {
-        const displayPoints = location.shapePoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-        const shape = document.createElement("div");
-        shape.setAttribute("data-shop-location", location.id);
-        shape.title = label;
-        Object.assign(shape.style, {
-          position: "absolute",
-          inset: "0",
-          clipPath: `polygon(${displayPoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-          background: color,
-          opacity,
-          cursor: isActive ? "pointer" : undefined,
-          pointerEvents: isActive ? "auto" : "none",
-        });
-        if (isActive) shape.addEventListener("click", event => { event.stopPropagation(); setEditing(location); });
-        wrapper.appendChild(shape);
-        if (isHighlighted) {
-          const centerX = displayPoints.reduce((sum, p) => sum + p.x, 0) / displayPoints.length;
-          const centerY = displayPoints.reduce((sum, p) => sum + p.y, 0) / displayPoints.length;
-          addRing(centerX, centerY);
+        shapeList.push({ id: location.id, points: location.shapePoints, color, opacity: isNested ? 0.55 : 0.3, label, onClick });
+        // A shape only gets a marker when it has its own icon or is the one
+        // being found, so plain areas stay uncluttered.
+        if (location.icon || isHighlighted) {
+          const center = centroid(location.shapePoints);
+          markerList.push({ id: `${location.id}-marker`, x: center.x, y: center.y, color, icon: location.icon, label, highlighted: isHighlighted, onClick });
         }
         return;
       }
       if (location.xPct != null && location.yPct != null) {
-        const p = remapToBox(effectiveBox, location.xPct, location.yPct);
-        const dot = document.createElement("div");
-        dot.setAttribute("data-shop-location", location.id);
-        dot.title = label;
-        Object.assign(dot.style, {
-          position: "absolute",
-          left: `${p.x}%`,
-          top: `${p.y}%`,
-          transform: "translate(-50%, -100%)",
-          width: "14px",
-          height: "14px",
-          borderRadius: "50% 50% 50% 0",
-          background: color,
-          opacity,
-          cursor: isActive ? "pointer" : undefined,
-          pointerEvents: isActive ? "auto" : "none",
-        });
-        if (isActive) dot.addEventListener("click", event => { event.stopPropagation(); setEditing(location); });
-        wrapper.appendChild(dot);
-        if (isHighlighted) addRing(p.x, p.y);
+        markerList.push({ id: location.id, x: location.xPct, y: location.yPct, color, icon: location.icon, label, highlighted: isHighlighted, onClick });
       }
     });
-    // No dependency array -- see the viewBox-crop effect's comment above.
-  });
-
-  // Live feedback for an in-progress "draw shop area" click sequence.
-  //
-  // drawPoints are stored in absolute floor-relative percent (same as any
-  // saved shapePoints -- see handleMapClick below), not percent of the
-  // currently-displayed crop, so each point has to be remapped through
-  // effectiveBox before plotting it in this 0-100 preview overlay, exactly
-  // like the saved-location render effect above already does. Missing this
-  // was a real, confirmed bug: a click's preview dot could appear far from
-  // where it was actually clicked whenever the view was zoomed/cropped.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    wrapper.querySelectorAll("[data-draw-preview]").forEach(el => el.remove());
-    if (drawPoints.length === 0 || !effectiveBox) return;
-
-    const displayPoints = drawPoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-    const svgNs = "http://www.w3.org/2000/svg";
-    const overlay = document.createElementNS(svgNs, "svg");
-    overlay.setAttribute("data-draw-preview", "overlay");
-    overlay.setAttribute("viewBox", "0 0 100 100");
-    overlay.setAttribute("preserveAspectRatio", "none");
-    Object.assign(overlay.style, {
-      position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
-    });
-    if (displayPoints.length > 1) {
-      const line = document.createElementNS(svgNs, "polyline");
-      line.setAttribute("points", displayPoints.map(p => `${p.x},${p.y}`).join(" "));
-      line.setAttribute("fill", "none");
-      line.setAttribute("stroke", "#d32f2f");
-      line.setAttribute("stroke-width", "0.6");
-      overlay.appendChild(line);
-      if (displayPoints.length >= 3) {
-        const close = document.createElementNS(svgNs, "line");
-        close.setAttribute("x1", String(displayPoints[displayPoints.length - 1].x));
-        close.setAttribute("y1", String(displayPoints[displayPoints.length - 1].y));
-        close.setAttribute("x2", String(displayPoints[0].x));
-        close.setAttribute("y2", String(displayPoints[0].y));
-        close.setAttribute("stroke", "#d32f2f");
-        close.setAttribute("stroke-width", "0.6");
-        close.setAttribute("stroke-dasharray", "2,1");
-        overlay.appendChild(close);
-      }
+    if (adjusting) {
+      shapeList.push({ id: "adjust-preview", points: adjusting.points, color: "#d32f2f", opacity: 0.25 });
     }
-    displayPoints.forEach(p => {
-      const dot = document.createElementNS(svgNs, "circle");
-      dot.setAttribute("cx", String(p.x));
-      dot.setAttribute("cy", String(p.y));
-      dot.setAttribute("r", "1.2");
-      dot.setAttribute("fill", "#d32f2f");
-      overlay.appendChild(dot);
-    });
-    wrapper.appendChild(overlay);
-  }, [drawPoints, effectiveBox]);
+    return { shapes: shapeList, markers: markerList };
+  }, [floorLocations, currentParent, adjusting, canEdit, busy, highlightToolId, shopColor]);
 
-  const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (suppressNextClickRef.current) {
-      suppressNextClickRef.current = false;
-      return;
-    }
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-
-    const rect = wrapper.getBoundingClientRect();
-    const rawX = ((event.clientX - rect.left) / rect.width) * 100;
-    const rawY = ((event.clientY - rect.top) / rect.height) * 100;
-    const { x, y } = composePoint(effectiveBox, rawX, rawY);
-    const xPct = Math.round(x), yPct = Math.round(y);
-
+  const handleMapClick = (point: Point) => {
     if (drawing) {
-      setDrawPoints(points => [...points, { x: xPct, y: yPct }]);
+      setDrawPoints(points => [...points, point]);
       return;
     }
+    if (adjusting) return;
     if (redrawing?.isPin) {
-      update.call({ id: redrawing.id, body: { xPct, yPct } });
+      update.call({ id: redrawing.id, body: { xPct: point.x, yPct: point.y } });
       return;
     }
-    setPending({ xPct, yPct });
+    setPending({ xPct: point.x, yPct: point.y });
   };
 
   const finishShape = () => {
@@ -655,18 +437,26 @@ const ShopLocationMap: React.FC<{
     if (!isPin) { setDrawing(true); setDrawPoints([]); }
   };
 
-  if (!floorName) return null;
+  if (!shopFloor) return null;
+
+  const hasAnything = locations.length > 0;
 
   return (
     <Grid container spacing={1}>
       <Grid size={{ xs: 12 }}>
         <Typography variant="subtitle2" gutterBottom>{shopName} map</Typography>
-        {!svgMarkup || !effectiveBox ? (
+        {!hasAnything && !canEdit ? (
           <Typography variant="body2" color="textSecondary">
             No location map set up for this shop yet.
           </Typography>
         ) : (
           <>
+            {floorOptions.length > 1 && (
+              <ToggleButtonGroup size="small" exclusive value={floor} aria-label="Floor" sx={{ mb: 1, maxWidth: "100%" }}
+                onChange={(_e, value) => { if (value) setFloorChoice(value); }}>
+                {floorOptions.map(f => <ToggleButton key={f} value={f}>{floorLabel(f)}</ToggleButton>)}
+              </ToggleButtonGroup>
+            )}
             {canEdit && zoomStack.length > 0 && (
               <div style={{ marginBottom: 8 }}>
                 <Button size="small" onClick={() => setZoomStack([])}>{shopName}</Button>
@@ -682,7 +472,7 @@ const ShopLocationMap: React.FC<{
               <Typography variant="body2" color="textSecondary" gutterBottom>
                 {zoomStack.length > 0
                   ? `Zoomed in to ${currentParent?.name} -- items placed here belong inside it.`
-                  : `Click "Draw area" to outline a boundary, or click anywhere else to drop a point pin for a smaller item.`}
+                  : `Showing the ${floorLabel(floor)}. Click "Draw area" to outline a boundary, or click anywhere else to drop a pin for a smaller item. Use the +/- buttons or pinch to zoom.`}
               </Typography>
             )}
             {drawing && (
@@ -726,17 +516,22 @@ const ShopLocationMap: React.FC<{
                 )}
               </div>
             )}
-            <style>{"[data-shop-location-map-wrapper] > svg:not([data-draw-preview]) { width: 100% !important; height: auto !important; display: block !important; } @keyframes shop-location-map-ring-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.6; } }"}</style>
-            <div
-              ref={wrapperRef}
-              data-shop-location-map-wrapper
-              onClick={canEdit ? handleMapClick : undefined}
-              style={{
-                position: "relative", border: "1px solid #ccc", maxWidth: canEdit ? 600 : 420,
-                overflow: "hidden", cursor: canEdit ? "crosshair" : undefined,
-              }}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
+            <div ref={wrapperRef}>
+              <FloorMap
+                floorName={floor}
+                fitBox={fitBox}
+                fitKey={fitKey}
+                shapes={shapes}
+                markers={markers}
+                draftPoints={drawing ? drawPoints : undefined}
+                adjustPoints={adjusting?.points}
+                label={`${shopName} map, ${floorLabel(floor)}`}
+                onAdjustPoint={(index, point) => setAdjusting(current => current && {
+                  ...current, points: current.points.map((p, i) => (i === index ? point : p)),
+                })}
+                onMapClick={canEdit ? handleMapClick : undefined}
+              />
+            </div>
           </>
         )}
         {locations.length > 0 && (
@@ -769,7 +564,7 @@ const ShopLocationMap: React.FC<{
           </div>
         )}
       </Grid>
-      {pending && effectiveBox && (
+      {pending && (
         <LocationFormModal
           initialName=""
           // Only tools that don't already have a location -- picking an
@@ -779,10 +574,12 @@ const ShopLocationMap: React.FC<{
           linkableTools={shopTools.filter(t => !t.locationId || t.id === preset?.toolId)}
           initialToolId={preset?.toolId}
           onClose={() => { setPending(null); setPendingLocationId(null); }}
-          onSave={async (name, kind, toolId) => {
+          onSave={async ({ name, kind, toolId, icon }) => {
             let locationId = pendingLocationId;
             if (!locationId) {
-              const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
+              const result = await create.call({
+                body: { name, shopId, kind, icon, floorName: floor, parentId: currentParent?.id, ...pending },
+              });
               if (isApiErrorResponse(result)) return;
               locationId = result.data.id;
               setPendingLocationId(locationId);
@@ -802,8 +599,14 @@ const ShopLocationMap: React.FC<{
         <LocationFormModal
           initialName={editing.name}
           initialKind={editing.kind}
+          initialIcon={editing.icon}
+          initialFloor={editing.parentId ? undefined : floorOf(editing)}
           onClose={() => setEditing(null)}
-          onSave={(name, kind) => update.call({ id: editing.id, body: { name, kind } })}
+          onSave={({ name, kind, icon, floorName }) => update.call({
+            id: editing.id,
+            // An empty icon/kind must be sent as "" to clear it server-side.
+            body: { name, kind: kind ?? "", icon: icon ?? "", ...(floorName ? { floorName } : {}) },
+          })}
           onDelete={() => {
             const { descendantLines, toolNames } = describeDeletionImpact(editing.id, locations);
             const lines = [`Delete "${editing.name}"?`];

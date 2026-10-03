@@ -79,6 +79,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
     reservation_requires_approval: body.reservationRequiresApproval,
     reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds || [],
     color_id: body.colorId,
+    floor_name: body.floorName,
   }));
 
 export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> }) =>
@@ -103,6 +104,7 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
       reservation_prerequisite_tool_ids: body.reservationPrerequisiteToolIds,
     }),
     color_id: body.colorId,
+    floor_name: body.floorName,
     ...(body.resourceManagerIds !== undefined && {
       resource_manager_ids: body.resourceManagerIds,
     }),

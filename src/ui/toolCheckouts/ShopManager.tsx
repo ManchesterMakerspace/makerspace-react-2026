@@ -30,6 +30,7 @@ import {
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
 import ShopColorField from "./ShopColorField";
+import { FLOOR_NAMES, floorLabel } from "./floorMapGeometry";
 import { useCapabilities } from "app/permissions";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { SelectOption } from "ui/common/AsyncSelect";
@@ -97,6 +98,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
   const [gdriveId, setGdriveId] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
   const [colorId, setColorId] = React.useState("1");
+  const [floorName, setFloorName] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
   const [resourceManagers, setResourceManagers] = React.useState<Array<{ id: string; name: string }>>([]);
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
@@ -115,7 +117,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
   };
 
   return (
@@ -142,6 +144,14 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId}
             takenColorIds={shops.map(s => s.colorId).filter((id): id is string => !!id)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField select fullWidth label="Home floor" value={floorName}
+            onChange={event => setFloorName(event.target.value)}
+            slotProps={{ select: { native: true } }}
+            helperText="The floor this shop is shown on by default. A shop's individual areas and tools can still be placed on other floors from its map.">
+            {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+          </TextField>
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>
@@ -188,6 +198,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
+  const [floorName, setFloorName] = React.useState(shop.floorName || "1");
   // Undefined means the API did not include the authoritative assignments.
   // Preserve that distinction from an explicitly empty list so an unrelated
   // edit cannot accidentally revoke every existing manager.
@@ -213,7 +224,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
     const trimmedName = name.trim();
     if (!trimmedName) return;
     onSave(shop.id, {
-      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId,
+      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName,
       requestorAnnotation: requestorAnnotation.trim() || null,
       ...resourceManagerIdsUpdate(canManageResourceManagers, resourceManagers),
       ...reservation
@@ -244,6 +255,14 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId}
             takenColorIds={shops?.filter(s => s.id !== shop.id).map(s => s.colorId).filter((id): id is string => !!id)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField select fullWidth label="Home floor" value={floorName}
+            onChange={event => setFloorName(event.target.value)}
+            slotProps={{ select: { native: true } }}
+            helperText="The floor this shop is shown on by default. A shop's individual areas and tools can still be placed on other floors from its map.">
+            {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+          </TextField>
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>

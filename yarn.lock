@@ -3209,6 +3209,11 @@
   resolved "https://registry.yarnpkg.com/@types/gensync/-/gensync-1.0.5.tgz#1819eba537d036dcf4ec7e8c8f15fbfe938e99a0"
   integrity sha512-MbsRCT7mTikHwKZ0X+LVUTLRrZZRLipTuXEO9qOYO+zmjMVk81axyClMROf6uoPD9MRVu46bx8zoR0Ad9q3NAg==
 
+"@types/geojson@*":
+  version "7946.0.16"
+  resolved "https://registry.yarnpkg.com/@types/geojson/-/geojson-7946.0.16.tgz#8ebe53d69efada7044454e3305c19017d97ced2a"
+  integrity sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==
+
 "@types/googlepay@*":
   version "0.7.11"
   resolved "https://registry.yarnpkg.com/@types/googlepay/-/googlepay-0.7.11.tgz#b25a160b0a7f9a1682017660d47cdeebc680358f"
@@ -3269,6 +3274,13 @@
   version "7.0.15"
   resolved "https://registry.yarnpkg.com/@types/json-schema/-/json-schema-7.0.15.tgz#596a1747233694d50f6ad8a7869fcb6f56cf5841"
   integrity sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==
+
+"@types/leaflet@^1.9.12":
+  version "1.9.22"
+  resolved "https://registry.yarnpkg.com/@types/leaflet/-/leaflet-1.9.22.tgz#d46d501e5bcdf5a99374cf113ab33562cb887783"
+  integrity sha512-h3lhECYEKDasG7LFHu+GiHqAvsgLuQvlJvVZzJDGONo3sEL+wUOqSFLnwkZlK0qVxnxbuGFW8iBlJNYs5wgndA==
+  dependencies:
+    "@types/geojson" "*"
 
 "@types/lodash-es@^4.17.1":
   version "4.17.12"
@@ -6238,6 +6250,11 @@ launch-editor@^2.14.1:
   dependencies:
     picocolors "^1.1.1"
     shell-quote "^1.8.4"
+
+leaflet@^1.9.4:
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/leaflet/-/leaflet-1.9.4.tgz#23fae724e282fa25745aff82ca4d394748db7d8d"
+  integrity sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==
 
 leven@^3.1.0:
   version "3.1.0"

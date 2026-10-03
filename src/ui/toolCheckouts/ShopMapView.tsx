@@ -1,48 +1,49 @@
 import * as React from "react";
 import Grid from "@mui/material/Grid";
-import Select from "@mui/material/Select";
 import Typography from "@mui/material/Typography";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import { listLocations } from "api/locations";
 import { listGoogleCalendarColors } from "api/toolCheckouts";
 import { FALLBACK_COLORS } from "./ShopColorField";
-
-// Same per-floor SVG convention as ShopLocationMap -- kept as a separate
-// small constant rather than a shared import, since it's two lines and this
-// component has no other dependency on that one.
-const floorPlanUrl = (floorName: string) => `/assets/shopFloorPlans/floor-${floorName}.svg`;
-const floorPlanFallbackUrl = "/assets/shopFloorPlans/placeholder.svg";
+import { FULL_FLOOR_BOX, floorLabel, sortFloors, centroid } from "./floorMapGeometry";
+import FloorMap, { MapShape, MapMarker } from "./FloorMap";
 
 // Read-only, every-shop-at-once view for any member -- unlike
 // ShopLocationMap, which shows one shop's own area (with its full edit
 // tooling for an admin/RM), this is the "just show me the whole floor"
 // view: every shop's area rendered simultaneously in its own calendar
-// color, so overlaps or gaps are visible at a glance.
+// color, so overlaps or gaps are visible at a glance. A shop that spans
+// floors (e.g. Facilities) appears on each floor it has an area on.
 const ShopMapView: React.FC = () => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
-  const floors = React.useMemo(
-    () => Array.from(new Set(shops.map(s => s.floorName).filter((f): f is string => !!f))).sort(),
-    [shops]
-  );
-  const [floorName, setFloorName] = React.useState("");
-  React.useEffect(() => {
-    if (!floorName && floors.length) setFloorName(floors[0]);
-  }, [floors, floorName]);
-
-  const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
-  const [shopColors, setShopColors] = React.useState<Record<string, string>>({});
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
-
-  const shopsOnFloor = shops.filter(s => s.floorName === floorName);
-  const floorShopIds = shopsOnFloor.map(s => s.id);
+  const shopIds = React.useMemo(() => shops.map(s => s.id), [shops]);
 
   const { data: locations = [] } = useReadTransaction(
-    listLocations, { shopIds: floorShopIds }, !floorShopIds.length,
-    `member-locations-floor-${floorName}`, true
+    listLocations, { shopIds }, !shopIds.length, "member-locations-all-floors", true
   );
 
+  // Top-level locations only: this overview is "every shop's own area at a
+  // glance," not a room-by-room breakdown -- the Workshops page's
+  // ShopLocationMap is where nested contents are drawn.
+  const topLevel = React.useMemo(() => locations.filter(l => !l.parentId), [locations]);
+  const shopFloor = React.useMemo(() => new Map(shops.map(s => [s.id, s.floorName || "1"])), [shops]);
+  const floorOf = React.useCallback(
+    (l: { floorName?: string; shopId: string }) => l.floorName || shopFloor.get(l.shopId) || "1",
+    [shopFloor]
+  );
+
+  const floors = React.useMemo(
+    () => sortFloors(Array.from(new Set([...shops.map(s => s.floorName || "1"), ...topLevel.map(floorOf)]))),
+    [shops, topLevel, floorOf]
+  );
+  const [floorChoice, setFloorChoice] = React.useState("");
+  const floorName = floorChoice && floors.includes(floorChoice) ? floorChoice : floors[0] || "";
+
+  const [shopColors, setShopColors] = React.useState<Record<string, string>>({});
   React.useEffect(() => {
     let active = true;
     listGoogleCalendarColors().then(result => {
@@ -53,109 +54,69 @@ const ShopMapView: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  React.useEffect(() => {
-    if (!floorName) { setSvgMarkup(null); return; }
-    let cancelled = false;
-    (async () => {
-      let response = await fetch(floorPlanUrl(floorName));
-      if (!response.ok) response = await fetch(floorPlanFallbackUrl);
-      const text = await response.text();
-      if (!cancelled) setSvgMarkup(text);
-    })();
-    return () => { cancelled = true; };
-  }, [floorName]);
+  const colorOf = React.useCallback((shopId: string) => {
+    const owner = shops.find(s => s.id === shopId);
+    return (owner?.colorId && shopColors[owner.colorId]) || "#1976d2";
+  }, [shops, shopColors]);
 
-  // Top-level locations only -- a nested cabinet/shelf/tool's own
-  // xPct/yPct/shapePoints are stored relative to its immediate parent, not
-  // the floor, so plotting them directly here (as this floor-wide overview
-  // does for every other location) would place them at a essentially
-  // random spot on the whole floor. This view is "every shop's own area at
-  // a glance," not a room-by-room breakdown, so top-level shapes/pins are
-  // the right scope regardless -- the Workshops page's ShopLocationMap is
-  // where nested contents actually get drawn accurately.
-  const topLevelLocations = locations.filter(l => !l.parentId);
+  const onFloor = React.useMemo(() => topLevel.filter(l => floorOf(l) === floorName), [topLevel, floorOf, floorName]);
+  const shopsOnFloor = React.useMemo(() => {
+    const ids = new Set(onFloor.map(l => l.shopId));
+    shops.forEach(s => { if ((s.floorName || "1") === floorName && !topLevel.some(l => l.shopId === s.id)) ids.add(s.id); });
+    return shops.filter(s => ids.has(s.id));
+  }, [shops, onFloor, topLevel, floorName]);
 
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    wrapper.querySelectorAll("[data-shop-location]").forEach(el => el.remove());
-    topLevelLocations.forEach(location => {
-      const ownerShop = shops.find(s => s.id === location.shopId);
-      const color = (ownerShop?.colorId && shopColors[ownerShop.colorId]) || "#1976d2";
-      const label = `${ownerShop?.name || "Shop"}: ${location.name}`;
+  const { shapes, markers } = React.useMemo(() => {
+    const shapeList: MapShape[] = [];
+    const markerList: MapMarker[] = [];
+    onFloor.forEach(location => {
+      const ownerName = shops.find(s => s.id === location.shopId)?.name || "Shop";
+      const color = colorOf(location.shopId);
+      const label = `${ownerName}: ${location.name}`;
       if (location.shapePoints && location.shapePoints.length >= 3) {
-        const shape = document.createElement("div");
-        shape.setAttribute("data-shop-location", location.id);
-        shape.title = label;
-        Object.assign(shape.style, {
-          position: "absolute",
-          inset: "0",
-          clipPath: `polygon(${location.shapePoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-          background: color,
-          opacity: "0.35",
-        });
-        wrapper.appendChild(shape);
-        return;
-      }
-      if (location.xPct != null && location.yPct != null) {
-        const dot = document.createElement("div");
-        dot.setAttribute("data-shop-location", location.id);
-        dot.title = label;
-        Object.assign(dot.style, {
-          position: "absolute",
-          left: `${location.xPct}%`,
-          top: `${location.yPct}%`,
-          transform: "translate(-50%, -100%)",
-          width: "14px",
-          height: "14px",
-          borderRadius: "50% 50% 50% 0",
-          background: color,
-        });
-        wrapper.appendChild(dot);
+        shapeList.push({ id: location.id, points: location.shapePoints, color, opacity: 0.35, label });
+        if (location.icon) {
+          const center = centroid(location.shapePoints);
+          markerList.push({ id: `${location.id}-marker`, x: center.x, y: center.y, color, icon: location.icon, label });
+        }
+      } else if (location.xPct != null && location.yPct != null) {
+        markerList.push({ id: location.id, x: location.xPct, y: location.yPct, color, icon: location.icon, label });
       }
     });
-    // No dependency array -- React can re-apply dangerouslySetInnerHTML on
-    // this wrapper on any unrelated re-render, wiping every appended pin/
-    // shape along with it (see ShopLocationMap.tsx's crop effect for the
-    // full story). Reasserting every render removes any dependence on
-    // topLevelLocations happening to be a fresh array each time.
-  });
+    return { shapes: shapeList, markers: markerList };
+  }, [onFloor, shops, colorOf]);
+
+  if (!floorName) return null;
 
   return (
     <Grid container spacing={2}>
       {floors.length > 1 && (
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Select native fullWidth value={floorName} onChange={e => setFloorName((e.target as HTMLSelectElement).value)}>
-            {floors.map(f => <option key={f} value={f}>Floor {f}</option>)}
-          </Select>
-        </Grid>
-      )}
-      {svgMarkup && (
         <Grid size={{ xs: 12 }}>
-          <Typography variant="body2" color="textSecondary" gutterBottom>
-            Floor {floorName} -- every shop's area shown at once, each in its own color. Hover a shaded area for its name.
-          </Typography>
-          <style>{"[data-shop-map-wrapper] > svg { width: 100% !important; height: auto !important; display: block !important; }"}</style>
-          <div
-            ref={wrapperRef}
-            data-shop-map-wrapper
-            style={{ position: "relative", border: "1px solid #ccc", maxWidth: 600 }}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
-          />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 12 }}>
-            {shopsOnFloor.map(s => (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{
-                  width: 14, height: 14, borderRadius: 3,
-                  background: (s.colorId && shopColors[s.colorId]) || "#1976d2",
-                  border: "1px solid rgba(0,0,0,.2)", display: "inline-block",
-                }} />
-                <Typography variant="caption">{s.name}</Typography>
-              </div>
-            ))}
-          </div>
+          <ToggleButtonGroup size="small" exclusive value={floorName} aria-label="Floor" sx={{ maxWidth: "100%" }}
+            onChange={(_e, value) => { if (value) setFloorChoice(value); }}>
+            {floors.map(f => <ToggleButton key={f} value={f}>{floorLabel(f)}</ToggleButton>)}
+          </ToggleButtonGroup>
         </Grid>
       )}
+      <Grid size={{ xs: 12 }}>
+        <Typography variant="body2" color="textSecondary" gutterBottom>
+          {floorLabel(floorName)} -- every shop's area shown at once, each in its own color. Hover or tap a shaded area for its name.
+        </Typography>
+        <FloorMap floorName={floorName} fitBox={FULL_FLOOR_BOX} fitKey={floorName} shapes={shapes} markers={markers}
+          label={`All shops, ${floorLabel(floorName)}`} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 12 }}>
+          {shopsOnFloor.map(s => (
+            <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{
+                width: 14, height: 14, borderRadius: 3,
+                background: colorOf(s.id),
+                border: "1px solid rgba(0,0,0,.2)", display: "inline-block",
+              }} />
+              <Typography variant="caption">{s.name}</Typography>
+            </div>
+          ))}
+        </div>
+      </Grid>
     </Grid>
   );
 };
