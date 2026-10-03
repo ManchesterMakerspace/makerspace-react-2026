@@ -214,7 +214,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
           <div>
             <Typography variant="h6">{canManage ? "Open Checkout Requests" : "My Checkout Requests"}</Typography>
             <Typography variant="body2" color="textSecondary">
@@ -255,7 +255,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       {!canManage && (
         <>
           <Grid size={{ xs: 12 }}>
-            <Grid container justifyContent="space-between" alignItems="center">
+            <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
               <Typography variant="h6">Available Tools</Typography>
               {selectedTool && canRequestTool(selectedTool) && (
                 <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setRequestTarget(selectedTool)}>
