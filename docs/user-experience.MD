@@ -196,6 +196,45 @@ for their shops and tools.
 - Animations should be brief and purposeful. New animation must honor
   `prefers-reduced-motion`.
 
+## Floor maps
+
+Shop and tool locations are drawn on a [Leaflet](https://leafletjs.com/) map
+(`FloorMap`, used by `ShopLocationMap` and `ShopMapView`) over the floor-plan
+SVGs in `app/assets/images/shopFloorPlans` (`floor-B`, `floor-1`, `floor-2`).
+The plan is a plain image, so positions are stored as percentages of it and
+`floorMapGeometry.ts` is the only place they are converted to map coordinates.
+
+- A shop can span floors: each location has its own floor (defaulting to the
+  shop's home floor), and a floor switch appears when more than one applies.
+- Editors get a mode toolbar (Select, Add marker, Draw area). Nothing is
+  created unless a mode is chosen, so a stray click never drops a marker. In
+  Select mode, click an area or marker to choose it and see its details; drag
+  the chosen marker to move it, or its red corner points to reshape the area.
+  Each drag saves when released. A marker placed or moved inside an area is
+  nested in it automatically (the smallest area containing it); the "Inside"
+  field in the form shows and can change this. Everything is also reachable
+  from the keyboard through the list under the map, which selects an item.
+  Hints and messages sit below the map so changing text never moves it.
+- Markers use a fixed set of MUI glyphs (`markerIcons.tsx`, mirrored by
+  `Location::ICONS` on the server). A glyph is never the only label: every
+  interactive marker has a name as its tooltip and accessible label, and is
+  reachable and activatable from the keyboard. Shaded areas are mouse/touch
+  targets; the hierarchy list beneath the map names everything on them.
+- The map has a fixed height that shrinks on narrow screens
+  (`min(420px, 90vw)`), a documented exception to the no-fixed-size guidance
+  because a map needs a definite height. The page does not capture the scroll
+  wheel; zoom with the +/- buttons, pinch, or double-click.
+- On the Workshops Tools tab, each tool's location line carries the map
+  action beside it: "Find tool" (zooms the map to the tool, rings it and
+  labels it) when the tool has a spot, or "Place on map" (resource managers
+  and above) when it does not, which opens the map ready to place that tool.
+  Anything saved on the map refreshes the page's data, so the Tools tab never
+  lags behind the map.
+- The "find this tool" pulse is disabled under `prefers-reduced-motion`.
+- Leaflet's stylesheet is bundled as a string (`asset/source` rule in the
+  webpack configs) and injected once, instead of going through the Rails
+  stylesheet pipeline.
+
 ## Checklist for UI changes
 
 Before considering a UI change complete, confirm that it:

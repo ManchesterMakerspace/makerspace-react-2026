@@ -49,6 +49,11 @@ export interface Location {
   xPct?: number;
   yPct?: number;
   shapePoints?: { x: number; y: number }[];
+  // Floor plan this location is drawn on (B, 1 or 2); the server fills in
+  // the shop's own floor when none was set.
+  floorName?: string;
+  // Marker glyph key (see markerIcons.tsx); blank draws the default pin.
+  icon?: string;
   toolNames?: string[];
   // Index-aligned with toolNames (both derive from the same server-side
   // fetch, not two separate queries, so a given index always names/ids the

@@ -8,9 +8,17 @@ import Alert from "@mui/material/Alert";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Link from "@mui/material/Link";
+import Paper from "@mui/material/Paper";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import NearMeIcon from "@mui/icons-material/NearMe";
+import PlaceIcon from "@mui/icons-material/Place";
+import PolylineIcon from "@mui/icons-material/Polyline";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ZoomInMapIcon from "@mui/icons-material/ZoomInMap";
 
 import FormModal from "ui/common/FormModal";
-import ErrorMessage from "ui/common/ErrorMessage";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
@@ -21,13 +29,13 @@ import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCh
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
 import {
-  Box, FULL_FLOOR_BOX, boundingBoxOf, paddedBox, cropViewBoxToBox, composePoint, remapToBox, ViewBox,
-} from "./locationGeometry";
-import { LOCATION_KIND_OPTIONS, colorForKind, FALLBACK_NESTED_COLOR, TOOL_MARKER_COLOR } from "./locationKinds";
-
-// One SVG per building floor, shared by every shop on that floor.
-const floorPlanUrl = (floorName: string) => `/assets/shopFloorPlans/floor-${floorName}.svg`;
-const floorPlanFallbackUrl = "/assets/shopFloorPlans/placeholder.svg";
+  Box, Point, FULL_FLOOR_BOX, FLOOR_NAMES, floorLabel, sortFloors, paddedBox, centroid, withMinSpan,
+} from "./floorMapGeometry";
+import { boundingBoxOf } from "./locationGeometry";
+import { containingParentId, descendantIds, shapeAnchor } from "./locationNesting";
+import { LOCATION_KIND_OPTIONS, KIND_LABELS, colorForKind, FALLBACK_NESTED_COLOR, TOOL_MARKER_COLOR } from "./locationKinds";
+import { MARKER_ICONS } from "./markerIcons";
+import FloorMap, { MapShape, MapMarker } from "./FloorMap";
 
 const unionBoundingBox = (locations: Location[]): Box | null => {
   const xs: number[] = [], ys: number[] = [];
@@ -39,10 +47,18 @@ const unionBoundingBox = (locations: Location[]): Box | null => {
   return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
 };
 
+type Mode = "select" | "marker" | "area";
+
+// Comfortable touch size on phones; desktop keeps the compact buttons.
+const touchTarget = { minHeight: { xs: 44, sm: 0 } };
+
 interface PendingPlacement {
   xPct?: number;
   yPct?: number;
-  shapePoints?: { x: number; y: number }[];
+  shapePoints?: Point[];
+  // The area this lands inside, worked out from where it was placed. The
+  // form shows it and lets the admin change it.
+  autoParentId?: string;
 }
 
 // Deleting a location cascades server-side to every descendant at any
@@ -69,15 +85,30 @@ const describeDeletionImpact = (locationId: string, locations: Location[]) => {
   return { descendantLines, toolNames };
 };
 
+interface LocationFormValues {
+  name: string;
+  kind?: string;
+  toolId?: string;
+  icon?: string;
+  floorName?: string;
+  // "" means "not inside anything". Only present when the form offered a
+  // choice.
+  parentId?: string;
+}
+
 const LocationFormModal: React.FC<{
   initialName: string;
   initialKind?: string;
+  initialIcon?: string;
+  // Offered only for a top-level location -- a nested one always follows its
+  // parent's floor.
+  initialFloor?: string;
+  // Areas this can sit inside (same floor, never itself or anything in it).
+  parentChoices?: { id: string; label: string }[];
+  initialParentId?: string;
   onClose: () => void;
-  onSave: (name: string, kind?: string, toolId?: string) => void;
+  onSave: (values: LocationFormValues) => void;
   onDelete?: () => void;
-  onRedraw?: () => void;
-  onAdjustCorners?: () => void;
-  onZoomIn?: () => void;
   locationId?: string;
   tools?: Tool[];
   onToggleTool?: (toolId: string, checked: boolean) => void;
@@ -93,10 +124,13 @@ const LocationFormModal: React.FC<{
   loading: boolean;
   error: string;
 }> = ({
-  initialName, initialKind, onClose, onSave, onDelete, onRedraw, onAdjustCorners, onZoomIn,
+  initialName, initialKind, initialIcon, initialFloor, parentChoices, initialParentId, onClose, onSave, onDelete,
   locationId, tools, onToggleTool, linkableTools, initialToolId, loading, error
 }) => {
   const [kind, setKind] = React.useState(initialKind || "");
+  const [icon, setIcon] = React.useState(initialIcon || "");
+  const [floor, setFloor] = React.useState(initialFloor || "");
+  const [parentId, setParentId] = React.useState(initialParentId || "");
   const [toolId, setToolId] = React.useState(initialToolId || "");
   const [name, setName] = React.useState(
     initialName || linkableTools?.find(t => t.id === initialToolId)?.name || ""
@@ -104,7 +138,14 @@ const LocationFormModal: React.FC<{
   const submit = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    onSave(trimmed, kind || undefined, toolId || undefined);
+    onSave({
+      name: trimmed,
+      kind: kind || undefined,
+      toolId: toolId || undefined,
+      icon: icon || undefined,
+      floorName: initialFloor !== undefined && floor !== initialFloor ? floor : undefined,
+      parentId: parentChoices ? parentId : undefined,
+    });
   };
   return (
     <FormModal id="location-form" isOpen={true} title={initialName ? "Edit location" : "Name this location"}
@@ -133,11 +174,36 @@ const LocationFormModal: React.FC<{
             </Select>
           </Grid>
         )}
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Typography variant="caption" color="textSecondary">Type</Typography>
           <Select native fullWidth value={kind} onChange={e => setKind((e.target as HTMLSelectElement).value)}>
             {LOCATION_KIND_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Select>
         </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <Typography variant="caption" color="textSecondary">Marker icon</Typography>
+          <Select native fullWidth value={icon} onChange={e => setIcon((e.target as HTMLSelectElement).value)}>
+            <option value="">Default (pin)</option>
+            {MARKER_ICONS.filter(i => i.value !== "pin").map(i => <option key={i.value} value={i.value}>{i.label}</option>)}
+          </Select>
+        </Grid>
+        {parentChoices && (
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">Inside</Typography>
+            <Select native fullWidth value={parentId} onChange={e => setParentId((e.target as HTMLSelectElement).value)}>
+              <option value="">— not inside anything —</option>
+              {parentChoices.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </Select>
+          </Grid>
+        )}
+        {initialFloor !== undefined && !parentId && (
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <Typography variant="caption" color="textSecondary">Floor</Typography>
+            <Select native fullWidth value={floor} onChange={e => setFloor((e.target as HTMLSelectElement).value)}>
+              {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+            </Select>
+          </Grid>
+        )}
         {locationId && tools && tools.length > 0 && (
           <Grid size={{ xs: 12 }}>
             <Typography variant="subtitle2">Tools here</Typography>
@@ -154,21 +220,6 @@ const LocationFormModal: React.FC<{
             ))}
           </Grid>
         )}
-        {onRedraw && (
-          <Grid size={{ xs: 12 }}>
-            <Button onClick={onRedraw}>Redraw / reposition</Button>
-          </Grid>
-        )}
-        {onAdjustCorners && (
-          <Grid size={{ xs: 12 }}>
-            <Button onClick={onAdjustCorners}>Adjust corners</Button>
-          </Grid>
-        )}
-        {onZoomIn && (
-          <Grid size={{ xs: 12 }}>
-            <Button onClick={onZoomIn}>Zoom in to place items here</Button>
-          </Grid>
-        )}
         {onDelete && (
           <Grid size={{ xs: 12 }}>
             <Button color="error" onClick={onDelete}>Delete this location</Button>
@@ -180,14 +231,24 @@ const LocationFormModal: React.FC<{
 };
 
 // Single map component for one shop, shown on its Workshops page to every
-// member. Always shows the shop's own area, every nested cabinet/shelf/
-// tool inside it (all stored in absolute floor-relative percent, so no
-// recursive resolution is needed to place any of it correctly), and the
-// tool-name hierarchy list below it. When `canEdit` is true (admin/board,
-// or a shop RM for this specific shop -- same rule the API itself already
-// enforces), it also gains the draw/place/zoom/edit tools that used to live
-// on a separate admin-only "Map" tab -- editing a shop's map now happens on
-// that shop's own page instead of a shop-picker elsewhere.
+// member. Shows the shop's own areas, every nested cabinet/shelf/tool inside
+// them (all stored in absolute floor-relative percent, so no recursive
+// resolution is needed to place any of it correctly), and the tool-name
+// hierarchy list below it. A shop can span floors: each location is drawn on
+// its own floor, and a floor switch appears when more than one applies.
+//
+// Editors (admin/board, or a shop RM for this specific shop -- same rule the
+// API itself already enforces) get a mode toolbar:
+//   Select      click an area or marker to choose it; drag the chosen marker
+//               to move it, or drag the corner points to reshape the area
+//               (each drag saves as soon as you let go)
+//   Add marker  click the map to place a marker
+//   Draw area   click points around a boundary, then finish
+// Anything placed or moved inside an area is nested in it automatically.
+//
+// The map itself is Leaflet (FloorMap): pan, pinch/button zoom, and every
+// click/shape/marker position is converted by one shared helper, instead of
+// hand-rolled percent math over an injected SVG.
 const ShopLocationMap: React.FC<{
   shopId: string;
   shopName: string;
@@ -202,16 +263,23 @@ const ShopLocationMap: React.FC<{
   // the "place a specific tool here" picker for the next new marker placed,
   // instead of making the admin find it themselves.
   preset?: { toolId: string };
-}> = ({ shopId, shopName, canEdit, onSelectTool, highlightToolId, preset }) => {
+  // Called when the placement that `preset` started is finished or cancelled,
+  // so the page can drop it.
+  onPresetDone?: () => void;
+  // Called after anything is saved or deleted on the map, so the page around
+  // it can refresh data that depends on it (a tool's location, for one).
+  onChanged?: () => void;
+}> = ({ shopId, shopName, canEdit, onSelectTool, highlightToolId, preset, onPresetDone, onChanged }) => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const shop = shops.find(s => s.id === shopId);
-  const floorName = shop?.floorName;
+  const shopFloor = shop?.floorName;
 
   const { data: locations = [], refresh } = useReadTransaction(
     canEdit ? adminListLocations : listLocations, { shopIds: [shopId] }, !shopId,
     `shop-location-map-${shopId}-${canEdit}`, true
   );
   const byId = React.useMemo(() => new Map(locations.map(l => [l.id, l])), [locations]);
+  const floorOf = React.useCallback((l: Location) => l.floorName || shopFloor || "1", [shopFloor]);
 
   // Only fetched when editing is possible -- the "place a specific tool
   // here" picker and "Tools here" checklist both need the full tool list
@@ -221,51 +289,52 @@ const ShopLocationMap: React.FC<{
     listTools, { shopId }, !canEdit || !shopId, `admin-tools-for-map-${shopId}`, true
   );
 
-  const [svgMarkup, setSvgMarkup] = React.useState<string | null>(null);
   const [shopColors, setShopColors] = React.useState<Record<string, string>>({});
-  const [zoomStack, setZoomStack] = React.useState<Location[]>([]);
-  const [drawing, setDrawing] = React.useState(false);
-  const [drawPoints, setDrawPoints] = React.useState<{ x: number; y: number }[]>([]);
+  const [floorChoice, setFloorChoice] = React.useState("");
+  const [mode, setMode] = React.useState<Mode>("select");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [focus, setFocus] = React.useState<{ box: Box; key: number } | null>(null);
+  const [drawPoints, setDrawPoints] = React.useState<Point[]>([]);
   const [pending, setPending] = React.useState<PendingPlacement | null>(null);
   const [pendingLocationId, setPendingLocationId] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState<Location | null>(null);
-  const [redrawing, setRedrawing] = React.useState<{ id: string; isPin: boolean } | null>(null);
-  const [adjusting, setAdjusting] = React.useState<{ id: string; points: { x: number; y: number }[] } | null>(null);
-  const draggingIndexRef = React.useRef<number | null>(null);
-  const suppressNextClickRef = React.useRef(false);
+  // The corner positions of the chosen area while one is being dragged,
+  // before the save lands.
+  const [shapeDraft, setShapeDraft] = React.useState<{ id: string; points: Point[] } | null>(null);
+  const draftRef = React.useRef<{ id: string; points: Point[] } | null>(null);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
-  const originalViewBoxRef = React.useRef<ViewBox | null>(null);
 
-  const currentParent = zoomStack[zoomStack.length - 1];
-  const currentParentRef = React.useRef(currentParent);
-  currentParentRef.current = currentParent;
+  // Floors this shop has something on; an editor can add to any floor.
+  const floorOptions = React.useMemo(() => {
+    if (canEdit) return [...FLOOR_NAMES] as string[];
+    const found = new Set(locations.map(floorOf));
+    if (shopFloor) found.add(shopFloor);
+    return sortFloors(Array.from(found));
+  }, [canEdit, locations, floorOf, shopFloor]);
+  const floor = floorChoice && floorOptions.includes(floorChoice)
+    ? floorChoice
+    : (shopFloor && floorOptions.includes(shopFloor) ? shopFloor : floorOptions[0] || "1");
 
-  const topLevelLocations = locations.filter(l => !l.parentId);
+  const floorLocations = React.useMemo(() => locations.filter(l => floorOf(l) === floor), [locations, floorOf, floor]);
+  const selected = canEdit && selectedId ? floorLocations.find(l => l.id === selectedId) : undefined;
+  const selectedIsShape = !!selected?.shapePoints && selected.shapePoints.length >= 3;
+
+  const topLevelLocations = floorLocations.filter(l => !l.parentId);
   const baseBox = unionBoundingBox(topLevelLocations);
-  // The crop currently on screen: the whole shop's extent, or (while
-  // zoomed in) one location's own extent within it. Always a single,
-  // direct padding of that location's own absolute bounding box -- no
-  // composing through ancestors, since every location's own coordinates
-  // are already floor-relative.
-  //
-  // A brand-new shop with nothing drawn yet has no bounding box to crop
-  // to -- for a plain viewer that correctly means "nothing to show," but
-  // an editor's very first job is drawing that initial shape, so they get
-  // the whole floor plan uncropped instead of being locked out by the
-  // "no map set up yet" message before they've had a chance to draw
-  // anything.
-  const effectiveBox: Box | null = zoomStack.length
-    ? paddedBox(boundingBoxOf(currentParent))
-    : (baseBox ? paddedBox(baseBox) : (canEdit ? FULL_FLOOR_BOX : null));
+  // The area to bring into view: the whole shop's extent on this floor, or
+  // one item when "Zoom to it" was used. The view refits only when the floor
+  // or that choice changes -- not on every edit -- so the map never jumps
+  // away while you are placing things.
+  const fitBox: Box = focus
+    ? withMinSpan(paddedBox(focus.box), 15)
+    : (baseBox ? withMinSpan(paddedBox(baseBox), 30) : FULL_FLOOR_BOX);
+  const fitKey = `${shopId}|${floor}|${focus?.key || 0}|${baseBox ? "data" : "empty"}`;
 
-  const activeLocations = locations.filter(
-    l => (l.parentId || undefined) === currentParent?.id
-  );
-
-  const create = useWriteTransaction(adminCreateLocation, () => refresh());
-  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); setRedrawing(null); setAdjusting(null); });
-  const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); });
-  const toggleTool = useWriteTransaction(adminUpdateTool, () => refreshTools());
+  const clearDraft = () => { draftRef.current = null; setShapeDraft(null); };
+  const create = useWriteTransaction(adminCreateLocation, () => { refresh(); onChanged?.(); });
+  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); clearDraft(); onChanged?.(); });
+  const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); setSelectedId(null); clearDraft(); onChanged?.(); });
+  const toggleTool = useWriteTransaction(adminUpdateTool, () => { refreshTools(); onChanged?.(); });
 
   React.useEffect(() => {
     let active = true;
@@ -277,466 +346,288 @@ const ShopLocationMap: React.FC<{
     return () => { active = false; };
   }, []);
 
-  React.useEffect(() => {
-    if (!floorName) { setSvgMarkup(null); return; }
-    let cancelled = false;
-    (async () => {
-      let response = await fetch(floorPlanUrl(floorName));
-      if (!response.ok) response = await fetch(floorPlanFallbackUrl);
-      const text = await response.text();
-      if (!cancelled) setSvgMarkup(text);
-    })();
-    return () => { cancelled = true; };
-  }, [floorName]);
-
   // "Find tool"/"Place on map" land here from elsewhere on the page --
-  // bring the map into view the same way WorkshopTools scrolls to a row.
+  // bring the map into view the same way WorkshopTools scrolls to a row,
+  // and switch to the floor that tool is on.
+  // Keyed on the tool id, not the preset object: the page hands over a fresh
+  // object every render, which would otherwise re-run these constantly.
+  const presetToolId = preset?.toolId;
   React.useEffect(() => {
-    if (!highlightToolId && !preset) return;
+    if (!highlightToolId && !presetToolId) return;
     wrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightToolId, preset]);
-
-  // Captures the injected SVG's true original viewBox once per floor-plan
-  // load, before any zoom crop is applied to it.
+  }, [highlightToolId, presetToolId]);
   React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
-    const baseVal = svgRoot?.viewBox?.baseVal;
-    originalViewBoxRef.current = baseVal
-      ? { x: baseVal.x, y: baseVal.y, width: baseVal.width, height: baseVal.height }
-      : null;
-  }, [svgMarkup]);
+    if (!highlightToolId) return;
+    const holder = locations.find(l => l.toolIds?.includes(highlightToolId));
+    if (holder) setFloorChoice(floorOf(holder));
+  }, [highlightToolId, locations, floorOf]);
+  // Arriving from a tool's "Place on map" button starts in Add marker mode.
+  React.useEffect(() => { if (presetToolId && canEdit) setMode("marker"); }, [presetToolId, canEdit]);
 
-  // Applies (or restores) the viewBox crop for the current zoom level.
-  //
-  // Deliberately no dependency array -- confirmed via direct instrumentation
-  // that React re-applies dangerouslySetInnerHTML on this wrapper on EVERY
-  // re-render, even though `svgMarkup` itself never changes, silently
-  // resetting the injected SVG's viewBox back to its embedded default. A
-  // dependency array that looks correct (e.g. [svgMarkup, zoomStack]) only
-  // reruns when those specific values change, missing re-renders triggered
-  // by anything else (clicking to place a pin, for instance). Every other
-  // effect below that appends content into this same wrapper has the
-  // identical no-dependency-array treatment for the same reason.
+  // Switching floor drops any in-progress drawing/open form/zoom rather than
+  // letting it apply to the wrong floor.
   React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    const svgRoot = wrapper?.querySelector(":scope > svg:not([data-draw-preview])") as SVGSVGElement | null;
-    const original = originalViewBoxRef.current;
-    if (!svgRoot || !original || !effectiveBox) return;
-    const box = cropViewBoxToBox(original, effectiveBox);
-    svgRoot.setAttribute("viewBox", `${box.x} ${box.y} ${box.width} ${box.height}`);
-    // The floor plan's width/height attributes are fixed absolute lengths,
-    // so the CSS width:100%/height:auto sizing rule derives the wrapper's
-    // on-page aspect ratio from THOSE, not from whatever viewBox is
-    // currently set -- forcing preserveAspectRatio="none" keeps a crop with
-    // a different aspect ratio stretched to fill instead of letterboxed,
-    // which every percent-based click/overlay calculation here assumes.
-    svgRoot.setAttribute("preserveAspectRatio", "none");
-  });
-
-  // Switching the zoom level (or finishing an edit) drops any in-progress
-  // drawing/open form rather than letting it apply to the wrong context.
-  React.useEffect(() => {
-    setDrawing(false);
+    setMode(current => (presetToolId && canEdit && current === "marker" ? "marker" : "select"));
     setDrawPoints([]);
     setPending(null);
     setPendingLocationId(null);
     setEditing(null);
-    setRedrawing(null);
-    setAdjusting(null);
-  }, [zoomStack.length, currentParent?.id]);
+    setFocus(null);
+    clearDraft();
+  }, [floor, shopId]);
 
-  // Global mousemove/mouseup for corner-dragging -- mounted once, gated on
-  // draggingIndexRef rather than the `adjusting` state itself.
+  // "Find tool": zoom in on the marker that holds it, once its floor is
+  // showing. Declared after the reset effect above so this focus is the one
+  // that sticks when the floor changes at the same moment.
+  const focusedForRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const onMove = (event: MouseEvent) => {
-      const index = draggingIndexRef.current;
-      const wrapper = wrapperRef.current;
-      if (index == null || !wrapper || !effectiveBox) return;
-      const rect = wrapper.getBoundingClientRect();
-      const rawX = Math.min(100, Math.max(0, ((event.clientX - rect.left) / rect.width) * 100));
-      const rawY = Math.min(100, Math.max(0, ((event.clientY - rect.top) / rect.height) * 100));
-      const { x, y } = composePoint(effectiveBox, rawX, rawY);
-      setAdjusting(current => current && {
-        ...current,
-        points: current.points.map((p, i) => (i === index ? { x: Math.round(x), y: Math.round(y) } : p)),
-      });
-    };
-    const onUp = () => {
-      if (draggingIndexRef.current != null) {
-        draggingIndexRef.current = null;
-        suppressNextClickRef.current = true;
-      }
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-    };
-  }, [effectiveBox]);
+    if (!highlightToolId) { focusedForRef.current = null; return; }
+    const holder = locations.find(l => l.toolIds?.includes(highlightToolId));
+    if (!holder || floorOf(holder) !== floor || focusedForRef.current === highlightToolId) return;
+    focusedForRef.current = highlightToolId;
+    setFocus({ box: boundingBoxOf(holder), key: Date.now() });
+  }, [highlightToolId, locations, floor, floorOf]);
 
-  // Draggable handle + live preview overlay for adjust-corners mode.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-    wrapper.querySelectorAll("[data-adjust-handle]").forEach(el => el.remove());
-    wrapper.querySelectorAll("[data-adjust-preview]").forEach(el => el.remove());
-    if (!adjusting) return;
+  const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
+  const selecting = canEdit && mode === "select";
 
-    const displayPoints = adjusting.points.map(p => remapToBox(effectiveBox, p.x, p.y));
-    const preview = document.createElement("div");
-    preview.setAttribute("data-adjust-preview", "true");
-    Object.assign(preview.style, {
-      position: "absolute",
-      inset: "0",
-      clipPath: `polygon(${displayPoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-      background: "rgba(211, 47, 47, 0.25)",
-      pointerEvents: "none",
-    });
-    wrapper.appendChild(preview);
+  const changeMode = (next: Mode) => {
+    setMode(next);
+    setDrawPoints([]);
+    clearDraft();
+    if (next !== "select") setSelectedId(null);
+  };
 
-    displayPoints.forEach((point, index) => {
-      const handle = document.createElement("div");
-      handle.setAttribute("data-adjust-handle", String(index));
-      Object.assign(handle.style, {
-        position: "absolute",
-        left: `${point.x}%`,
-        top: `${point.y}%`,
-        transform: "translate(-50%, -50%)",
-        width: "16px",
-        height: "16px",
-        borderRadius: "50%",
-        background: "#d32f2f",
-        border: "2px solid white",
-        boxShadow: "0 0 0 1px rgba(0,0,0,0.3)",
-        cursor: "grab",
-      });
-      handle.addEventListener("mousedown", event => {
-        event.stopPropagation();
-        event.preventDefault();
-        draggingIndexRef.current = index;
-      });
-      wrapper.appendChild(handle);
-    });
-    // No dependency array -- same reset risk as the viewBox-crop effect.
-  });
+  // Where a marker dropped, or an area drawn, at this spot is nested.
+  const parentFor = (anchor: Point, selfId?: string): string | undefined =>
+    containingParentId(anchor, floorLocations, selfId ? new Set([selfId, ...descendantIds(selfId, locations)]) : undefined);
 
-  // Renders every location (every nesting depth) against the currently
-  // displayed crop -- a plain remap, since every stored coordinate is
-  // already floor-relative. A top-level location keeps its shop's own
-  // color for identification; anything nested gets a fixed kind color (or
-  // the reserved tool color if it holds a tool) so it reads as "an object"
-  // regardless of which shop's color it sits inside.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-    wrapper.querySelectorAll("[data-shop-location], [data-shop-location-ring], [data-zoom-parent-outline]").forEach(el => el.remove());
-    const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
-
-    // While zoomed in, the location you zoomed into is otherwise invisible
-    // -- draw its own outline (stroke only, no fill) so there's always a
-    // frame of reference, even on a blank floor-plan region.
-    if (currentParent?.shapePoints && currentParent.shapePoints.length >= 3) {
-      const displayPoints = currentParent.shapePoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-      const svgNs = "http://www.w3.org/2000/svg";
-      const outlineSvg = document.createElementNS(svgNs, "svg");
-      outlineSvg.setAttribute("data-zoom-parent-outline", currentParent.id);
-      outlineSvg.setAttribute("viewBox", "0 0 100 100");
-      outlineSvg.setAttribute("preserveAspectRatio", "none");
-      Object.assign(outlineSvg.style, {
-        position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
-      });
-      const polygon = document.createElementNS(svgNs, "polygon");
-      polygon.setAttribute("points", displayPoints.map(p => `${p.x},${p.y}`).join(" "));
-      polygon.setAttribute("fill", "none");
-      polygon.setAttribute("stroke", "#1976d2");
-      polygon.setAttribute("stroke-width", "0.6");
-      polygon.setAttribute("stroke-dasharray", "2,1");
-      outlineSvg.appendChild(polygon);
-      wrapper.appendChild(outlineSvg);
-    }
-
-    locations.forEach(location => {
-      if (adjusting?.id === location.id) return;
-      // The location you zoomed into gets its own outline above instead of
-      // a normal filled overlay (which would otherwise double-render it).
-      if (currentParent?.id === location.id) return;
+  // Everything drawn on this floor: a top-level location keeps its shop's
+  // own color for identification; anything nested gets a fixed kind color
+  // (or the reserved tool color if it holds a tool) so it reads as "an
+  // object" regardless of which shop's color it sits inside.
+  const { shapes, markers } = React.useMemo(() => {
+    const shapeList: MapShape[] = [];
+    const markerList: MapMarker[] = [];
+    floorLocations.forEach(location => {
       const isNested = !!location.parentId;
       const hasTool = isNested && !!location.toolNames?.length;
       const color = hasTool
         ? TOOL_MARKER_COLOR
         : isNested ? colorForKind(location.kind, FALLBACK_NESTED_COLOR) : shopColor;
-      const opacity = isNested ? "0.55" : "0.3";
-      const label = location.toolNames?.length
+      // A marker named after its one tool would otherwise read "Prusa — Prusa".
+      const onlyItsOwnName = location.toolNames?.length === 1 && location.toolNames[0] === location.name;
+      const label = location.toolNames?.length && !onlyItsOwnName
         ? `${location.name} — ${location.toolNames.join(", ")}`
         : location.name;
-      const isActive = canEdit && (location.parentId || undefined) === currentParent?.id;
+      const isSelected = location.id === selectedId;
+      const onClick = selecting ? () => { setSelectedId(location.id); clearDraft(); } : undefined;
       const isHighlighted = !!highlightToolId && !!location.toolIds?.includes(highlightToolId);
-      const addRing = (centerXPct: number, centerYPct: number) => {
-        const ring = document.createElement("div");
-        ring.setAttribute("data-shop-location-ring", location.id);
-        Object.assign(ring.style, {
-          position: "absolute",
-          left: `${centerXPct}%`,
-          top: `${centerYPct}%`,
-          width: "34px",
-          height: "34px",
-          marginLeft: "-17px",
-          marginTop: "-17px",
-          borderRadius: "50%",
-          border: "3px solid #d32f2f",
-          boxSizing: "border-box",
-          pointerEvents: "none",
-          animation: "shop-location-map-ring-pulse 1.4s ease-in-out infinite",
-        });
-        wrapper.appendChild(ring);
-      };
 
       if (location.shapePoints && location.shapePoints.length >= 3) {
-        const displayPoints = location.shapePoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-        const shape = document.createElement("div");
-        shape.setAttribute("data-shop-location", location.id);
-        shape.title = label;
-        Object.assign(shape.style, {
-          position: "absolute",
-          inset: "0",
-          clipPath: `polygon(${displayPoints.map(p => `${p.x}% ${p.y}%`).join(", ")})`,
-          background: color,
-          opacity,
-          cursor: isActive ? "pointer" : undefined,
-          pointerEvents: isActive ? "auto" : "none",
+        const points = shapeDraft?.id === location.id ? shapeDraft.points : location.shapePoints;
+        shapeList.push({
+          id: location.id, points, color, opacity: isNested ? 0.55 : 0.3, label, onClick, selected: isSelected,
         });
-        if (isActive) shape.addEventListener("click", event => { event.stopPropagation(); setEditing(location); });
-        wrapper.appendChild(shape);
-        if (isHighlighted) {
-          const centerX = displayPoints.reduce((sum, p) => sum + p.x, 0) / displayPoints.length;
-          const centerY = displayPoints.reduce((sum, p) => sum + p.y, 0) / displayPoints.length;
-          addRing(centerX, centerY);
+        // A shape only gets a marker when it has its own icon or is the one
+        // being found, so plain areas stay uncluttered.
+        if (location.icon || isHighlighted) {
+          const center = centroid(points);
+          markerList.push({
+            id: `${location.id}-marker`, x: center.x, y: center.y, color, icon: location.icon, label,
+            highlighted: isHighlighted, selected: isSelected, onClick,
+          });
         }
         return;
       }
       if (location.xPct != null && location.yPct != null) {
-        const p = remapToBox(effectiveBox, location.xPct, location.yPct);
-        const dot = document.createElement("div");
-        dot.setAttribute("data-shop-location", location.id);
-        dot.title = label;
-        Object.assign(dot.style, {
-          position: "absolute",
-          left: `${p.x}%`,
-          top: `${p.y}%`,
-          transform: "translate(-50%, -100%)",
-          width: "14px",
-          height: "14px",
-          borderRadius: "50% 50% 50% 0",
-          background: color,
-          opacity,
-          cursor: isActive ? "pointer" : undefined,
-          pointerEvents: isActive ? "auto" : "none",
+        markerList.push({
+          id: location.id, x: location.xPct, y: location.yPct, color, icon: location.icon, label,
+          highlighted: isHighlighted, selected: isSelected, onClick,
+          draggable: selecting && isSelected,
+          onDragEnd: point => {
+            const parentId = parentFor(point, location.id);
+            update.call({
+              id: location.id,
+              // "" clears the parent when a marker is dragged out of its area.
+              body: { xPct: point.x, yPct: point.y, ...((parentId || "") !== (location.parentId || "") ? { parentId: parentId || "" } : {}) },
+            });
+          },
         });
-        if (isActive) dot.addEventListener("click", event => { event.stopPropagation(); setEditing(location); });
-        wrapper.appendChild(dot);
-        if (isHighlighted) addRing(p.x, p.y);
       }
     });
-    // No dependency array -- see the viewBox-crop effect's comment above.
-  });
+    return { shapes: shapeList, markers: markerList };
+  }, [floorLocations, selectedId, shapeDraft, selecting, highlightToolId, shopColor]);
 
-  // Live feedback for an in-progress "draw shop area" click sequence.
-  //
-  // drawPoints are stored in absolute floor-relative percent (same as any
-  // saved shapePoints -- see handleMapClick below), not percent of the
-  // currently-displayed crop, so each point has to be remapped through
-  // effectiveBox before plotting it in this 0-100 preview overlay, exactly
-  // like the saved-location render effect above already does. Missing this
-  // was a real, confirmed bug: a click's preview dot could appear far from
-  // where it was actually clicked whenever the view was zoomed/cropped.
-  React.useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-    wrapper.querySelectorAll("[data-draw-preview]").forEach(el => el.remove());
-    if (drawPoints.length === 0 || !effectiveBox) return;
-
-    const displayPoints = drawPoints.map(p => remapToBox(effectiveBox, p.x, p.y));
-    const svgNs = "http://www.w3.org/2000/svg";
-    const overlay = document.createElementNS(svgNs, "svg");
-    overlay.setAttribute("data-draw-preview", "overlay");
-    overlay.setAttribute("viewBox", "0 0 100 100");
-    overlay.setAttribute("preserveAspectRatio", "none");
-    Object.assign(overlay.style, {
-      position: "absolute", top: "0", left: "0", width: "100%", height: "100%", pointerEvents: "none",
-    });
-    if (displayPoints.length > 1) {
-      const line = document.createElementNS(svgNs, "polyline");
-      line.setAttribute("points", displayPoints.map(p => `${p.x},${p.y}`).join(" "));
-      line.setAttribute("fill", "none");
-      line.setAttribute("stroke", "#d32f2f");
-      line.setAttribute("stroke-width", "0.6");
-      overlay.appendChild(line);
-      if (displayPoints.length >= 3) {
-        const close = document.createElementNS(svgNs, "line");
-        close.setAttribute("x1", String(displayPoints[displayPoints.length - 1].x));
-        close.setAttribute("y1", String(displayPoints[displayPoints.length - 1].y));
-        close.setAttribute("x2", String(displayPoints[0].x));
-        close.setAttribute("y2", String(displayPoints[0].y));
-        close.setAttribute("stroke", "#d32f2f");
-        close.setAttribute("stroke-width", "0.6");
-        close.setAttribute("stroke-dasharray", "2,1");
-        overlay.appendChild(close);
-      }
+  const handleMapClick = (point: Point) => {
+    if (!canEdit) return;
+    if (mode === "area") {
+      setDrawPoints(points => [...points, point]);
+    } else if (mode === "marker") {
+      setPending({ xPct: point.x, yPct: point.y, autoParentId: parentFor(point) });
+    } else {
+      setSelectedId(null);
+      clearDraft();
     }
-    displayPoints.forEach(p => {
-      const dot = document.createElementNS(svgNs, "circle");
-      dot.setAttribute("cx", String(p.x));
-      dot.setAttribute("cy", String(p.y));
-      dot.setAttribute("r", "1.2");
-      dot.setAttribute("fill", "#d32f2f");
-      overlay.appendChild(dot);
-    });
-    wrapper.appendChild(overlay);
-  }, [drawPoints, effectiveBox]);
-
-  const handleMapClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (suppressNextClickRef.current) {
-      suppressNextClickRef.current = false;
-      return;
-    }
-    const wrapper = wrapperRef.current;
-    if (!wrapper || !effectiveBox) return;
-
-    const rect = wrapper.getBoundingClientRect();
-    const rawX = ((event.clientX - rect.left) / rect.width) * 100;
-    const rawY = ((event.clientY - rect.top) / rect.height) * 100;
-    const { x, y } = composePoint(effectiveBox, rawX, rawY);
-    const xPct = Math.round(x), yPct = Math.round(y);
-
-    if (drawing) {
-      setDrawPoints(points => [...points, { x: xPct, y: yPct }]);
-      return;
-    }
-    if (redrawing?.isPin) {
-      update.call({ id: redrawing.id, body: { xPct, yPct } });
-      return;
-    }
-    setPending({ xPct, yPct });
   };
 
   const finishShape = () => {
-    if (redrawing) {
-      update.call({ id: redrawing.id, body: { shapePoints: drawPoints } });
-    } else {
-      setPending({ shapePoints: drawPoints });
+    setPending({ shapePoints: drawPoints, autoParentId: parentFor(shapeAnchor(drawPoints)) });
+    setDrawPoints([]);
+  };
+
+  const closePlacement = () => {
+    setPending(null);
+    setPendingLocationId(null);
+    setMode("select");
+    onPresetDone?.();
+  };
+
+  const confirmDelete = (location: Location) => {
+    const { descendantLines, toolNames } = describeDeletionImpact(location.id, locations);
+    const lines = [`Delete "${location.name}"?`];
+    if (descendantLines.length) {
+      lines.push("", "This will also permanently delete everything nested inside it:", ...descendantLines);
     }
-    setDrawPoints([]);
-    setDrawing(false);
+    if (toolNames.length) {
+      lines.push("", `These tools will be unassigned (not deleted): ${toolNames.join(", ")}`);
+    }
+    if (!window.confirm(lines.join("\n"))) return;
+    remove.call({ id: location.id });
   };
 
-  const cancelDrawing = () => {
-    setDrawing(false);
-    setDrawPoints([]);
-    setRedrawing(null);
+  // Choices for an "Inside" picker: drawn areas on this floor, never the
+  // location itself or anything already inside it.
+  const parentChoicesFor = (selfId?: string) => {
+    const blocked = selfId ? new Set([selfId, ...descendantIds(selfId, locations)]) : new Set<string>();
+    const areas = floorLocations.filter(l => !blocked.has(l.id) && !!l.shapePoints && l.shapePoints.length >= 3);
+    const labels = new Map(flattenTree(floorLocations).map(e => [e.id, e.label]));
+    return areas.map(l => ({ id: l.id, label: labels.get(l.id) || l.name }));
   };
 
-  const startAdjust = (location: Location) => {
-    if (!location.shapePoints?.length) return;
-    setAdjusting({ id: location.id, points: location.shapePoints.map(p => ({ ...p })) });
-    setEditing(null);
+  const selectFromList = (location: Location) => {
+    setFloorChoice(floorOf(location));
+    changeMode("select");
+    setSelectedId(location.id);
+    setFocus(null);
+    wrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  const saveAdjust = () => {
-    if (!adjusting) return;
-    update.call({ id: adjusting.id, body: { shapePoints: adjusting.points } });
-  };
+  if (!shopFloor) return null;
 
-  const startRedraw = (location: Location) => {
-    const isPin = location.xPct != null && location.yPct != null;
-    setRedrawing({ id: location.id, isPin });
-    setEditing(null);
-    if (!isPin) { setDrawing(true); setDrawPoints([]); }
-  };
-
-  if (!floorName) return null;
+  const hasAnything = locations.length > 0;
+  const parentOf = selected?.parentId ? byId.get(selected.parentId) : undefined;
+  const shapeBase = selected && selectedIsShape
+    ? (shapeDraft?.id === selected.id ? shapeDraft.points : selected.shapePoints!)
+    : undefined;
 
   return (
     <Grid container spacing={1}>
       <Grid size={{ xs: 12 }}>
         <Typography variant="subtitle2" gutterBottom>{shopName} map</Typography>
-        {!svgMarkup || !effectiveBox ? (
+        {!hasAnything && !canEdit ? (
           <Typography variant="body2" color="textSecondary">
             No location map set up for this shop yet.
           </Typography>
         ) : (
           <>
-            {canEdit && zoomStack.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <Button size="small" onClick={() => setZoomStack([])}>{shopName}</Button>
-                {zoomStack.map((loc, i) => (
-                  <React.Fragment key={loc.id}>
-                    {" / "}
-                    <Button size="small" onClick={() => setZoomStack(zoomStack.slice(0, i + 1))}>{loc.name}</Button>
-                  </React.Fragment>
-                ))}
-              </div>
+            {floorOptions.length > 1 && (
+              <ToggleButtonGroup size="small" exclusive value={floor} aria-label="Floor" sx={{ mb: 1, maxWidth: "100%", "& .MuiToggleButton-root": touchTarget }}
+                onChange={(_e, value) => { if (value) { setFloorChoice(value); setSelectedId(null); } }}>
+                {floorOptions.map(f => <ToggleButton key={f} value={f}>{floorLabel(f)}</ToggleButton>)}
+              </ToggleButtonGroup>
             )}
             {canEdit && (
-              <Typography variant="body2" color="textSecondary" gutterBottom>
-                {zoomStack.length > 0
-                  ? `Zoomed in to ${currentParent?.name} -- items placed here belong inside it.`
-                  : `Click "Draw area" to outline a boundary, or click anywhere else to drop a point pin for a smaller item.`}
-              </Typography>
-            )}
-            {drawing && (
-              <Alert severity="info" sx={{ mb: 1 }}>
-                {drawPoints.length === 0
-                  ? `Click on the map to place the first point of ${redrawing ? "the new outline" : "the boundary"}.`
-                  : drawPoints.length < 3
-                    ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking to add more (at least 3 needed to close a shape).`
-                    : `${drawPoints.length} points placed -- the dashed line previews where the shape will close. Click "Finish shape" when the outline looks right, or keep adding points.`}
-              </Alert>
-            )}
-            {redrawing?.isPin && (
-              <Alert severity="info" sx={{ mb: 1 }} action={
-                <Button size="small" onClick={() => setRedrawing(null)}>Cancel</Button>
-              }>
-                Click anywhere on the map to move this location.
-              </Alert>
-            )}
-            {adjusting && (
-              <Alert severity={update.error ? "error" : "info"} sx={{ mb: 1 }} action={
-                <>
-                  <Button size="small" disabled={update.isRequesting} onClick={saveAdjust}>Save</Button>
-                  <Button size="small" disabled={update.isRequesting} onClick={() => setAdjusting(null)}>Cancel</Button>
-                </>
-              }>
-                {update.error || "Drag a corner point to reposition it, then Save."}
-              </Alert>
-            )}
-            {canEdit && (
-              <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                {!drawing && !redrawing && !adjusting && (
-                  <Button variant="outlined" onClick={() => setDrawing(true)}>Draw area</Button>
-                )}
-                {drawing && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                <ToggleButtonGroup size="small" exclusive value={mode} aria-label="Map tool" sx={{ "& .MuiToggleButton-root": touchTarget }}
+                  onChange={(_e, value) => { if (value) changeMode(value); }}>
+                  <ToggleButton value="select"><NearMeIcon fontSize="small" sx={{ mr: 0.5 }} />Select</ToggleButton>
+                  <ToggleButton value="marker"><PlaceIcon fontSize="small" sx={{ mr: 0.5 }} />Add marker</ToggleButton>
+                  <ToggleButton value="area"><PolylineIcon fontSize="small" sx={{ mr: 0.5 }} />Draw area</ToggleButton>
+                </ToggleButtonGroup>
+                {mode === "area" && (
                   <>
-                    <Button variant="contained" disabled={drawPoints.length < 3} onClick={finishShape}>
+                    <Button variant="contained" size="small" disabled={drawPoints.length < 3} onClick={finishShape}>
                       Finish shape ({drawPoints.length})
                     </Button>
-                    <Button onClick={cancelDrawing}>Cancel</Button>
+                    <Button size="small" disabled={!drawPoints.length}
+                      onClick={() => setDrawPoints(points => points.slice(0, -1))}>Undo point</Button>
+                    <Button size="small" onClick={() => changeMode("select")}>Cancel</Button>
                   </>
                 )}
+                {focus && <Button size="small" onClick={() => setFocus(null)}>Show whole shop</Button>}
               </div>
             )}
-            <style>{"[data-shop-location-map-wrapper] > svg:not([data-draw-preview]) { width: 100% !important; height: auto !important; display: block !important; } @keyframes shop-location-map-ring-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.6; } }"}</style>
-            <div
-              ref={wrapperRef}
-              data-shop-location-map-wrapper
-              onClick={canEdit ? handleMapClick : undefined}
-              style={{
-                position: "relative", border: "1px solid #ccc", maxWidth: canEdit ? 600 : 420,
-                overflow: "hidden", cursor: canEdit ? "crosshair" : undefined,
-              }}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
+            <div ref={wrapperRef}>
+              <FloorMap
+                floorName={floor}
+                fitBox={fitBox}
+                fitKey={fitKey}
+                shapes={shapes}
+                markers={markers}
+                draftPoints={mode === "area" ? drawPoints : undefined}
+                adjustPoints={selecting && selectedIsShape ? shapeBase : undefined}
+                adjustKey={selecting && selectedIsShape ? selected!.id : undefined}
+                label={`${shopName} map, ${floorLabel(floor)}`}
+                onAdjustPoint={(index, point, final) => {
+                  if (!selected || !selectedIsShape) return;
+                  const base = draftRef.current?.id === selected.id ? draftRef.current.points : selected.shapePoints!;
+                  const next = base.map((p, i) => (i === index ? point : p));
+                  draftRef.current = { id: selected.id, points: next };
+                  setShapeDraft(draftRef.current);
+                  if (final) update.call({ id: selected.id, body: { shapePoints: next } });
+                }}
+                onMapClick={canEdit ? handleMapClick : undefined}
+                crosshair={canEdit && mode !== "select"}
+              />
+            </div>
+            {/* Hints and messages sit BELOW the map: their text changes length
+                as you work, and anything above the map would push it away from
+                the cursor in the middle of a click sequence. */}
+            {canEdit && (
+              <Alert severity={update.error || remove.error ? "error" : "info"} sx={{ mt: 1 }}>
+                {update.error || remove.error || (
+                  mode === "marker"
+                    ? `Click the map where ${shopTools.find(t => t.id === presetToolId)?.name || "the marker"} goes. If you click inside an area, it is placed inside that area.`
+                    : mode === "area"
+                      ? (drawPoints.length === 0
+                        ? "Click the map to place the first point of the boundary."
+                        : drawPoints.length < 3
+                          ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking (at least 3 close a shape).`
+                          : `${drawPoints.length} points placed -- the dashed line shows where the shape closes. Click "Finish shape" when it looks right.`)
+                      : selected
+                        ? (selectedIsShape
+                          ? "Drag the red corner points to reshape this area. Changes save when you let go."
+                          : "Drag the marker to move it. Changes save when you let go.")
+                        : `Showing the ${floorLabel(floor)}. Click an area or marker to select it, or choose Add marker / Draw area. Use the +/- buttons or pinch to zoom.`
+                )}
+              </Alert>
+            )}
+            {selected && (
+              <Paper variant="outlined" sx={{ mt: 1, p: 1.5 }} aria-label="Selected location">
+                <Typography variant="subtitle2">{selected.name}</Typography>
+                <Typography variant="caption" color="textSecondary" component="div">
+                  {[selected.kind && (KIND_LABELS[selected.kind] || selected.kind), floorLabel(floorOf(selected)),
+                    parentOf && `Inside ${parentOf.name}`].filter(Boolean).join(" · ")}
+                </Typography>
+                {!!selected.toolNames?.length && (
+                  <Typography variant="body2" sx={{ mt: 0.5 }}>Tools: {selected.toolNames.join(", ")}</Typography>
+                )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />} sx={touchTarget} onClick={() => setEditing(selected)}>
+                    Edit details
+                  </Button>
+                  <Button size="small" startIcon={<ZoomInMapIcon />} sx={touchTarget}
+                    onClick={() => setFocus({ box: boundingBoxOf(selected), key: Date.now() })}>
+                    Zoom to it
+                  </Button>
+                  <Button size="small" color="error" startIcon={<DeleteIcon />} sx={touchTarget} disabled={remove.isRequesting}
+                    onClick={() => confirmDelete(selected)}>
+                    Delete
+                  </Button>
+                </div>
+              </Paper>
+            )}
           </>
         )}
         {locations.length > 0 && (
@@ -758,7 +649,13 @@ const ShopLocationMap: React.FC<{
                 ];
               }
               return [
-                <Typography key={entry.id} variant="body2">{entry.label}</Typography>,
+                <Typography key={entry.id} variant="body2">
+                  {/* Editors can pick an item from the list too -- the keyboard
+                      route to anything on the map. */}
+                  {canEdit && location
+                    ? <Link component="button" variant="body2" underline="hover" onClick={() => selectFromList(location)}>{entry.label}</Link>
+                    : entry.label}
+                </Typography>,
                 ...toolNames.map((toolName, i) => (
                   <Typography key={`${entry.id}-tool-${i}`} variant="body2" color="textSecondary">
                     {"—".repeat(entry.depth + 1)} Tool: {toolLink(toolName, toolIds[i])}
@@ -769,30 +666,35 @@ const ShopLocationMap: React.FC<{
           </div>
         )}
       </Grid>
-      {pending && effectiveBox && (
+      {pending && (
         <LocationFormModal
           initialName=""
           // Only tools that don't already have a location -- picking an
           // already-placed tool here would just reassign it to this new
           // marker, silently leaving its old marker behind with the same
           // name but no tool link.
-          linkableTools={shopTools.filter(t => !t.locationId || t.id === preset?.toolId)}
-          initialToolId={preset?.toolId}
-          onClose={() => { setPending(null); setPendingLocationId(null); }}
-          onSave={async (name, kind, toolId) => {
+          linkableTools={shopTools.filter(t => !t.locationId || t.id === presetToolId)}
+          initialToolId={presetToolId}
+          parentChoices={parentChoicesFor()}
+          initialParentId={pending.autoParentId}
+          onClose={closePlacement}
+          onSave={async ({ name, kind, toolId, icon, parentId }) => {
             let locationId = pendingLocationId;
             if (!locationId) {
-              const result = await create.call({ body: { name, shopId, kind, parentId: currentParent?.id, ...pending } });
+              const { autoParentId, ...geometry } = pending;
+              const result = await create.call({
+                body: { name, shopId, kind, icon, floorName: floor, parentId: parentId || undefined, ...geometry },
+              });
               if (isApiErrorResponse(result)) return;
               locationId = result.data.id;
               setPendingLocationId(locationId);
+              setSelectedId(locationId);
             }
             if (toolId) {
               const toolResult = await toggleTool.call({ id: toolId, body: { locationId } });
               if (isApiErrorResponse(toolResult)) return;
             }
-            setPending(null);
-            setPendingLocationId(null);
+            closePlacement();
           }}
           loading={create.isRequesting || toggleTool.isRequesting}
           error={create.error || toggleTool.error}
@@ -802,35 +704,21 @@ const ShopLocationMap: React.FC<{
         <LocationFormModal
           initialName={editing.name}
           initialKind={editing.kind}
+          initialIcon={editing.icon}
+          initialFloor={editing.parentId ? undefined : floorOf(editing)}
+          parentChoices={parentChoicesFor(editing.id)}
+          initialParentId={editing.parentId}
           onClose={() => setEditing(null)}
-          onSave={(name, kind) => update.call({ id: editing.id, body: { name, kind } })}
-          onDelete={() => {
-            const { descendantLines, toolNames } = describeDeletionImpact(editing.id, locations);
-            const lines = [`Delete "${editing.name}"?`];
-            if (descendantLines.length) {
-              lines.push(
-                "",
-                "This will also permanently delete everything nested inside it:",
-                ...descendantLines
-              );
-            }
-            if (toolNames.length) {
-              lines.push("", `These tools will be unassigned (not deleted): ${toolNames.join(", ")}`);
-            }
-            if (!window.confirm(lines.join("\n"))) return;
-            remove.call({ id: editing.id });
-          }}
-          onRedraw={
-            (editing.shapePoints?.length || (editing.xPct != null && editing.yPct != null))
-              ? () => startRedraw(editing)
-              : undefined
-          }
-          onAdjustCorners={
-            editing.shapePoints && editing.shapePoints.length >= 3
-              ? () => startAdjust(editing)
-              : undefined
-          }
-          onZoomIn={() => { setZoomStack(stack => [...stack, editing]); setEditing(null); }}
+          onSave={({ name, kind, icon, floorName, parentId }) => update.call({
+            id: editing.id,
+            // An empty icon/kind must be sent as "" to clear it server-side.
+            body: {
+              name, kind: kind ?? "", icon: icon ?? "",
+              ...(floorName ? { floorName } : {}),
+              ...(parentId !== undefined && parentId !== (editing.parentId || "") ? { parentId } : {}),
+            },
+          })}
+          onDelete={() => confirmDelete(editing)}
           locationId={editing.id}
           tools={shopTools}
           onToggleTool={(toolId, checked) => toggleTool.call({ id: toolId, body: { locationId: checked ? editing.id : "" } })}
