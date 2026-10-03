@@ -470,7 +470,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
           {/* Total + send button */}
           <Grid size={{ xs: 12 }}>
             <Divider style={{ marginBottom: 16 }} />
-            <Grid container justifyContent="space-between" alignItems="center">
+            <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
               <div>
                 {isMultiLine && (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>

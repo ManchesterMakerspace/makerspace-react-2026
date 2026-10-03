@@ -144,7 +144,7 @@ const WorkshopTools: React.FC<{
 
   return (
     <>
-      <Grid container justifyContent="space-between" alignItems="center">
+      <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
         <Typography variant="h6">Tools</Typography>
         {workshop.canAddTool && managedShop &&
           <Button variant="contained" startIcon={<AddIcon />}
@@ -324,7 +324,7 @@ const WorkshopReservations: React.FC<{ workshop: Workshop }> = ({ workshop }) =>
         ) : (
           <Paper key={row.reservation.id} variant="outlined"
             style={{ padding: 10, marginTop: 8 }}>
-            <Grid container justifyContent="space-between" alignItems="center">
+            <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
               <Grid>
                 <strong>{row.reservation.title}</strong>{" "}
                 <Chip size="small" label={row.reservation.status} /><ToolAvailability outOfService={!!row.reservation.outOfServiceToolNames?.length} />
@@ -373,7 +373,7 @@ const WorkshopVolunteer: React.FC<{
 
   return (
     <>
-      <Grid container justifyContent="space-between" alignItems="center">
+      <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
         <Typography variant="h6">Available Bounty Tasks</Typography>
         {workshop.canCreateVolunteerTask &&
           <Button component={Link as React.ElementType}
@@ -408,7 +408,7 @@ const WorkshopVolunteer: React.FC<{
           opacity: task.eligible ? 1 : 0.45,
           background: task.eligible ? undefined : "rgba(0, 0, 0, 0.04)"
         }}>
-          <Grid container justifyContent="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <Grid size={{ xs: 12, md: 9 }}>
               <strong>#{task.taskNumber} — {task.title}</strong>{task.ticketId && <Button href={`/fix-tickets/${task.ticketId}`}>View source ticket</Button>}{" "}
               <Chip size="small" label={`${task.creditValue} credits`} />
@@ -447,6 +447,10 @@ const WorkshopsPage: React.FC = () => {
   // Details tab, where the map lives, with this tool preselected in its
   // "place a specific tool here" picker for the next new marker placed.
   const requestedPlaceTool = searchParams.get('placeTool');
+  // Set by the public tool page's "Find where this tool should be stored"
+  // link -- lands on the shop's Details tab with that tool's marker ringed on
+  // the map, the same view the Tools tab's "Find tool" button produces.
+  const requestedFindTool = searchParams.get('findTool');
   const [data, setData] = React.useState<WorkshopsResponse>({
     canAddShop: false,
     workshops: [],
@@ -506,11 +510,13 @@ const WorkshopsPage: React.FC = () => {
 
   const workshop = data.workshops.find(shop => shop.id === selectedId);
   React.useEffect(() => {
-    if (loading || (!requestedShop && !requestedTool)) return;
-    const found = data.workshops.find(shop => requestedTool ? shop.tools.some(tool => tool.id === requestedTool) : shop.id === requestedShop);
+    if (loading || (!requestedShop && !requestedTool && !requestedFindTool)) return;
+    const lookupToolId = requestedTool || requestedFindTool;
+    const found = data.workshops.find(shop => lookupToolId ? shop.tools.some(tool => tool.id === lookupToolId) : shop.id === requestedShop);
     if (!found) { setError('This shop or tool is unavailable.'); return; }
     setSelectedId(found.id); setTab(requestedTool ? 'tools' : 'details'); setError('');
-  }, [data, loading, requestedShop, requestedTool]);
+    if (requestedFindTool && !requestedTool) setHighlightToolId(requestedFindTool);
+  }, [data, loading, requestedShop, requestedTool, requestedFindTool]);
   const managedShop = managedShops?.find(shop => shop.id === selectedId);
   const shopCatalogReady = !loading && managedShops !== null;
   const editorCatalogsReady = shopCatalogReady && managedTools !== null;
@@ -546,7 +552,7 @@ const WorkshopsPage: React.FC = () => {
   return (
     <Grid container spacing={3} justifyContent="center">
       <Grid size={{ xs: 12, md: 10 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
           <div>
             <Typography variant="h5">Workshops</Typography>
             <Typography color="textSecondary">

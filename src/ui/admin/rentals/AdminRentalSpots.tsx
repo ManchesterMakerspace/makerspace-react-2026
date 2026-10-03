@@ -193,7 +193,7 @@ const AdminRentalSpots: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
           <Typography variant="h6">Rental Spots</Typography>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {selectedSpot && (
