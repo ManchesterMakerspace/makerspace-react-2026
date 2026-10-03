@@ -224,6 +224,12 @@ The plan is a plain image, so positions are stored as percentages of it and
   (`min(420px, 90vw)`), a documented exception to the no-fixed-size guidance
   because a map needs a definite height. The page does not capture the scroll
   wheel; zoom with the +/- buttons, pinch, or double-click.
+- On the Workshops Tools tab, each tool's location line carries the map
+  action beside it: "Find tool" (zooms the map to the tool, rings it and
+  labels it) when the tool has a spot, or "Place on map" (resource managers
+  and above) when it does not, which opens the map ready to place that tool.
+  Anything saved on the map refreshes the page's data, so the Tools tab never
+  lags behind the map.
 - The "find this tool" pulse is disabled under `prefers-reduced-motion`.
 - Leaflet's stylesheet is bundled as a string (`asset/source` rule in the
   webpack configs) and injected once, instead of going through the Rails

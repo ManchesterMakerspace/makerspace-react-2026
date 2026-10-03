@@ -263,7 +263,13 @@ const ShopLocationMap: React.FC<{
   // the "place a specific tool here" picker for the next new marker placed,
   // instead of making the admin find it themselves.
   preset?: { toolId: string };
-}> = ({ shopId, shopName, canEdit, onSelectTool, highlightToolId, preset }) => {
+  // Called when the placement that `preset` started is finished or cancelled,
+  // so the page can drop it.
+  onPresetDone?: () => void;
+  // Called after anything is saved or deleted on the map, so the page around
+  // it can refresh data that depends on it (a tool's location, for one).
+  onChanged?: () => void;
+}> = ({ shopId, shopName, canEdit, onSelectTool, highlightToolId, preset, onPresetDone, onChanged }) => {
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const shop = shops.find(s => s.id === shopId);
   const shopFloor = shop?.floorName;
@@ -325,10 +331,10 @@ const ShopLocationMap: React.FC<{
   const fitKey = `${shopId}|${floor}|${focus?.key || 0}|${baseBox ? "data" : "empty"}`;
 
   const clearDraft = () => { draftRef.current = null; setShapeDraft(null); };
-  const create = useWriteTransaction(adminCreateLocation, () => refresh());
-  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); clearDraft(); });
-  const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); setSelectedId(null); clearDraft(); });
-  const toggleTool = useWriteTransaction(adminUpdateTool, () => refreshTools());
+  const create = useWriteTransaction(adminCreateLocation, () => { refresh(); onChanged?.(); });
+  const update = useWriteTransaction(adminUpdateLocation, () => { refresh(); setEditing(null); clearDraft(); onChanged?.(); });
+  const remove = useWriteTransaction(adminDeleteLocation, () => { refresh(); setEditing(null); setSelectedId(null); clearDraft(); onChanged?.(); });
+  const toggleTool = useWriteTransaction(adminUpdateTool, () => { refreshTools(); onChanged?.(); });
 
   React.useEffect(() => {
     let active = true;
@@ -343,22 +349,25 @@ const ShopLocationMap: React.FC<{
   // "Find tool"/"Place on map" land here from elsewhere on the page --
   // bring the map into view the same way WorkshopTools scrolls to a row,
   // and switch to the floor that tool is on.
+  // Keyed on the tool id, not the preset object: the page hands over a fresh
+  // object every render, which would otherwise re-run these constantly.
+  const presetToolId = preset?.toolId;
   React.useEffect(() => {
-    if (!highlightToolId && !preset) return;
+    if (!highlightToolId && !presetToolId) return;
     wrapperRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlightToolId, preset]);
+  }, [highlightToolId, presetToolId]);
   React.useEffect(() => {
     if (!highlightToolId) return;
     const holder = locations.find(l => l.toolIds?.includes(highlightToolId));
     if (holder) setFloorChoice(floorOf(holder));
   }, [highlightToolId, locations, floorOf]);
   // Arriving from a tool's "Place on map" button starts in Add marker mode.
-  React.useEffect(() => { if (preset && canEdit) setMode("marker"); }, [preset, canEdit]);
+  React.useEffect(() => { if (presetToolId && canEdit) setMode("marker"); }, [presetToolId, canEdit]);
 
   // Switching floor drops any in-progress drawing/open form/zoom rather than
   // letting it apply to the wrong floor.
   React.useEffect(() => {
-    setMode(current => (preset && canEdit && current === "marker" ? "marker" : "select"));
+    setMode(current => (presetToolId && canEdit && current === "marker" ? "marker" : "select"));
     setDrawPoints([]);
     setPending(null);
     setPendingLocationId(null);
@@ -366,6 +375,18 @@ const ShopLocationMap: React.FC<{
     setFocus(null);
     clearDraft();
   }, [floor, shopId]);
+
+  // "Find tool": zoom in on the marker that holds it, once its floor is
+  // showing. Declared after the reset effect above so this focus is the one
+  // that sticks when the floor changes at the same moment.
+  const focusedForRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!highlightToolId) { focusedForRef.current = null; return; }
+    const holder = locations.find(l => l.toolIds?.includes(highlightToolId));
+    if (!holder || floorOf(holder) !== floor || focusedForRef.current === highlightToolId) return;
+    focusedForRef.current = highlightToolId;
+    setFocus({ box: boundingBoxOf(holder), key: Date.now() });
+  }, [highlightToolId, locations, floor, floorOf]);
 
   const shopColor = (shop?.colorId && shopColors[shop.colorId]) || "#1976d2";
   const selecting = canEdit && mode === "select";
@@ -394,7 +415,9 @@ const ShopLocationMap: React.FC<{
       const color = hasTool
         ? TOOL_MARKER_COLOR
         : isNested ? colorForKind(location.kind, FALLBACK_NESTED_COLOR) : shopColor;
-      const label = location.toolNames?.length
+      // A marker named after its one tool would otherwise read "Prusa — Prusa".
+      const onlyItsOwnName = location.toolNames?.length === 1 && location.toolNames[0] === location.name;
+      const label = location.toolNames?.length && !onlyItsOwnName
         ? `${location.name} — ${location.toolNames.join(", ")}`
         : location.name;
       const isSelected = location.id === selectedId;
@@ -457,6 +480,7 @@ const ShopLocationMap: React.FC<{
     setPending(null);
     setPendingLocationId(null);
     setMode("select");
+    onPresetDone?.();
   };
 
   const confirmDelete = (location: Location) => {
@@ -564,7 +588,7 @@ const ShopLocationMap: React.FC<{
               <Alert severity={update.error || remove.error ? "error" : "info"} sx={{ mt: 1 }}>
                 {update.error || remove.error || (
                   mode === "marker"
-                    ? "Click the map where the marker goes. If you click inside an area, it is placed inside that area."
+                    ? `Click the map where ${shopTools.find(t => t.id === presetToolId)?.name || "the marker"} goes. If you click inside an area, it is placed inside that area.`
                     : mode === "area"
                       ? (drawPoints.length === 0
                         ? "Click the map to place the first point of the boundary."
@@ -649,8 +673,8 @@ const ShopLocationMap: React.FC<{
           // already-placed tool here would just reassign it to this new
           // marker, silently leaving its old marker behind with the same
           // name but no tool link.
-          linkableTools={shopTools.filter(t => !t.locationId || t.id === preset?.toolId)}
-          initialToolId={preset?.toolId}
+          linkableTools={shopTools.filter(t => !t.locationId || t.id === presetToolId)}
+          initialToolId={presetToolId}
           parentChoices={parentChoicesFor()}
           initialParentId={pending.autoParentId}
           onClose={closePlacement}

@@ -95,8 +95,8 @@ interface FloorMapProps {
 const STYLE_ID = "floor-map-styles";
 const OWN_CSS = `
 .floor-map .floor-map-marker { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-.floor-map .floor-map-ring { position: absolute; left: -9px; top: -9px; width: ${MARKER_SIZE + 18}px; height: ${MARKER_SIZE + 18}px; border-radius: 50%; border: 3px solid #d32f2f; box-sizing: border-box; pointer-events: none; animation: floor-map-pulse 1.4s ease-in-out infinite; }
-.floor-map .floor-map-ring-selected { border-color: #1976d2; animation: none; }
+.floor-map .floor-map-ring { position: absolute; left: -14px; top: -14px; width: ${MARKER_SIZE + 28}px; height: ${MARKER_SIZE + 28}px; border-radius: 50%; border: 4px solid #d32f2f; box-shadow: 0 0 0 3px rgba(255, 255, 255, .95), 0 0 14px 5px rgba(211, 47, 47, .5); box-sizing: border-box; pointer-events: none; animation: floor-map-pulse 1.4s ease-in-out infinite; }
+.floor-map .floor-map-ring-selected { border-width: 3px; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(255, 255, 255, .95); animation: none; }
 .floor-map .floor-map-handle { width: 16px; height: 16px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3); box-sizing: border-box; cursor: grab; }
 .floor-map .floor-map-clickable { cursor: pointer; }
 .floor-map.leaflet-container { background: #fff; font: inherit; }
@@ -263,7 +263,11 @@ const FloorMap: React.FC<FloorMapProps> = ({
           done(latLngToPct(aspect, at.lat, at.lng));
         });
       }
-      if (item.label) marker.bindTooltip(item.label, { direction: "top", offset: [0, -MARKER_SIZE / 2] });
+      // The tool being looked for keeps its name showing, so it is obvious
+      // which ringed marker is the one.
+      if (item.label) {
+        marker.bindTooltip(item.label, { direction: "top", offset: [0, -MARKER_SIZE / 2 - 8], permanent: !!item.highlighted });
+      }
       if (item.onClick) {
         const handler = item.onClick;
         marker.on("click", () => handler());

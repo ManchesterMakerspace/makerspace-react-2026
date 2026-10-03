@@ -24,6 +24,7 @@ import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
+import PlaceIcon from "@mui/icons-material/Place";
 
 import {
   adminCreateShop, adminUpdateShop, listManagedShops, listTools
@@ -125,7 +126,8 @@ const WorkshopTools: React.FC<{
   onRefresh: () => void;
   highlightToolId?: string;
   onFindTool?: (toolId: string) => void;
-}> = ({ workshop, managedShops, managedTools, catalogsReady, onRefresh, selectedToolId, highlightToolId, onFindTool }) => {
+  onPlaceTool?: (toolId: string) => void;
+}> = ({ workshop, managedShops, managedTools, catalogsReady, onRefresh, selectedToolId, highlightToolId, onFindTool, onPlaceTool }) => {
   React.useEffect(() => {
     if (selectedToolId) document.getElementById(`tool-${selectedToolId}`)?.scrollIntoView({ block: 'center' });
   }, [selectedToolId]);
@@ -172,8 +174,24 @@ const WorkshopTools: React.FC<{
               <Button href={`/fix-tickets?new=true&shop_id=${workshop.id}&tool_id=${tool.id}`}>Report a problem</Button>
               {tool.disabled && <Chip size="small" label="Hidden" />}
               {tool.description && <Typography variant="body2">{tool.description}</Typography>}
-              {tool.locationName &&
-                <Typography variant="body2" color="textSecondary">Location: {tool.locationName}</Typography>}
+              {/* Where the tool lives, with the map action beside it: "Find tool"
+                  when it has a spot, "Place on map" (resource managers and
+                  above) when it does not. */}
+              {(tool.locationName || (workshop.isShopManager && onPlaceTool)) &&
+                <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+                  {tool.locationName ? <>
+                    <Typography variant="body2" color="textSecondary">Location: {tool.locationName}</Typography>
+                    {onFindTool &&
+                      <Button size="small" variant="outlined" startIcon={<PlaceIcon />} onClick={() => onFindTool(tool.id)}>
+                        Find tool
+                      </Button>}
+                  </> : <>
+                    <Typography variant="body2" color="textSecondary">Not on the map yet</Typography>
+                    <Button size="small" variant="outlined" startIcon={<PlaceIcon />} onClick={() => onPlaceTool!(tool.id)}>
+                      Place on map
+                    </Button>
+                  </>}
+                </div>}
               {tool.prerequisiteNames.length > 0 &&
                 <Typography variant="caption" style={{ display: "block" }}>
                   Checkout prerequisites: {tool.prerequisiteNames.join(", ")}
@@ -215,10 +233,6 @@ const WorkshopTools: React.FC<{
               flexWrap: "wrap"
             }}>
               {workshop.isShopManager && <ToolOutageAction tool={tool} onSaved={onRefresh} />}
-              {tool.locationName && onFindTool &&
-                <Button size="small" variant="outlined" onClick={() => onFindTool(tool.id)}>
-                  Find tool
-                </Button>}
               {tool.gdriveId &&
                 <Button size="small" variant="outlined"
                   href={`https://drive.google.com/drive/folders/${encodeURIComponent(tool.gdriveId)}`}
@@ -458,6 +472,10 @@ const WorkshopsPage: React.FC = () => {
   const [selectedId, setSelectedId] = React.useState("");
   const [tab, setTab] = React.useState<WorkshopTab>("details");
   const [highlightToolId, setHighlightToolId] = React.useState<string | undefined>(undefined);
+  // The tool the map is being opened to place -- from a row's "Place on map"
+  // button, or from the placeTool link in the URL.
+  const [placeToolId, setPlaceToolId] = React.useState<string | undefined>(requestedPlaceTool || undefined);
+  React.useEffect(() => { if (requestedPlaceTool) setPlaceToolId(requestedPlaceTool); }, [requestedPlaceTool]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [addOpen, setAddOpen] = React.useState(false);
@@ -471,8 +489,10 @@ const WorkshopsPage: React.FC = () => {
   const [shopError, setShopError] = React.useState("");
   const { canViewShopQrCodes } = useCapabilities();
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
+  // `quiet` refreshes the data without the full-page loading state, so a
+  // refresh triggered from the map does not tear down the map mid-edit.
+  const load = React.useCallback(async (options?: { quiet?: boolean }) => {
+    if (options?.quiet !== true) setLoading(true);
     const result = await listWorkshops();
     if (result.error) {
       setError(result.error.message);
@@ -568,7 +588,7 @@ const WorkshopsPage: React.FC = () => {
       </Grid>
       {error && <Grid size={{ xs: 12, md: 10 }}><Alert severity="error">{error}</Alert></Grid>}
       {catalogError && <Grid size={{ xs: 12, md: 10 }}>
-        <Alert severity="error" action={<Button disabled={loading} onClick={load}>Retry</Button>}>
+        <Alert severity="error" action={<Button disabled={loading} onClick={() => load()}>Retry</Button>}>
           {catalogError}
         </Alert>
       </Grid>}
@@ -625,14 +645,20 @@ const WorkshopsPage: React.FC = () => {
                   canEdit={workshop.isShopManager}
                   onSelectTool={toolId => { setHighlightToolId(toolId); setTab("tools"); }}
                   highlightToolId={tab === "details" ? highlightToolId : undefined}
-                  preset={requestedPlaceTool ? { toolId: requestedPlaceTool } : undefined} />
+                  preset={placeToolId ? { toolId: placeToolId } : undefined}
+                  onPresetDone={() => setPlaceToolId(undefined)}
+                  // Placing, moving or deleting something on the map changes
+                  // which tools have a location; the Tools tab reads that
+                  // from this page's data, so refresh it.
+                  onChanged={() => load({ quiet: true })} />
               </Grid>
             </Grid>}
             {tab === "tools" &&
               <WorkshopTools key={workshop.id} workshop={workshop} managedShops={managedShops || []} selectedToolId={requestedTool}
                 managedTools={managedTools || []} catalogsReady={editorCatalogsReady}
                 onRefresh={load} highlightToolId={tab === "tools" ? highlightToolId : undefined}
-                onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }} />}
+                onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }}
+                onPlaceTool={toolId => { setHighlightToolId(undefined); setPlaceToolId(toolId); setTab("details"); }} />}
             {tab === "reservations" &&
               <WorkshopReservations workshop={workshop} />}
             {tab === "documentation" && workshop.gdriveId &&
