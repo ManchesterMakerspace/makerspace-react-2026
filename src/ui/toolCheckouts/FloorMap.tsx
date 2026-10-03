@@ -41,8 +41,10 @@ export interface MapShape {
   color: string;
   opacity?: number;
   label?: string;
-  // Outline only (no fill) -- the frame around the area you zoomed into.
+  // Outline only (no fill) -- a frame with nothing inside it to click.
   outline?: boolean;
+  // The shape currently chosen for editing: drawn with a heavier edge.
+  selected?: boolean;
   onClick?: () => void;
 }
 
@@ -54,6 +56,11 @@ export interface MapMarker {
   icon?: string;
   label?: string;
   highlighted?: boolean;
+  selected?: boolean;
+  // Only the selected marker is draggable, so a stray drag can't move
+  // something you did not pick first.
+  draggable?: boolean;
+  onDragEnd?: (point: Point) => void;
   onClick?: () => void;
 }
 
@@ -69,17 +76,27 @@ interface FloorMapProps {
   draftPoints?: Point[];
   // Draggable corners while adjusting an existing shape.
   adjustPoints?: Point[];
-  onAdjustPoint?: (index: number, point: Point) => void;
+  // Identifies which shape the corner handles belong to. Handles are rebuilt
+  // only when this changes -- rebuilding while one is being dragged would
+  // destroy the very handle in your hand.
+  adjustKey?: string;
+  // Called continuously while a corner is dragged (final = false) and once
+  // when it is released (final = true).
+  onAdjustPoint?: (index: number, point: Point, final: boolean) => void;
   onMapClick?: (point: Point) => void;
   height?: number;
   // Accessible name for the map region.
   label?: string;
+  // Crosshair cursor, for when a click will place something. Defaults to
+  // whether the map takes clicks at all.
+  crosshair?: boolean;
 }
 
 const STYLE_ID = "floor-map-styles";
 const OWN_CSS = `
 .floor-map .floor-map-marker { width: ${MARKER_SIZE}px; height: ${MARKER_SIZE}px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 .floor-map .floor-map-ring { position: absolute; left: -9px; top: -9px; width: ${MARKER_SIZE + 18}px; height: ${MARKER_SIZE + 18}px; border-radius: 50%; border: 3px solid #d32f2f; box-sizing: border-box; pointer-events: none; animation: floor-map-pulse 1.4s ease-in-out infinite; }
+.floor-map .floor-map-ring-selected { border-color: #1976d2; animation: none; }
 .floor-map .floor-map-handle { width: 16px; height: 16px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3); box-sizing: border-box; cursor: grab; }
 .floor-map .floor-map-clickable { cursor: pointer; }
 .floor-map.leaflet-container { background: #fff; font: inherit; }
@@ -100,8 +117,8 @@ const ensureStyles = () => {
 };
 
 const FloorMap: React.FC<FloorMapProps> = ({
-  floorName, fitBox, fitKey, shapes, markers, draftPoints, adjustPoints, onAdjustPoint, onMapClick, height = 420,
-  label = "Floor map",
+  floorName, fitBox, fitKey, shapes, markers, draftPoints, adjustPoints, adjustKey, onAdjustPoint, onMapClick, height = 420,
+  label = "Floor map", crosshair,
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<L.Map | null>(null);
@@ -119,6 +136,8 @@ const FloorMap: React.FC<FloorMapProps> = ({
   onAdjustPointRef.current = onAdjustPoint;
   const aspectRef = React.useRef<number | null>(null);
   aspectRef.current = aspect;
+  const adjustPointsRef = React.useRef(adjustPoints);
+  adjustPointsRef.current = adjustPoints;
   const fitBoxRef = React.useRef(fitBox);
   fitBoxRef.current = fitBox;
 
@@ -192,7 +211,7 @@ const FloorMap: React.FC<FloorMapProps> = ({
       if (shape.points.length < 3) return;
       const polygon = L.polygon(shape.points.map(p => pctToLatLng(aspect, p.x, p.y)), {
         color: shape.color,
-        weight: shape.outline ? 2 : 1,
+        weight: shape.selected ? 3 : shape.outline ? 2 : 1,
         dashArray: shape.outline ? "6 4" : undefined,
         fill: !shape.outline,
         fillColor: shape.color,
@@ -222,7 +241,7 @@ const FloorMap: React.FC<FloorMapProps> = ({
       const marker = L.marker(pctToLatLng(aspect, item.x, item.y), {
         icon: L.divIcon({
           className: "",
-          html: markerHtml(item.icon, item.color, item.highlighted),
+          html: markerHtml(item.icon, item.color, item.highlighted, item.selected),
           iconSize: [MARKER_SIZE, MARKER_SIZE],
           iconAnchor: [MARKER_SIZE / 2, MARKER_SIZE / 2],
         }),
@@ -234,8 +253,16 @@ const FloorMap: React.FC<FloorMapProps> = ({
         title: item.label,
         alt: item.label || "Map marker",
         bubblingMouseEvents: false,
-        zIndexOffset: item.highlighted ? 1000 : 0,
+        zIndexOffset: item.highlighted || item.selected ? 1000 : 0,
+        draggable: !!item.draggable,
       });
+      if (item.draggable && item.onDragEnd) {
+        const done = item.onDragEnd;
+        marker.on("dragend", () => {
+          const at = marker.getLatLng();
+          done(latLngToPct(aspect, at.lat, at.lng));
+        });
+      }
       if (item.label) marker.bindTooltip(item.label, { direction: "top", offset: [0, -MARKER_SIZE / 2] });
       if (item.onClick) {
         const handler = item.onClick;
@@ -268,24 +295,24 @@ const FloorMap: React.FC<FloorMapProps> = ({
     const layer = adjustLayerRef.current;
     if (!layer || aspect == null) return;
     layer.clearLayers();
-    if (!adjustPoints?.length) return;
-    adjustPoints.forEach((point, index) => {
+    const points = adjustPointsRef.current;
+    if (!adjustKey || !points?.length) return;
+    points.forEach((point, index) => {
       const handle = L.marker(pctToLatLng(aspect, point.x, point.y), {
         draggable: true,
         icon: L.divIcon({ className: "", html: '<div class="floor-map-handle"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
         bubblingMouseEvents: false,
         keyboard: false,
       });
-      handle.on("dragend", () => {
+      const report = (final: boolean) => () => {
         const latLng = handle.getLatLng();
-        onAdjustPointRef.current?.(index, latLngToPct(aspect, latLng.lat, latLng.lng));
-      });
+        onAdjustPointRef.current?.(index, latLngToPct(aspect, latLng.lat, latLng.lng), final);
+      };
+      handle.on("drag", report(false));
+      handle.on("dragend", report(true));
       layer.addLayer(handle);
     });
-    // Rebuilding on every drag would fight the drag itself, so only the
-    // number of corners and the plan trigger a rebuild; positions are read
-    // from adjustPoints at that moment.
-  }, [adjustPoints?.length, adjustPoints?.[0]?.x, adjustPoints?.[0]?.y, aspect]);
+  }, [adjustKey, aspect]);
 
   return (
     <div
@@ -297,7 +324,7 @@ const FloorMap: React.FC<FloorMapProps> = ({
         // A map needs a definite height; it shrinks on narrow screens
         // instead of overflowing, and the width follows its container.
         height: `min(${height}px, 90vw)`, minHeight: 240, width: "100%", maxWidth: 720,
-        border: "1px solid rgba(0, 0, 0, 0.26)", cursor: onMapClick ? "crosshair" : undefined,
+        border: "1px solid rgba(0, 0, 0, 0.26)", cursor: (crosshair ?? !!onMapClick) ? "crosshair" : undefined,
       }}
     />
   );

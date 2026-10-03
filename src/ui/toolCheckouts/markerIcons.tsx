@@ -43,9 +43,11 @@ export const MARKER_SIZE = 32;
 
 // Static HTML for a Leaflet divIcon: a colored round badge with a white
 // glyph. Rendered once per marker, not a live React tree.
-export const markerHtml = (key: string | undefined, color: string, highlighted = false) => {
+export const markerHtml = (key: string | undefined, color: string, highlighted = false, selected = false) => {
   const Icon: React.ElementType = (key ? ICON_BY_KEY.get(key) : undefined) || PlaceIcon;
   const glyph = renderToStaticMarkup(<Icon style={{ width: 20, height: 20, fill: "#fff" }} />);
-  const ring = highlighted ? '<span class="floor-map-ring"></span>' : "";
+  const ring = highlighted
+    ? '<span class="floor-map-ring"></span>'
+    : selected ? '<span class="floor-map-ring floor-map-ring-selected"></span>' : "";
   return `<div class="floor-map-marker" style="background:${color}">${glyph}</div>${ring}`;
 };

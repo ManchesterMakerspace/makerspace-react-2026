@@ -206,6 +206,15 @@ The plan is a plain image, so positions are stored as percentages of it and
 
 - A shop can span floors: each location has its own floor (defaulting to the
   shop's home floor), and a floor switch appears when more than one applies.
+- Editors get a mode toolbar (Select, Add marker, Draw area). Nothing is
+  created unless a mode is chosen, so a stray click never drops a marker. In
+  Select mode, click an area or marker to choose it and see its details; drag
+  the chosen marker to move it, or its red corner points to reshape the area.
+  Each drag saves when released. A marker placed or moved inside an area is
+  nested in it automatically (the smallest area containing it); the "Inside"
+  field in the form shows and can change this. Everything is also reachable
+  from the keyboard through the list under the map, which selects an item.
+  Hints and messages sit below the map so changing text never moves it.
 - Markers use a fixed set of MUI glyphs (`markerIcons.tsx`, mirrored by
   `Location::ICONS` on the server). A glyph is never the only label: every
   interactive marker has a name as its tooltip and accessible label, and is
