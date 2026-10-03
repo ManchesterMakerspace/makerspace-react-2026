@@ -53,6 +53,23 @@ export const paddedBox = (box: Box, pad = FIT_PADDING_PCT): Box => ({
   maxY: Math.min(100, box.maxY + pad),
 });
 
+// Widens a box around its centre so it spans at least `minSpan` percent on
+// each axis (never past the plan's edge). Fitting a single pin, or one tiny
+// cabinet, would otherwise zoom into blank floor with no walls for context.
+export const withMinSpan = (box: Box, minSpan: number): Box => {
+  const widen = (min: number, max: number): [number, number] => {
+    if (max - min >= minSpan) return [min, max];
+    const mid = (min + max) / 2;
+    let lo = mid - minSpan / 2, hi = mid + minSpan / 2;
+    if (lo < 0) { hi = Math.min(100, hi - lo); lo = 0; }
+    if (hi > 100) { lo = Math.max(0, lo - (hi - 100)); hi = 100; }
+    return [lo, hi];
+  };
+  const [minX, maxX] = widen(box.minX, box.maxX);
+  const [minY, maxY] = widen(box.minY, box.maxY);
+  return { minX, maxX, minY, maxY };
+};
+
 export const centroid = (points: Point[]): Point => ({
   x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
   y: points.reduce((sum, p) => sum + p.y, 0) / points.length,

@@ -29,7 +29,7 @@ import { listGoogleCalendarColors, listTools, adminUpdateTool } from "api/toolCh
 import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
 import {
-  Box, Point, FULL_FLOOR_BOX, FLOOR_NAMES, floorLabel, sortFloors, paddedBox, centroid,
+  Box, Point, FULL_FLOOR_BOX, FLOOR_NAMES, floorLabel, sortFloors, paddedBox, centroid, withMinSpan,
 } from "./floorMapGeometry";
 import { boundingBoxOf } from "./locationGeometry";
 import { containingParentId, descendantIds, shapeAnchor } from "./locationNesting";
@@ -48,6 +48,9 @@ const unionBoundingBox = (locations: Location[]): Box | null => {
 };
 
 type Mode = "select" | "marker" | "area";
+
+// Comfortable touch size on phones; desktop keeps the compact buttons.
+const touchTarget = { minHeight: { xs: 44, sm: 0 } };
 
 interface PendingPlacement {
   xPct?: number;
@@ -317,8 +320,8 @@ const ShopLocationMap: React.FC<{
   // or that choice changes -- not on every edit -- so the map never jumps
   // away while you are placing things.
   const fitBox: Box = focus
-    ? paddedBox(focus.box)
-    : (baseBox ? paddedBox(baseBox) : FULL_FLOOR_BOX);
+    ? withMinSpan(paddedBox(focus.box), 15)
+    : (baseBox ? withMinSpan(paddedBox(baseBox), 30) : FULL_FLOOR_BOX);
   const fitKey = `${shopId}|${floor}|${focus?.key || 0}|${baseBox ? "data" : "empty"}`;
 
   const clearDraft = () => { draftRef.current = null; setShapeDraft(null); };
@@ -505,14 +508,14 @@ const ShopLocationMap: React.FC<{
         ) : (
           <>
             {floorOptions.length > 1 && (
-              <ToggleButtonGroup size="small" exclusive value={floor} aria-label="Floor" sx={{ mb: 1, maxWidth: "100%" }}
+              <ToggleButtonGroup size="small" exclusive value={floor} aria-label="Floor" sx={{ mb: 1, maxWidth: "100%", "& .MuiToggleButton-root": touchTarget }}
                 onChange={(_e, value) => { if (value) { setFloorChoice(value); setSelectedId(null); } }}>
                 {floorOptions.map(f => <ToggleButton key={f} value={f}>{floorLabel(f)}</ToggleButton>)}
               </ToggleButtonGroup>
             )}
             {canEdit && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                <ToggleButtonGroup size="small" exclusive value={mode} aria-label="Map tool"
+                <ToggleButtonGroup size="small" exclusive value={mode} aria-label="Map tool" sx={{ "& .MuiToggleButton-root": touchTarget }}
                   onChange={(_e, value) => { if (value) changeMode(value); }}>
                   <ToggleButton value="select"><NearMeIcon fontSize="small" sx={{ mr: 0.5 }} />Select</ToggleButton>
                   <ToggleButton value="marker"><PlaceIcon fontSize="small" sx={{ mr: 0.5 }} />Add marker</ToggleButton>
@@ -587,14 +590,14 @@ const ShopLocationMap: React.FC<{
                   <Typography variant="body2" sx={{ mt: 0.5 }}>Tools: {selected.toolNames.join(", ")}</Typography>
                 )}
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-                  <Button size="small" variant="outlined" startIcon={<EditIcon />} onClick={() => setEditing(selected)}>
+                  <Button size="small" variant="outlined" startIcon={<EditIcon />} sx={touchTarget} onClick={() => setEditing(selected)}>
                     Edit details
                   </Button>
-                  <Button size="small" startIcon={<ZoomInMapIcon />}
+                  <Button size="small" startIcon={<ZoomInMapIcon />} sx={touchTarget}
                     onClick={() => setFocus({ box: boundingBoxOf(selected), key: Date.now() })}>
                     Zoom to it
                   </Button>
-                  <Button size="small" color="error" startIcon={<DeleteIcon />} disabled={remove.isRequesting}
+                  <Button size="small" color="error" startIcon={<DeleteIcon />} sx={touchTarget} disabled={remove.isRequesting}
                     onClick={() => confirmDelete(selected)}>
                     Delete
                   </Button>

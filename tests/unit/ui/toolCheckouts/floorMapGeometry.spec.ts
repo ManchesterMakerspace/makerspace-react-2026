@@ -1,6 +1,6 @@
 import {
   MAP_WIDTH, pctToLatLng, latLngToPct, boxToBounds, paddedBox, centroid, aspectFromSvgText, sortFloors, floorLabel,
-  FULL_FLOOR_BOX,
+  FULL_FLOOR_BOX, withMinSpan,
 } from "ui/toolCheckouts/floorMapGeometry";
 
 describe("floorMapGeometry", () => {
@@ -35,6 +35,22 @@ describe("floorMapGeometry", () => {
 
   it("pads a box without leaving the plan", () => {
     expect(paddedBox({ minX: 2, maxX: 50, minY: 40, maxY: 98 })).toEqual({ minX: 0, maxX: 55, minY: 35, maxY: 100 });
+  });
+
+  describe("withMinSpan", () => {
+    it("widens a tiny box around its centre", () => {
+      expect(withMinSpan({ minX: 48, maxX: 52, minY: 48, maxY: 52 }, 30)).toEqual({ minX: 35, maxX: 65, minY: 35, maxY: 65 });
+    });
+
+    it("leaves a box that is already wide enough alone", () => {
+      const box = { minX: 10, maxX: 70, minY: 5, maxY: 60 };
+      expect(withMinSpan(box, 30)).toEqual(box);
+    });
+
+    it("widens each axis independently and slides back inside the plan edge", () => {
+      expect(withMinSpan({ minX: 0, maxX: 2, minY: 10, maxY: 90 }, 30)).toEqual({ minX: 0, maxX: 30, minY: 10, maxY: 90 });
+      expect(withMinSpan({ minX: 98, maxX: 100, minY: 99, maxY: 100 }, 30)).toEqual({ minX: 70, maxX: 100, minY: 70, maxY: 100 });
+    });
   });
 
   it("finds the centre of a shape", () => {

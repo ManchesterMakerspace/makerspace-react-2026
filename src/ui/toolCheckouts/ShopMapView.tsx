@@ -92,7 +92,7 @@ const ShopMapView: React.FC = () => {
     <Grid container spacing={2}>
       {floors.length > 1 && (
         <Grid size={{ xs: 12 }}>
-          <ToggleButtonGroup size="small" exclusive value={floorName} aria-label="Floor" sx={{ maxWidth: "100%" }}
+          <ToggleButtonGroup size="small" exclusive value={floorName} aria-label="Floor" sx={{ maxWidth: "100%", "& .MuiToggleButton-root": { minHeight: { xs: 44, sm: 0 } } }}
             onChange={(_e, value) => { if (value) setFloorChoice(value); }}>
             {floors.map(f => <ToggleButton key={f} value={f}>{floorLabel(f)}</ToggleButton>)}
           </ToggleButtonGroup>
