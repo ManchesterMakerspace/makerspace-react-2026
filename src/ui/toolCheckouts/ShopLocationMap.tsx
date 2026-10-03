@@ -475,32 +475,6 @@ const ShopLocationMap: React.FC<{
                   : `Showing the ${floorLabel(floor)}. Click "Draw area" to outline a boundary, or click anywhere else to drop a pin for a smaller item. Use the +/- buttons or pinch to zoom.`}
               </Typography>
             )}
-            {drawing && (
-              <Alert severity="info" sx={{ mb: 1 }}>
-                {drawPoints.length === 0
-                  ? `Click on the map to place the first point of ${redrawing ? "the new outline" : "the boundary"}.`
-                  : drawPoints.length < 3
-                    ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking to add more (at least 3 needed to close a shape).`
-                    : `${drawPoints.length} points placed -- the dashed line previews where the shape will close. Click "Finish shape" when the outline looks right, or keep adding points.`}
-              </Alert>
-            )}
-            {redrawing?.isPin && (
-              <Alert severity="info" sx={{ mb: 1 }} action={
-                <Button size="small" onClick={() => setRedrawing(null)}>Cancel</Button>
-              }>
-                Click anywhere on the map to move this location.
-              </Alert>
-            )}
-            {adjusting && (
-              <Alert severity={update.error ? "error" : "info"} sx={{ mb: 1 }} action={
-                <>
-                  <Button size="small" disabled={update.isRequesting} onClick={saveAdjust}>Save</Button>
-                  <Button size="small" disabled={update.isRequesting} onClick={() => setAdjusting(null)}>Cancel</Button>
-                </>
-              }>
-                {update.error || "Drag a corner point to reposition it, then Save."}
-              </Alert>
-            )}
             {canEdit && (
               <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                 {!drawing && !redrawing && !adjusting && (
@@ -532,6 +506,35 @@ const ShopLocationMap: React.FC<{
                 onMapClick={canEdit ? handleMapClick : undefined}
               />
             </div>
+            {/* Hints sit BELOW the map: their text changes length as points are
+                placed, and anything above the map would push it away from the
+                cursor in the middle of a click sequence. */}
+            {drawing && (
+              <Alert severity="info" sx={{ mb: 1 }}>
+                {drawPoints.length === 0
+                  ? `Click on the map to place the first point of ${redrawing ? "the new outline" : "the boundary"}.`
+                  : drawPoints.length < 3
+                    ? `${drawPoints.length} point${drawPoints.length > 1 ? "s" : ""} placed -- keep clicking to add more (at least 3 needed to close a shape).`
+                    : `${drawPoints.length} points placed -- the dashed line previews where the shape will close. Click "Finish shape" when the outline looks right, or keep adding points.`}
+              </Alert>
+            )}
+            {redrawing?.isPin && (
+              <Alert severity="info" sx={{ mb: 1 }} action={
+                <Button size="small" onClick={() => setRedrawing(null)}>Cancel</Button>
+              }>
+                Click anywhere on the map to move this location.
+              </Alert>
+            )}
+            {adjusting && (
+              <Alert severity={update.error ? "error" : "info"} sx={{ mb: 1 }} action={
+                <>
+                  <Button size="small" disabled={update.isRequesting} onClick={saveAdjust}>Save</Button>
+                  <Button size="small" disabled={update.isRequesting} onClick={() => setAdjusting(null)}>Cancel</Button>
+                </>
+              }>
+                {update.error || "Drag a corner point to reposition it, then Save."}
+              </Alert>
+            )}
           </>
         )}
         {locations.length > 0 && (

@@ -53,6 +53,37 @@ describe("FloorMap", () => {
     expect(host.querySelector(".floor-map-marker")).not.toBeNull();
   });
 
+  it("lets a click on a hover-only shape reach the map, but keeps it for a clickable shape", async () => {
+    const onMapClick = jest.fn();
+    const onShapeClick = jest.fn();
+    const triangle = (x: number) => [{ x, y: 10 }, { x: x + 20, y: 10 }, { x: x + 20, y: 40 }];
+    await act(async () => {
+      root.render(
+        <FloorMap
+          floorName="1"
+          fitBox={FULL_FLOOR_BOX}
+          fitKey="1"
+          onMapClick={onMapClick}
+          shapes={[
+            { id: "hover-only", points: triangle(10), color: "#1976d2", label: "Hover only" },
+            { id: "clickable", points: triangle(60), color: "#1976d2", label: "Clickable", onClick: onShapeClick },
+          ]}
+          markers={[]}
+        />
+      );
+    });
+    await settle(() => host.querySelectorAll(".leaflet-overlay-pane path").length === 2);
+    const [hoverOnly, clickable] = Array.from(host.querySelectorAll<SVGPathElement>(".leaflet-overlay-pane path"));
+
+    await act(async () => { hoverOnly.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 })); });
+    expect(onMapClick).toHaveBeenCalledTimes(1);
+    expect(onShapeClick).not.toHaveBeenCalled();
+
+    await act(async () => { clickable.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: 5, clientY: 5 })); });
+    expect(onShapeClick).toHaveBeenCalledTimes(1);
+    expect(onMapClick).toHaveBeenCalledTimes(1); // the shape kept its click
+  });
+
   it("falls back to the placeholder plan when a floor has none", async () => {
     (global as any).fetch = jest.fn(async (url: string) =>
       url.includes("placeholder") ? { ok: true, text: async () => PLAN } : { ok: false, text: async () => "" });

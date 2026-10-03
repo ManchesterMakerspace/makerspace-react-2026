@@ -82,7 +82,7 @@ const OWN_CSS = `
 .floor-map .floor-map-ring { position: absolute; left: -9px; top: -9px; width: ${MARKER_SIZE + 18}px; height: ${MARKER_SIZE + 18}px; border-radius: 50%; border: 3px solid #d32f2f; box-sizing: border-box; pointer-events: none; animation: floor-map-pulse 1.4s ease-in-out infinite; }
 .floor-map .floor-map-handle { width: 16px; height: 16px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3); box-sizing: border-box; cursor: grab; }
 .floor-map .floor-map-clickable { cursor: pointer; }
-.floor-map .leaflet-container { background: #fff; font: inherit; }
+.floor-map.leaflet-container { background: #fff; font: inherit; }
 @keyframes floor-map-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: .6; } }
 @media (prefers-reduced-motion: reduce) { .floor-map .floor-map-ring { animation: none; } }
 .floor-map .leaflet-marker-icon:focus-visible { outline: 3px solid #1976d2; outline-offset: 2px; border-radius: 50%; }
@@ -197,7 +197,11 @@ const FloorMap: React.FC<FloorMapProps> = ({
         fill: !shape.outline,
         fillColor: shape.color,
         fillOpacity: shape.opacity ?? 0.3,
-        bubblingMouseEvents: false,
+        // A shape that is only hoverable (name tooltip) must let clicks reach
+        // the map, otherwise you cannot draw or drop a pin on top of an
+        // existing area -- e.g. a cabinet inside a room. Only a shape with
+        // its own click action keeps the click for itself.
+        bubblingMouseEvents: !shape.onClick,
         interactive: !!shape.onClick || !!shape.label,
         className: shape.onClick ? "floor-map-clickable" : undefined,
       });
