@@ -220,7 +220,7 @@ const AdminChangePasswordModal: React.FC<Props> = ({ member = {} as Member }) =>
 
             {success && (
               <Grid size={{ xs: 12 }}>
-                <Typography id="admin-password-success" style={{ color: "#4caf50" }}>
+                <Typography id="admin-password-success" color="success.main">
                   {success}
                 </Typography>
               </Grid>

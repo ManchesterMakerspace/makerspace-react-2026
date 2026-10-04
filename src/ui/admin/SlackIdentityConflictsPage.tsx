@@ -22,6 +22,7 @@ import {
   dismissSlackIdentityConflict,
   SlackIdentityConflict,
 } from 'api/slackIdentityConflicts';
+import { softTone } from 'ui/common/statusColors';
 
 type ConflictAction = 'link' | 'keep';
 type ConfirmTarget = { conflict: SlackIdentityConflict; action: ConflictAction };
@@ -98,7 +99,7 @@ const SlackIdentityConflictsPage: React.FC = () => {
               </Typography>
               <Grid container spacing={2} alignItems='flex-start'>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Chip size='small' label='Currently linked' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32', marginBottom: 4 }} />
+                  <Chip size='small' label='Currently linked' sx={[softTone('success'), { mb: 0.5 }]} />
                   <Typography variant='body2'>{conflict.conflicting_slack_name || '(no name)'}</Typography>
                   <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{conflict.conflicting_slack_email}</Typography>
                   <Button
@@ -113,7 +114,7 @@ const SlackIdentityConflictsPage: React.FC = () => {
                   </Button>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
-                  <Chip size='small' label='Not linked (conflict)' style={{ backgroundColor: '#ffebee', color: '#c62828', marginBottom: 4 }} />
+                  <Chip size='small' label='Not linked (conflict)' sx={[softTone('error'), { mb: 0.5 }]} />
                   <Typography variant='body2'>{conflict.slack_name || '(no name)'}</Typography>
                   <Typography variant='caption' color='textSecondary' style={{ display: 'block' }}>{conflict.slack_email}</Typography>
                   <Button

@@ -31,6 +31,7 @@ import {
   ActiveMemberPoint,
   VolunteerSummaryAnalytics,
 } from 'api/analytics';
+import { useTheme } from '@mui/material/styles';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ const mergeGrowthAndLoss = (growth: MemberGrowthPoint[], losses: MemberLossPoint
 const StatCard: React.FC<{ label: string; value: number | string; color?: string }> = ({ label, value, color = '#e85d04' }) => (
   <Card variant='outlined' style={{ height: '100%' }}>
     <CardContent>
-      <Typography variant='h4' style={{ color, fontWeight: 700 }}>{value}</Typography>
+      <Typography variant='h4' sx={{ color, fontWeight: 700 }}>{value}</Typography>
       <Typography variant='body2' color='textSecondary'>{label}</Typography>
     </CardContent>
   </Card>
@@ -82,6 +83,7 @@ const EmptyChart: React.FC<{ message: string }> = ({ message }) => (
 // ── Member Growth Tab ─────────────────────────────────────────────────────────
 
 const MemberGrowthTab: React.FC = () => {
+  const theme = useTheme();
   const [year, setYear]       = React.useState<number | ''>('');
   const [growth, setGrowth]   = React.useState<MemberGrowthPoint[]>([]);
   const [losses, setLosses]   = React.useState<MemberLossPoint[]>([]);
@@ -182,7 +184,7 @@ const MemberGrowthTab: React.FC = () => {
                 type='monotone'
                 dataKey='count'
                 name='Activated Members'
-                stroke='#1565c0'
+                stroke={theme.palette.primary.dark}
                 dot={{ r: 3 }}
                 strokeWidth={2}
               />
@@ -197,6 +199,7 @@ const MemberGrowthTab: React.FC = () => {
 // ── Volunteer Analytics Tab ───────────────────────────────────────────────────
 
 const VolunteerAnalyticsTab: React.FC = () => {
+  const theme = useTheme();
   // FIX: was defaulting to currentYear which shows blank in dev and early in any new year.
   // Default to '' (all time) so data always shows on first load.
   const [year, setYear]       = React.useState<number | ''>('');
@@ -250,7 +253,7 @@ const VolunteerAnalyticsTab: React.FC = () => {
             <StatCard label='Total Credit Value' value={data.total_credit_value.toFixed(1)} />
           </Grid>
           <Grid size={{ xs: 6, sm: 3 }}>
-            <StatCard label='Pending Credits' value={data.pending_credits} color='#f57c00' />
+            <StatCard label='Pending Credits' value={data.pending_credits} color='warning.main' />
           </Grid>
 
           {/* Credits per month */}
@@ -266,8 +269,8 @@ const VolunteerAnalyticsTab: React.FC = () => {
                   <YAxis allowDecimals={false} />
                   <Tooltip labelFormatter={formatMonth} />
                   <Legend />
-                  <Bar dataKey='count' name='Credits' fill='#2e7d32' radius={[3, 3, 0, 0]} />
-                  <Bar dataKey='total_value' name='Credit Value' fill='#66bb6a' radius={[3, 3, 0, 0]} />
+                  <Bar dataKey='count' name='Credits' fill={theme.palette.success.main} radius={[3, 3, 0, 0]} />
+                  <Bar dataKey='total_value' name='Credit Value' fill={theme.palette.success.light} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -285,7 +288,7 @@ const VolunteerAnalyticsTab: React.FC = () => {
                   <XAxis dataKey='month' tickFormatter={formatMonth} tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} />
                   <Tooltip labelFormatter={formatMonth} />
-                  <Bar dataKey='count' name='Tasks Completed' fill='#1565c0' radius={[3, 3, 0, 0]} />
+                  <Bar dataKey='count' name='Tasks Completed' fill={theme.palette.primary.dark} radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -349,16 +352,16 @@ const AdminAnalyticsPage: React.FC = () => {
               <StatCard label='New This Month' value={summary.newMembers} />
             </Grid>
             <Grid size={{ xs: 6, sm: 2 }}>
-              <StatCard label='Lost This Month' value={summary.lostMembers} color={summary.lostMembers > 0 ? '#c62828' : '#2e7d32'} />
+              <StatCard label='Lost This Month' value={summary.lostMembers} color={summary.lostMembers > 0 ? 'error.main' : 'success.main'} />
             </Grid>
             <Grid size={{ xs: 6, sm: 2 }}>
               <StatCard label='Subscribed' value={summary.subscribedMembers} />
             </Grid>
             <Grid size={{ xs: 6, sm: 2 }}>
-              <StatCard label='Past Due' value={summary.pastDueInvoices} color={summary.pastDueInvoices > 0 ? '#c62828' : '#2e7d32'} />
+              <StatCard label='Past Due' value={summary.pastDueInvoices} color={summary.pastDueInvoices > 0 ? 'error.main' : 'success.main'} />
             </Grid>
             <Grid size={{ xs: 6, sm: 2 }}>
-              <StatCard label='Refunds Pending' value={summary.refundsPending} color={summary.refundsPending > 0 ? '#f57c00' : '#2e7d32'} />
+              <StatCard label='Refunds Pending' value={summary.refundsPending} color={summary.refundsPending > 0 ? 'warning.main' : 'success.main'} />
             </Grid>
           </Grid>
         )}

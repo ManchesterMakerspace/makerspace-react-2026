@@ -33,6 +33,7 @@ import { ToolCheckout, Shop, Tool } from "app/entities/toolCheckout";
 import {
   listToolCheckouts, listMemberCheckouts, adminCreateToolCheckout, adminRevokeToolCheckout,
 } from "api/toolCheckouts";
+import { toneNotice } from "ui/common/statusColors";
 
 const rowId = (c: ToolCheckout) => c.id;
 
@@ -113,7 +114,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       <Grid container spacing={2}>
         {unmetPrerequisites && unmetPrerequisites.length > 0 && (
           <Grid size={{ xs: 12 }}>
-            <Typography variant="body2" style={{ color: "#e65100", padding: "8px", backgroundColor: "#fff8e1", borderRadius: 4 }}>
+            <Typography variant="body2" sx={[toneNotice('warning'), { p: 1, color: 'warning.dark' }]}>
               ⚠ Prerequisite not met: {unmetPrerequisites.join(", ")}. You may proceed but the member should complete prerequisites first.
             </Typography>
           </Grid>

@@ -378,7 +378,7 @@ const HouseholdModal: React.FC<Props> = ({ member, onUpdate }) => {
                     <Button
                       id="dissolve-household-button"
                       variant="outlined"
-                      style={{ color: "#c62828", borderColor: "#c62828" }}
+                      color="error"
                       disabled={loading}
                       onClick={dissolveHousehold}
                     >

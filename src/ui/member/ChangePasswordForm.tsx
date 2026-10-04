@@ -221,7 +221,7 @@ const ChangePasswordForm: React.FC<Props> = ({ memberId, memberEmail, memberFirs
       )}
       {success && (
         <Grid size={{ xs: 12 }}>
-          <Typography id="change-password-success" style={{ color: "#4caf50" }}>
+          <Typography id="change-password-success" color="success.main">
             {success}
           </Typography>
         </Grid>

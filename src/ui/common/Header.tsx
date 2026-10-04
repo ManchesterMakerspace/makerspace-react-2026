@@ -14,6 +14,7 @@ import MenuItem from "@mui/material/MenuItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
+import { ROLE_BADGE_COLORS } from "ui/common/statusColors";
 import MenuIcon from "@mui/icons-material/Menu";
 import ConstructionIcon from "@mui/icons-material/Construction";
 import CampaignIcon from "@mui/icons-material/Campaign";
@@ -57,11 +58,11 @@ const roleBadge = (currentUser: AuthMember): JSX.Element | null => {
       <Chip
         label="Admin"
         size="small"
-        style={{
-          marginLeft: 8, height: 20, fontSize: 10,
-          backgroundColor: "#d32f2f", color: "#fff",
+        sx={theme => ({
+          marginLeft: 1, height: 20, fontSize: 10,
+          backgroundColor: ROLE_BADGE_COLORS.admin(theme), color: theme.palette.common.white,
           fontWeight: 700, letterSpacing: "0.05em"
-        }}
+        })}
       />
     );
   }
@@ -70,11 +71,11 @@ const roleBadge = (currentUser: AuthMember): JSX.Element | null => {
       <Chip
         label="Board"
         size="small"
-        style={{
-          marginLeft: 8, height: 20, fontSize: 10,
-          backgroundColor: "#7b1fa2", color: "#fff",
+        sx={theme => ({
+          marginLeft: 1, height: 20, fontSize: 10,
+          backgroundColor: ROLE_BADGE_COLORS.board_member(theme), color: theme.palette.common.white,
           fontWeight: 700, letterSpacing: "0.05em"
-        }}
+        })}
       />
     );
   }
@@ -83,11 +84,11 @@ const roleBadge = (currentUser: AuthMember): JSX.Element | null => {
       <Chip
         label="RM"
         size="small"
-        style={{
-          marginLeft: 8, height: 20, fontSize: 10,
-          backgroundColor: "#1565c0", color: "#fff",
+        sx={theme => ({
+          marginLeft: 1, height: 20, fontSize: 10,
+          backgroundColor: ROLE_BADGE_COLORS.resource_manager(theme), color: theme.palette.common.white,
           fontWeight: 700, letterSpacing: "0.05em"
-        }}
+        })}
       />
     );
   }
@@ -236,7 +237,7 @@ class Header extends React.Component<Props, State> {
 
           {/* Logout */}
           <Divider />
-          <MenuItem id="logout" onClick={this.logoutUser} sx={{ gap: 1 }} style={{ color: "#d32f2f" }}>
+          <MenuItem id="logout" onClick={this.logoutUser} sx={{ gap: 1, color: "error.main" }}>
             <ExitToAppIcon fontSize="small" />
             Logout
           </MenuItem>

@@ -2,6 +2,7 @@ import * as React from "react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { Link } from "react-router-dom";
 import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
 import { Member, getMember, listRentals } from "makerspace-ts-api-client";
 
 import { displayMemberExpiration, memberIsResourceManager } from "ui/member/utils";
@@ -239,15 +240,16 @@ const MemberProfile: React.FC = () => {
         </div>
       )}
       {showExpiringPaymentWarning && (
-        <div
+        <Box
           id="member-expiring-payment-method-warning"
           role="alert"
-          style={{
-            color: "#b00020",
+          sx={{
+            color: "error.main",
             fontWeight: 700,
-            border: "2px solid #b00020",
-            borderRadius: 4,
-            marginBottom: 16,
+            border: "2px solid",
+            borderColor: "error.main",
+            borderRadius: "4px",
+            marginBottom: 2,
             padding: "12px 16px",
           }}
         >
@@ -258,24 +260,25 @@ const MemberProfile: React.FC = () => {
           ) : (
             <span>{memberDisplayName}&apos;s {expiringPaymentCardTypes} payment card(s) expire this month.</span>
           )}
-        </div>
+        </Box>
       )}
       {showManualSlackDeactivationWarning && (
-        <div
+        <Box
           id="member-slack-manual-deactivation-warning"
           role="alert"
-          style={{
-            color: "#b00020",
+          sx={{
+            color: "error.main",
             fontWeight: 700,
-            border: "2px solid #b00020",
-            borderRadius: 4,
-            marginBottom: 16,
+            border: "2px solid",
+            borderColor: "error.main",
+            borderRadius: "4px",
+            marginBottom: 2,
             padding: "12px 16px",
           }}
         >
           Slack was not deactivated automatically because SLACK_ADMIN_TOKEN is not configured.
           You must manually deactivate this member in Slack.
-        </div>
+        </Box>
       )}
       <DetailView
         title={memberTitle}

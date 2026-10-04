@@ -1,9 +1,11 @@
 import * as React from 'react';
 import Tooltip from '@mui/material/Tooltip';
+import Box from '@mui/material/Box';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import InfoOutlined from '@mui/icons-material/InfoOutlined';
 import SecurityIcon from '@mui/icons-material/Security';
+import { ROLE_BADGE_COLORS } from 'ui/common/statusColors';
 
 // Mailtrap webhook event values (event field, not status)
 const GOOD_STATUSES = ['delivery', 'open', 'click'];
@@ -36,7 +38,7 @@ export const EmailStatusIcon: React.FC<{ mailtrap?: MailtrapData }> = ({ mailtra
   if (!mailtrap) {
     return (
       <Tooltip title='No email delivery data on record'>
-        <InfoOutlined fontSize='small' style={{ color: '#9e9e9e', verticalAlign: 'middle' }} />
+        <InfoOutlined fontSize='small' sx={{ color: 'text.disabled', verticalAlign: 'middle' }} />
       </Tooltip>
     );
   }
@@ -50,8 +52,8 @@ export const EmailStatusIcon: React.FC<{ mailtrap?: MailtrapData }> = ({ mailtra
   return (
     <Tooltip title={tooltipText}>
       {isGood
-        ? <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
-        : <ErrorIcon fontSize='small' style={{ color: '#f44336', verticalAlign: 'middle' }} />
+        ? <CheckCircleIcon fontSize='small' color='success' sx={{ verticalAlign: 'middle' }} />
+        : <ErrorIcon fontSize='small' color='error' sx={{ verticalAlign: 'middle' }} />
       }
     </Tooltip>
   );
@@ -61,14 +63,14 @@ export const SlackStatusIcon: React.FC<{ slack?: SlackData }> = ({ slack }) => {
   if (!slack) {
     return (
       <Tooltip title='No Slack account linked — member will not receive Slack notifications'>
-        <ErrorIcon fontSize='small' style={{ color: '#ff9800', verticalAlign: 'middle' }} />
+        <ErrorIcon fontSize='small' color='warning' sx={{ verticalAlign: 'middle' }} />
       </Tooltip>
     );
   }
 
   return (
     <Tooltip title={`Slack linked: ${slack.name}`}>
-      <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
+      <CheckCircleIcon fontSize='small' color='success' sx={{ verticalAlign: 'middle' }} />
     </Tooltip>
   );
 };
@@ -77,13 +79,13 @@ export const TotpStatusIcon: React.FC<{ enabled: boolean }> = ({ enabled }) => {
   if (enabled) {
     return (
       <Tooltip title='Two-factor authentication enabled'>
-        <SecurityIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
+        <SecurityIcon fontSize='small' color='success' sx={{ verticalAlign: 'middle' }} />
       </Tooltip>
     );
   }
   return (
     <Tooltip title='Two-factor authentication not enabled'>
-      <SecurityIcon fontSize='small' style={{ color: '#bdbdbd', verticalAlign: 'middle' }} />
+      <SecurityIcon fontSize='small' sx={{ color: 'action.disabled', verticalAlign: 'middle' }} />
     </Tooltip>
   );
 };
@@ -94,30 +96,25 @@ const ROLE_LABELS: Record<string, string> = {
   resource_manager: 'RM',
 };
 
-const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
-  admin:            { bg: '#d32f2f', color: '#fff' },
-  board_member:     { bg: '#7b1fa2', color: '#fff' },
-  resource_manager: { bg: '#1565c0', color: '#fff' },
-};
 
 export const RoleBadge: React.FC<{ role?: string }> = ({ role }) => {
   if (!role || role === 'member') return null;
   const label = ROLE_LABELS[role] || role;
-  const style = ROLE_COLORS[role] || { bg: '#9e9e9e', color: '#fff' };
+  const badgeColor = (role in ROLE_BADGE_COLORS ? ROLE_BADGE_COLORS[role as keyof typeof ROLE_BADGE_COLORS] : ROLE_BADGE_COLORS.other);
   return (
-    <span style={{
+    <Box component='span' sx={theme => ({
       display: 'inline-block',
       padding: '2px 8px',
-      borderRadius: 12,
+      borderRadius: '12px',
       fontSize: '0.7rem',
       fontWeight: 600,
-      backgroundColor: style.bg,
-      color: style.color,
+      backgroundColor: badgeColor(theme),
+      color: theme.palette.common.white,
       letterSpacing: '0.04em',
-      textTransform: 'uppercase' as const,
-      whiteSpace: 'nowrap' as const,
-    }}>
+      textTransform: 'uppercase',
+      whiteSpace: 'nowrap',
+    })}>
       {label}
-    </span>
+    </Box>
   );
 };

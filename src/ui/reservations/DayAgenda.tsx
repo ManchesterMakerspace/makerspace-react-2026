@@ -126,15 +126,17 @@ const DayAgenda: React.FC<{
               padding: 2,
               minWidth: 0,
             }}>
-              <Paper elevation={2} style={{
-                height: "100%",
-                boxSizing: "border-box",
-                padding: "6px 8px",
-                overflow: "hidden",
-                borderLeft: reservation.status === "pending"
-                  ? "4px solid #ed6c02"
-                  : "4px solid #2e7d32",
-              }}>
+              <Paper elevation={2}
+                sx={{
+                  borderLeft: "4px solid",
+                  borderLeftColor: reservation.status === "pending" ? "warning.main" : "success.main",
+                }}
+                style={{
+                  height: "100%",
+                  boxSizing: "border-box",
+                  padding: "6px 8px",
+                  overflow: "hidden",
+                }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
                   <strong>
                     {reservation.calendarHtmlLink

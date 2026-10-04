@@ -39,7 +39,9 @@ the primary commit control remains prominent and has a comfortable target.
 ## Typography and fonts
 
 No web font or custom `font-family` is loaded by this React bundle. MUI's
-default typography therefore supplies the intended stack:
+default typography supplies the intended stack, and `src/app/BaseStyles.tsx`
+applies it (and the theme text color) to `body` so text outside a MUI component
+does not fall back to the browser's serif default:
 
 ```text
 Roboto, Helvetica, Arial, sans-serif
@@ -84,21 +86,29 @@ Manchester Makerspace red-brown `secondary` palette:
 | Warning main | `#ed6c02` | MUI `warning.main`; warnings and attention states |
 | Info main | `#0288d1` | MUI `info.main`; neutral informational states |
 | Success main | `#2e7d32` | MUI `success.main`; successful and active states |
-| Informational blue | `#2196F3` | Legacy focused fields and promotion border |
 
 Neutral surfaces also use MUI's default grey scale. Existing overlays use
 translucent black or grey, such as `rgba(0, 0, 0, 0.35)` for a modal backdrop
 and `rgba(200, 200, 200, 0.5)` for loading.
 
-Individual legacy components also use `#f44336`, `#ff9800`, and `#4caf50` as
-error, warning, and success swatches. These literals are implementation-specific
-exceptions, not the resolved MUI semantic palette; new UI should use the theme
-roles listed above.
+Status colors are read from the theme (`src/app/theme.ts`) everywhere; do not
+write a status color as a hex literal. Use a MUI `color` prop, a theme path such
+as `success.main` in `sx`, or the helpers in `src/ui/common/statusColors.ts`:
+`softTone(tone)` for chips and badges, `toneNotice(tone)` for inline callouts,
+`infoBoxSx`/`warningBoxSx` for the rental-page callouts, and
+`ROLE_BADGE_COLORS` for role badges. `BaseStyles` also publishes
+`--color-primary`, `--color-success`, `--color-error`, `--color-warning`, and
+`--color-info` CSS variables for SCSS that cannot reach the theme.
+
+Raw `<a>` elements without a class use the theme's primary blue (not the
+browser default) through the same base styles; MUI `Link`/`Button` keep their
+own styling.
 
 Some domain-specific or third-party visuals intentionally retain their own
-colors: admin/board/resource-manager role badges (red, purple, and blue), Google
-and Microsoft marks, PayPal/Venmo controls, credit-card brands, and analytics
-charts. These are not general-purpose palette additions.
+colors: the board-member badge purple, Google, Slack, and Microsoft marks,
+PayPal/Venmo controls, and credit-card brands. Floor-map colors are controlled
+by the Google Calendar color palette, not by this theme. These are not
+general-purpose palette additions.
 
 For new work:
 
