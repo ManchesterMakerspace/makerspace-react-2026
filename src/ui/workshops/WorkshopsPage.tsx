@@ -1,3 +1,5 @@
+import AddToolModal from "./AddToolModal";
+import ToolGroupList from 'ui/toolCheckouts/ToolGroupList';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
 import QrCodeIcon from "@mui/icons-material/QrCode";
@@ -261,12 +263,15 @@ const WorkshopTools: React.FC<{
         </Paper>
       ))}
 
-      {(addOpen || editTool) && managedShop && <ToolEditorModal
-        key={editTool?.id || "new-" + workshop.id}
-        tool={editTool || undefined} shops={managedShops} tools={managedTools}
-        initialShopId={workshop.id}
-        onClose={() => { setAddOpen(false); setEditTool(null); }}
-        onSaved={() => { setAddOpen(false); setEditTool(null); onRefresh(); }}
+      <ToolGroupList shopId={workshop.id} shops={managedShop ? [managedShop] : []} tools={managedTools} />
+      {addOpen && <AddToolModal workshop={workshop}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => { setAddOpen(false); onRefresh(); }} />}
+      {editTool && managedShop && <ToolEditorModal
+        key={editTool.id}
+        tool={editTool} shops={managedShops} tools={managedTools}
+        onClose={() => setEditTool(null)}
+        onSaved={() => { setEditTool(null); onRefresh(); }}
       />}
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}

@@ -38,13 +38,13 @@ const body = (input: ReservationInput) => ({
   title: input.title,
   shop_id: input.shopId,
   reservation_scope: input.reservationScope,
-  tool_ids: input.toolIds,
+  ...(input.preserveResourceSelection ? {} : { tool_ids: input.toolIds, tool_group_ids: input.toolGroupIds || [] }),
   start_at: input.startAt,
   end_at: input.endAt,
 });
 
 export const getReservationCatalog = (_params?: any) =>
-  wrap<ReservationCatalog>(api.get("/api/reservation_catalog"));
+  wrap<ReservationCatalog>(api.get("/api/reservation_catalog", { params: { include_groups: true } }));
 
 export const listReservations = (params?: {
   shopId?: string; startAt?: string; endAt?: string; mine?: boolean; status?: string;

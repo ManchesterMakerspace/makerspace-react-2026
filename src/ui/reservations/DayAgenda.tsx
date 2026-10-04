@@ -1,4 +1,5 @@
 import * as React from "react";
+import { reservationResourceLabel } from './resourceLabel';
 import Chip from "@mui/material/Chip";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -150,9 +151,7 @@ const DayAgenda: React.FC<{
                 <Typography variant="caption" component="div">
                   {reservation.memberName} ·{" "}
                   {reservation.outOfServiceToolNames?.length ? `Out of service: ${reservation.outOfServiceToolNames.join(", ")}. ` : ""}
-                  {reservation.toolNames?.length
-                    ? reservation.toolNames.join(", ")
-                    : "Entire shop"}
+                  {reservationResourceLabel(reservation)}
                 </Typography>
                 <Typography variant="caption" component="div">
                   {moment(reservation.startAt).tz(ZONE).format("HH:mm")}–

@@ -1,11 +1,18 @@
 // @ts-nocheck
 import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
+import useToolGroups from './useToolGroups';
+import GroupApproval from './GroupApproval';
+import { useCheckoutCatalog } from './CheckoutCatalog';
+import { requestCatalog } from './requestCatalog';
+import { defaultItemsPerPage } from 'ui/constants';
+import { GroupDetails } from './ToolGroupList';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import RequestorAnnotationTooltip from "./RequestorAnnotationTooltip";
+import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -61,6 +68,7 @@ export const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onS
           <Grid size={{ xs: 12 }}>
             <Typography><strong>{target.name}</strong> in <strong>{target.shopName}</strong></Typography>
             <ToolAvailability outOfService={target.outOfService} />
+            {target.targetType === 'group' && <><Chip label="Group" size="small" /><GroupDetails group={target} /></>}
             {target.prerequisiteNames?.length > 0 && (
               <Typography variant="caption" color="textSecondary">
                 Prerequisites: {target.prerequisiteNames.join(", ")}
@@ -106,7 +114,11 @@ interface Props {
 }
 
 const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
-  const { params } = useQueryContext();
+  const { params, setParam } = useQueryContext();
+  const shopId = canManage ? undefined : params.shopId || undefined;
+  const { data: shops = [] } = useCheckoutCatalog('shops', canManage);
+  const { groups, loading: groupLoading, error: groupError, refresh: refreshGroups } = useToolGroups(shopId);
+  const [groupRequest, setGroupRequest] = React.useState(null);
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | undefined>(undefined);
@@ -120,9 +132,9 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   );
   const availableRead = useReadTransaction(
     listAvailableTools,
-    { ...params },
+    { shopId },
     canManage,
-    `available-tool-checkout-requests-${JSON.stringify(params)}`
+    `available-tool-checkout-requests-catalog-${shopId || 'all'}`
   );
 
   const refreshRequestsRef = React.useRef(requestRead.refresh);
@@ -131,7 +143,8 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   React.useEffect(() => { refreshAvailableRef.current = availableRead.refresh; }, [availableRead.refresh]);
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
-  const availableTools = (availableRead.data || []) as Tool[];
+  const catalog = requestCatalog(availableRead.data || [], groups, params, defaultItemsPerPage);
+  const availableTools = groupLoading || groupError ? [] : catalog.rows;
   const canRequestTool = React.useCallback((tool: Tool) =>
     !!tool.requestable && !tool.requestPending && !tool.unmetPrerequisiteNames?.length,
   []);
@@ -145,7 +158,8 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
     setSelectedToolId(undefined);
     refreshRequestsRef.current();
     refreshAvailableRef.current();
-  }, []);
+    refreshGroups();
+  }, [refreshGroups]);
 
   const { call: createRequest, isRequesting: creating, error: createError } =
     useWriteTransaction(createToolCheckoutRequest, onSuccess);
@@ -161,7 +175,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "toolName", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.toolName}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
+          <Typography variant="body2"><strong>{row.targetName || row.toolName}</strong> {row.targetType === 'group' && <Chip label="Group" size="small" />} <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
           {!canManage && <RequestorAnnotationTooltip annotation={row.requestorAnnotation} />}
         </div>
@@ -188,7 +202,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       id: "name", label: "Tool", defaultSortDirection: SortDirection.Asc,
       cell: row => (
         <div>
-          <Typography variant="body2"><strong>{row.name}</strong> <ToolAvailability outOfService={row.outOfService} /></Typography>
+          <Typography variant="body2"><strong>{row.name}</strong> {row.targetType === 'group' && <Chip label="Group" size="small" />} <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
         </div>
       ),
@@ -232,13 +246,19 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
             )}
             {canManage && selectedRequest && (
               <Button variant="contained" color="primary" startIcon={<CheckIcon />}
-                onClick={() => approveRequest({ body: { memberId: selectedRequest.memberId, toolId: selectedRequest.toolId } })}>
+                onClick={() => selectedRequest.toolGroupId ? setGroupRequest(selectedRequest) : approveRequest({ body: { memberId: selectedRequest.memberId, toolId: selectedRequest.toolId } })}>
                 Check Out Member
               </Button>
             )}
           </div>
         </Grid>
       </Grid>
+
+      {groupError && <Grid size={{ xs: 12 }}>
+        <Alert severity="error" action={<Button color="inherit" onClick={refreshGroups}>Retry tool groups</Button>}>
+          {groupError}
+        </Alert>
+      </Grid>}
 
       {(requestRead.error || createError || updateError || deleteError || approveError) && (
         <Grid size={{ xs: 12 }}><ErrorMessage error={requestRead.error || createError || updateError || deleteError || approveError} /></Grid>
@@ -257,6 +277,12 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
           <Grid size={{ xs: 12 }}>
             <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
               <Typography variant="h6">Available Tools</Typography>
+              <TextField select label="Shop" value={shopId || ''} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+                sx={{ minWidth: 160, maxWidth: '100%' }}
+                onChange={event => { setParam('shopId', event.target.value); setSelectedToolId(undefined); setRequestTarget(null); }}>
+                <option value="">All shops</option>
+                {shops.map(shop => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
+              </TextField>
               {selectedTool && canRequestTool(selectedTool) && (
                 <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setRequestTarget(selectedTool)}>
                   Request Checkout
@@ -266,9 +292,9 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
           </Grid>
           <Grid size={{ xs: 12 }}>
             <StatefulTable id="available-tools-table" title="Available Tools"
-              loading={availableRead.isRequesting} data={availableTools}
+              loading={availableRead.isRequesting || groupLoading} data={availableTools}
               error={availableRead.error} columns={toolColumns} rowId={toolRowId}
-              totalItems={extractTotalItems(availableRead.response)}
+              totalItems={groupLoading || groupError ? 0 : catalog.total}
               selectedIds={selectedToolId} setSelectedIds={setSelectedToolId} renderSearch={true}
               isRowSelectable={canRequestTool} />
           </Grid>
@@ -276,11 +302,14 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       )}
 
       <RequestModal target={requestTarget} onClose={() => setRequestTarget(null)}
-        onSave={note => requestTarget && createRequest({ body: { toolId: requestTarget.id, note } })}
+        onSave={note => requestTarget && createRequest({ body: { ...(requestTarget.targetType === 'group' ? { toolGroupId: requestTarget.id } : { toolId: requestTarget.id }), note } })}
         loading={creating} error={createError} />
       <EditNoteModal target={editTarget} onClose={() => setEditTarget(null)}
         onSave={note => editTarget && updateRequest({ id: editTarget.id, body: { note } })}
         loading={updating} error={updateError} />
+      {groupRequest && groups.find(group => group.id === groupRequest.toolGroupId) && <GroupApproval
+        group={groups.find(group => group.id === groupRequest.toolGroupId)} memberId={groupRequest.memberId} requestId={groupRequest.id}
+        onClose={() => setGroupRequest(null)} onSaved={() => { setGroupRequest(null); onSuccess(); }} />}
     </Grid>
   );
 };
