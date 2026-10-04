@@ -70,6 +70,24 @@ export const withMinSpan = (box: Box, minSpan: number): Box => {
   return { minX, maxX, minY, maxY };
 };
 
+// A shape needs at least this many corners to be a shape.
+export const MIN_SHAPE_POINTS = 3;
+
+// Adds a corner to an outline. Edge `edgeIndex` runs from corner `edgeIndex`
+// to the next one (the last edge wraps back to the first), and the new corner
+// goes between them. Returns a new array.
+export const insertPoint = (points: Point[], edgeIndex: number, point: Point): Point[] => {
+  if (edgeIndex < 0 || edgeIndex >= points.length) return points;
+  return [...points.slice(0, edgeIndex + 1), point, ...points.slice(edgeIndex + 1)];
+};
+
+// Removes a corner, unless that would leave fewer than MIN_SHAPE_POINTS (the
+// same array comes back, so the caller can tell nothing changed).
+export const removePoint = (points: Point[], index: number): Point[] => {
+  if (index < 0 || index >= points.length || points.length <= MIN_SHAPE_POINTS) return points;
+  return points.filter((_, i) => i !== index);
+};
+
 export const centroid = (points: Point[]): Point => ({
   x: points.reduce((sum, p) => sum + p.x, 0) / points.length,
   y: points.reduce((sum, p) => sum + p.y, 0) / points.length,

@@ -29,7 +29,7 @@ import {
   adminCreateShop, adminUpdateShop, adminDeleteShop,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
-import ShopColorField from "./ShopColorField";
+import ShopColorField, { colorUsage } from "./ShopColorField";
 import { FLOOR_NAMES, floorLabel } from "./floorMapGeometry";
 import { useCapabilities } from "app/permissions";
 import MemberSearchInput from "ui/common/MemberSearchInput";
@@ -143,7 +143,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
         </Grid>
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId}
-            takenColorIds={shops.map(s => s.colorId).filter((id): id is string => !!id)} />
+            usedBy={colorUsage(shops)} />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <TextField select fullWidth label="Home floor" value={floorName}
@@ -254,7 +254,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
         </Grid>
         <Grid size={{ xs: 12 }}>
           <ShopColorField value={colorId} onChange={setColorId}
-            takenColorIds={shops?.filter(s => s.id !== shop.id).map(s => s.colorId).filter((id): id is string => !!id)} />
+            usedBy={colorUsage(shops, shop.id)} />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <TextField select fullWidth label="Home floor" value={floorName}

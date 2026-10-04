@@ -30,6 +30,7 @@ import { FALLBACK_COLORS } from "./ShopColorField";
 import { flattenTree } from "./locationTree";
 import {
   Box, Point, FULL_FLOOR_BOX, FLOOR_NAMES, floorLabel, sortFloors, paddedBox, centroid, withMinSpan,
+  insertPoint, removePoint, MIN_SHAPE_POINTS,
 } from "./floorMapGeometry";
 import { boundingBoxOf } from "./locationGeometry";
 import { containingParentId, descendantIds, shapeAnchor } from "./locationNesting";
@@ -302,6 +303,9 @@ const ShopLocationMap: React.FC<{
   // before the save lands.
   const [shapeDraft, setShapeDraft] = React.useState<{ id: string; points: Point[] } | null>(null);
   const draftRef = React.useRef<{ id: string; points: Point[] } | null>(null);
+  // Shown in place of the hint when a corner cannot be removed.
+  const [cornerNotice, setCornerNotice] = React.useState("");
+  React.useEffect(() => { setCornerNotice(""); }, [selectedId]);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
   // Floors this shop has something on; an editor can add to any floor.
@@ -567,7 +571,10 @@ const ShopLocationMap: React.FC<{
                 markers={markers}
                 draftPoints={mode === "area" ? drawPoints : undefined}
                 adjustPoints={selecting && selectedIsShape ? shapeBase : undefined}
-                adjustKey={selecting && selectedIsShape ? selected!.id : undefined}
+                // The saved corner count is part of the key, so the handles are
+                // rebuilt once a corner is added or removed -- but not while one
+                // is being dragged, when only the unsaved preview has changed.
+                adjustKey={selecting && selectedIsShape ? `${selected!.id}:${selected!.shapePoints!.length}` : undefined}
                 label={`${shopName} map, ${floorLabel(floor)}`}
                 onAdjustPoint={(index, point, final) => {
                   if (!selected || !selectedIsShape) return;
@@ -576,6 +583,28 @@ const ShopLocationMap: React.FC<{
                   draftRef.current = { id: selected.id, points: next };
                   setShapeDraft(draftRef.current);
                   if (final) update.call({ id: selected.id, body: { shapePoints: next } });
+                }}
+                // Dragging an edge's midpoint pulls a new corner out of it. The
+                // preview is always built from the saved corners, so each drag
+                // event replaces the last rather than piling up corners.
+                onInsertPoint={(edgeIndex, point, final) => {
+                  if (!selected || !selectedIsShape) return;
+                  const next = insertPoint(selected.shapePoints!, edgeIndex, point);
+                  draftRef.current = { id: selected.id, points: next };
+                  setShapeDraft(draftRef.current);
+                  setCornerNotice("");
+                  if (final) update.call({ id: selected.id, body: { shapePoints: next } });
+                }}
+                onRemovePoint={index => {
+                  if (!selected || !selectedIsShape) return;
+                  const base = draftRef.current?.id === selected.id ? draftRef.current.points : selected.shapePoints!;
+                  const next = removePoint(base, index);
+                  if (next === base) {
+                    setCornerNotice(`A shape needs at least ${MIN_SHAPE_POINTS} corners, so this one can't be removed.`);
+                    return;
+                  }
+                  setCornerNotice("");
+                  update.call({ id: selected.id, body: { shapePoints: next } });
                 }}
                 onMapClick={canEdit ? handleMapClick : undefined}
                 crosshair={canEdit && mode !== "select"}
@@ -597,7 +626,7 @@ const ShopLocationMap: React.FC<{
                           : `${drawPoints.length} points placed -- the dashed line shows where the shape closes. Click "Finish shape" when it looks right.`)
                       : selected
                         ? (selectedIsShape
-                          ? "Drag the red corner points to reshape this area. Changes save when you let go."
+                          ? (cornerNotice || "Drag a red corner to reshape this area, drag the small dot on an edge to add a corner, or double-click a corner to remove it. Changes save when you let go.")
                           : "Drag the marker to move it. Changes save when you let go.")
                         : `Showing the ${floorLabel(floor)}. Click an area or marker to select it, or choose Add marker / Draw area. Use the +/- buttons or pinch to zoom.`
                 )}

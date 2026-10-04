@@ -210,7 +210,9 @@ The plan is a plain image, so positions are stored as percentages of it and
   created unless a mode is chosen, so a stray click never drops a marker. In
   Select mode, click an area or marker to choose it and see its details; drag
   the chosen marker to move it, or its red corner points to reshape the area.
-  Each drag saves when released. A marker placed or moved inside an area is
+  A small dot at the middle of each edge adds a corner when dragged, and
+  double-clicking (or right-clicking / long-pressing) a corner removes it; a
+  shape always keeps at least three. Each drag saves when released. A marker placed or moved inside an area is
   nested in it automatically (the smallest area containing it); the "Inside"
   field in the form shows and can change this. Everything is also reachable
   from the keyboard through the list under the map, which selects an item.
@@ -230,6 +232,10 @@ The plan is a plain image, so positions are stored as percentages of it and
   and above) when it does not, which opens the map ready to place that tool.
   Anything saved on the map refreshes the page's data, so the Tools tab never
   lags behind the map.
+- Shop colors are Google Calendar's 11 event colors, so shops can share one.
+  The color picker offers every color, marks the ones other shops already use,
+  and warns (without blocking) when a shared color is chosen: shops that share
+  a color look the same on the maps and in Google Calendar.
 - The "find this tool" pulse is disabled under `prefers-reduced-motion`.
 - Leaflet's stylesheet is bundled as a string (`asset/source` rule in the
   webpack configs) and injected once, instead of going through the Rails
