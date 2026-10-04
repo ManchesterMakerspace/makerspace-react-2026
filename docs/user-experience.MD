@@ -232,6 +232,10 @@ The plan is a plain image, so positions are stored as percentages of it and
   and above) when it does not, which opens the map ready to place that tool.
   Anything saved on the map refreshes the page's data, so the Tools tab never
   lags behind the map.
+- Shop colors are Google Calendar's 11 event colors, so shops can share one.
+  The color picker offers every color, marks the ones other shops already use,
+  and warns (without blocking) when a shared color is chosen: shops that share
+  a color look the same on the maps and in Google Calendar.
 - The "find this tool" pulse is disabled under `prefers-reduced-motion`.
 - Leaflet's stylesheet is bundled as a string (`asset/source` rule in the
   webpack configs) and injected once, instead of going through the Rails
