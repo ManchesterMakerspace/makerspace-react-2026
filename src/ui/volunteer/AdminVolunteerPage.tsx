@@ -1,6 +1,6 @@
 // @ts-nocheck
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Grid from "@mui/material/Grid";
 import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
@@ -85,6 +85,19 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'tasks',   label: 'Bounty Tasks' },
   { key: 'events',  label: 'Events' },
 ];
+
+const useShowAllRecords = (tab: TabKey) => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  return React.useCallback(() => {
+    const query = new URLSearchParams(location.search);
+    query.delete('task');
+    query.delete('event');
+    query.set('tab', tab);
+    if (tab === 'events') query.set('eventStatus', 'all');
+    navigate({ pathname: location.pathname, search: `?${query.toString()}`, hash: location.hash }, { replace: true });
+  }, [location.pathname, location.search, location.hash, navigate, tab]);
+};
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -309,6 +322,9 @@ const CreditsTabInner: React.FC = () => {
   const selectedCredit = selectedIds.length === 1
     ? (credits as VolunteerCredit[]).find(c => c.id === selectedIds[0])
     : null;
+  const selectedCredits = (credits as VolunteerCredit[]).filter(c => selectedIds.includes(c.id));
+  const canDeleteCredits = isAdmin && !isRequesting && !loadError && selectedIds.length > 0 &&
+    selectedCredits.length === selectedIds.length;
 
   const columns: Column<VolunteerCredit>[] = [
     {
@@ -431,11 +447,11 @@ const CreditsTabInner: React.FC = () => {
                   </Button>
                 </Grid>
               )}
-              {isAdmin && selectedIds.length > 0 && (
+              {canDeleteCredits && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small'
                     disabled={deleting} startIcon={<DeleteIcon />}
-                    onClick={() => selectedIds.forEach(id => deleteCredit({ id }))}>
+                    onClick={() => { if (canDeleteCredits) selectedCredits.forEach(credit => deleteCredit({ id: credit.id })); }}>
                     Delete ({selectedIds.length})
                   </Button>
                 </Grid>
@@ -718,6 +734,10 @@ const ChildTasksViewInner: React.FC<ChildTasksViewProps> = ({ parentTask, onBack
   const selectedChild = selectedIds.length === 1
     ? (children as VolunteerTask[]).find(t => t.id === selectedIds[0])
     : null;
+  const selectedChildren = (children as VolunteerTask[]).filter(t => selectedIds.includes(t.id));
+  const canDeleteChildren = isAdmin && !isRequesting && !loadError && selectedIds.length > 0 &&
+    selectedChildren.length === selectedIds.length &&
+    selectedChildren.every(t => !t.ticketId && ['completed', 'denied'].includes(t.status));
 
   const columns: Column<VolunteerTask>[] = [
     {
@@ -794,12 +814,10 @@ const ChildTasksViewInner: React.FC<ChildTasksViewProps> = ({ parentTask, onBack
               </Button>
             </Grid>
           )}
-          {isAdmin && selectedIds.length > 0 &&
-            (children as VolunteerTask[]).filter(t => selectedIds.includes(t.id))
-              .every(t => ['completed', 'denied'].includes(t.status)) && (
+          {canDeleteChildren && (
             <Grid>
               <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
-                onClick={() => selectedIds.forEach(id => deleteTask({ id }))}>
+                onClick={() => { if (canDeleteChildren) selectedChildren.forEach(task => deleteTask({ id: task.id })); }}>
                 Delete ({selectedIds.length})
               </Button>
             </Grid>
@@ -848,10 +866,12 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
   const query = new URLSearchParams(search);
   const initialShopId = query.get('shop') || '';
+  const showAllTasks = useShowAllRecords('tasks');
 
   const [linkedTaskId, setLinkedTaskId] = React.useState(query.get('task') || '');
+  const linkedSelectionApplied = React.useRef(false);
   const [statusFilter, setStatusFilter] = React.useState('');
-  const [selectedIds, setSelectedIds]   = React.useState<string[]>(query.get('task') ? [query.get('task')] : []);
+  const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
   const [createOpen, setCreateOpen]     = React.useState(
     query.get('createTask') === 'true'
   );
@@ -894,6 +914,18 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
   const displayedTasks = linkedTaskId
     ? (tasks as VolunteerTask[]).filter(t => t.id === linkedTaskId)
     : tasks;
+  const selectedTasks = (tasks as VolunteerTask[]).filter(t => selectedIds.includes(t.id));
+  const canDeleteTasks = isAdmin && !isRequesting && !loadError && selectedIds.length > 0 &&
+    selectedTasks.length === selectedIds.length &&
+    selectedTasks.every(t => !t.ticketId && ['completed', 'cancelled', 'denied'].includes(t.status));
+
+  React.useEffect(() => {
+    if (!linkedSelectionApplied.current && linkedTaskId && !isRequesting && !loadError &&
+        (tasks as VolunteerTask[]).some(t => t.id === linkedTaskId)) {
+      linkedSelectionApplied.current = true;
+      setSelectedIds([linkedTaskId]);
+    }
+  }, [linkedTaskId, isRequesting, loadError, tasks]);
 
   // Claim count per parent task id — derived from loaded tasks.
   // The admin index with parentsOnly=true doesn't include child docs, so we fetch
@@ -1002,7 +1034,7 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
       {linkedTaskId && (
         <Grid size={{ xs: 12 }}>
           <Alert severity={!isRequesting && !loadError && displayedTasks.length === 0 ? 'warning' : 'info'}
-            action={<Button color='inherit' size='small' onClick={() => { setLinkedTaskId(''); setSelectedIds([]); }}>Show all tasks</Button>}>
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedTaskId(''); setSelectedIds([]); showAllTasks(); }}>Show all tasks</Button>}>
             {!isRequesting && !loadError && displayedTasks.length === 0
               ? 'This task is unavailable. It may have been deleted.'
               : 'Showing the task linked from your review notification.'}
@@ -1088,12 +1120,10 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
                   </Button>
                 </Grid>
               )}
-              {isAdmin && selectedIds.length > 0 &&
-                (tasks as VolunteerTask[]).filter(t => selectedIds.includes(t.id))
-                  .every(t => ['completed', 'cancelled', 'denied'].includes(t.status)) && (
+              {canDeleteTasks && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
-                    onClick={() => selectedIds.forEach(id => deleteTask({ id }))}>
+                    onClick={() => { if (canDeleteTasks) selectedTasks.forEach(task => deleteTask({ id: task.id })); }}>
                     Delete ({selectedIds.length})
                   </Button>
                 </Grid>
@@ -1295,10 +1325,13 @@ const ManageAttendeesModal: React.FC<ManageAttendeesModalProps> = ({ event, onCl
 const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
-  const linkedEvent = new URLSearchParams(search).get('event') || '';
+  const query = new URLSearchParams(search);
+  const linkedEvent = query.get('event') || '';
+  const showAllEvents = useShowAllRecords('events');
   const [linkedEventId, setLinkedEventId]          = React.useState(linkedEvent);
-  const [statusFilter, setStatusFilter]            = React.useState(linkedEvent ? '' : 'open');
-  const [selectedIds, setSelectedIds]              = React.useState<string[]>(linkedEvent ? [linkedEvent] : []);
+  const linkedSelectionApplied = React.useRef(false);
+  const [statusFilter, setStatusFilter]            = React.useState(linkedEvent || query.get('eventStatus') === 'all' ? '' : 'open');
+  const [selectedIds, setSelectedIds]              = React.useState<string[]>([]);
   const [createOpen, setCreateOpen]                = React.useState(false);
   const [editTarget, setEditTarget]                = React.useState<VolunteerEvent | null>(null);
   const [addAttendeeTarget, setAddAttendee]        = React.useState<string | null>(null);
@@ -1333,6 +1366,17 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
   const displayedEvents = linkedEventId
     ? (events as VolunteerEvent[]).filter(e => e.id === linkedEventId)
     : events;
+  const selectedEvents = (events as VolunteerEvent[]).filter(e => selectedIds.includes(e.id));
+  const canDeleteEvents = isAdmin && !isRequesting && !loadError && selectedIds.length > 0 &&
+    selectedEvents.length === selectedIds.length && selectedEvents.every(e => e.status === 'closed');
+
+  React.useEffect(() => {
+    if (!linkedSelectionApplied.current && linkedEventId && !isRequesting && !loadError &&
+        (events as VolunteerEvent[]).some(e => e.id === linkedEventId)) {
+      linkedSelectionApplied.current = true;
+      setSelectedIds([linkedEventId]);
+    }
+  }, [linkedEventId, isRequesting, loadError, events]);
 
   const columns: Column<VolunteerEvent>[] = [
     {
@@ -1375,7 +1419,7 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
       {linkedEventId && (
         <Grid size={{ xs: 12 }}>
           <Alert severity={!isRequesting && !loadError && displayedEvents.length === 0 ? 'warning' : 'info'}
-            action={<Button color='inherit' size='small' onClick={() => { setLinkedEventId(''); setSelectedIds([]); }}>Show all events</Button>}>
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedEventId(''); setSelectedIds([]); showAllEvents(); }}>Show all events</Button>}>
             {!isRequesting && !loadError && displayedEvents.length === 0
               ? 'This event is unavailable. It may have been deleted.'
               : 'Showing the event linked from your review notification.'}
@@ -1430,11 +1474,10 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
                   </Grid>
                 </>
               )}
-              {isAdmin && selectedIds.length > 0 &&
-                (events as VolunteerEvent[]).filter(e => selectedIds.includes(e.id)).every(e => e.status === 'closed') && (
+              {canDeleteEvents && (
                 <Grid>
                   <Button variant='outlined' color='secondary' size='small' startIcon={<DeleteIcon />}
-                    onClick={() => selectedIds.forEach(id => deleteEvent({ id }))}>
+                    onClick={() => { if (canDeleteEvents) selectedEvents.forEach(event => deleteEvent({ id: event.id })); }}>
                     Delete ({selectedIds.length})
                   </Button>
                 </Grid>
@@ -1485,7 +1528,8 @@ const EventsTab = withQueryContext(EventsTabInner);
 const AdminVolunteerPage: React.FC = () => {
   const { search } = useLocation();
   const query = new URLSearchParams(search);
-  const initialTab: TabKey =
+  const requestedTab = query.get('tab');
+  const initialTab: TabKey = TABS.some(tab => tab.key === requestedTab) ? requestedTab as TabKey :
     query.get('task') || query.get('createTask') === 'true'
       ? 'tasks'
       : query.get('event') ? 'events' : 'credits';

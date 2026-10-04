@@ -66,7 +66,7 @@ Use these entry points:
 | Location | What it provides |
 | --- | --- |
 | Staff **Volunteer** page, `/volunteer` | **Credits**, **Bounty Tasks**, and **Events** tabs. Admins, board members, and RMs can enter; individual actions still require Rails authorization. |
-| Direct review links, `/volunteer?task=:id` and `/volunteer?event=:id` | **After rollout**, opens the matching tab and selects the exact task claim (including a child claim) or event, with its existing review controls. **Show all** restores the full list; missing/deleted records show a recovery message. Authentication and existing review permissions still apply. These are React routes, not public Rails resources. |
+| Direct review links, `/volunteer?task=:id` and `/volunteer?event=:id` | **After rollout**, opens the matching tab and selects the exact task claim (including a child claim) or event after it loads successfully. **Show all** removes the review selectors from the URL and retains the current tab, so switching tabs or reloading preserves the full-list view. Missing/deleted records show a recovery message. Authentication and existing review permissions still apply. These are React routes, not public Rails resources. |
 | Your own profile, `/members/:id/volunteer` | Summary, **Open Events**, **My Active Claims**, **Available Bounty Tasks**, and **Credit History**. The Volunteer tab is shown on your own profile, not someone else's profile. |
 | **Home**, `/home` | Up to five randomly selected eligible tasks/events for members with status `activeMember`. **Claim Task** and **Join Event** act immediately. See [Member home](member-home.md). |
 | **Workshops**, `/workshops` | Shop-specific tasks on the Volunteer tab and upcoming event information. Authorized users can use **Create Bounty Task** to open the staff task form with that shop preselected. |
@@ -102,9 +102,11 @@ shops; seeing a record does not authorize changing it.
 
 For ordinary tasks the API permits an authorized RM to edit credit values even
 though the portal hides that field; linked bounty credit changes require admin or
-board authority. The portal also limits delete buttons to terminal tasks and
-closed events, while the ordinary delete API does not enforce those status
-restrictions. Linked repair bounties cannot be deleted through that API.
+board authority. Portal deletion requires every selected ID to match a loaded
+record, with no list request pending or failed. Task delete buttons require
+terminal tasks; event delete buttons require closed events. The ordinary delete
+API does not enforce those status restrictions. Linked repair bounties cannot
+be deleted through that API and have no portal delete action.
 
 Standalone credit review prevents the recipient reviewing their own credit. It
 does not require a reviewer different from the person who submitted the manual
