@@ -14,6 +14,11 @@ Rails links are pinned to the reviewed revision. React links point to source in
 this repository. Material differences between portal and Slack behavior are
 identified explicitly.
 
+The pending-approval reminder behavior described here also includes the current
+working-tree update to `VolunteerEventReminderJob` and
+`Service::VolunteerApprovalReminder`. Revision-pinned Rails links identify the
+reviewed baseline; they do not yet contain that update.
+
 Claim messages also communicate the monthly processing policy described below.
 That policy is followed by volunteer approvers; the application does not schedule
 credits for a future month or change the ledger's date calculations.
@@ -39,6 +44,7 @@ credits for a future month or change the ledger's date calculations.
 | Does creating an event announce it on Slack? | No ordinary event announcement is posted. The event is open immediately, and an existing shop volunteer canvas can be refreshed. |
 | Does a task claim need approval? | No. An eligible claim is recorded immediately. Review starts after the claimant submits completion. |
 | Who hears about submitted completion? | The configured pending-volunteer channel, default `general`. Individual reviewers do not receive DMs. |
+| What happens if review waits more than five days? | The reminder job posts to the configured **Admin Channel**, default `general`, and updates the same message as the wait grows. Events receive one message per event. Approval, denial, or event closure updates that message with the outcome and elapsed wait. |
 | How does the claimant hear the decision? | Task verification sends an award DM; release or rejection sends a DM with the reason, if the member has a current linked Slack identity. |
 | How does event attendance earn credit? | An authorized staff member closes the event, issuing approved credits to its eligible recorded attendees. There is no individual attendance-approval stage. |
 | When should I expect activity credits? | Volunteer approvers apply credits in the month following the activity date: an April task completion is reflected in May credit totals. This is a monthly processing policy followed by approvers, not an automatic scheduling rule. |
@@ -285,6 +291,12 @@ was claimed. Volunteer approvers follow this monthly processing policy; the
 software still adds an approved credit to totals when the approver records it.
 No activity-month allocation or automatic next-month scheduling was added.
 
+If submitted completion is still pending **more than five elapsed days** after
+`completed_at`, the daily reminder job posts to the configured **Admin Channel**.
+The wait starts when completion is submitted, rather than when the task was
+claimed. Later runs update the same message with the elapsed whole days. This
+reminder does not approve the task or change the next-month processing policy.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Available: Staff creates standard task
@@ -313,11 +325,16 @@ verify, release, or reject their own claim, including a staff claimant.
 **Verify** changes pending to completed, records the verifier, creates an
 approved credit at the claim's value, DMs the claimant, evaluates subscription
 discounts, and posts confirmation to the pending-volunteer channel.
+If an overdue Admin Channel reminder exists, its message is updated in place
+with the approval outcome and the total review wait.
 
 **Release** is for a claimed task; **Reject** is for pending completion. Both
 require a reason and DM the former claimant. A standard task returns to available
 and clears claimant fields; a child becomes denied. Members have no ordinary
 self-release action, so contact authorized staff if you cannot finish a task.
+Rejecting pending completion also updates an existing overdue reminder with the
+denial, reviewer, reason, and elapsed review wait. The notification receipt is
+retained if the ordinary task becomes available or is claimed again.
 
 Cancelling/deleting an ordinary task does not automatically reverse an existing
 credit. The portal limits cancellation to available/multi-use parents, while
@@ -386,9 +403,12 @@ flowchart LR
     Credit --> Notify[Award DMs and discount evaluation]
 ```
 
-The date passing does not close an event or award credits. A daily reminder
-prompts staff to close past-dated open events. Until closure, no individual event
-credit is pending for approval.
+The date passing does not close an event or award credits. Once an open dated
+event is **more than five calendar days** past its `event_date`, the daily
+reminder job posts one **Admin Channel** message for the whole event, showing
+its age and attendee count. Future runs update that message in place. An
+undated event cannot trigger this age-based reminder. Until closure, no
+individual event credit is pending for approval.
 
 Closure marks the event closed **before** processing attendees. Missing/ineligible
 members are skipped; individual failures are reported and later attendees are
@@ -397,6 +417,11 @@ If someone is missed or credit creation fails, staff must inspect the ledger and
 arrange a correction, such as a manual award followed by approval. Closed events
 cannot accept attendance edits or be reopened through the normal API. Deleting
 an event does not remove or reverse issued credits.
+
+Closing an event updates its existing overdue reminder with the closer and
+elapsed days from the event date to closure. The message reports that the event
+was closed; it does not guarantee every attendee award succeeded. Removing an
+individual attendee does not create an individual approval or denial reminder.
 
 Slack's closure summary reports the stored attendee count, which may exceed the
 number of credits actually issued when people were skipped or processing failed.
@@ -407,6 +432,8 @@ Sources: [event lifecycle][rails-event], [member check-in APIs][rails-member-api
 ## Notification matrix
 
 **Pending channel** means `volunteer_pending_slack_channel`, default `general`.
+**Admin Channel** means `slack_channel_admin`, default `general`. These are
+separate settings, even when configured to the same channel.
 **Member DM** requires a non-invalidated linked `SlackUser`. **Treasurer** and
 **logs** use the configured Slack connector destinations, default `treasurer`
 and `interface-logs`. A Slack command's public reply goes to its originating
@@ -417,8 +444,8 @@ channel; this is separate from configured channel notifications.
 | Ordinary task/event create, edit, delete | Existing shop volunteer canvas | No new channel post or attendee DM. Refresh only when there is a shop; initial canvas creation requires the rebuild path. |
 | Ordinary task claim | No staff channel post or member DM | Slack command gives an ephemeral acknowledgment with completion instructions, monthly timing, and unpaid-approver guidance; shop canvas sync can reflect claim. Linked bounty claims additionally use ticket assignment notifications. |
 | Claimant submits completion | Pending channel | Claimant, task number/title, and pending-verification notice. No individual approver DM. Slack also acknowledges privately with monthly timing and unpaid-approver guidance. |
-| Task verified | Member DM and pending channel | Credit awarded notice and reviewer confirmation; discount check follows. Slack `verify` additionally replies publicly in its originating channel. |
-| Task released or completion rejected | Former claimant DM | Includes reason. No pending-channel post. Slack commands also reply publicly in originating channel. |
+| Task verified | Member DM and pending channel; existing overdue Admin Channel message | Credit awarded notice and reviewer confirmation; discount check follows. An existing reminder is updated with approval and elapsed review days. Slack `verify` additionally replies publicly in its originating channel. |
+| Task released or completion rejected | Former claimant DM; rejection updates existing overdue Admin Channel message | Includes reason. No new pending-channel post. Pending rejection updates the saved reminder with denial, reviewer, reason, and elapsed review days. Slack commands also reply publicly in originating channel. |
 | Standalone credit created in portal | None | Pending credit only; no automatic pending-channel message. Staff must inspect the Credits tab. |
 | Standalone credit approved | Recipient DM | Award notice, then discount evaluation. |
 | Standalone credit rejected | None | Status changes without a rejection DM. Member can see it in history. |
@@ -426,8 +453,10 @@ channel; this is separate from configured channel notifications.
 | Event self-check-in or staff addition | Attendee DM | Confirmation that credit will be issued when event closes, with monthly timing and unpaid-approver guidance. Slack self-check-in also gives an ephemeral acknowledgment. No pending-channel post or reviewer DM. |
 | Event self-removal | None | Removal audit entry is retained. |
 | Event removal by staff | Removed attendee DM | Identifies remover; no automatic negative credit because event is still open. |
-| Event closure | Award DM for each credited attendee | Discount evaluation per award. Slack `close` also posts a public summary. |
-| Past-dated event still open | Pending channel | Daily reminder to close and issue credits; no automatic closure. |
+| Event closure | Award DM for each credited attendee; existing overdue Admin Channel message | Discount evaluation per award. A saved reminder is updated with closure and elapsed days, without promising all attendee awards succeeded. Slack `close` also posts a public summary. |
+| Task completion pending more than five elapsed days | Admin Channel | First post saves its Slack `ts` and channel on the claim. Later runs update that same message with whole days since completion submission. No individual reviewer DM. |
+| Dated event still open more than five calendar days after event date | Admin Channel | One saved message per event, updated on later runs with age; the subject retains the original event/attendee snapshot. No per-attendee reminders and no automatic closure. |
+| Final reminder update failed | Saved original channel | Future reminder runs retry the persisted outcome and closure time, including prior task claims retained in notification history. Approval/denial/closure is not rolled back. |
 | Eligible checkout-approver credit | None | Approved 0.25 credit recorded silently; no discount evaluation at that award. |
 | General credit reversal | Member DM | Reason and reversal actor. If original was marked used for discount, also requests treasurer review. |
 | Subscription discount applied | Member DM and treasurer channel | Billing-cycle discount details. |
@@ -452,6 +481,9 @@ templates with checked-in ERB fallbacks. Despite the service name
 `EmailTemplate` and the `DOC_*` variables, these volunteer notices are **Slack
 messages**, with no email fallback. Task release/rejection and event check-in
 notices use inline message text.
+Overdue and final-outcome reminders use inline text in
+`Service::VolunteerApprovalReminder`; no editable Google Doc template or email
+fallback is used for these messages.
 
 Ordinary volunteer DM helpers do not apply the general direct-notification
 suppression rules for revoked/suspended members. A missing/invalidated Slack link prevents that member's
@@ -775,7 +807,8 @@ do not establish runtime support. Discount amount is read from Braintree;
 
 | Key | Runtime default / fallback | Purpose |
 | --- | --- | --- |
-| `volunteer_pending_slack_channel` | `general` | Task completion/review and overdue-event notices. |
+| `volunteer_pending_slack_channel` | `general` | Task completion submission and verification notices. |
+| `slack_channel_admin` | `general` | Overdue task/event approval reminders and their saved-message outcome updates. |
 | `volunteer_task_max_credit` | `VOLUNTEER_TASK_MAX_CREDIT`, then `2.0` | Ordinary task creation maximum, not update maximum. |
 | `ticket_bounty_max_credit` | `2` | Linked repair-bounty creation maximum. |
 | `volunteer_credits_per_discount` | `8` | Eligible points per subscription discount. |
@@ -789,7 +822,7 @@ do not establish runtime support. Discount amount is read from Braintree;
 | `slack_channel_logs` | `interface-logs` | Missing subscriptions, discount errors, and configuration audit notices. |
 | `slack_channel_tickets` | `SLACK_TICKETS_CHANNEL`; otherwise disabled | Central ticket/bounty publication. An explicitly saved blank disables it. |
 
-The pending, treasurer, and logs channel defaults apply when their settings are
+The pending, admin, treasurer, and logs channel defaults apply when their settings are
 absent; an explicitly saved empty string does not select the default. Volunteer
 canvases require a resolvable `Shop.slack_channel`, with no fallback.
 
@@ -806,22 +839,50 @@ and [seed defaults][rails-seeds].
 
 | Component | Stored information / work |
 | --- | --- |
-| `volunteer_tasks` | Parent/child tasks, displayed numbers, shop/prerequisites, claim and verification state, cooldown, optional linked ticket. |
-| `volunteer_events` | Displayed event number, date, attendees/removals, shop/prerequisites, open/closed state and closer. |
+| `volunteer_tasks` | Parent/child tasks, displayed numbers, shop/prerequisites, claim and verification state, cooldown, optional linked ticket, private overdue-reminder receipt and notification history. |
+| `volunteer_events` | Displayed event number, date, attendees/removals, shop/prerequisites, open/closed state and closer, private overdue-reminder receipt and notification history. |
 | `volunteer_credits` | Recipient/issuer, value/status, task or restricted ticket/checkout provenance, discount-use markers, earned-membership exclusion, reversal history. |
 | `VolunteerSlackCanvasSyncJob` | Refreshes an existing shop volunteer canvas; does not provision a missing canvas. |
 | `reservations:rebuild_slack_canvases` | Operational rebuild also processes volunteer canvases and can provision qualifying missing canvases. |
-| `VolunteerEventReminderJob` | Scheduled daily at 08:00 by Whenever; posts reminders for past-dated open events. Also exposed as `volunteer_event_reminder` in admin system-config job listing/run action. |
+| `VolunteerEventReminderJob` | Daily 08:00 schedule template; posts or updates Admin Channel reminders for task completions/events waiting more than five days and retries saved final updates. Also exposed as `volunteer_event_reminder` in admin system-config job listing/run action. |
+| `Service::VolunteerApprovalReminder` | Saves Slack message receipts, updates waiting-day counts in place, and finalizes or retries approval/denial/event-closure messages. |
 | `SlackVolunteerJob` | Processes slash-command requests asynchronously. |
 
-08:00 follows the deployed scheduler's time configuration; `config/schedule.rb`
-does not declare a volunteer-specific timezone. Reminder delivery failures are
-reported per event and do not stop later reminders; a successful job scan does
-not prove each message was delivered. No reminder automatically closes an event.
+The `config/schedule.rb` entry is an intended schedule; the repository does not
+install or activate Whenever. An external scheduler must invoke the job. 08:00
+follows that scheduler's time configuration. The [job keys][rails-system-config]
+and [run controller][rails-config-controller] expose its manual admin action.
 
-The reviewed [jobs inventory][rails-jobs-doc] says the reminder is absent from
-the admin job list; current [job keys][rails-system-config] and [run controller][rails-config-controller]
-include it. Use current source for this availability distinction.
+The job selects `pending` tasks with `completed_at` strictly earlier than five
+elapsed 24-hour days ago, and open events whose `event_date` is strictly earlier
+than today's date minus five days. Claimed tasks, undated events, and standalone
+pending credits do not trigger new reminders. Displayed durations are whole
+days, and a final message freezes the duration at the recorded closure time.
+
+The private `approval_notification` hash first saves `started_at` and the
+subject intent, then records Slack's `ts`, returned channel, and
+`destination_mode` (`production` or `test`) after a successful post
+acknowledgment. Final `outcome`, `closed_at`, and `finalized` record the outcome
+and delivery state. An outcome snapshot can exist without a `ts`; that alone
+does not create a final Slack post. A late in-flight post can attach its receipt
+to the saved outcome and be updated with the final text.
+
+The returned conversation ID is reused even if Admin Channel configuration
+changes. Posts still use normal `test_channel` redirection outside production;
+saved messages are edited only in their original destination mode. A mode
+mismatch is reported and retained for retry in the intended environment. On an
+ordinary task's later claim or submission, a prior intent or receipt is retained
+in `approval_notification_history`; failed final updates can still be retried
+without replacing the later claim's message. Conditional writes guard receipt
+updates during concurrent reviews; competing posts retain the first registered
+message and attempt to delete duplicates. These fields are not exposed by
+task/event APIs, and no new collection is introduced.
+
+Reminder delivery failures are reported per record and do not stop later
+reminders. Future job runs retry saved final updates even after rejection has
+returned a task to available or the event has closed. A successful scan does
+not prove every message was delivered. No reminder automatically approves a
+task, closes an event, or changes when credits are recorded.
 
 Volunteer text-template variables map as follows:
 
@@ -853,6 +914,7 @@ for indexes and the unique checkout-credit constraint.
 | No award/rejection DM | Check current linked Slack identity, message routing, and error reports. Standalone credit rejection intentionally sends no DM. Inspect history before repeating a mutation. |
 | Event attendee has no credit | Confirm event closed, attendee was recorded, current status was eligible at closure, and no per-attendee failure occurred. Correct the ledger through authorized manual review. |
 | Past event is missing from member profile but still open in staff/Slack | Portal date filtering differs. Staff must reconcile and close it explicitly. |
+| No overdue reminder, or it still shows pending after review | Check the five-day threshold, task completion/event date, Admin Channel configuration, Slack permissions, and error reports. Saved `ts`/channel and final delivery state support retry on the next reminder run. Confirm the saved `destination_mode` matches the intended Slack environment; the job's success status alone does not prove delivery. |
 | Credits reached threshold without a discount | Check configured discount ID, subscription ID, earned-membership flag/status, annual use count, award path, and gateway result. |
 | Credit badge says Discount Applied but bill has no discount | Check Braintree directly and logs; markers precede gateway update and are not automatically rolled back on failure. |
 | Reversed credit still affects subscription billing | Treasurer must review queued Braintree cycles manually. Ledger reversal does not automatically change the gateway. |
