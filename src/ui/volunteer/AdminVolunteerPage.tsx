@@ -1,7 +1,9 @@
 // @ts-nocheck
 import * as React from 'react';
+import { useLocation } from 'react-router-dom';
 import Grid from "@mui/material/Grid";
 import Typography from '@mui/material/Typography';
+import Alert from '@mui/material/Alert';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Button from '@mui/material/Button';
@@ -842,13 +844,14 @@ const ChildTasksView = withQueryContext(ChildTasksViewInner);
 
 // ── Main Tasks Tab ────────────────────────────────────────────────────────────
 
-const TasksTabInner: React.FC = () => {
+const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
-  const query = new URLSearchParams(window.location.search);
+  const query = new URLSearchParams(search);
   const initialShopId = query.get('shop') || '';
 
+  const [linkedTaskId, setLinkedTaskId] = React.useState(query.get('task') || '');
   const [statusFilter, setStatusFilter] = React.useState('');
-  const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
+  const [selectedIds, setSelectedIds]   = React.useState<string[]>(query.get('task') ? [query.get('task')] : []);
   const [createOpen, setCreateOpen]     = React.useState(
     query.get('createTask') === 'true'
   );
@@ -888,6 +891,9 @@ const TasksTabInner: React.FC = () => {
   const selectedTask = selectedIds.length === 1
     ? (tasks as VolunteerTask[]).find(t => t.id === selectedIds[0])
     : null;
+  const displayedTasks = linkedTaskId
+    ? (tasks as VolunteerTask[]).filter(t => t.id === linkedTaskId)
+    : tasks;
 
   // Claim count per parent task id — derived from loaded tasks.
   // The admin index with parentsOnly=true doesn't include child docs, so we fetch
@@ -993,12 +999,22 @@ const TasksTabInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
+      {linkedTaskId && (
+        <Grid size={{ xs: 12 }}>
+          <Alert severity={!isRequesting && !loadError && displayedTasks.length === 0 ? 'warning' : 'info'}
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedTaskId(''); setSelectedIds([]); }}>Show all tasks</Button>}>
+            {!isRequesting && !loadError && displayedTasks.length === 0
+              ? 'This task is unavailable. It may have been deleted.'
+              : 'Showing the task linked from your review notification.'}
+          </Alert>
+        </Grid>
+      )}
       <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
+              onChange={e => { setStatusFilter(e.target.value as string); setLinkedTaskId(''); setSelectedIds([]); }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='available'>Available</MenuItem>
@@ -1098,11 +1114,11 @@ const TasksTabInner: React.FC = () => {
           id='volunteer-tasks-table'
           title='Bounty Tasks'
           loading={isRequesting}
-          data={tasks as VolunteerTask[]}
+          data={displayedTasks as VolunteerTask[]}
           error={loadError}
           columns={columns}
           rowId={(t: VolunteerTask) => t.id}
-          totalItems={extractTotalItems(response)}
+          totalItems={linkedTaskId ? displayedTasks.length : extractTotalItems(response)}
           selectedIds={selectedIds}
           setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])}
           renderSearch={true}
@@ -1276,11 +1292,13 @@ const ManageAttendeesModal: React.FC<ManageAttendeesModalProps> = ({ event, onCl
   );
 };
 
-const EventsTabInner: React.FC = () => {
+const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
 
-  const [statusFilter, setStatusFilter]            = React.useState('open');
-  const [selectedIds, setSelectedIds]              = React.useState<string[]>([]);
+  const linkedEvent = new URLSearchParams(search).get('event') || '';
+  const [linkedEventId, setLinkedEventId]          = React.useState(linkedEvent);
+  const [statusFilter, setStatusFilter]            = React.useState(linkedEvent ? '' : 'open');
+  const [selectedIds, setSelectedIds]              = React.useState<string[]>(linkedEvent ? [linkedEvent] : []);
   const [createOpen, setCreateOpen]                = React.useState(false);
   const [editTarget, setEditTarget]                = React.useState<VolunteerEvent | null>(null);
   const [addAttendeeTarget, setAddAttendee]        = React.useState<string | null>(null);
@@ -1312,6 +1330,9 @@ const EventsTabInner: React.FC = () => {
   const selectedEvent = selectedIds.length === 1
     ? (events as VolunteerEvent[]).find(e => e.id === selectedIds[0])
     : null;
+  const displayedEvents = linkedEventId
+    ? (events as VolunteerEvent[]).filter(e => e.id === linkedEventId)
+    : events;
 
   const columns: Column<VolunteerEvent>[] = [
     {
@@ -1351,12 +1372,22 @@ const EventsTabInner: React.FC = () => {
 
   return (
     <Grid container spacing={2}>
+      {linkedEventId && (
+        <Grid size={{ xs: 12 }}>
+          <Alert severity={!isRequesting && !loadError && displayedEvents.length === 0 ? 'warning' : 'info'}
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedEventId(''); setSelectedIds([]); }}>Show all events</Button>}>
+            {!isRequesting && !loadError && displayedEvents.length === 0
+              ? 'This event is unavailable. It may have been deleted.'
+              : 'Showing the event linked from your review notification.'}
+          </Alert>
+        </Grid>
+      )}
       <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value as string); setSelectedIds([]); }}
+              onChange={e => { setStatusFilter(e.target.value as string); setLinkedEventId(''); setSelectedIds([]); }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='open'>Open</MenuItem>
@@ -1420,9 +1451,9 @@ const EventsTabInner: React.FC = () => {
       <Grid size={{ xs: 12 }}>
         <StatefulTable
           id='volunteer-events-table' title='Volunteer Events'
-          loading={isRequesting} data={events as VolunteerEvent[]} error={loadError}
+          loading={isRequesting} data={displayedEvents as VolunteerEvent[]} error={loadError}
           columns={columns} rowId={(e: VolunteerEvent) => e.id}
-          totalItems={extractTotalItems(response)} selectedIds={selectedIds}
+          totalItems={linkedEventId ? displayedEvents.length : extractTotalItems(response)} selectedIds={selectedIds}
           setSelectedIds={(ids: unknown) => setSelectedIds(ids as string[])} renderSearch={true}
         />
       </Grid>
@@ -1452,11 +1483,14 @@ const EventsTab = withQueryContext(EventsTabInner);
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const AdminVolunteerPage: React.FC = () => {
+  const { search } = useLocation();
+  const query = new URLSearchParams(search);
   const initialTab: TabKey =
-    new URLSearchParams(window.location.search).get('createTask') === 'true'
+    query.get('task') || query.get('createTask') === 'true'
       ? 'tasks'
-      : 'credits';
+      : query.get('event') ? 'events' : 'credits';
   const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
+  React.useEffect(() => { setActiveTab(initialTab); }, [search, initialTab]);
 
   return (
     <Grid container spacing={3} justifyContent='center'>
@@ -1474,8 +1508,8 @@ const AdminVolunteerPage: React.FC = () => {
       </Grid>
       <Grid size={{ xs: 12, md: 10 }}>
         {activeTab === 'credits' && <CreditsTab />}
-        {activeTab === 'tasks'   && <TasksTab />}
-        {activeTab === 'events'  && <EventsTab />}
+        {activeTab === 'tasks'   && <TasksTab key={search} search={search} />}
+        {activeTab === 'events'  && <EventsTab key={search} search={search} />}
       </Grid>
     </Grid>
   );

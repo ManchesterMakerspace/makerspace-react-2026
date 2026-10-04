@@ -331,7 +331,7 @@ export const SlackTab: React.FC<SlackTabProps> = ({
             <Divider style={{ margin: '8px 0' }} />
             <SettingRow
               label='RM Channel'
-              description='Resource manager notifications'
+              description='Resource manager notifications; default: resource_managers'
               settingKey='slack_channel_rm'
               value={config.slack.slack_channel_rm}
               onSave={onSettingSave}
@@ -339,8 +339,8 @@ export const SlackTab: React.FC<SlackTabProps> = ({
             />
             <Divider style={{ margin: '8px 0' }} />
             <SettingRow
-              label='Admin Channel'
-              description='Admin alerts'
+              label='Members Relations Channel'
+              description='Membership and volunteer approval alerts; default: members_relations'
               settingKey='slack_channel_admin'
               value={config.slack.slack_channel_admin}
               onSave={onSettingSave}

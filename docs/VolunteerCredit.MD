@@ -6,18 +6,27 @@ points; a credit is not a dollar or a payment-method balance.
 
 Verified against source on **October 4, 2026**:
 
-- React revision `403dd43896e58d59a685c21646f3702590c539f2`.
-- Rails revision `e98a7d8b222f18af328703e3d0836297e34ef47f`.
+- React revision `d8f311b8a6d2948e1a49ba82c65ae1fdda6c3330`.
+- Rails revision `5789f76b051490c20ad283771b115048ba727662`.
 
 Defaults below describe the code, not the settings of a particular deployment.
 Rails links are pinned to the reviewed revision. React links point to source in
 this repository. Material differences between portal and Slack behavior are
 identified explicitly.
 
-The pending-approval reminder behavior described here also includes the current
-working-tree update to `VolunteerEventReminderJob` and
-`Service::VolunteerApprovalReminder`. Revision-pinned Rails links identify the
-reviewed baseline; they do not yet contain that update.
+The pinned Rails revision includes five-day approval reminders and saved
+final-outcome updates. It still uses the older channel labels/defaults and does
+not send shop resource managers individual review DMs.
+
+The **proposed notification rollout** below adds shop RM review DMs and direct
+review links, renames `slack_channel_admin` to **Members Relations Channel** in
+the portal, and changes the absent-setting defaults to `members_relations` for
+that key and `resource_managers` for **RM Channel** (`slack_channel_rm`). Sections
+marked **After rollout** require deploying the Rails commit containing the
+notification and routing changes together with the React review-link handling
+and labels. They do not describe behavior already present in the pinned Rails
+revision. Explicitly saved nonblank channel settings keep their configured values; saved
+reminder receipts keep their original channel.
 
 Claim messages also communicate the monthly processing policy described below.
 That policy is followed by volunteer approvers; the application does not schedule
@@ -43,8 +52,8 @@ credits for a future month or change the ledger's date calculations.
 | Who creates a task or event? | Admins and board members globally; resource managers for their assigned shops. Ordinary members cannot create them. |
 | Does creating an event announce it on Slack? | No ordinary event announcement is posted. The event is open immediately, and an existing shop volunteer canvas can be refreshed. |
 | Does a task claim need approval? | No. An eligible claim is recorded immediately. Review starts after the claimant submits completion. |
-| Who hears about submitted completion? | The configured pending-volunteer channel, default `general`. Individual reviewers do not receive DMs. |
-| What happens if review waits more than five days? | The reminder job posts to the configured **Admin Channel**, default `general`, and updates the same message as the wait grows. Events receive one message per event. Approval, denial, or event closure updates that message with the outcome and elapsed wait. |
+| Who hears about submitted completion? | The configured pending-volunteer channel, default `general`. **After rollout**, eligible RMs assigned to the task's shop also receive one DM per completion submission, with a direct review link; the claimant is excluded from task-review DMs. Tasks without a shop send no RM review DMs. |
+| What happens if review waits more than five days? | The reminder job updates one saved channel message as the wait grows. **After rollout**, new reminders use **Members Relations Channel**, default `members_relations`; existing receipts retain their original channel. Events receive one message per event. Approval, denial, or event closure updates a saved message with the outcome and elapsed wait; the proposed update also finalizes cancellation/status edits. |
 | How does the claimant hear the decision? | Task verification sends an award DM; release or rejection sends a DM with the reason, if the member has a current linked Slack identity. |
 | How does event attendance earn credit? | An authorized staff member closes the event, issuing approved credits to its eligible recorded attendees. There is no individual attendance-approval stage. |
 | When should I expect activity credits? | Volunteer approvers apply credits in the month following the activity date: an April task completion is reflected in May credit totals. This is a monthly processing policy followed by approvers, not an automatic scheduling rule. |
@@ -57,6 +66,7 @@ Use these entry points:
 | Location | What it provides |
 | --- | --- |
 | Staff **Volunteer** page, `/volunteer` | **Credits**, **Bounty Tasks**, and **Events** tabs. Admins, board members, and RMs can enter; individual actions still require Rails authorization. |
+| Direct review links, `/volunteer?task=:id` and `/volunteer?event=:id` | **After rollout**, opens the matching tab and selects the exact task claim (including a child claim) or event, with its existing review controls. **Show all** restores the full list; missing/deleted records show a recovery message. Authentication and existing review permissions still apply. These are React routes, not public Rails resources. |
 | Your own profile, `/members/:id/volunteer` | Summary, **Open Events**, **My Active Claims**, **Available Bounty Tasks**, and **Credit History**. The Volunteer tab is shown on your own profile, not someone else's profile. |
 | **Home**, `/home` | Up to five randomly selected eligible tasks/events for members with status `activeMember`. **Claim Task** and **Join Event** act immediately. See [Member home](member-home.md). |
 | **Workshops**, `/workshops` | Shop-specific tasks on the Volunteer tab and upcoming event information. Authorized users can use **Create Bounty Task** to open the staff task form with that shop preselected. |
@@ -278,6 +288,8 @@ Sources: [ticket service][rails-ticket-service], [ticket policy][rails-ticket-po
 3. Select the claim and choose **Mark Complete**, or use `/volunteer done 42`.
    Only that claim's member can submit completion. It becomes `pending`
    verification and posts the submission to the pending-volunteer channel.
+   **After rollout**, assigned shop RMs also receive individual review DMs with
+   the claim link; the task claimant is excluded. No shop means no RM DMs.
 4. Wait for a volunteer approver to review your activity. Our approvers are unpaid
    volunteers and will review it when they can; thank you for your patience.
    A successful verification creates an approved credit; a release/rejection
@@ -292,7 +304,8 @@ software still adds an approved credit to totals when the approver records it.
 No activity-month allocation or automatic next-month scheduling was added.
 
 If submitted completion is still pending **more than five elapsed days** after
-`completed_at`, the daily reminder job posts to the configured **Admin Channel**.
+`completed_at`, the daily reminder job posts to its configured escalation channel
+(**Members Relations Channel** after rollout).
 The wait starts when completion is submitted, rather than when the task was
 claimed. Later runs update the same message with the elapsed whole days. This
 reminder does not approve the task or change the next-month processing policy.
@@ -325,7 +338,7 @@ verify, release, or reject their own claim, including a staff claimant.
 **Verify** changes pending to completed, records the verifier, creates an
 approved credit at the claim's value, DMs the claimant, evaluates subscription
 discounts, and posts confirmation to the pending-volunteer channel.
-If an overdue Admin Channel reminder exists, its message is updated in place
+If an overdue channel reminder exists, its message is updated in place
 with the approval outcome and the total review wait.
 
 **Release** is for a claimed task; **Reject** is for pending completion. Both
@@ -340,6 +353,13 @@ Cancelling/deleting an ordinary task does not automatically reverse an existing
 credit. The portal limits cancellation to available/multi-use parents, while
 the generic ordinary cancel API accepts broader states. Use the normal review
 actions to preserve the intended claim history.
+**After rollout**, cancelling a task or changing its status away from pending
+through an ordinary staff edit finalizes its saved overdue reminder with the
+actual outcome and elapsed wait. A status edit that sets `completed` does not
+run the verification/credit-award flow, and its final notice says no credits
+were issued by that edit. Deleting the underlying task/event still removes its
+stored notification state without finalizing the Slack message; a deleted
+record cannot participate in future retry scans.
 
 Slack also provides `/volunteer verify 42`, `/volunteer release 42 reason`, and
 `/volunteer reject 42 reason`. For a multi-use parent number, Slack selects a
@@ -405,10 +425,17 @@ flowchart LR
 
 The date passing does not close an event or award credits. Once an open dated
 event is **more than five calendar days** past its `event_date`, the daily
-reminder job posts one **Admin Channel** message for the whole event, showing
+reminder job posts one escalation-channel message for the whole event, showing
 its age and attendee count. Future runs update that message in place. An
 undated event cannot trigger this age-based reminder. Until closure, no
 individual event credit is pending for approval.
+
+**After rollout**, the job also sends each eligible assigned shop RM one DM as
+soon as a dated open event is ready for closure: its event date is before today
+in the application time zone. This DM does not wait for the five-day escalation
+threshold and links directly to the event's staff review page. Events without
+a shop or date send no RM closure DMs. Joining an event still has no individual
+attendance approval stage.
 
 Closure marks the event closed **before** processing attendees. Missing/ineligible
 members are skipped; individual failures are reported and later attendees are
@@ -432,8 +459,12 @@ Sources: [event lifecycle][rails-event], [member check-in APIs][rails-member-api
 ## Notification matrix
 
 **Pending channel** means `volunteer_pending_slack_channel`, default `general`.
-**Admin Channel** means `slack_channel_admin`, default `general`. These are
-separate settings, even when configured to the same channel.
+**After rollout**, **Members Relations Channel** means `slack_channel_admin`,
+default `members_relations`, and **RM Channel** means `slack_channel_rm`, default
+`resource_managers`. These are separate from the pending-volunteer channel and
+from individual reviewer DMs. The pinned baseline uses the older Admin label
+and `general` default for `slack_channel_admin`; saved reminders retain the
+conversation ID from their original post.
 **Member DM** requires a non-invalidated linked `SlackUser`. **Treasurer** and
 **logs** use the configured Slack connector destinations, default `treasurer`
 and `interface-logs`. A Slack command's public reply goes to its originating
@@ -443,9 +474,9 @@ channel; this is separate from configured channel notifications.
 | --- | --- | --- |
 | Ordinary task/event create, edit, delete | Existing shop volunteer canvas | No new channel post or attendee DM. Refresh only when there is a shop; initial canvas creation requires the rebuild path. |
 | Ordinary task claim | No staff channel post or member DM | Slack command gives an ephemeral acknowledgment with completion instructions, monthly timing, and unpaid-approver guidance; shop canvas sync can reflect claim. Linked bounty claims additionally use ticket assignment notifications. |
-| Claimant submits completion | Pending channel | Claimant, task number/title, and pending-verification notice. No individual approver DM. Slack also acknowledges privately with monthly timing and unpaid-approver guidance. |
-| Task verified | Member DM and pending channel; existing overdue Admin Channel message | Credit awarded notice and reviewer confirmation; discount check follows. An existing reminder is updated with approval and elapsed review days. Slack `verify` additionally replies publicly in its originating channel. |
-| Task released or completion rejected | Former claimant DM; rejection updates existing overdue Admin Channel message | Includes reason. No new pending-channel post. Pending rejection updates the saved reminder with denial, reviewer, reason, and elapsed review days. Slack commands also reply publicly in originating channel. |
+| Claimant submits completion | Pending channel; assigned shop RM DMs **after rollout** | Claimant, task number/title, and pending-verification notice. Proposed RM DMs are once per reviewer per submission, contain a direct task-claim review link, and exclude the claimant. Slack also acknowledges privately with monthly timing and unpaid-approver guidance. |
+| Task verified | Member DM and pending channel; existing overdue channel message | Credit awarded notice and reviewer confirmation; discount check follows. An existing reminder is updated with approval and elapsed review days. Slack `verify` additionally replies publicly in its originating channel. |
+| Task released or completion rejected | Former claimant DM; rejection updates existing overdue channel message | Includes reason. No new pending-channel post. Pending rejection updates the saved reminder with denial, reviewer, reason, and elapsed review days. Slack commands also reply publicly in originating channel. |
 | Standalone credit created in portal | None | Pending credit only; no automatic pending-channel message. Staff must inspect the Credits tab. |
 | Standalone credit approved | Recipient DM | Award notice, then discount evaluation. |
 | Standalone credit rejected | None | Status changes without a rejection DM. Member can see it in history. |
@@ -453,9 +484,12 @@ channel; this is separate from configured channel notifications.
 | Event self-check-in or staff addition | Attendee DM | Confirmation that credit will be issued when event closes, with monthly timing and unpaid-approver guidance. Slack self-check-in also gives an ephemeral acknowledgment. No pending-channel post or reviewer DM. |
 | Event self-removal | None | Removal audit entry is retained. |
 | Event removal by staff | Removed attendee DM | Identifies remover; no automatic negative credit because event is still open. |
-| Event closure | Award DM for each credited attendee; existing overdue Admin Channel message | Discount evaluation per award. A saved reminder is updated with closure and elapsed days, without promising all attendee awards succeeded. Slack `close` also posts a public summary. |
-| Task completion pending more than five elapsed days | Admin Channel | First post saves its Slack `ts` and channel on the claim. Later runs update that same message with whole days since completion submission. No individual reviewer DM. |
-| Dated event still open more than five calendar days after event date | Admin Channel | One saved message per event, updated on later runs with age; the subject retains the original event/attendee snapshot. No per-attendee reminders and no automatic closure. |
+| Dated open event ready for closure | Assigned shop RM DMs **after rollout** | Once per eligible RM per event, starting when event date is before today in the application time zone; includes direct event review link. No shop/date means no RM DM. This is separate from the five-day channel escalation. |
+| Event closure | Award DM for each credited attendee; existing overdue channel message | Discount evaluation per award. A saved reminder is updated with closure and elapsed days, without promising all attendee awards succeeded. Slack `close` also posts a public summary. |
+| Task completion pending more than five elapsed days | Members Relations Channel **after rollout**, otherwise baseline Admin destination | First post saves its Slack `ts` and channel on the claim. Later runs update that same message with whole days since completion submission. Reviewer DMs are separate and do not repeat on every reminder run. |
+| Dated event still open more than five calendar days after event date | Members Relations Channel **after rollout**, otherwise baseline Admin destination | One saved message per event, updated on later runs with age and current title/attendee count. Final text retains the original subject snapshot. No per-attendee reminders and no automatic closure. |
+| Pending task cancelled or status edited | Existing overdue channel message **after rollout** | Updates the saved reminder with the actual outcome and elapsed wait. A generic edit to completed explicitly says that the edit did not issue credits. |
+| Task/event deleted | No finalization of saved Slack reminder | Stored notification data is removed with the record, so an existing Slack message may remain and cannot be retried by the job. Issued credits are not automatically reversed. |
 | Final reminder update failed | Saved original channel | Future reminder runs retry the persisted outcome and closure time, including prior task claims retained in notification history. Approval/denial/closure is not rolled back. |
 | Eligible checkout-approver credit | None | Approved 0.25 credit recorded silently; no discount evaluation at that award. |
 | General credit reversal | Member DM | Reason and reversal actor. If original was marked used for discount, also requests treasurer review. |
@@ -484,8 +518,17 @@ notices use inline message text.
 Overdue and final-outcome reminders use inline text in
 `Service::VolunteerApprovalReminder`; no editable Google Doc template or email
 fallback is used for these messages.
+Proposed reviewer DMs use inline text in `VolunteerApproverNotification` and
+have no email fallback. They require a current linked Slack identity. The
+service selects assigned members with role `resource_manager`, excluding the
+task claimant and managers whose direct notifications are suppressed (`revoked`
+or `suspended`). It rechecks the submission, shop assignment, and suppression
+before sending. Membership expiration is not an
+additional recipient filter in this implementation.
+Admin/board members retain their broader approval authority but do not receive
+these RM DMs solely because of their role.
 
-Ordinary volunteer DM helpers do not apply the general direct-notification
+Claimant award/release and event check-in DM helpers do not apply the general direct-notification
 suppression rules for revoked/suspended members. A missing/invalidated Slack link prevents that member's
 DM. Delivery helpers report failures; a missing DM does not prove a credit was
 not recorded. Inspect the ledger before repeating an award.
@@ -808,7 +851,8 @@ do not establish runtime support. Discount amount is read from Braintree;
 | Key | Runtime default / fallback | Purpose |
 | --- | --- | --- |
 | `volunteer_pending_slack_channel` | `general` | Task completion submission and verification notices. |
-| `slack_channel_admin` | `general` | Overdue task/event approval reminders and their saved-message outcome updates. |
+| `slack_channel_admin` | `members_relations` **after rollout**; pinned baseline `general` | Members Relations Channel for new overdue task/event approval reminders. Saved-message updates retain their original destination. |
+| `slack_channel_rm` | `resource_managers` **after rollout**; pinned baseline `members_relations` | RM Channel for channel-based resource manager notifications, separate from assigned shop reviewer DMs. |
 | `volunteer_task_max_credit` | `VOLUNTEER_TASK_MAX_CREDIT`, then `2.0` | Ordinary task creation maximum, not update maximum. |
 | `ticket_bounty_max_credit` | `2` | Linked repair-bounty creation maximum. |
 | `volunteer_credits_per_discount` | `8` | Eligible points per subscription discount. |
@@ -822,9 +866,10 @@ do not establish runtime support. Discount amount is read from Braintree;
 | `slack_channel_logs` | `interface-logs` | Missing subscriptions, discount errors, and configuration audit notices. |
 | `slack_channel_tickets` | `SLACK_TICKETS_CHANNEL`; otherwise disabled | Central ticket/bounty publication. An explicitly saved blank disables it. |
 
-The pending, admin, treasurer, and logs channel defaults apply when their settings are
-absent; an explicitly saved empty string does not select the default. Volunteer
-canvases require a resolvable `Shop.slack_channel`, with no fallback.
+After rollout, Members Relations and RM Channel defaults apply when settings are
+absent **or blank**. The pending, treasurer, and logs defaults apply only when
+absent; an explicitly saved empty string does not select those defaults.
+Volunteer canvases require a resolvable `Shop.slack_channel`, with no fallback.
 
 Slack connection, production/test routing, Braintree credentials, and Google
 template access use the normal [environment inventory][rails-env-doc]. Template
@@ -839,13 +884,14 @@ and [seed defaults][rails-seeds].
 
 | Component | Stored information / work |
 | --- | --- |
-| `volunteer_tasks` | Parent/child tasks, displayed numbers, shop/prerequisites, claim and verification state, cooldown, optional linked ticket, private overdue-reminder receipt and notification history. |
-| `volunteer_events` | Displayed event number, date, attendees/removals, shop/prerequisites, open/closed state and closer, private overdue-reminder receipt and notification history. |
+| `volunteer_tasks` | Parent/child tasks, displayed numbers, shop/prerequisites, claim and verification state, cooldown, optional linked ticket, private overdue-reminder receipt and notification history. Proposed rollout also stores per-submission/per-RM DM state in `approver_notifications`. |
+| `volunteer_events` | Displayed event number, date, attendees/removals, shop/prerequisites, open/closed state and closer, private overdue-reminder receipt and notification history. Proposed rollout also stores per-event/per-RM DM state in `approver_notifications`. |
 | `volunteer_credits` | Recipient/issuer, value/status, task or restricted ticket/checkout provenance, discount-use markers, earned-membership exclusion, reversal history. |
 | `VolunteerSlackCanvasSyncJob` | Refreshes an existing shop volunteer canvas; does not provision a missing canvas. |
 | `reservations:rebuild_slack_canvases` | Operational rebuild also processes volunteer canvases and can provision qualifying missing canvases. |
-| `VolunteerEventReminderJob` | Daily 08:00 schedule template; posts or updates Admin Channel reminders for task completions/events waiting more than five days and retries saved final updates. Also exposed as `volunteer_event_reminder` in admin system-config job listing/run action. |
+| `VolunteerEventReminderJob` | Daily 08:00 schedule template; posts or updates channel reminders for task completions/events waiting more than five days and retries saved final updates. **After rollout**, retries failed task-review DMs and sends/retries dated-event closure DMs independently of the five-day escalation. Exposed as `volunteer_event_reminder` in admin system-config job listing/run action. |
 | `Service::VolunteerApprovalReminder` | Saves Slack message receipts, updates waiting-day counts in place, and finalizes or retries approval/denial/event-closure messages. |
+| `VolunteerApproverNotification` | **After rollout**, sends assigned shop RMs one task-submission/event-closure-review DM per recipient, tracks a five-minute sending lease and Slack receipt, and retries failures through the reminder job. |
 | `SlackVolunteerJob` | Processes slash-command requests asynchronously. |
 
 The `config/schedule.rb` entry is an intended schedule; the repository does not
@@ -867,7 +913,7 @@ and delivery state. An outcome snapshot can exist without a `ts`; that alone
 does not create a final Slack post. A late in-flight post can attach its receipt
 to the saved outcome and be updated with the final text.
 
-The returned conversation ID is reused even if Admin Channel configuration
+The returned conversation ID is reused even if the escalation channel configuration
 changes. Posts still use normal `test_channel` redirection outside production;
 saved messages are edited only in their original destination mode. A mode
 mismatch is reported and retained for retry in the intended environment. On an
@@ -877,6 +923,25 @@ without replacing the later claim's message. Conditional writes guard receipt
 updates during concurrent reviews; competing posts retain the first registered
 message and attempt to delete duplicates. These fields are not exposed by
 task/event APIs, and no new collection is introduced.
+
+After rollout, `approver_notifications` separately tracks reviewer DMs by task
+completion-submission timestamp or event and manager ID. Successful receipts
+are not sent again; failed deliveries and sending leases older than five
+minutes are retried by later job runs. Missing Slack links are skipped and can
+receive a DM after linking. Newly assigned managers can receive their first DM
+on a later scan while the activity remains ready for review. Tasks without a
+shop and events without a shop/date do not send these DMs.
+An accepted Slack post whose receipt cannot be saved keeps its sending lease
+and is reported as uncertain. A later expired-lease retry or a worker crash
+between Slack acceptance and receipt persistence can produce a duplicate DM;
+the once-per-recipient behavior depends on a durable successful receipt.
+
+Absolute reviewer links use `ShortUrl.base_url` and `APP_DOMAIN`; this background
+workflow has no request host to fall back to. A missing, blank, or invalid
+domain prevents DM delivery and leaves it retryable. These URLs use the
+authenticated React `/volunteer` page and do not create shortcode records or
+change endpoint access. Deploy the paired Rails notification and React
+selection changes before treating reviewer DMs as available.
 
 Reminder delivery failures are reported per record and do not stop later
 reminders. Future job runs retry saved final updates even after rejection has
@@ -910,11 +975,11 @@ for indexes and the unique checkout-credit constraint.
 | Symptom | What staff should inspect |
 | --- | --- |
 | New event did not appear as a channel announcement | Ordinary creation sends no announcement. Check portal eligibility and an existing shop canvas; provision/rebuild canvas if needed. |
-| No reviewer DM after a member claims or finishes work | Claims send no reviewer notice. Submitted completion goes to the pending channel; check its configured destination and task's pending status. |
+| No reviewer DM after a member claims or finishes work | Claiming alone sends no reviewer notice. Before notification rollout, submitted completion goes only to the pending channel. After rollout, check task's pending status, shop assignment, eligible assigned RMs, linked Slack identities, and per-recipient receipt/error state. The task claimant is excluded. |
 | No award/rejection DM | Check current linked Slack identity, message routing, and error reports. Standalone credit rejection intentionally sends no DM. Inspect history before repeating a mutation. |
 | Event attendee has no credit | Confirm event closed, attendee was recorded, current status was eligible at closure, and no per-attendee failure occurred. Correct the ledger through authorized manual review. |
 | Past event is missing from member profile but still open in staff/Slack | Portal date filtering differs. Staff must reconcile and close it explicitly. |
-| No overdue reminder, or it still shows pending after review | Check the five-day threshold, task completion/event date, Admin Channel configuration, Slack permissions, and error reports. Saved `ts`/channel and final delivery state support retry on the next reminder run. Confirm the saved `destination_mode` matches the intended Slack environment; the job's success status alone does not prove delivery. |
+| No overdue reminder, or it still shows pending after review | Check the five-day threshold, task completion/event date, configured escalation channel, Slack permissions, and error reports. Saved `ts`/channel and final delivery state support retry on the next reminder run. Confirm the saved `destination_mode` matches the intended Slack environment; the job's success status alone does not prove delivery. |
 | Credits reached threshold without a discount | Check configured discount ID, subscription ID, earned-membership flag/status, annual use count, award path, and gateway result. |
 | Credit badge says Discount Applied but bill has no discount | Check Braintree directly and logs; markers precede gateway update and are not automatically rolled back on failure. |
 | Reversed credit still affects subscription billing | Treasurer must review queued Braintree cycles manually. Ledger reversal does not automatically change the gateway. |
@@ -956,52 +1021,52 @@ environment dependencies, or Swagger specification.
 [react-credit-edit-spec]: ../tests/unit/ui/volunteer/taskCreditEdit.spec.tsx
 [react-volunteer-e2e]: ../tests/e2e/suites/12_volunteer.spec.ts
 [react-credit-e2e]: ../tests/e2e/suites/13_volunteer_credits.spec.ts
-[rails-auth]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/volunteer_administration_authorization.rb
-[rails-admin-tasks]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/admin/volunteer_tasks_controller.rb
-[rails-admin-events]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/admin/volunteer_events_controller.rb
-[rails-admin-credits]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/admin/volunteer_credits_controller.rb
-[rails-member]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/member.rb
-[rails-task]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/volunteer_task.rb
-[rails-event]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/volunteer_event.rb
-[rails-credit]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/volunteer_credit.rb
-[rails-member-api]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/volunteer_controller.rb
-[rails-home]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/member_home.rb
-[rails-bounty]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/concerns/fix_ticket_bounty.rb
-[rails-detail]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/fix_bounties_controller.rb
-[rails-detail-serializer]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/serializers/fix_bounty_serializer.rb
-[rails-ticket-service]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/fix_ticket_service.rb
-[rails-ticket-policy]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/fix_ticket_policy.rb
-[rails-ticket-delivery]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/fix_ticket_delivery.rb
-[rails-canvas]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/service/volunteer_slack_canvas.rb
-[rails-canvas-job]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/jobs/volunteer_slack_canvas_sync_job.rb
-[rails-reservation-canvas]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/service/reservation_slack_canvas.rb
-[rails-slack]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/jobs/slack_volunteer_job.rb
-[rails-connector]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/lib/service/slack_connector.rb
-[rails-slack-user]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/slack_user.rb
-[rails-templates]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/lib/service/email_template.rb
-[rails-checkout-credit]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/services/checkout_approver_credit.rb
-[rails-discount]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/braintree_service/volunteer_discount.rb
-[rails-config-controller]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/admin/system_configs_controller.rb
-[rails-analytics]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/admin/analytics_controller.rb
-[rails-leaderboard]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/controllers/volunteer/leaderboard_controller.rb
-[rails-routes]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/config/routes.rb
-[rails-swagger]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/swagger/v1/swagger.json
-[rails-seeds]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/db/seeds/volunteer_system_configs.rb
-[rails-system-config]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/app/models/system_config.rb
-[rails-legacy]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/lib/tasks/volunteering.rake
-[rails-public-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/docs/volunteer-public-resources.MD
-[rails-jobs-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/docs/jobs-tasks-services.MD
-[rails-email-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/docs/email.MD
-[rails-env-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/docs/environment-vars.MD
-[rails-collections-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/docs/mongodb-collections.MD
-[rails-task-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/models/volunteer_task_spec.rb
-[rails-event-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/models/volunteer_event_spec.rb
-[rails-credit-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/models/volunteer_credit_spec.rb
-[rails-volunteer-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/requests/volunteer_spec.rb
-[rails-task-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/api/volunteer_tasks_authorization_spec.rb
-[rails-event-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/api/volunteer_events_authorization_spec.rb
-[rails-slack-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/jobs/slack_volunteer_authorization_spec.rb
-[rails-canvas-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/services/volunteer_slack_canvas_spec.rb
-[rails-reminder-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/jobs/volunteer_event_reminder_job_spec.rb
-[rails-checkout-credit-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/services/checkout_approver_credit_spec.rb
-[rails-ticket-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/e98a7d8b222f18af328703e3d0836297e34ef47f/spec/services/fix_ticket_service_spec.rb
+[rails-auth]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/volunteer_administration_authorization.rb
+[rails-admin-tasks]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/admin/volunteer_tasks_controller.rb
+[rails-admin-events]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/admin/volunteer_events_controller.rb
+[rails-admin-credits]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/admin/volunteer_credits_controller.rb
+[rails-member]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/member.rb
+[rails-task]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/volunteer_task.rb
+[rails-event]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/volunteer_event.rb
+[rails-credit]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/volunteer_credit.rb
+[rails-member-api]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/volunteer_controller.rb
+[rails-home]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/member_home.rb
+[rails-bounty]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/concerns/fix_ticket_bounty.rb
+[rails-detail]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/fix_bounties_controller.rb
+[rails-detail-serializer]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/serializers/fix_bounty_serializer.rb
+[rails-ticket-service]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/fix_ticket_service.rb
+[rails-ticket-policy]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/fix_ticket_policy.rb
+[rails-ticket-delivery]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/fix_ticket_delivery.rb
+[rails-canvas]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/service/volunteer_slack_canvas.rb
+[rails-canvas-job]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/jobs/volunteer_slack_canvas_sync_job.rb
+[rails-reservation-canvas]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/service/reservation_slack_canvas.rb
+[rails-slack]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/jobs/slack_volunteer_job.rb
+[rails-connector]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/lib/service/slack_connector.rb
+[rails-slack-user]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/slack_user.rb
+[rails-templates]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/lib/service/email_template.rb
+[rails-checkout-credit]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/services/checkout_approver_credit.rb
+[rails-discount]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/braintree_service/volunteer_discount.rb
+[rails-config-controller]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/admin/system_configs_controller.rb
+[rails-analytics]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/admin/analytics_controller.rb
+[rails-leaderboard]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/controllers/volunteer/leaderboard_controller.rb
+[rails-routes]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/config/routes.rb
+[rails-swagger]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/swagger/v1/swagger.json
+[rails-seeds]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/db/seeds/volunteer_system_configs.rb
+[rails-system-config]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/app/models/system_config.rb
+[rails-legacy]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/lib/tasks/volunteering.rake
+[rails-public-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/docs/volunteer-public-resources.MD
+[rails-jobs-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/docs/jobs-tasks-services.MD
+[rails-email-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/docs/email.MD
+[rails-env-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/docs/environment-vars.MD
+[rails-collections-doc]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/docs/mongodb-collections.MD
+[rails-task-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/models/volunteer_task_spec.rb
+[rails-event-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/models/volunteer_event_spec.rb
+[rails-credit-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/models/volunteer_credit_spec.rb
+[rails-volunteer-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/requests/volunteer_spec.rb
+[rails-task-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/api/volunteer_tasks_authorization_spec.rb
+[rails-event-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/api/volunteer_events_authorization_spec.rb
+[rails-slack-auth-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/jobs/slack_volunteer_authorization_spec.rb
+[rails-canvas-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/services/volunteer_slack_canvas_spec.rb
+[rails-reminder-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/jobs/volunteer_event_reminder_job_spec.rb
+[rails-checkout-credit-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/services/checkout_approver_credit_spec.rb
+[rails-ticket-spec]: https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/5789f76b051490c20ad283771b115048ba727662/spec/services/fix_ticket_service_spec.rb
