@@ -83,6 +83,13 @@ interface FloorMapProps {
   // Called continuously while a corner is dragged (final = false) and once
   // when it is released (final = true).
   onAdjustPoint?: (index: number, point: Point, final: boolean) => void;
+  // A small dot sits at the middle of every edge. Dragging one pulls a new
+  // corner out of that edge: `edgeIndex` is the corner the edge starts from,
+  // so the new corner goes right after it. Reported while dragging (final =
+  // false) and once on release (final = true).
+  onInsertPoint?: (edgeIndex: number, point: Point, final: boolean) => void;
+  // Double-click (or right-click / long-press) on a corner removes it.
+  onRemovePoint?: (index: number) => void;
   onMapClick?: (point: Point) => void;
   height?: number;
   // Accessible name for the map region.
@@ -98,6 +105,9 @@ const OWN_CSS = `
 .floor-map .floor-map-ring { position: absolute; left: -14px; top: -14px; width: ${MARKER_SIZE + 28}px; height: ${MARKER_SIZE + 28}px; border-radius: 50%; border: 4px solid #d32f2f; box-shadow: 0 0 0 3px rgba(255, 255, 255, .95), 0 0 14px 5px rgba(211, 47, 47, .5); box-sizing: border-box; pointer-events: none; animation: floor-map-pulse 1.4s ease-in-out infinite; }
 .floor-map .floor-map-ring-selected { border-width: 3px; border-color: #1976d2; box-shadow: 0 0 0 2px rgba(255, 255, 255, .95); animation: none; }
 .floor-map .floor-map-handle { width: 16px; height: 16px; border-radius: 50%; background: #d32f2f; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.3); box-sizing: border-box; cursor: grab; }
+.floor-map .floor-map-midpoint { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, .92); border: 2px solid #d32f2f; box-shadow: 0 0 0 1px rgba(0,0,0,.2); box-sizing: border-box; opacity: .8; cursor: copy; }
+.floor-map .floor-map-midpoint:hover { opacity: 1; transform: scale(1.25); }
+@media (pointer: coarse) { .floor-map .floor-map-handle { width: 26px; height: 26px; } .floor-map .floor-map-midpoint { width: 22px; height: 22px; } }
 .floor-map .floor-map-clickable { cursor: pointer; }
 .floor-map.leaflet-container { background: #fff; font: inherit; }
 @keyframes floor-map-pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: .6; } }
@@ -117,8 +127,8 @@ const ensureStyles = () => {
 };
 
 const FloorMap: React.FC<FloorMapProps> = ({
-  floorName, fitBox, fitKey, shapes, markers, draftPoints, adjustPoints, adjustKey, onAdjustPoint, onMapClick, height = 420,
-  label = "Floor map", crosshair,
+  floorName, fitBox, fitKey, shapes, markers, draftPoints, adjustPoints, adjustKey, onAdjustPoint, onInsertPoint,
+  onRemovePoint, onMapClick, height = 420, label = "Floor map", crosshair,
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<L.Map | null>(null);
@@ -134,6 +144,10 @@ const FloorMap: React.FC<FloorMapProps> = ({
   onMapClickRef.current = onMapClick;
   const onAdjustPointRef = React.useRef(onAdjustPoint);
   onAdjustPointRef.current = onAdjustPoint;
+  const onInsertPointRef = React.useRef(onInsertPoint);
+  onInsertPointRef.current = onInsertPoint;
+  const onRemovePointRef = React.useRef(onRemovePoint);
+  onRemovePointRef.current = onRemovePoint;
   const aspectRef = React.useRef<number | null>(null);
   aspectRef.current = aspect;
   const adjustPointsRef = React.useRef(adjustPoints);
@@ -301,10 +315,36 @@ const FloorMap: React.FC<FloorMapProps> = ({
     layer.clearLayers();
     const points = adjustPointsRef.current;
     if (!adjustKey || !points?.length) return;
+
+    // Edge midpoints first, so a corner handle sits on top wherever the two
+    // overlap (a very short edge). Dragging one adds a corner to that edge.
+    if (points.length >= 3) {
+      points.forEach((point, edgeIndex) => {
+        const next = points[(edgeIndex + 1) % points.length];
+        const dot = L.marker(pctToLatLng(aspect, (point.x + next.x) / 2, (point.y + next.y) / 2), {
+          draggable: true,
+          icon: L.divIcon({ className: "", html: '<div class="floor-map-midpoint" title="Drag to add a corner"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }),
+          bubblingMouseEvents: false,
+          keyboard: false,
+        });
+        const reportInsert = (final: boolean) => () => {
+          const latLng = dot.getLatLng();
+          onInsertPointRef.current?.(edgeIndex, latLngToPct(aspect, latLng.lat, latLng.lng), final);
+        };
+        dot.on("drag", reportInsert(false));
+        dot.on("dragend", reportInsert(true));
+        // Leaflet only treats a marker as the target of a click if it listens for
+        // one; without this a click on the dot falls through to the map, which
+        // would deselect the shape.
+        dot.on("click", () => undefined);
+        layer.addLayer(dot);
+      });
+    }
+
     points.forEach((point, index) => {
       const handle = L.marker(pctToLatLng(aspect, point.x, point.y), {
         draggable: true,
-        icon: L.divIcon({ className: "", html: '<div class="floor-map-handle"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
+        icon: L.divIcon({ className: "", html: '<div class="floor-map-handle" title="Drag to move; double-click to remove"></div>', iconSize: [16, 16], iconAnchor: [8, 8] }),
         bubblingMouseEvents: false,
         keyboard: false,
       });
@@ -314,6 +354,16 @@ const FloorMap: React.FC<FloorMapProps> = ({
       };
       handle.on("drag", report(false));
       handle.on("dragend", report(true));
+      // Double-click (or right-click / long-press) removes the corner. The
+      // map's own double-click zoom and context menu are kept out of it.
+      const remove = (event: L.LeafletMouseEvent) => {
+        L.DomEvent.stop(event.originalEvent);
+        onRemovePointRef.current?.(index);
+      };
+      handle.on("dblclick", remove);
+      handle.on("contextmenu", remove);
+      // As on the edge dots: claim the click, so it never reaches the map.
+      handle.on("click", () => undefined);
       layer.addLayer(handle);
     });
   }, [adjustKey, aspect]);

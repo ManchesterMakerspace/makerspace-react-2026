@@ -1,6 +1,6 @@
 import {
   MAP_WIDTH, pctToLatLng, latLngToPct, boxToBounds, paddedBox, centroid, aspectFromSvgText, sortFloors, floorLabel,
-  FULL_FLOOR_BOX, withMinSpan,
+  FULL_FLOOR_BOX, withMinSpan, insertPoint, removePoint, MIN_SHAPE_POINTS,
 } from "ui/toolCheckouts/floorMapGeometry";
 
 describe("floorMapGeometry", () => {
@@ -35,6 +35,35 @@ describe("floorMapGeometry", () => {
 
   it("pads a box without leaving the plan", () => {
     expect(paddedBox({ minX: 2, maxX: 50, minY: 40, maxY: 98 })).toEqual({ minX: 0, maxX: 55, minY: 35, maxY: 100 });
+  });
+
+  describe("insertPoint and removePoint", () => {
+    const tri = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }];
+
+    it("puts a new corner between the two ends of an edge", () => {
+      expect(insertPoint(tri, 0, { x: 5, y: -2 })).toEqual([{ x: 0, y: 0 }, { x: 5, y: -2 }, { x: 10, y: 0 }, { x: 10, y: 10 }]);
+      expect(insertPoint(tri, 1, { x: 12, y: 5 })).toEqual([{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 12, y: 5 }, { x: 10, y: 10 }]);
+    });
+
+    it("puts a corner on the closing edge at the end of the list", () => {
+      expect(insertPoint(tri, 2, { x: 4, y: 6 })).toEqual([...tri, { x: 4, y: 6 }]);
+    });
+
+    it("does not change the original or accept a bad edge", () => {
+      const copy = JSON.parse(JSON.stringify(tri));
+      insertPoint(tri, 0, { x: 1, y: 1 });
+      expect(tri).toEqual(copy);
+      expect(insertPoint(tri, 3, { x: 1, y: 1 })).toBe(tri);
+      expect(insertPoint(tri, -1, { x: 1, y: 1 })).toBe(tri);
+    });
+
+    it("removes a corner, but never below three", () => {
+      const square = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+      expect(removePoint(square, 1)).toEqual([{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }]);
+      expect(removePoint(tri, 0)).toBe(tri); // same array back: nothing changed
+      expect(removePoint(square, 9)).toBe(square);
+      expect(MIN_SHAPE_POINTS).toBe(3);
+    });
   });
 
   describe("withMinSpan", () => {

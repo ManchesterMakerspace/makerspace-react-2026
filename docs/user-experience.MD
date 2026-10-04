@@ -210,7 +210,9 @@ The plan is a plain image, so positions are stored as percentages of it and
   created unless a mode is chosen, so a stray click never drops a marker. In
   Select mode, click an area or marker to choose it and see its details; drag
   the chosen marker to move it, or its red corner points to reshape the area.
-  Each drag saves when released. A marker placed or moved inside an area is
+  A small dot at the middle of each edge adds a corner when dragged, and
+  double-clicking (or right-clicking / long-pressing) a corner removes it; a
+  shape always keeps at least three. Each drag saves when released. A marker placed or moved inside an area is
   nested in it automatically (the smallest area containing it); the "Inside"
   field in the form shows and can change this. Everything is also reachable
   from the keyboard through the list under the map, which selects an item.
