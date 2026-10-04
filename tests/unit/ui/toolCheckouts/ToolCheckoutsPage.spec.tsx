@@ -23,6 +23,7 @@ jest.mock("ui/toolCheckouts/CheckoutRoster", () => () => <div>Management roster<
 jest.mock("ui/toolCheckouts/ShopManager", () => () => <div>Shop manager</div>);
 jest.mock("ui/toolCheckouts/ToolManager", () => () => <div>Tool manager</div>);
 jest.mock("ui/toolCheckouts/CheckoutApproversManager", () => () => <div>Approvers manager</div>);
+jest.mock("ui/toolCheckouts/ShopMapView", () => () => <div>Shop map</div>);
 
 import ToolCheckoutsPage from "ui/toolCheckouts/ToolCheckoutsPage";
 

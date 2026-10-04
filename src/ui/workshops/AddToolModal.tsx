@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Button, Dialog, DialogContent, DialogTitle, Typography } from '@mui/material';
-import { AddToolModal as SharedAddToolModal } from 'ui/toolCheckouts/ToolManager';
-import { listTools, listManagedShops, adminCreateTool } from 'api/toolCheckouts';
+import ToolEditorModal from 'ui/toolCheckouts/ToolEditorModal';
+import { listTools, listManagedShops } from 'api/toolCheckouts';
 import { Shop, Tool } from 'app/entities/toolCheckout';
 import { Workshop } from 'app/entities/workshop';
 
@@ -9,7 +9,6 @@ export const AddToolModal: React.FC<{ workshop: Workshop; onClose: () => void; o
   const [tools, setTools] = React.useState<Tool[]>([]);
   const [shops, setShops] = React.useState<Shop[]>([]);
   const [error, setError] = React.useState('');
-  const [saving, setSaving] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [attempt, setAttempt] = React.useState(0);
   React.useEffect(() => {
@@ -33,13 +32,8 @@ export const AddToolModal: React.FC<{ workshop: Workshop; onClose: () => void; o
       </>}
       <Button onClick={onClose}>Cancel</Button>
     </DialogContent></Dialog>;
-  return <SharedAddToolModal shops={shops} tools={tools} onClose={onCreated} loading={saving} error={error}
-    onSave={async body => {
-      setSaving(true);
-      const result = await adminCreateTool({ body });
-      setSaving(false);
-      if (result.error) setError(result.error.message); else onCreated();
-    }} />;
+  return <ToolEditorModal shops={shops} tools={tools} initialShopId={workshop.id}
+    onClose={onClose} onSaved={onCreated} />;
 };
 
 export default AddToolModal;

@@ -38,7 +38,8 @@ const ReservationSettingsFields: React.FC<{
   onChange: (value: ReservationSettingsValue) => void;
   tools?: Tool[];
   lockedToolId?: string;
-}> = ({ value, onChange, tools = [], lockedToolId }) => {
+  disabled?: boolean;
+}> = ({ value, onChange, tools = [], lockedToolId, disabled = false }) => {
   const [fees, setFees] = React.useState<ShopFeeItem[]>([]);
   const [feeError, setFeeError] = React.useState("");
   const [feeLoadRevision, setFeeLoadRevision] = React.useState(0);
@@ -154,7 +155,7 @@ const ReservationSettingsFields: React.FC<{
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
               {tools.map(tool => (
                 <Chip key={tool.id} label={`${tool.name}${tool.id === lockedToolId ? " (required)" : ""}${tool.outOfService ? " - Out of service" : ""}`}
-                  size="small" clickable={tool.id !== lockedToolId}
+                  size="small" clickable={tool.id !== lockedToolId} disabled={disabled}
                   onMouseDown={event => event.stopPropagation()}
                   onClick={event => {
                     event.stopPropagation();

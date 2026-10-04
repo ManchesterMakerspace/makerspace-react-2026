@@ -2,13 +2,8 @@
 import ToolAvailability from "ui/common/ToolAvailability";
 import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
-import { Radio, RadioGroup } from '@mui/material';
-import ToolGroupForm, { emptyGroup } from './ToolGroupForm';
 import ToolGroupList from './ToolGroupList';
-import { saveToolGroup } from 'api/toolCheckouts';
 import Grid from "@mui/material/Grid";
-import { duplicateToolName, wouldCreatePrerequisiteLoop } from "./toolValidation";
-import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
@@ -16,9 +11,6 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Select from "@mui/material/Select";
 import FormLabel from "@mui/material/FormLabel";
-import Chip from "@mui/material/Chip";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import ToolAnnotationCell from "./ToolAnnotationCell";
 import ToolQrCodeModal from "./ToolQrCodeModal";
@@ -30,333 +22,23 @@ import CancelIcon from "@mui/icons-material/Cancel";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
-import LoadingOverlay from "ui/common/LoadingOverlay";
 import StatefulTable from "ui/common/table/StatefulTable";
 import { Column } from "ui/common/table/Table";
 import { SortDirection } from "ui/common/table/constants";
 import { withQueryContext } from "ui/common/Filters/QueryContext";
 import { useCheckoutCatalog } from "./CheckoutCatalog";
+import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { Shop, Tool } from "app/entities/toolCheckout";
 import {
-  adminCreateTool, adminUpdateTool, adminDeleteTool, adminUpdateToolNotes,
+  adminDeleteTool, adminUpdateToolNotes,
 } from "api/toolCheckouts";
-import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
+import ToolEditorModal from "./ToolEditorModal";
 
 const rowId = (t: Tool) => t.id;
 
-const normalizedChannel = (value: string) => value.replace(/^#+/, "");
-
-// ── AddToolModal ──────────────────────────────────────────────────────────────
-
-interface AddToolModalProps {
-  shops: Shop[];
-  tools: Tool[];
-  onClose: () => void;
-  onSave: (body: Partial<Tool>) => void;
-  loading: boolean;
-  error: string;
-}
-
-export const AddToolModal: React.FC<AddToolModalProps> = ({ shops, tools, onClose, onSave, loading, error }) => {
-  const [kind, setKind] = React.useState('tool');
-  const [group, setGroup] = React.useState(emptyGroup(shops[0]?.id || ''));
-  const [groupSaving, setGroupSaving] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [wikiUrl, setWikiUrl] = React.useState("");
-  const [gdriveId, setGdriveId] = React.useState("");
-  const [description, setDescription] = React.useState("");
-  const [requestorAnnotation, setRequestorAnnotation] = React.useState("");
-  const [shopId, setShopId] = React.useState(shops[0]?.id || "");
-  const [open, setOpen] = React.useState(false);
-  const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>([]);
-  const [disabled, setDisabled] = React.useState(false);
-  const [announce, setAnnounce] = React.useState(false);
-  const [announceChannel, setAnnounceChannel] = React.useState("");
-  const [usersChannel, setUsersChannel] = React.useState("");
-  const [localError, setLocalError] = React.useState("");
-  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
-    reservable: false, maxConcurrentReservations: 1, reservationHorizonDays: 7,
-    maxReservationDurationHours: 8, reservationRequiresApproval: false,
-    reservationPrerequisiteToolIds: []
-  });
-
-  const togglePrereq = (id: string) =>
-    setPrerequisiteIds(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
-
-  const availablePrereqs = tools.filter(t => t.shopId === shopId);
-  const submit = async () => {
-    if (kind === 'group') {
-      if (!group.name?.trim() || !group.includedToolIds?.length) { setLocalError('Enter a name and include at least one tool.'); return; }
-      setGroupSaving(true);
-      const result = await saveToolGroup(group);
-      setGroupSaving(false);
-      if (result.error) setLocalError(result.error.message); else { onClose(); window.dispatchEvent(new Event('tool-groups-changed')); }
-      return;
-    }
-    const trimmedName = name.trim();
-    if (!trimmedName || !shopId) return;
-
-    if (duplicateToolName(tools, trimmedName, shopId)) {
-      setLocalError("A tool with this name already exists in the selected shop.");
-      return;
-    }
-
-    setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, requestorAnnotation: requestorAnnotation.trim() || null, shopId, prerequisiteIds, disabled, open, announce, announceChannel, usersChannel, ...reservation });
-  };
-
-  return (
-    <FormModal id="add-tool" isOpen={true} title="Add Tool"
-      closeHandler={onClose}
-      onSubmit={submit}
-      submitText={kind === 'group' ? 'Add Group' : 'Add Tool'} loading={loading || groupSaving} error={localError || error}
-    >
-      <RadioGroup row aria-label="Resource type" value={kind} onChange={event => setKind(event.target.value)}>
-        <FormControlLabel value="tool" control={<Radio />} label="Tool" />
-        <FormControlLabel value="group" control={<Radio />} label="Group" />
-      </RadioGroup>
-      {kind === 'group' ? <ToolGroupForm value={group} onChange={setGroup} tools={tools} shops={shops} /> : <>
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12 }}>
-          <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
-          <Select native fullWidth value={shopId}
-            onChange={e => { setShopId((e.target as HTMLSelectElement).value); setPrerequisiteIds([]); }}>
-            <option value="">— select shop —</option>
-            {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </Select>
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth required label="Tool Name" placeholder="e.g. Bandsaw"
-            value={name} onChange={e => setName(e.target.value)} autoFocus />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Wiki URL" value={wikiUrl}
-            onChange={e => setWikiUrl(e.target.value)}
-            helperText="Optional. Defaults to WIKI_URL/workshops/shop-slug#tool-slug." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="GDrive ID" value={gdriveId}
-            onChange={e => setGdriveId(e.target.value)}
-            helperText="Optional Google Drive folder ID." />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth label="Description" placeholder="Optional details"
-            value={description} onChange={e => setDescription(e.target.value)} />
-        </Grid>
-        <Grid size={{ xs: 12 }}>
-          <TextField fullWidth multiline minRows={2} label="Annotation for requestors"
-            value={requestorAnnotation} onChange={e => setRequestorAnnotation(e.target.value)}
-            helperText="Leave blank to use the shop annotation." />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
-      <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />}
-            label="Hidden" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />}
-            label="Announce requests and checkouts" />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField fullWidth label="Announce Channel" placeholder="name or ID"
-            value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField fullWidth label="Users Channel" placeholder="name or ID"
-            value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))} />
-        </Grid>
-        {availablePrereqs.length > 0 && (
-          <Grid size={{ xs: 12 }}>
-            <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>
-              Prerequisites (warning shown if not met — not a hard block)
-            </FormLabel>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              {availablePrereqs.map(t => (
-                <Chip key={t.id} label={t.name} size="small" clickable
-                  onClick={() => togglePrereq(t.id)}
-                  color={prerequisiteIds.includes(t.id) ? "primary" : "default"}
-                  variant={prerequisiteIds.includes(t.id) ? "default" : "outlined"}
-                />
-              ))}
-            </div>
-          </Grid>
-        )}
-        <ReservationSettingsFields
-          value={reservation}
-          onChange={setReservation}
-          tools={availablePrereqs}
-        />
-      </Grid>
-      </>}
-    </FormModal>
-  );
-};
-
-// ── EditToolRow ───────────────────────────────────────────────────────────────
-
-interface EditToolRowProps {
-  tool: Tool;
-  tools: Tool[];
-  shops: Shop[];
-  onSave: (id: string, body: Partial<Tool>, notes?: string) => void;
-  onCancel: () => void;
-  saving: boolean;
-}
-
-export const EditToolRow: React.FC<EditToolRowProps> = ({ tool, tools, shops, onSave, onCancel, saving }) => {
-  const [name, setName] = React.useState(tool.name);
-  const [wikiUrl, setWikiUrl] = React.useState(tool.wikiUrlOverride || "");
-  const [gdriveId, setGdriveId] = React.useState(tool.gdriveId || "");
-  const [description, setDescription] = React.useState(tool.description || "");
-  const [open, setOpen] = React.useState(!!tool.open);
-  const [shopId, setShopId] = React.useState(tool.shopId);
-  const [prerequisiteIds, setPrerequisiteIds] = React.useState<string[]>(tool.prerequisiteIds || []);
-  const [disabled, setDisabled] = React.useState(!!tool.disabled);
-  const [announce, setAnnounce] = React.useState(!!tool.announce);
-  const [announceChannel, setAnnounceChannel] = React.useState(tool.announceChannel || "");
-  const [usersChannel, setUsersChannel] = React.useState(tool.usersChannel || "");
-  const [notes, setNotes] = React.useState(tool.notes || "");
-  const [localError, setLocalError] = React.useState("");
-  // Only the reservation-specific fields -- seeding this from the full tool
-  // object let its name/description/gdriveId/announce*/etc. leak in, which
-  // then silently overwrote whatever the user just edited via the trailing
-  // `...reservation` spread in submit() below.
-  const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
-    reservable: tool.reservable,
-    maxConcurrentReservations: tool.maxConcurrentReservations,
-    reservationHorizonDays: tool.reservationHorizonDays,
-    minimumAdvanceNoticeHours: tool.minimumAdvanceNoticeHours ?? 2,
-    prohibitSameDayReservations: tool.prohibitSameDayReservations ?? false,
-    reservationFullDay: tool.reservationFullDay,
-    durationFees: tool.durationFees,
-    maxReservationDurationHours: tool.maxReservationDurationHours,
-    reservationRequiresApproval: tool.reservationRequiresApproval,
-    reservationPrerequisiteToolIds: tool.reservationPrerequisiteToolIds,
-  });
-
-  const availablePrereqs = tools.filter(t => t.shopId === shopId && t.id !== tool.id);
-  const togglePrereq = (id: string) => {
-    const nextIds = prerequisiteIds.includes(id)
-      ? prerequisiteIds.filter(p => p !== id)
-      : [...prerequisiteIds, id];
-
-    if (wouldCreatePrerequisiteLoop(tools, tool.id, nextIds)) {
-      setLocalError("That prerequisite would create a dependency loop.");
-      return;
-    }
-
-    setLocalError("");
-    setPrerequisiteIds(nextIds);
-  };
-
-  // Prerequisites are shop-scoped -- moving to a different shop invalidates
-  // whatever was previously selected here, the same way changing the shop
-  // on Add Tool resets it.
-  const changeShop = (nextShopId: string) => {
-    setShopId(nextShopId);
-    setPrerequisiteIds([]);
-    setLocalError("");
-  };
-
-  const submit = () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) return;
-
-    if (duplicateToolName(tools, trimmedName, shopId, tool.id)) {
-      setLocalError("A tool with this name already exists in this shop.");
-      return;
-    }
-
-    if (wouldCreatePrerequisiteLoop(tools, tool.id, prerequisiteIds)) {
-      setLocalError("These prerequisites would create a dependency loop.");
-      return;
-    }
-
-    setLocalError("");
-    onSave(
-      tool.id,
-      { name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, description, shopId, disabled, open, announce, announceChannel, usersChannel, prerequisiteIds, ...reservation },
-      notes !== (tool.notes || "") ? notes : undefined
-    );
-  };
-
-  return (
-    <Box sx={{
-      display: "grid",
-      gap: 1,
-      gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" },
-      alignItems: "center"
-    }}>
-      <TextField size="small" value={name} onChange={e => setName(e.target.value)}
-        placeholder="Tool name" autoFocus />
-      <TextField size="small" value={description} onChange={e => setDescription(e.target.value)}
-        placeholder="Description" />
-      <div style={{ gridColumn: "1 / -1" }}>
-        <FormLabel style={{ fontSize: 12 }}>Shop</FormLabel>
-        <Select native fullWidth size="small" value={shopId}
-          onChange={e => changeShop((e.target as HTMLSelectElement).value)}>
-          {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </Select>
-      </div>
-      <TextField size="small" value={wikiUrl} onChange={e => setWikiUrl(e.target.value)}
-        placeholder="Wiki URL (generated when blank)" style={{ gridColumn: "1 / -1" }} />
-      <TextField size="small" value={gdriveId} onChange={e => setGdriveId(e.target.value)}
-        placeholder="GDrive ID" style={{ gridColumn: "1 / -1" }} />
-      {tool.notes !== undefined && (
-        <TextField size="small" multiline value={notes} onChange={e => setNotes(e.target.value)}
-          placeholder="Notes (e.g. lock combo) -- only shown to approvers and active checkouts"
-          style={{ gridColumn: "1 / -1" }} />
-      )}
-      <TextField size="small" value={announceChannel} onChange={e => setAnnounceChannel(normalizedChannel(e.target.value))}
-        placeholder="Announce channel" />
-      <TextField size="small" value={usersChannel} onChange={e => setUsersChannel(normalizedChannel(e.target.value))}
-        placeholder="Users channel" />
-      <FormControlLabel control={<Checkbox checked={open} onChange={e => setOpen(e.target.checked)} />} label="No checkout required" />
-      <FormControlLabel control={<Checkbox checked={disabled} onChange={e => setDisabled(e.target.checked)} />} label="Hidden" />
-      <FormControlLabel control={<Checkbox checked={announce} onChange={e => setAnnounce(e.target.checked)} />} label="Announce" />
-      <div style={{ gridColumn: "1 / -1" }}>
-        <FormLabel style={{ fontSize: 12, display: "block", marginBottom: 6 }}>Prerequisites</FormLabel>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {availablePrereqs.length ? availablePrereqs.map(t => (
-            <Chip key={t.id} label={t.name} size="small" clickable
-              onClick={() => togglePrereq(t.id)}
-              color={prerequisiteIds.includes(t.id) ? "primary" : "default"}
-              variant={prerequisiteIds.includes(t.id) ? "default" : "outlined"}
-            />
-          )) : (
-            <Typography variant="caption" color="textSecondary">No other tools in this shop.</Typography>
-          )}
-        </div>
-        {localError && <Typography variant="caption" color="error">{localError}</Typography>}
-      </div>
-      <div style={{ gridColumn: "1 / -1" }}>
-        <Grid container spacing={1}>
-          <ReservationSettingsFields
-            value={reservation}
-            onChange={setReservation}
-            tools={tools.filter(candidate => candidate.shopId === shopId)}
-            lockedToolId={tool.id}
-          />
-        </Grid>
-      </div>
-      <div>
-        <Tooltip title="Save"><span>
-          <IconButton size="medium" color="primary" disabled={saving || !name}
-            onClick={submit}>
-            <SaveIcon fontSize="medium" />
-          </IconButton>
-        </span></Tooltip>
-        <Tooltip title="Cancel">
-          <IconButton size="small" onClick={onCancel}><CancelIcon fontSize="small" /></IconButton>
-        </Tooltip>
-      </div>
-    </Box>
-  );
-};
-
 // ── NotesCell ─────────────────────────────────────────────────────────────────
-// Separate from EditToolRow/adminUpdateTool: a checkout approver for this
+// Separate from the full tool editor: a checkout approver for this
 // tool may set notes (e.g. lock combo) even if they can't edit anything
 // else about the tool -- see #189. `tool.notes` is only present at all when
 // the backend has decided this viewer may see it.
@@ -433,7 +115,7 @@ const DeleteToolModal: React.FC<DeleteToolModalProps> = ({ target, onClose, onDe
 
 // ── ToolManager ───────────────────────────────────────────────────────────────
 
-const ToolManager: React.FC = () => {
+const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) => void }> = ({ onPlaceOnMap }) => {
   const [qrTool, setQrTool] = React.useState<Tool | null>(null);
   const [addOpen,      setAddOpen]      = React.useState(false);
   const [editingId,    setEditingId]    = React.useState<string | null>(null);
@@ -441,7 +123,7 @@ const ToolManager: React.FC = () => {
   const [shopFilter,   setShopFilter]   = React.useState<string>("");
   const [selectedId,   setSelectedId]   = React.useState<string | undefined>(undefined);
 
-  const { data: shops = [] } = useCheckoutCatalog("managedShops");
+  const { data: shops = [], isRequesting: shopsLoading, error: shopsError } = useCheckoutCatalog("managedShops");
   const { isRequesting, data: allTools = [], refresh, error: loadError } =
     useCheckoutCatalog("tools");
   const tools = shopFilter ? allTools.filter(tool => tool.shopId === shopFilter) : allTools;
@@ -456,6 +138,7 @@ const ToolManager: React.FC = () => {
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
 
   const selectedTool = manageableTools.find(t => t.id === selectedId);
+  const editingTool = allManageableTools.find(tool => tool.id === editingId);
   // Full edit/delete stays restricted to actual shop managers -- a tool-only
   // checkout approver can only reach the Notes field (see NotesCell), since
   // the backend rejects any other field change from them (#189).
@@ -468,25 +151,7 @@ const ToolManager: React.FC = () => {
     refreshRef.current();
   }, []);
 
-  const { call: createTool, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateTool, onSuccess);
-  const { call: updateTool, isRequesting: updating, error: updateError } = useWriteTransaction(adminUpdateTool, onSuccess);
   const { call: deleteTool, isRequesting: deleting, error: deleteError } = useWriteTransaction(adminDeleteTool, onSuccess);
-  // Notes go through their own endpoint even from the full edit form, since
-  // the backend permits a tool-only checkout approver to set them without
-  // shop-manage rights over anything else (#189) -- there's no reason to
-  // fire this second call unless the notes field actually changed.
-  const { call: saveToolNotes, error: notesError } = useWriteTransaction(adminUpdateToolNotes, onSuccess);
-
-  const handleSave = React.useCallback((id: string, body: Partial<Tool>, notes?: string) => {
-    updateTool({ id, body });
-    if (notes !== undefined) saveToolNotes({ id, notes });
-  }, [updateTool, saveToolNotes]);
-
-  const handleCancel = React.useCallback(() => {
-    setEditingId(null);
-    setSelectedId(undefined);
-  }, []);
-
   const handleSelectId = React.useCallback((id: string | undefined) => {
     setEditingId(null);
     setSelectedId(id);
@@ -496,9 +161,7 @@ const ToolManager: React.FC = () => {
     {
       id: "name", label: "Tool",
       defaultSortDirection: SortDirection.Asc,
-      cell: (row: Tool) => editingId === row.id
-        ? <EditToolRow tool={row} tools={allManageableTools} shops={shops as Shop[]} onSave={handleSave} onCancel={handleCancel} saving={updating} />
-        : (
+      cell: (row: Tool) => (
           <div>
             <Typography variant="body2"><strong>{row.name}</strong></Typography>
             {row.description && <Typography variant="caption" color="textSecondary">{row.description}</Typography>}
@@ -508,11 +171,17 @@ const ToolManager: React.FC = () => {
     {
       id: "shopName", label: "Shop",
       defaultSortDirection: SortDirection.Asc,
-      cell: (row: Tool) => editingId === row.id ? null : <span>{row.shopName}</span>,
+      cell: (row: Tool) => <span>{row.shopName}</span>,
+    },
+    {
+      id: "locationName", label: "Location",
+      cell: (row: Tool) => (
+        <span style={{ color: row.locationName ? "inherit" : "#aaa" }}>{row.locationName || "—"}</span>
+      ),
     },
     {
       id: "prerequisites", label: "Prerequisites",
-      cell: (row: Tool) => editingId === row.id ? null : (
+      cell: (row: Tool) => (
         <span style={{ color: row.prerequisiteNames?.length ? "inherit" : "#aaa" }}>
           {row.prerequisiteNames?.length ? row.prerequisiteNames.join(", ") : "None"}
         </span>
@@ -520,9 +189,9 @@ const ToolManager: React.FC = () => {
     },
     {
       id: "settings", label: "Settings",
-      cell: (row: Tool) => editingId === row.id ? null : (
+      cell: (row: Tool) => (
         <span>
-          <ToolAvailability outOfService={row.outOfService} />{managedShopIds.has(row.shopId) && <ToolOutageAction tool={row} onSaved={() => { refreshRef.current(); refreshAllToolsRef.current(); }} />}{row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
+          <ToolAvailability outOfService={row.outOfService} />{managedShopIds.has(row.shopId) && <ToolOutageAction tool={row} onSaved={() => { refreshRef.current(); }} />}{row.disabled ? "Hidden" : "Visible"}{row.announce ? ", announces" : ""}{row.usersChannel ? `, users: ${row.usersChannel}` : ""}
           {row.reservable ? `, reservable (${row.maxConcurrentReservations || 1} concurrent)` : ", not reservable"}
         </span>
       ),
@@ -533,7 +202,7 @@ const ToolManager: React.FC = () => {
     },
     {
       id: "notes", label: "Notes",
-      cell: (row: Tool) => editingId === row.id ? null : (
+      cell: (row: Tool) => (
         <NotesCell tool={row} onSaved={() => refreshRef.current()} />
       ),
     },
@@ -542,7 +211,7 @@ const ToolManager: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
           <div>
             <Typography variant="h6">Tools</Typography>
             <Typography variant="body2" color="textSecondary">
@@ -558,6 +227,7 @@ const ToolManager: React.FC = () => {
             {selectedTool && !editingId && canFullyManageSelected && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
+                  disabled={isRequesting || shopsLoading || !!loadError || !!shopsError}
                   onClick={() => setEditingId(selectedTool.id)}>
                   Edit
                 </Button>
@@ -568,7 +238,7 @@ const ToolManager: React.FC = () => {
               </>
             )}
             <Button variant="contained" color="primary" startIcon={<AddIcon />}
-              onClick={() => setAddOpen(true)}>
+              disabled={!shops.length || isRequesting || shopsLoading || !!loadError || !!shopsError} onClick={() => setAddOpen(true)}>
               Add Tool
             </Button>
           </div>
@@ -584,7 +254,7 @@ const ToolManager: React.FC = () => {
         </Select>
       </Grid>
 
-      {(loadError || updateError || notesError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || updateError || notesError} /></Grid>}
+      {(loadError || shopsError) && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError || shopsError} /></Grid>}
 
       <Grid size={{ xs: 12 }} style={{ position: "relative" }}>
         <StatefulTable
@@ -594,17 +264,16 @@ const ToolManager: React.FC = () => {
           selectedIds={selectedId} setSelectedIds={handleSelectId}
           renderSearch={true}
         />
-        {updating && <LoadingOverlay id="tool-saving" contained />}
       </Grid>
 
-      {addOpen && (
-        <AddToolModal
-          shops={shops as Shop[]} tools={allManageableTools}
-          onClose={() => setAddOpen(false)}
-          onSave={(body) => createTool({ body })}
-          loading={creating} error={createError}
-        />
-      )}
+      {(addOpen || editingTool) && <ToolEditorModal
+        key={editingId || "new"}
+        tool={editingTool}
+        shops={shops as Shop[]} tools={allManageableTools}
+        initialShopId={shopFilter || undefined}
+        onClose={() => { setAddOpen(false); setEditingId(null); }}
+        onSaved={onSuccess} onPlaceOnMap={onPlaceOnMap}
+      />}
 
       <Grid size={{ xs: 12 }}><ToolGroupList shops={shops as Shop[]} tools={allManageableTools} shopId={shopFilter || undefined} /></Grid>
 

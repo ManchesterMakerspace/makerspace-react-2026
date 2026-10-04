@@ -16,7 +16,7 @@ test.describe('Member views payment history', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
 
     await member.clickTab('Payment History');
@@ -31,7 +31,7 @@ test.describe('Member views payment history', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.clickTab('Payment History');
 

@@ -7,12 +7,11 @@ import FixTicketsPage from 'ui/fixTickets/FixTicketsPage';
 import TicketLimitSetting from 'ui/fixTickets/TicketLimitSetting';
 import ShopResourceManagersField from 'ui/toolCheckouts/ShopResourceManagersField';
 import { CheckoutModal } from 'ui/toolCheckouts/CheckoutRoster';
-const ToolNameFixture = React.lazy(() => import('ui/toolCheckouts/ToolManager').then(module => ({ default: function ToolNames({ edit }: { edit?: boolean }) {
+const ToolNameFixture = React.lazy(() => import('ui/toolCheckouts/ToolEditorModal').then(module => ({ default: function ToolNames({ edit }: { edit?: boolean }) {
   const [saved, setSaved] = React.useState(false);
   const tools = [{ id: 'one', name: 'Saw', shopId: 'shop' }, { id: 'two', name: 'Drill', shopId: 'shop', disabled: true }, { id: 'three', name: 'Lathe', shopId: 'other' }] as any;
-  return <>{saved && <div>Tool accepted</div>}{edit
-    ? <module.EditToolRow tool={tools[0]} tools={tools} shops={[{ id: 'shop', name: 'Shop' }] as any} onSave={() => setSaved(true)} onCancel={() => {}} saving={false} />
-    : <module.AddToolModal shops={[{ id: 'shop', name: 'Shop' }] as any} tools={tools} onClose={() => {}} onSave={() => setSaved(true)} loading={false} error='' />}</>;
+  return <>{saved ? <div>Tool accepted</div> : <module.default tool={edit ? tools[0] : undefined}
+    tools={tools} shops={[{ id: "shop", name: "Shop" }] as any} onClose={() => {}} onSaved={() => setSaved(true)} />}</>;
 } })));
 function CheckoutPickerFixture() {
   return <CheckoutModal shops={[{ id: 'shop', name: 'Workshop' }] as any}

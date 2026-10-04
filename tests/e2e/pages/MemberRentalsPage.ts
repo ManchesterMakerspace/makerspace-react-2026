@@ -53,7 +53,9 @@ export class MemberRentalsPage {
 
   async clickProceed(): Promise<void> {
     await this.page.getByRole('button', { name: 'Proceed' }).click();
-    await this.page.waitForTimeout(1000);
+    await expect(this.page).toHaveURL(/\/members\/[^/?]+\/dues(?:\?|$)/, { timeout: 30_000 });
+    // A delayed document upload may show the existing rental notification modal.
+    await expect(this.page.locator('#dues-tab')).toHaveAttribute('aria-selected', 'true');
   }
 
   async handleRentalAgreementLoopIfPresent(): Promise<void> {

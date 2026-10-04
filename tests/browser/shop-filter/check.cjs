@@ -27,6 +27,16 @@ const root = path.resolve(__dirname, '../../../tmp/shop-filter-browser');
       assert.equal(await page.evaluate(() => window.shopLoads), 2);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
       await page.screenshot({ animations: 'disabled', path: path.join(root, `workshop-recovered-${width}.png`), fullPage: true });
+      await page.getByRole('radio', { name: 'Group', exact: true }).focus();
+      await page.keyboard.press('Space');
+      assert.equal(await page.getByRole('button', { name: 'Add Group', exact: true }).isDisabled(), true);
+      await page.getByLabel('Group name').fill('Woodshop basics');
+      await page.getByRole('combobox', { name: 'Included tools' }).fill('Woodshop saw');
+      await page.getByRole('option', { name: 'Woodshop saw' }).click();
+      await page.getByRole('button', { name: 'Add Group', exact: true }).click();
+      assert.equal(await page.locator('#outcome').textContent(), 'Saved');
+      assert.deepEqual(await page.evaluate(() => ({ name: window.savedGroup.name, shopId: window.savedGroup.shopId, ids: window.savedGroup.includedToolIds })),
+        { name: 'Woodshop basics', shopId: 'wood', ids: ['wood'] });
       await page.goto(`http://127.0.0.1:${server.address().port}`);
       await page.getByText('Metalshop saw', { exact: true }).waitFor();
       const shop = page.getByRole('combobox', { name: 'Shop' });

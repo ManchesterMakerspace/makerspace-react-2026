@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 const mockTools = jest.fn();
 const mockShops = jest.fn();
 jest.mock('api/toolCheckouts', () => ({ listTools: (...args: any[]) => mockTools(...args), listManagedShops: () => mockShops() }));
-jest.mock('ui/toolCheckouts/ToolManager', () => ({ AddToolModal: () => <div>Resource form</div> }));
+jest.mock('ui/toolCheckouts/ToolEditorModal', () => ({ __esModule: true, default: () => <div>Resource form</div> }));
 import AddToolModal from 'ui/workshops/AddToolModal';
 it.each(['tools', 'shops', 'rejection'])('retries both catalogs after %s fails', async failure => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;

@@ -2,6 +2,7 @@ import * as React from "react";
 import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { checkoutDestination } from "ui/auth/checkoutDestination";
+import { loginDestination } from "ui/auth/loginDestination";
 
 const navigate = jest.fn();
 const firebaseLogin = jest.fn().mockResolvedValue(undefined);
@@ -50,5 +51,13 @@ describe("Firebase checkout return handoff", () => {
     window.history.replaceState({}, "", "/auth/callback");
     await act(async () => root.render(<FirebaseCallback />));
     expect(navigate).toHaveBeenCalledWith("/login");
+  });
+  it("preserves an explicit Home destination across the provider callback", async () => {
+    const target = "/home?newMember=true";
+    window.history.replaceState({}, "", `/login?redirect=${encodeURIComponent(target)}`);
+    loginDestination();
+    window.history.replaceState({}, "", "/auth/callback");
+    await act(async () => root.render(<FirebaseCallback />));
+    expect(navigate).toHaveBeenCalledWith(`/login?redirect=${encodeURIComponent(target)}`);
   });
 });

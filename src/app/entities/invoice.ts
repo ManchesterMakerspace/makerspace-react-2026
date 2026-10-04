@@ -19,6 +19,7 @@ export const InvoiceableResourceDisplay: Record<string, string> = {
   [InvoiceableResource.Rental]: "Rental",
   // "fee" is not in the generated enum (server-side only) so we add it manually
   fee: "Shop Charge",
+  household: "Household membership",
 };
 
 export enum Properties {

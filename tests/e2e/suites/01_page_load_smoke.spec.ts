@@ -53,7 +53,7 @@ test.describe('Member pages load (basic member)', () => {
     const auth = new AuthPage(page);
     const member = new MemberPage(page);
     await auth.signIn(basicMember.email, basicMember.password);
-    await member.waitForProfile();
+    await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     // Capture member ID from URL once
     if (!memberId) {
@@ -67,6 +67,14 @@ test.describe('Member pages load (basic member)', () => {
     await assertNocrash(page);
     await expect(page.locator('#member-detail-type, #member-detail-status').first())
       .toBeVisible({ timeout: 15_000 });
+  });
+
+  test('Member Home page', async ({ page }) => {
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { name: 'Your membership', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Available safety checkouts', exact: true })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Account Settings', exact: true })).toHaveAttribute('href', `/members/${memberId}/settings`);
+    await assertNocrash(page);
   });
 
   test('Member profile — Dues tab', async ({ page }) => {

@@ -19,6 +19,12 @@ module.exports = env => ({
   module: {
     rules: [
       {
+        // Third-party CSS (Leaflet) is loaded as a string and injected at
+        // runtime, so it needs no CSS extraction/Rails stylesheet wiring.
+        test: /\.css$/,
+        type: "asset/source"
+      },
+      {
         test: /\.(png|jpe?g|svg)$/,
         exclude: /FilledLaserableLogo\.svg$/,
         type: "asset/resource",

@@ -29,7 +29,8 @@ import {
   adminCreateShop, adminUpdateShop, adminDeleteShop,
 } from "api/toolCheckouts";
 import ReservationSettingsFields, { ReservationSettingsValue } from "./ReservationSettingsFields";
-import ShopColorField from "./ShopColorField";
+import ShopColorField, { colorUsage } from "./ShopColorField";
+import { FLOOR_NAMES, floorLabel } from "./floorMapGeometry";
 import { useCapabilities } from "app/permissions";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { SelectOption } from "ui/common/AsyncSelect";
@@ -97,6 +98,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
   const [gdriveId, setGdriveId] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
   const [colorId, setColorId] = React.useState("1");
+  const [floorName, setFloorName] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
   const [resourceManagers, setResourceManagers] = React.useState<Array<{ id: string; name: string }>>([]);
   const [reservation, setReservation] = React.useState<ReservationSettingsValue>({
@@ -115,7 +117,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
   };
 
   return (
@@ -140,7 +142,16 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ShopColorField value={colorId} onChange={setColorId} />
+          <ShopColorField value={colorId} onChange={setColorId}
+            usedBy={colorUsage(shops)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField select fullWidth label="Home floor" value={floorName}
+            onChange={event => setFloorName(event.target.value)}
+            slotProps={{ select: { native: true } }}
+            helperText="The floor this shop is shown on by default. A shop's individual areas and tools can still be placed on other floors from its map.">
+            {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+          </TextField>
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>
@@ -167,6 +178,10 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
 interface EditShopModalProps {
   shop: Shop;
   tools: Tool[];
+  // Every other shop, so the color picker can exclude colors already taken
+  // -- optional since not every caller has the full list handy; the color
+  // field just won't narrow itself down in that case.
+  shops?: Shop[];
   onSave: (id: string, body: Partial<Shop>) => void;
   onCancel: () => void;
   saving: boolean;
@@ -175,7 +190,7 @@ interface EditShopModalProps {
 }
 
 export const EditShopModal: React.FC<EditShopModalProps> = ({
-  shop, tools, onSave, onCancel, saving, error, canManageResourceManagers
+  shop, tools, shops, onSave, onCancel, saving, error, canManageResourceManagers
 }) => {
   const [requestorAnnotation, setRequestorAnnotation] = React.useState(shop.requestorAnnotation || "");
   const [name, setName] = React.useState(shop.name);
@@ -183,6 +198,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
+  const [floorName, setFloorName] = React.useState(shop.floorName || "1");
   // Undefined means the API did not include the authoritative assignments.
   // Preserve that distinction from an explicitly empty list so an unrelated
   // edit cannot accidentally revoke every existing manager.
@@ -208,7 +224,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
     const trimmedName = name.trim();
     if (!trimmedName) return;
     onSave(shop.id, {
-      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId,
+      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName,
       requestorAnnotation: requestorAnnotation.trim() || null,
       ...resourceManagerIdsUpdate(canManageResourceManagers, resourceManagers),
       ...reservation
@@ -237,7 +253,16 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
             helperText="Optional Google Drive folder ID." />
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <ShopColorField value={colorId} onChange={setColorId} />
+          <ShopColorField value={colorId} onChange={setColorId}
+            usedBy={colorUsage(shops, shop.id)} />
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <TextField select fullWidth label="Home floor" value={floorName}
+            onChange={event => setFloorName(event.target.value)}
+            slotProps={{ select: { native: true } }}
+            helperText="The floor this shop is shown on by default. A shop's individual areas and tools can still be placed on other floors from its map.">
+            {FLOOR_NAMES.map(f => <option key={f} value={f}>{floorLabel(f)}</option>)}
+          </TextField>
         </Grid>
         <Grid size={{ xs: 12 }}>
           <div style={{ display: "flex", alignItems: "flex-start" }}>
@@ -376,7 +401,7 @@ const ShopManager: React.FC = () => {
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12 }}>
-        <Grid container justifyContent="space-between" alignItems="center">
+        <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
           <div>
             <Typography variant="h6">Shops</Typography>
             <Typography variant="body2" color="textSecondary">
@@ -442,6 +467,7 @@ const ShopManager: React.FC = () => {
         <EditShopModal
           key={editingShop.id}
           shop={editingShop}
+          shops={shops as Shop[]}
           tools={(tools as Tool[]).filter(tool => tool.shopId === editingShop.id)}
           onSave={handleSave}
           onCancel={handleCancel}

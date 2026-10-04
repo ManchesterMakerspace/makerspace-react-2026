@@ -39,7 +39,8 @@ export const listCheckoutApprovers = async () => ({ data: [{ id: 'approver', mem
 export const adminCreateCheckoutApprover = listMyToolCheckoutRequests;
 export const adminUpdateCheckoutApprover = listMyToolCheckoutRequests;
 export const adminDeleteCheckoutApprover = listMyToolCheckoutRequests;
-export const saveToolGroup = listMyToolCheckoutRequests;
+export const saveToolGroup = async (body: any) => { (window as any).savedGroup = body; return { data: body }; };
+export const adminListLocations = async () => ({ data: [] });
 export const archiveToolGroup = listMyToolCheckoutRequests;
 export const useCheckoutCatalog = () => ({ data: shops });
 export function useRead(transaction: any, args: any, delay: boolean) {

@@ -8,6 +8,7 @@ export interface DurationFee {
 export interface Shop {
   requestorAnnotation?: string | null;
   id: string;
+  floorName?: string;
   name: string;
   wikiUrl: string;
   wikiUrlOverride?: string;
@@ -38,6 +39,28 @@ export interface ShopResourceManager {
   name: string;
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  kind?: string;
+  parentId?: string;
+  shopId: string;
+  svgElementId?: string;
+  xPct?: number;
+  yPct?: number;
+  shapePoints?: { x: number; y: number }[];
+  // Floor plan this location is drawn on (B, 1 or 2); the server fills in
+  // the shop's own floor when none was set.
+  floorName?: string;
+  // Marker glyph key (see markerIcons.tsx); blank draws the default pin.
+  icon?: string;
+  toolNames?: string[];
+  // Index-aligned with toolNames (both derive from the same server-side
+  // fetch, not two separate queries, so a given index always names/ids the
+  // same tool).
+  toolIds?: string[];
+}
+
 export interface GoogleCalendarColor {
   id: string;
   name: string;
@@ -46,6 +69,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  allowPending?: boolean;
   outOfService?: boolean;
   requestorAnnotation?: string | null;
   open?: boolean;
@@ -65,6 +89,8 @@ export interface Tool {
   usersChannel?: string;
   shopId: string;
   shopName: string;
+  locationId?: string;
+  locationName?: string;
   prerequisiteIds: string[];
   prerequisiteNames: string[];
   unmetPrerequisiteIds?: string[];

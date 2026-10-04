@@ -324,7 +324,7 @@ const CheckoutRoster: React.FC<Props> = ({
     <Grid container spacing={3}>
       {!preselectedMember && (
         <Grid size={{ xs: 12 }}>
-          <Grid container justifyContent="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div>
               <Typography variant="h6">
                 {memberView ? "My Active Tool Checkouts" : "Tool Checkout Roster"}
@@ -355,7 +355,7 @@ const CheckoutRoster: React.FC<Props> = ({
 
       {preselectedMember && canManage && (
         <Grid size={{ xs: 12 }}>
-          <Grid container justifyContent="space-between" alignItems="center">
+          <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div />
             <div style={{ display: "flex", gap: 8 }}>
               {selectedCheckout?.active && (

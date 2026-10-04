@@ -99,30 +99,30 @@ async function main() {
       assert.equal(shopSave.reservation_horizon_days, 11); assert.equal(shopSave.name, 'Woodworking renamed');
       await page.getByRole('tab', { name: 'Tools', exact: true }).click();
       await page.getByText('Out of service', { exact: true }).waitFor();
-      await page.getByRole('button', { name: 'Edit tool', exact: true }).click();
-      const name = page.getByRole('textbox', { name: 'Tool name', exact: true });
+      await page.getByRole('button', { name: 'Edit', exact: true }).click();
+      const name = page.getByRole('textbox', { name: 'Tool Name', exact: true });
       await name.waitFor();
       const prerequisiteChoices = page.getByRole('button', { name: 'Safety prerequisite - Out of service', exact: true });
-      assert.equal(await prerequisiteChoices.count(), 2);
+      assert.equal(await prerequisiteChoices.count(), 1);
       await prerequisiteChoices.first().waitFor();
       assert.equal(await page.getByRole('textbox', { name: 'Notes', exact: true }).inputValue(), 'Lock 1234');
-      assert.equal(await page.getByRole('textbox', { name: 'Announce channel' }).inputValue(), '#announcements');
+      assert.equal(await page.getByRole('textbox', { name: 'Announce Channel' }).inputValue(), '#announcements');
       assert.equal(await page.getByRole('spinbutton', { name: 'Days reservable in advance' }).inputValue(), '11');
       await name.fill('Lathe renamed');
       await page.getByRole('textbox', { name: 'Notes', exact: true }).fill('Lock 5678');
       await page.screenshot({ path: path.join(output, `tool-${width}.png`), fullPage: true });
       assert(await page.getByRole('dialog').evaluate(e => e.scrollWidth <= e.clientWidth + 1), `Tool overflow ${width}`);
-      failNotes = width === 320;
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      failSave = width === 320;
+      await page.getByRole('button', { name: 'Save Tool', exact: true }).click();
       if (width === 320) {
-        await page.getByText(/Tool settings saved, but notes could not be saved/).waitFor();
-        await page.getByRole('button', { name: 'Save', exact: true }).click();
+        await page.getByText(/Save failed/).waitFor();
+        await page.getByRole('button', { name: 'Save Tool', exact: true }).click();
       }
       await page.getByRole('dialog').waitFor({ state: 'hidden' });
       const toolSave = requests.filter(r => r.method === 'PUT' && r.url === '/api/admin/tools/tool').at(-1).body;
       assert.equal(toolSave.name, 'Lathe renamed'); assert.equal(toolSave.gdrive_id, 'drive-folder');
       assert.equal(toolSave.reservation_horizon_days, 11);
-      assert.equal(requests.filter(r => r.url.endsWith('/notes')).at(-1).body.notes, 'Lock 5678');
+      assert.equal(toolSave.notes, 'Lock 5678');
     }
     await page.goto(`${origin}/workshops?role=resource_manager`);
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -133,7 +133,7 @@ async function main() {
     const before = requests.filter(r => r.url === '/api/admin/shops').length;
     await page.goto(`${origin}/workshops?role=member`);
     await page.getByRole('tab', { name: 'Tools', exact: true }).click();
-    assert.equal(await page.getByRole('button', { name: 'Edit tool', exact: true }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Edit', exact: true }).count(), 0);
     assert.equal(await page.getByRole('button', { name: 'Restore service', exact: true }).count(), 0);
     assert.equal(requests.filter(r => r.url === '/api/admin/shops').length, before);
     for (const width of [320, 600, 900, 1440]) {
@@ -163,7 +163,7 @@ async function main() {
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     }
     assert.deepEqual(errors, []);
-    console.log('Workshop shared editors passed at 320/600/900/1440px: full settings, status, save/retry, partial notes failure, RM and member permissions.');
+    console.log('Workshop shared editors passed at 320/600/900/1440px: full settings, status, save/retry, atomic notes save, RM and member permissions.');
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

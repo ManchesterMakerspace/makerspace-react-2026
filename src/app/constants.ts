@@ -10,6 +10,7 @@ export namespace Routing {
   }
 
   export const Root = '/';
+  export const Home = '/home';
   export const Login = '/login';
   export const SignUp = '/signup';
   export const Members = '/members';

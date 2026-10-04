@@ -13,7 +13,7 @@ import { useSearchQuery } from "hooks/useSearchQuery";
 import { useAuthState } from "ui/reducer/hooks";
 import { useMembershipOptions } from "hooks/useMembershipOptions";
 import Typography from "@mui/material/Typography";
-import { buildProfileRouting, buildNewMemberProfileRoute } from "ui/member/utils";
+import { buildProfileRouting } from "ui/member/utils";
 import { MembershipPreview } from "./CartPreview";
 import { CheckboxInput } from "components/Form/inputs/CheckboxInput";
 import { useSignUpContext } from "./SignUpContext";
@@ -43,12 +43,11 @@ type TransactionResponse = SuccessTransactionState<Parameters<typeof createTrans
 export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ children }) => {
   const { currentUser } = useAuthState();
   const { create } = useToastContext();
-  const { setActiveStep } = useSignUpContext();
+  const { setActiveStep, completionDestination } = useSignUpContext();
   const navigate = useNavigate();
-  const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile);
 
   const onSuccess = React.useCallback(({ response: { data: transaction } }: TransactionResponse) => {
-    const url = isNewMember ? buildNewMemberProfileRoute(currentUser.id) : buildProfileRouting(currentUser.id);
+    const url = completionDestination;
 
     const invoiceId = transaction?.invoice?.id;
     create({
@@ -70,7 +69,7 @@ export const ReviewStep: React.FC<Props & { children?: React.ReactNode }> = ({ c
     });
 
     navigate(url);
-  }, [create, currentUser.id, isNewMember, navigate]);
+  }, [create, completionDestination, navigate]);
 
   const { call, isRequesting: submitting, error: paymentError, } = useWriteTransaction(createTransaction, onSuccess);
 

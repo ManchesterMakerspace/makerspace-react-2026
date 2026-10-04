@@ -21,6 +21,7 @@ import { EmailInput } from "components/Form/inputs/EmailInput";
 import { PasswordInput } from "components/Form/inputs/PasswordInput";
 import { SelectInput } from "components/Form/inputs/SelectInput";
 import { PhoneInput } from "components/Form/inputs/PhoneInput";
+import { PostalCodeInput } from "components/Form/inputs/PostalCodeInput";
 import { Form } from "components/Form/Form";
 import { FormState, useFormValues } from "components/Form/FormContext";
 import { CollectionOf } from "app/interfaces";
@@ -178,7 +179,7 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
                 />
               </Grid>
               <Grid size={{ xs: 8, sm: 4 }}>
-                <TextInput
+                <PostalCodeInput
                   required={true}
                   label={SignUpFields.postalCode.label}
                   fieldName={SignUpFields.postalCode.name}

@@ -37,15 +37,15 @@ const RentalAgreement: React.FC<{ rentalId: string }> = ({ rentalId }) => {
 
   const onSignSuccess = React.useCallback(() => {
     executeScroll();
-    // Redirect to invoices tab after signing
-    navigate(`${buildProfileRouting(currentUserId)}/invoices`);
-  }, [history, executeScroll, currentUserId]);
+    // The profile's invoice tab is /dues; /invoices falls through to Home.
+    navigate(`${buildProfileRouting(currentUserId)}/dues`);
+  }, [navigate, executeScroll, currentUserId]);
 
   const onDeclineSuccess = React.useCallback(() => {
     setDeclineConfirmOpen(false);
     // Redirect back to profile rentals tab
     navigate(`${buildProfileRouting(currentUserId)}/rentals`);
-  }, [history, currentUserId]);
+  }, [navigate, currentUserId]);
 
   const {
     error: signError,

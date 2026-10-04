@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { checkoutDestination } from "ui/auth/checkoutDestination";
+import { clearLoginDestination, defaultLoginDestination, loginDestination } from "ui/auth/loginDestination";
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Typography from '@mui/material/Typography';
@@ -246,11 +247,14 @@ const SecuritySettings: React.FC<Props> = ({ memberId, memberEmail }) => {
 
   const onEnrollmentComplete = React.useCallback(() => {
     dispatch({ type: AuthAction.ClearEnrollmentRequired });
-    // Redirect to their profile now that enrollment is done
     const destination = checkoutDestination();
     if (destination) window.location.assign(destination);
-    else navigate(`/members/${memberId}`);
-  }, [dispatch, memberId, navigate]);
+    else {
+      const redirect = loginDestination();
+      clearLoginDestination();
+      navigate(redirect || defaultLoginDestination(currentUser), { replace: true });
+    }
+  }, [dispatch, currentUser, navigate]);
 
   return (
     <Grid container spacing={4}>

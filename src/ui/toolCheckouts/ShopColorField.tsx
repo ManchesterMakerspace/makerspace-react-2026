@@ -22,13 +22,41 @@ export const FALLBACK_COLORS: GoogleCalendarColor[] = [
   id, name, backgroundColor, foregroundColor
 }));
 
+// Which shops use each color id, as { colorId: [shop names] }. Pass the shop
+// being edited as `excludeShopId` so its own color isn't reported as shared.
+export const colorUsage = (
+  shops: { id: string; name: string; colorId?: string }[] = [],
+  excludeShopId?: string
+): Record<string, string[]> =>
+  shops
+    .filter(shop => shop.id !== excludeShopId && !!shop.colorId)
+    .reduce<Record<string, string[]>>((usage, shop) => {
+      usage[shop.colorId!] = [...(usage[shop.colorId!] || []), shop.name];
+      return usage;
+    }, {});
+
+// "A", "A and B", "A, B, and C" -- and past three, "A, B, C, and 5 others" so a
+// popular color does not produce a paragraph.
+const joinNames = (names: string[]) => {
+  if (names.length <= 2) return names.join(" and ");
+  if (names.length === 3) return `${names[0]}, ${names[1]}, and ${names[2]}`;
+  const others = names.length - 3;
+  return `${names.slice(0, 3).join(", ")}, and ${others} other${others === 1 ? "" : "s"}`;
+};
+
 const ShopColorField: React.FC<{
   value?: string;
   onChange: (colorId: string) => void;
-}> = ({ value = "", onChange }) => {
+  // Which OTHER shops already use each color (see colorUsage). A shared color
+  // is allowed -- there are only 11 colors -- so it is flagged in the list and
+  // warned about, never blocked. A new shop is still given an unused color
+  // by default when there is one.
+  usedBy?: Record<string, string[]>;
+}> = ({ value = "", onChange, usedBy = {} }) => {
   const [colors, setColors] = React.useState<GoogleCalendarColor[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const sharedWith = usedBy[value] || [];
 
   React.useEffect(() => {
     let active = true;
@@ -41,7 +69,8 @@ const ShopColorField: React.FC<{
         }));
         setColors(available);
         if (available[0] && !available.some(color => color.id === value)) {
-          onChange(available[0].id);
+          const defaultColor = available.find(color => !usedBy[color.id]) || available[0];
+          onChange(defaultColor.id);
         }
       } else {
         setColors(FALLBACK_COLORS);
@@ -50,7 +79,8 @@ const ShopColorField: React.FC<{
           "Using the fallback color palette."
         );
         if (!FALLBACK_COLORS.some(color => color.id === value)) {
-          onChange(FALLBACK_COLORS[0].id);
+          const defaultColor = FALLBACK_COLORS.find(color => !usedBy[color.id]) || FALLBACK_COLORS[0];
+          onChange(defaultColor.id);
         }
       }
       setLoading(false);
@@ -63,7 +93,7 @@ const ShopColorField: React.FC<{
       <TextField
         select
         fullWidth
-        label="Shop calendar color"
+        label="Shop color"
         value={value}
         onChange={event => onChange(event.target.value)}
         disabled={loading}
@@ -92,7 +122,7 @@ const ShopColorField: React.FC<{
         {colors.map(color => (
           <MenuItem key={color.id} value={color.id}>
             <span style={{
-              display: "inline-flex", alignItems: "center", gap: 8
+              display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap"
             }}>
               <span aria-hidden style={{
                 width: 22, height: 22, borderRadius: 3,
@@ -101,10 +131,17 @@ const ShopColorField: React.FC<{
               }} />
               <strong style={{ color: color.backgroundColor }}>{color.name}</strong>
               <span>({color.backgroundColor})</span>
+              {usedBy[color.id] &&
+                <em style={{ opacity: 0.7 }}>— also used by {joinNames(usedBy[color.id])}</em>}
             </span>
           </MenuItem>
         ))}
       </TextField>
+      {sharedWith.length > 0 &&
+        <Alert severity="warning" style={{ marginTop: 8 }}>
+          {joinNames(sharedWith)} already {sharedWith.length === 1 ? "uses" : "use"} this color. Shops that share a
+          color look the same on the maps and in Google Calendar. You can keep it, or pick another.
+        </Alert>}
       {loading && <CircularProgress size={16} style={{ marginTop: 6 }} />}
       {error && <Alert severity="warning" style={{ marginTop: 8 }}>{error}</Alert>}
     </>
