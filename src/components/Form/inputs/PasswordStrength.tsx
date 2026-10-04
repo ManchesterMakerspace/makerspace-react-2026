@@ -2,6 +2,7 @@ import * as React from "react";
 
 import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 
 export interface PasswordStrengthProfile {
   firstname?: string;
@@ -28,7 +29,8 @@ interface Props {
 }
 
 const strengthLabel = ["Too short", "Weak", "Fair", "Good", "Strong"];
-const strengthColor = ["#f44336", "#ff9800", "#ffeb3b", "#8bc34a", "#4caf50"];
+// Theme color paths, weakest to strongest -- the same reds, oranges and greens as every other status.
+const strengthColor = ["error.main", "warning.main", "warning.light", "success.light", "success.main"];
 
 const normalize = (value?: string): string => (value || "").trim().toLowerCase();
 
@@ -105,27 +107,22 @@ export const PasswordStrength: React.FC<Props> = ({
   if (!password) return null;
 
   const strength = getPasswordStrength(password, profile);
-  const defaultProgressStyle = { marginTop: 8, backgroundColor: "#e0e0e0" };
-  const defaultLabelStyle = {
-    color: strength.color,
-    marginTop: 4,
-    display: "block",
-    fontSize: "0.75rem",
-  };
+  const labelSx = { color: strength.color, mt: 0.5, display: "block", fontSize: "0.75rem" } as const;
 
   return (
     <>
       <LinearProgress
         variant="determinate"
         value={(strength.score / 4) * 100}
-        style={{ ...defaultProgressStyle, ...progressStyle }}
+        sx={{ mt: 1, backgroundColor: "grey.300" }}
+        style={progressStyle}
       />
       {useTypography ? (
-        <Typography variant="caption" style={{ ...defaultLabelStyle, ...labelStyle }}>
+        <Typography variant="caption" sx={labelSx} style={labelStyle}>
           {strength.label}
         </Typography>
       ) : (
-        <span style={{ ...defaultLabelStyle, ...labelStyle }}>{strength.label}</span>
+        <Box component="span" sx={labelSx} style={labelStyle}>{strength.label}</Box>
       )}
     </>
   );

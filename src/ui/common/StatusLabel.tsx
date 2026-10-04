@@ -1,18 +1,12 @@
 import * as React from "react";
+import Box from "@mui/material/Box";
+import { Theme } from "@mui/material/styles";
 import { Status } from "ui/constants";
 
 interface StatusLabelProps {
   label: string;
   color: Status;
   id?: string;
-}
-const statusToStyleMap: Record<Status, { backgroundColor: string }> = {
-  [Status.Danger]: {backgroundColor: "rgba(255, 0, 0, 1)"},
-  [Status.Default]: { backgroundColor: "rgba(0, 0, 0, 0.12)"},
-  [Status.Success]: { backgroundColor: "rgba(88, 227, 111, 1)" },
-  [Status.Info]: { backgroundColor: "rgba(0, 0, 0, 0.12)"},
-  [Status.Primary]: { backgroundColor: "rgba(33, 150, 243, 1)"},
-  [Status.Warn]: {backgroundColor: "rgba(255, 152, 0, 1)"},
 }
 
 const circleStyle = {
@@ -21,12 +15,23 @@ const circleStyle = {
   borderRadius: "50%",
   display: "inline-block",
   marginRight: "5px",
+} as const;
+
+// The dot's color per status, read from the theme so it matches chips, alerts
+// and icons of the same status.
+const statusColor: Record<Status, (theme: Theme) => string> = {
+  [Status.Danger]: theme => theme.palette.error.main,
+  [Status.Default]: theme => theme.palette.action.disabledBackground,
+  [Status.Success]: theme => theme.palette.success.main,
+  [Status.Info]: theme => theme.palette.action.disabledBackground,
+  [Status.Primary]: theme => theme.palette.primary.main,
+  [Status.Warn]: theme => theme.palette.warning.main,
 };
 
 const StatusLabel: React.SFC<StatusLabelProps> = (props) => {
   return (
     <span style={{whiteSpace: "nowrap"}}>
-      <span style={{...circleStyle, ...statusToStyleMap[props.color]}}>&nbsp;</span>
+      <Box component="span" sx={theme => ({ ...circleStyle, backgroundColor: statusColor[props.color](theme) })}>&nbsp;</Box>
       <span id={props.id}>{props.label}</span>
     </span>
   );

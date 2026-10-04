@@ -34,6 +34,7 @@ import {
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { formatBillingAmount } from "ui/utils/billingInterval";
+import { compactWarningBoxSx } from "ui/common/statusColors";
 
 const rowId = (spot: RentalSpot) => spot.id;
 
@@ -42,11 +43,6 @@ const emptySpot = (): Partial<RentalSpot> => ({
   rentalTypeId: "", requiresApproval: false,
   active: true, parentNumber: null, notes: null,
 });
-
-const warningBoxStyle: React.CSSProperties = {
-  padding: "8px", backgroundColor: "#fff3e0",
-  borderRadius: "4px", border: "1px solid #ffcc02", marginTop: "8px"
-};
 
 const AdminRentalSpots: React.FC = () => {
   const [modalOpen,    setModalOpen]    = React.useState(false);
@@ -324,7 +320,7 @@ const AdminRentalSpots: React.FC = () => {
             <Typography gutterBottom>
               Are you sure you want to delete spot <strong>{deleteTarget.number}</strong>?
             </Typography>
-            <Typography variant="body2" style={warningBoxStyle}>
+            <Typography variant="body2" sx={compactWarningBoxSx}>
               This only removes the spot from the catalog. Existing rentals are not affected.
             </Typography>
           </>

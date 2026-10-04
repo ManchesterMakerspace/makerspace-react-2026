@@ -40,8 +40,9 @@ describe("PaymentMethodComponent", () => {
 
     expect(container.textContent).toContain("Visa ending in 1234 · Expires 08/2026");
     const expiration = container.querySelector<HTMLElement>("[data-payment-method-expiration]")!;
-    expect(expiration.style.color).toBe("rgb(176, 0, 32)");
-    expect(expiration.style.fontWeight).toBe("700");
+    const computed = window.getComputedStyle(expiration);
+    expect(computed.color).toBe("rgb(211, 47, 47)"); // theme error.main
+    expect(computed.fontWeight).toBe("700");
   });
 
   it("shows other expiration dates without warning styling", async () => {

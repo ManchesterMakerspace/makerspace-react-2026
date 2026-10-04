@@ -111,7 +111,9 @@ and document its reason in code or the UX standard, as appropriate.
 
 ## 4. Task-specific documentation
 
-Read documents relevant to the task; do not load every feature document.
+Read documents relevant to the task; do not load every feature document. Always
+read and follow every instruction document in `docs/` that covers the area you are
+changing, whatever its file type, rather than working from memory of what it says.
 
 | Task | Documentation |
 | --- | --- |

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
 import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
 
 import { CreditCard, PayPalAccount } from 'makerspace-ts-api-client';
 import { VenmoAccount } from 'app/entities/paymentMethod';
@@ -43,12 +44,13 @@ const PaymentMethodComponent: React.FC<Props> = (props: Props) => {
         {expiration && (
           <>
             {' · Expires '}
-            <span
+            <Box
+              component='span'
               data-payment-method-expiration={expiration}
-              style={expiresThisMonth ? { color: '#b00020', fontWeight: 700 } : undefined}
+              sx={expiresThisMonth ? { color: 'error.main', fontWeight: 700 } : undefined}
             >
               {expiration}
-            </span>
+            </Box>
           </>
         )}
       </>
@@ -63,7 +65,7 @@ const PaymentMethodComponent: React.FC<Props> = (props: Props) => {
 
   return (
     <Grid container spacing={2}>
-      <Grid size={{ xs: 12 }} style={{ border: '1px solid black', borderColor: '#9E3321', borderRadius: '4px', textAlign: 'center' }}>
+      <Grid size={{ xs: 12 }} sx={{ border: '1px solid', borderColor: 'secondary.light', borderRadius: '4px', textAlign: 'center' }}>
         <img style={{ float: 'left', marginRight: '2em' }} src={image} alt={cardType || (username ? 'Venmo' : 'PayPal')} />
         <Typography style={{ lineHeight: '2.5em' }} variant='subtitle1' id={id}>{description}</Typography>
       </Grid>

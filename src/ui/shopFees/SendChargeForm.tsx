@@ -32,6 +32,7 @@ import {
 } from "api/shopFees";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
+import { toneNotice } from "ui/common/statusColors";
 
 // ── Previously-used label suggestions (localStorage) ─────────────────────────
 
@@ -213,8 +214,8 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
 
       {successMessage && (
         <Grid size={{ xs: 12 }}>
-          <Paper style={{ padding: 16, backgroundColor: "#e8f5e9", border: "1px solid #a5d6a7" }}>
-            <Typography style={{ color: "#2e7d32" }}>{successMessage}</Typography>
+          <Paper sx={[toneNotice('success'), { p: 2 }]}>
+            <Typography color="success.dark">{successMessage}</Typography>
             <Button size="small" style={{ marginTop: 8 }} onClick={() => setSuccessMessage("")}>
               Send Another
             </Button>
@@ -404,11 +405,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
                     {priceChanged && (
                       <Grid size={{ xs: 12 }}>
                         <Paper
-                          style={{
-                            padding: "6px 12px",
-                            backgroundColor: "#fff8e1",
-                            border: "1px solid #ffe082",
-                          }}
+                          sx={[toneNotice('warning'), { p: "6px 12px" }]}
                           variant="outlined"
                         >
                           <FormControlLabel
@@ -557,7 +554,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
             </Grid>
             {lineItems.some(l => l.updateCatalogPrice) && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="caption" style={{ color: "#e65100" }}>
+                <Typography variant="caption" color="warning.dark">
                   ⚠ Catalog prices will be updated for:{" "}
                   {lineItems.filter(l => l.updateCatalogPrice).map(l => l.name).join(", ")}
                 </Typography>
@@ -565,7 +562,7 @@ const SendChargeForm: React.FC<Props> = ({ preselectedMember }) => {
             )}
             {lineItems.some(l => l.saveToCatalog) && (
               <Grid size={{ xs: 12 }}>
-                <Typography variant="caption" style={{ color: "#1565c0" }}>
+                <Typography variant="caption" color="info.dark">
                   ✓ New catalog items will be saved:{" "}
                   {lineItems.filter(l => l.saveToCatalog).map(l => l.name).join(", ")}
                 </Typography>

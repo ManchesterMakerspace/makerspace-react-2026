@@ -4,11 +4,13 @@ import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
 
+// Each status is a theme tone, drawn with that tone's solid color and its
+// contrast text -- the same colors an Alert or a chip of that status uses.
 export enum ToastStatus {
-  Success = "#81c784",
-  Error = "#e57373",
-  Warning = "#ffb74d",
-  Info = "#64b5f6"
+  Success = "success",
+  Error = "error",
+  Warning = "warning",
+  Info = "info"
 }
 
 interface CreateToast {
@@ -48,14 +50,14 @@ export const ToastContextProvider: React.FC = ({ children }) => {
           horizontal: 'left',
         }}
       >
-        <div style={{ padding: "1em", backgroundColor: toastProps?.status }}>
+        <Box sx={{ padding: "1em", backgroundColor: toastProps?.status && `${toastProps.status}.main`, color: toastProps?.status && `${toastProps.status}.contrastText` }}>
           {toastProps?.message}
           <Box textAlign="right" component="span">
             <IconButton size="small" aria-label="close" color="inherit" onClick={onClose}>
               <CloseIcon fontSize="small" />
             </IconButton>
           </Box>
-        </div>
+        </Box>
       </Snackbar>
       {children}
     </ToastContext.Provider>

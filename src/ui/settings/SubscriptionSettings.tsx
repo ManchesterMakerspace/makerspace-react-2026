@@ -9,6 +9,7 @@ import useReadTransaction from "ui/hooks/useReadTransaction";
 import { useAuthState } from "ui/reducer/hooks";
 import SubscriptionDetails from "ui/subscriptions/SubscriptionDetails";
 import { RentalStatus } from "app/entities/rentalSpot";
+import { toneNotice } from "ui/common/statusColors";
 
 const SubscriptionSettings: React.FC = () => {
   const { currentUser } = useAuthState();
@@ -89,10 +90,9 @@ const SubscriptionSettings: React.FC = () => {
                 </Typography>
               )}
               {(rental as any).status === RentalStatus.Vacating && (
-                <Typography variant="caption" style={{
-                  backgroundColor: "#fff3e0", border: "1px solid #ffb74d",
-                  borderRadius: "3px", padding: "1px 6px", color: "#e65100"
-                }}>
+                <Typography variant="caption" sx={[toneNotice('warning'), {
+                  borderRadius: "3px", padding: "1px 6px", color: "warning.dark"
+                }]}>
                   Vacating
                 </Typography>
               )}

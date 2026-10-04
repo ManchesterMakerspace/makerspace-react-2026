@@ -31,14 +31,11 @@ import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContex
 import extractTotalItems from "ui/utils/extractTotalItems";
 import { formatBillingAmount } from "ui/utils/billingInterval";
 import { withCurrentOptionIncluded } from "ui/utils/selectableInvoiceOptions";
+import { compactWarningBoxSx } from "ui/common/statusColors";
+import Box from "@mui/material/Box";
 
 const rowId = (t: RentalType) => t.id;
 const emptyType = (): Partial<RentalType> => ({ displayName: "", active: true, invoiceOptionId: null });
-
-const warningBoxStyle: React.CSSProperties = {
-  padding: "8px", backgroundColor: "#fff3e0",
-  borderRadius: "4px", border: "1px solid #ffcc02", marginTop: "8px"
-};
 
 const AdminRentalTypes: React.FC = () => {
   const [modalOpen,    setModalOpen]    = React.useState(false);
@@ -124,9 +121,9 @@ const AdminRentalTypes: React.FC = () => {
           return `${row.invoiceOptionName} (${formatBillingAmount(row.invoiceOptionAmount, row.invoiceOptionQuantity, !!row.invoiceOptionPlanId)})`;
         }
         return (
-          <span style={{ color: "#f57c00" }}>
+          <Box component="span" sx={{ color: "warning.main" }}>
             ⚠ Not configured — <Link to={billingPath}>Set up Invoice Option →</Link>
-          </span>
+          </Box>
         );
       },
     },
@@ -202,7 +199,7 @@ const AdminRentalTypes: React.FC = () => {
                 Billing Plan (Invoice Option)
               </FormLabel>
               {selectableInvoiceOptions.length === 0 ? (
-                <Typography variant="body2" style={warningBoxStyle}>
+                <Typography variant="body2" sx={compactWarningBoxSx}>
                   No rental invoice options found.{" "}
                   <Link to={billingPath}>Create one in Billing Options →</Link>
                 </Typography>
@@ -246,7 +243,7 @@ const AdminRentalTypes: React.FC = () => {
             <Typography gutterBottom>
               Are you sure you want to delete the <strong>{deleteTarget.displayName}</strong> type?
             </Typography>
-            <Typography variant="body2" style={warningBoxStyle}>
+            <Typography variant="body2" sx={compactWarningBoxSx}>
               Any spots assigned this type will lose their type link. Existing rentals are not affected.
             </Typography>
           </>

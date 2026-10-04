@@ -2,6 +2,7 @@ import * as React from "react";
 import { useParams } from 'react-router-dom';
 import { Link } from "react-router-dom";
 import Button from "@mui/material/Button";
+import Alert from "@mui/material/Alert";
 
 import { adminListInvoices, listInvoices, getMember, Invoice } from "makerspace-ts-api-client";
 import { useAuthState } from "../reducer/hooks";
@@ -206,7 +207,7 @@ const InvoicesTable: React.FC<{ stageInvoice(invoice: Invoice): void }> = ({ sta
       />
     )}
     {cleanupError && (
-      <div style={{ color: '#c62828', marginBottom: 8, fontSize: '0.875rem' }}>{cleanupError}</div>
+      <Alert severity='error' sx={{ mb: 1 }}>{cleanupError}</Alert>
     )}
     <StatefulTable
       id="invoices-table"

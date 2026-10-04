@@ -103,8 +103,8 @@ export const SlackProvisioningIcon: React.FC<{
     return (
       <Tooltip title={fallbackLinkedName ? `Slack linked: ${fallbackLinkedName}` : 'No Slack account linked'}>
         {fallbackLinkedName
-          ? <CheckCircleIcon fontSize='small' style={{ color: '#4caf50', verticalAlign: 'middle' }} />
-          : <ErrorIcon fontSize='small' style={{ color: '#ff9800', verticalAlign: 'middle' }} />
+          ? <CheckCircleIcon fontSize='small' color='success' sx={{ verticalAlign: 'middle' }} />
+          : <ErrorIcon fontSize='small' color='warning' sx={{ verticalAlign: 'middle' }} />
         }
       </Tooltip>
     );

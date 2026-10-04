@@ -21,18 +21,7 @@ import { getRentalSpot, createRental } from "api/rentals";
 import { useAuthState } from "ui/reducer/hooks";
 import { buildProfileRouting } from "ui/member/utils";
 import { formatBillingAmount } from "ui/utils/billingInterval";
-
-const infoBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#e3f2fd",
-  borderRadius: "4px", border: "1px solid #90caf9",
-  marginBottom: "12px", fontSize: "0.875rem"
-};
-
-const warningBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#fff3e0",
-  borderRadius: "4px", border: "1px solid #ffb74d",
-  marginBottom: "8px", fontSize: "0.875rem"
-};
+import { infoBoxSx, warningBoxSx } from "ui/common/statusColors";
 
 // Authenticated landing page for a rental spot deep link / QR code.
 // Skips the browse/search step — drops the member straight into the
@@ -125,14 +114,14 @@ const RentalSpotDeepLink: React.FC = () => {
       {!eligibility.loading && !eligibility.eligible && (
         <Grid size={{ xs: 12 }}>
           {eligibility.reasons.map((reason, i) => (
-            <Typography key={i} variant="body2" style={warningBoxStyle}>⚠ {reason}</Typography>
+            <Typography key={i} variant="body2" sx={warningBoxSx}>⚠ {reason}</Typography>
           ))}
         </Grid>
       )}
 
       {!spot.available && (
         <Grid size={{ xs: 12 }}>
-          <Typography variant="body2" style={warningBoxStyle}>
+          <Typography variant="body2" sx={warningBoxSx}>
             This spot is currently unavailable — it may already be rented.
           </Typography>
           <Button
@@ -161,11 +150,11 @@ const RentalSpotDeepLink: React.FC = () => {
                 </Grid>
                 <Grid size={{ xs: 12, sm: 6 }}>
                   {spot.requiresApproval ? (
-                    <Typography variant="body2" style={infoBoxStyle}>
+                    <Typography variant="body2" sx={infoBoxSx}>
                       ⏳ This rental requires admin approval. No charge until approved and agreement is signed.
                     </Typography>
                   ) : (
-                    <Typography variant="body2" style={infoBoxStyle}>
+                    <Typography variant="body2" sx={infoBoxSx}>
                       ✓ After confirming you will be asked to sign the rental agreement. An invoice will be generated once the agreement is signed.
                     </Typography>
                   )}
@@ -217,11 +206,11 @@ const RentalSpotDeepLink: React.FC = () => {
               </Grid>
               <Grid size={{ xs: 12 }}>
                 {spot.requiresApproval ? (
-                  <Typography variant="body2" style={infoBoxStyle}>
+                  <Typography variant="body2" sx={infoBoxSx}>
                     Your request will be sent to an admin for approval. You will be notified by email and Slack once reviewed.
                   </Typography>
                 ) : (
-                  <Typography variant="body2" style={infoBoxStyle}>
+                  <Typography variant="body2" sx={infoBoxSx}>
                     You will be directed to review and sign the rental agreement. An invoice will be generated after signing.
                   </Typography>
                 )}
