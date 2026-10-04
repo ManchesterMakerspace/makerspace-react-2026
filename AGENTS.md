@@ -1,5 +1,11 @@
 # Coding agent instructions
 
+## Read the project docs first
+
+- Before changing code, read every instruction document in the `docs/` folder
+  that covers the area you are touching (whatever its file type), and follow
+  it. Do not work from memory of what it says; it changes.
+
 ## User-interface standard
 
 - Read and follow `docs/user-experience.MD` before creating or changing any
