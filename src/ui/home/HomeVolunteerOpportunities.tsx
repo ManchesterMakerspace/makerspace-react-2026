@@ -8,15 +8,17 @@ import { timeToDate } from "ui/utils/timeToDate";
 interface Props {
   opportunities: HomeVolunteerOpportunity[];
   onClaim: (opportunity: HomeVolunteerOpportunity) => void;
+  onClaimStart?: () => void;
 }
 
-const HomeVolunteerOpportunities: React.FC<Props> = ({ opportunities, onClaim }) => {
+const HomeVolunteerOpportunities: React.FC<Props> = ({ opportunities, onClaim, onClaimStart }) => {
   const submitting = React.useRef(false);
   const [busy, setBusy] = React.useState<string>();
   const [error, setError] = React.useState("");
   const claim = async (opportunity: HomeVolunteerOpportunity) => {
     if (submitting.current) return;
     submitting.current = true;
+    onClaimStart?.();
     setBusy(`${opportunity.kind}-${opportunity.id}`);
     setError("");
     try {
