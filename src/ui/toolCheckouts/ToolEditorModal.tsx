@@ -1,8 +1,9 @@
 import * as React from "react";
-import { Box, Button, Checkbox, Chip, FormControlLabel, Grid, TextField, Typography } from "@mui/material";
+import { Box, Button, Checkbox, Chip, FormControlLabel, Grid, Radio, RadioGroup, TextField, Typography } from "@mui/material";
 import { Shop, Tool } from "app/entities/toolCheckout";
-import { adminCreateTool, adminUpdateTool } from "api/toolCheckouts";
+import { adminCreateTool, adminUpdateTool, saveToolGroup } from "api/toolCheckouts";
 import { adminListLocations } from "api/locations";
+import ToolGroupForm, { emptyGroup } from './ToolGroupForm';
 import FormModal from "ui/common/FormModal";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import { flattenTree } from "./locationTree";
@@ -51,6 +52,9 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
     reservationRequiresApproval: tool?.reservationRequiresApproval ?? false,
     reservationPrerequisiteToolIds: tool?.reservationPrerequisiteToolIds ?? [],
   }));
+  const [kind, setKind] = React.useState('tool');
+  const [group, setGroup] = React.useState(() => emptyGroup(initialShopId ?? shops[0]?.id ?? ''));
+  const creatingGroup = !tool && kind === 'group';
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const shopChanged = !!tool && value.shopId !== tool.shopId;
@@ -78,6 +82,27 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
   };
   const submit = async () => {
     if (saving) return;
+    if (creatingGroup) {
+      if (!group.name?.trim() || !group.shopId || !group.includedToolIds?.length) {
+        setError('Enter a name and include at least one tool.');
+        return;
+      }
+      setSaving(true);
+      setError('');
+      try {
+        const result = await saveToolGroup({ ...group, name: group.name.trim() });
+        if (result.error) setError(result.error.message);
+        else {
+          window.dispatchEvent(new Event('tool-groups-changed'));
+          onSaved();
+        }
+      } catch {
+        setError('Unable to save this group. Please try again.');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     const name = value.name?.trim();
     if (!name || !value.shopId) {
       setError("Enter a tool name and select a shop.");
@@ -109,10 +134,15 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
   return (
     <FormModal id="tool-editor" isOpen title={tool ? `Edit ${tool.name}` : "Add Tool"}
       closeHandler={() => { if (!saving) onClose(); }} onSubmit={submit}
-      submitText={tool ? "Save Tool" : "Add Tool"} loading={saving} error={error}
-      submitDisabled={saving || !value.name?.trim() || !value.shopId}>
+      submitText={tool ? "Save Tool" : creatingGroup ? "Add Group" : "Add Tool"} loading={saving} error={error}
+      submitDisabled={saving || (creatingGroup ? !group.name?.trim() || !group.shopId || !group.includedToolIds?.length : !value.name?.trim() || !value.shopId)}>
       <Box component="fieldset" disabled={saving} sx={{ border: 0, p: 0, m: 0, minWidth: 0 }}>
-        <Grid container spacing={2}>
+        {!tool && <RadioGroup row aria-label="Resource type" value={kind}
+          onChange={event => { setKind(event.target.value); setError(''); }}>
+          <FormControlLabel value="tool" control={<Radio />} label="Tool" />
+          <FormControlLabel value="group" control={<Radio />} label="Group" />
+        </RadioGroup>}
+        {creatingGroup ? <ToolGroupForm value={group} onChange={setGroup} tools={tools} shops={shops} /> : <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
             <TextField fullWidth required label="Tool Name" value={value.name} autoFocus
               onChange={event => set("name", event.target.value)} />
@@ -195,7 +225,7 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
           </Grid>
           <ReservationSettingsFields value={value} onChange={next => setValue(previous => ({ ...previous, ...next }))}
             tools={shopTools} lockedToolId={tool?.id} disabled={saving} />
-        </Grid>
+        </Grid>}
       </Box>
     </FormModal>
   );

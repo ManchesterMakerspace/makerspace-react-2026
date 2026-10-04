@@ -129,6 +129,35 @@ describe("reservation fee confirmation and full-day dates", () => {
     }) });
   });
 
+  it.each(['Lathe', 'Current kit · Group'])('drops an invisible saved group when selecting %s', async label => {
+    window.history.replaceState({}, '', '/?edit=booking');
+    window.scrollTo = jest.fn();
+    const tool = { id: 'lathe', name: 'Lathe', shopId: 'shop' };
+    (api.getReservationCatalog as jest.Mock).mockResolvedValue({ data: {
+      shops: [{ id: 'shop', name: 'Shop', reservable: false }], tools: [tool],
+      toolGroups: [{ id: 'current', name: 'Current kit', shopId: 'shop', includedTools: [tool] }]
+    } });
+    (api.listReservations as jest.Mock).mockResolvedValue({ data: [{
+      id: 'booking', memberId: 'member', title: 'Saved booking', status: 'approved', shopId: 'shop',
+      reservationScope: 'tools', toolIds: ['old-child'], toolNames: ['Old tool'], selectedToolIds: [],
+      toolGroupIds: ['archived'], groupSnapshots: [{ id: 'archived', name: 'Archived kit' }], approvalReasons: [],
+      startAt: '2026-09-10T14:00:00Z', endAt: '2026-09-10T15:00:00Z'
+    }] });
+    (api.previewReservationUpdate as jest.Mock).mockResolvedValue({ data: preview });
+    await act(async () => root.render(<ReservationsPage />));
+    await act(async () => { jest.advanceTimersByTime(300); });
+    expect(api.previewReservationUpdate).toHaveBeenLastCalledWith({ id: 'booking', body: expect.objectContaining({
+      preserveResourceSelection: true, toolGroupIds: ['archived']
+    }) });
+    const chip = Array.from(container.querySelectorAll<HTMLElement>('[role="button"]')).find(node => node.textContent === label)!;
+    expect(chip).toBeDefined();
+    await act(async () => chip.click());
+    await act(async () => { jest.advanceTimersByTime(300); });
+    expect(api.previewReservationUpdate).toHaveBeenLastCalledWith({ id: 'booking', body: expect.objectContaining({
+      preserveResourceSelection: false, toolGroupIds: label === 'Lathe' ? [] : ['current']
+    }) });
+  });
+
   it("disables adding fees while loading and enables it after a fee arrives", async () => {
     let resolve: (value: any) => void = () => {};
     (listShopFeeItems as jest.Mock).mockReturnValue(new Promise(done => { resolve = done; }));

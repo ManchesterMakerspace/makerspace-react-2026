@@ -1,5 +1,7 @@
 // @ts-nocheck
 import * as React from "react";
+import useToolGroups from './useToolGroups';
+import ToolGroupLoadStatus from './ToolGroupLoadStatus';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -45,12 +47,15 @@ interface ApproverModalProps {
   error: string;
 }
 
-const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, onClose, onSave, loading, error }) => {
+export const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, onClose, onSave, loading, error }) => {
   const [selectedMember, setSelectedMember] = React.useState<SelectOption | null>(
     existing ? { value: existing.memberId, label: existing.memberName } : null
   );
   const [shopIds, setShopIds] = React.useState<string[]>(existing ? existing.shopIds : []);
   const [toolIds, setToolIds] = React.useState<string[]>(existing ? existing.toolIds || [] : []);
+  const groupCatalog = useToolGroups();
+  const { groups } = groupCatalog;
+  const [toolGroupIds, setToolGroupIds] = React.useState(existing?.toolGroupIds || []);
 
   // When member selection changes in Add mode, check if they're already an approver
   // (handled by parent via existing prop — if user picks existing member, parent sets existing)
@@ -58,6 +63,7 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
     setShopIds(prev => {
       if (prev.includes(id)) return prev.filter(s => s !== id);
       setToolIds(current => current.filter(toolId => tools.find(t => t.id === toolId)?.shopId !== id));
+      setToolGroupIds(current => current.filter(groupId => groups.find(group => group.id === groupId)?.shopId !== id));
       return [...prev, id];
     });
   };
@@ -69,11 +75,12 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
   const submitText = isEditing ? "Save Changes" : "Add Approver";
 
   const handleSubmit = () => {
-    if (!shopIds.length && !toolIds.length) return;
+    if (groupCatalog.loading || groupCatalog.error) return;
+    if (!shopIds.length && !toolIds.length && !toolGroupIds.length) return;
     if (isEditing) {
-      onSave(existing.memberId, shopIds, toolIds, existing.id);
+      onSave(existing.memberId, shopIds, toolIds, existing.id, toolGroupIds);
     } else if (selectedMember) {
-      onSave(selectedMember.value, shopIds, toolIds);
+      onSave(selectedMember.value, shopIds, toolIds, undefined, toolGroupIds);
     }
   };
 
@@ -82,8 +89,12 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
       id="approver-modal" isOpen={true} title={title}
       closeHandler={onClose} onSubmit={handleSubmit}
       submitText={submitText} loading={loading} error={error}
+      submitDisabled={groupCatalog.loading || !!groupCatalog.error}
     >
       <Grid container spacing={2}>
+        {(groupCatalog.loading || groupCatalog.error) && <Grid size={{ xs: 12 }}>
+          <ToolGroupLoadStatus loading={groupCatalog.loading} error={groupCatalog.error} onRetry={groupCatalog.refresh} />
+        </Grid>}
         {!isEditing && (
           <Grid size={{ xs: 12 }}>
             <FormLabel style={{ marginBottom: 6, display: "block" }}>Member *</FormLabel>
@@ -131,11 +142,15 @@ const ApproverModal: React.FC<ApproverModalProps> = ({ shops, tools, existing, o
                     clickable
                   />
                 ))}
+                {groups.filter(group => group.shopId === shop.id).map(group => <Chip key={group.id}
+                  label={`${group.name} · Group`} clickable disabled={shopIds.includes(shop.id)}
+                  color={toolGroupIds.includes(group.id) ? 'primary' : 'default'}
+                  onClick={() => setToolGroupIds(ids => ids.includes(group.id) ? ids.filter(id => id !== group.id) : [...ids, group.id])} />)}
               </div>
             </div>
           ))}
-          {shopIds.length === 0 && toolIds.length === 0 && (
-            <Typography variant="caption" color="error">Select at least one shop or tool.</Typography>
+          {shopIds.length === 0 && toolIds.length === 0 && toolGroupIds.length === 0 && (
+            <Typography variant="caption" color="error">Select at least one shop, tool, or group.</Typography>
           )}
         </Grid>
       </Grid>
@@ -197,11 +212,11 @@ const CheckoutApproversManager: React.FC = () => {
 
   const selectedApprover = approvers.find((a: CheckoutApprover) => a.id === selectedId) || null;
 
-  const handleSave = (memberId: string, shopIds: string[], toolIds: string[], existingId?: string) => {
+  const handleSave = (memberId: string, shopIds: string[], toolIds: string[], existingId?: string, toolGroupIds: string[] = []) => {
     if (existingId) {
-      updateApprover({ id: existingId, body: { shopIds, toolIds } });
+      updateApprover({ id: existingId, body: { shopIds, toolIds, toolGroupIds } });
     } else {
-      createApprover({ body: { memberId, shopIds, toolIds } });
+      createApprover({ body: { memberId, shopIds, toolIds, toolGroupIds } });
     }
   };
 
@@ -221,6 +236,15 @@ const CheckoutApproversManager: React.FC = () => {
       id: "toolNames",
       label: "Authorized Tools",
       cell: (row: CheckoutApprover) => <ApproverTools approver={row} />,
+    },
+    {
+      id: "toolGroups",
+      label: "Authorized Groups",
+      cell: (row: CheckoutApprover) => <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {(row.toolGroups || []).map(group => <Typography key={group.id} variant="body2">
+          {group.name} <Chip label="Group" size="small" />
+        </Typography>)}
+      </div>,
     },
     {
       id: "shopNames",
@@ -243,7 +267,7 @@ const CheckoutApproversManager: React.FC = () => {
             <Typography variant="h6">Checkout Approvers</Typography>
             <Typography variant="body2" color="textSecondary">
               Members who can sign off tool checkouts via the portal or Slack slash command,
-              scoped to whole shops, individual tools, or both. RM authority remains separate.
+              scoped to whole shops, individual tools, or groups. RM authority remains separate.
             </Typography>
           </div>
           <div style={{ display: "flex", gap: 8 }}>

@@ -229,7 +229,7 @@ async function main() {
         assert.equal(requests.filter(request => request.method === 'POST' && request.url === '/api/admin/shops').length, beforeCreate);
         await dialog.getByRole('combobox', { name: 'Shop color' }).click();
         await page.getByRole('option', { name: /Available color/ }).waitFor();
-        assert.equal(await page.getByRole('option', { name: /Metalworking color|Woodworking color/ }).count(), 0);
+        assert.equal(await page.getByRole('option', { name: /Metalworking color|Woodworking color/ }).count(), 2, 'Shared shop colors remain selectable');
         await page.keyboard.press('Escape');
         await dialog.getByRole('heading').scrollIntoViewIfNeeded();
         assert(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth + 1), `Shop dialog overflow ${width}`);

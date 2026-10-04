@@ -1,5 +1,13 @@
 # Browser checks
 
+## Checkout shop filter
+
+Build the fixture with `yarn webpack --config tests/browser/shop-filter/webpack.cjs`,
+then run `node tests/browser/shop-filter/check.cjs`. It renders the real request
+manager with mocked catalogs, checks shop scoping and restoration of All shops,
+focus access and page overflow at 320/600/900/1280 pixels. Screenshots are saved
+under `tmp/shop-filter-browser`. This does not replace the Rails API contract tests.
+
 ## Member Home
 
 Build web assets, then run `node tests/browser/home.cjs`. This check uses mocked

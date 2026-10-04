@@ -1,4 +1,4 @@
-import { Shop, Tool } from "./toolCheckout";
+import { Shop, Tool, ToolGroup } from "./toolCheckout";
 
 export type ReservationStatus = "pending" | "unpaid" | "approved" | "denied" | "cancelled";
 export type ReservationScope = "shop" | "tools";
@@ -11,6 +11,9 @@ export interface ReservationApprovalDetail {
 }
 
 export interface Reservation {
+  selectedToolIds?: string[];
+  toolGroupIds?: string[];
+  groupSnapshots?: Array<{ id: string; name: string; revision: number; tool_ids: string[]; prerequisite_ids: string[] }>;
   outOfServiceToolNames?: string[];
   id: string;
   title: string;
@@ -42,11 +45,14 @@ export interface Reservation {
 }
 
 export interface ReservationCatalog {
+  toolGroups?: ToolGroup[];
   shops: Shop[];
   tools: Tool[];
 }
 
 export interface ReservationInput {
+  toolGroupIds?: string[];
+  preserveResourceSelection?: boolean;
   title: string;
   shopId: string;
   reservationScope: ReservationScope;

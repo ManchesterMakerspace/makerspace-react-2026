@@ -2,6 +2,7 @@
 import ToolAvailability from "ui/common/ToolAvailability";
 import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
+import ToolGroupList from './ToolGroupList';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
@@ -273,6 +274,8 @@ const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) =>
         onClose={() => { setAddOpen(false); setEditingId(null); }}
         onSaved={onSuccess} onPlaceOnMap={onPlaceOnMap}
       />}
+
+      <Grid size={{ xs: 12 }}><ToolGroupList shops={shops as Shop[]} tools={allManageableTools} shopId={shopFilter || undefined} /></Grid>
 
       {qrTool && <ToolQrCodeModal key={qrTool.id} tool={qrTool} onClose={() => setQrTool(null)} />}
 
