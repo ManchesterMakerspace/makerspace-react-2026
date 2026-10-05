@@ -336,7 +336,7 @@ const CreditsTabInner: React.FC = () => {
       defaultSortDirection: SortDirection.Asc,
       cell: (row: VolunteerCredit) => (
         <div>
-          <Typography variant='body2' style={{ color: row.status === 'reversal' ? '#c62828' : undefined }}>
+          <Typography variant='body2' color={row.status === 'reversal' ? 'error.main' : undefined}>
             <strong>{row.memberName}</strong>
           </Typography>
           <Typography variant='caption' color='textSecondary'>
@@ -377,7 +377,7 @@ const CreditsTabInner: React.FC = () => {
       id: 'creditValue',
       label: 'Credits',
       cell: (row: VolunteerCredit) => (
-        <Typography variant='body2' style={{ color: row.creditValue < 0 ? '#c62828' : undefined }}>
+        <Typography variant='body2' color={row.creditValue < 0 ? 'error.main' : undefined}>
           {row.creditValue > 0 ? `+${row.creditValue}` : row.creditValue}
         </Typography>
       ),

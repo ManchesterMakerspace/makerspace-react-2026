@@ -55,11 +55,11 @@ const ChangesSection: React.FC<{ changes: Record<string, [unknown, unknown]> }> 
         <Typography variant='body2' style={{ fontWeight: 500, minWidth: 140 }}>
           {field}
         </Typography>
-        <Typography variant='body2' style={{ color: '#c62828', textDecoration: 'line-through' }}>
+        <Typography variant='body2' color='error.main' sx={{ textDecoration: 'line-through' }}>
           {before === null || before === undefined ? '(none)' : String(before)}
         </Typography>
         <Typography variant='body2' style={{ color: '#555' }}>→</Typography>
-        <Typography variant='body2' style={{ color: '#2e7d32' }}>
+        <Typography variant='body2' color='success.main'>
           {after === null || after === undefined ? '(none)' : String(after)}
         </Typography>
       </Box>

@@ -12,18 +12,7 @@ import useReadTransaction from "ui/hooks/useReadTransaction";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { getRentalSpotPublic } from "api/rentals";
 import { formatBillingAmount } from "ui/utils/billingInterval";
-
-const infoBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#e3f2fd",
-  borderRadius: "4px", border: "1px solid #90caf9",
-  marginBottom: "12px", fontSize: "0.875rem"
-};
-
-const warningBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#fff3e0",
-  borderRadius: "4px", border: "1px solid #ffb74d",
-  marginBottom: "8px", fontSize: "0.875rem"
-};
+import { infoBoxSx, warningBoxSx } from "ui/common/statusColors";
 
 // Unauthenticated deep-link / QR landing page for a rental spot.
 // Shown to anyone who scans a spot's link without being signed in.
@@ -101,11 +90,11 @@ const RentalSpotPublicInfo: React.FC = () => {
 
       <Grid size={{ xs: 12 }}>
         {spot.available ? (
-          <Typography variant="body2" style={infoBoxStyle}>
+          <Typography variant="body2" sx={infoBoxSx}>
             ✓ This spot is currently available.
           </Typography>
         ) : (
-          <Typography variant="body2" style={warningBoxStyle}>
+          <Typography variant="body2" sx={warningBoxSx}>
             This spot is currently unavailable — it may already be rented.
           </Typography>
         )}

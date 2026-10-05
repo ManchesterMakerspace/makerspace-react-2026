@@ -163,7 +163,7 @@ const WorkshopTools: React.FC<{
           padding: 12,
           marginTop: 10,
           opacity: tool.disabled ? 0.65 : 1,
-          outline: tool.id === highlightToolId ? "2px solid #1976d2" : undefined
+          outline: tool.id === highlightToolId ? "2px solid var(--color-primary)" : undefined
         }}>
           <Grid container spacing={1} justifyContent="space-between">
             {selectedToolId === tool.id && <Grid size={12}><Chip label="Scanned tool" size="small" /></Grid>}

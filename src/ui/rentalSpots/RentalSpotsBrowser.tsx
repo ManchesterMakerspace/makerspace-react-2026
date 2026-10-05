@@ -22,23 +22,12 @@ import useRentalEligibility from "ui/rentals/useRentalEligibility";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { listRentalSpots, listRentalTypes, createRental } from "api/rentals";
 import { formatBillingAmount } from "ui/utils/billingInterval";
+import { infoBoxSx, warningBoxSx } from "ui/common/statusColors";
 
 interface Props {
   member:          Member;
   onRentalCreated: () => void;
 }
-
-const infoBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#e3f2fd",
-  borderRadius: "4px", border: "1px solid #90caf9",
-  marginBottom: "12px", fontSize: "0.875rem"
-};
-
-const warningBoxStyle: React.CSSProperties = {
-  padding: "10px 14px", backgroundColor: "#fff3e0",
-  borderRadius: "4px", border: "1px solid #ffb74d",
-  marginBottom: "8px", fontSize: "0.875rem"
-};
 
 const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
   const navigate = useNavigate();
@@ -102,7 +91,7 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
       {!eligibility.loading && !eligibility.eligible && (
         <Grid size={{ xs: 12 }}>
           {eligibility.reasons.map((reason, i) => (
-            <Typography key={i} variant="body2" style={warningBoxStyle}>⚠ {reason}</Typography>
+            <Typography key={i} variant="body2" sx={warningBoxSx}>⚠ {reason}</Typography>
           ))}
         </Grid>
       )}
@@ -169,11 +158,11 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 6 }}>
                     {selectedRental.requiresApproval ? (
-                      <Typography variant="body2" style={infoBoxStyle}>
+                      <Typography variant="body2" sx={infoBoxSx}>
                         ⏳ This rental requires admin approval. No charge until approved and agreement is signed.
                       </Typography>
                     ) : (
-                      <Typography variant="body2" style={infoBoxStyle}>
+                      <Typography variant="body2" sx={infoBoxSx}>
                         ✓ After confirming you will be asked to sign the rental agreement. An invoice will be generated once the agreement is signed.
                       </Typography>
                     )}
@@ -235,11 +224,11 @@ const RentalSpotsBrowser: React.FC<Props> = ({ member, onRentalCreated }) => {
               </Grid>
               <Grid size={{ xs: 12 }}>
                 {selectedRental.requiresApproval ? (
-                  <Typography variant="body2" style={infoBoxStyle}>
+                  <Typography variant="body2" sx={infoBoxSx}>
                     Your request will be sent to an admin for approval. You will be notified by email and Slack once reviewed.
                   </Typography>
                 ) : (
-                  <Typography variant="body2" style={infoBoxStyle}>
+                  <Typography variant="body2" sx={infoBoxSx}>
                     You will be directed to review and sign the rental agreement. An invoice will be generated after signing.
                   </Typography>
                 )}

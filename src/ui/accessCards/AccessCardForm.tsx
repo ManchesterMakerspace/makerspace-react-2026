@@ -5,6 +5,7 @@ import Grid from "@mui/material/Grid";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
 import { adminGetNewCard, adminCreateCard, getMember, Member, isApiErrorResponse } from "makerspace-ts-api-client";
 import ScanNfc from 'ui/nfc/ScanNfc';
 
@@ -154,10 +155,10 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
               }
               label="Verified member's name and address with valid identification"
             />
-          </Grid><table style={{ border: '3px solid #FF1100', borderCollapse: 'collapse' }}><thead><tr><th>Address on ID must <strong>exactly</strong> match this:</th></tr></thead>
+          </Grid><Box component='table' sx={{ border: '3px solid', borderColor: 'error.main', borderCollapse: 'collapse' }}><thead><tr><th>Address on ID must <strong>exactly</strong> match this:</th></tr></thead>
            <tbody><tr><td><strong>{member.address?.street}</strong></td><td>Unit: </td><td><strong>{member.address?.unit}</strong></td></tr>
           <tr><td><strong>{member.address?.city}</strong></td><td><strong>{member.address?.state}</strong></td><td>{member.address?.postalCode}</td></tr></tbody>
-          </table>
+          </Box>
       </FormModal>}
     </>
   );

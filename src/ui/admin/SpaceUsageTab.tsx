@@ -31,6 +31,7 @@ import {
 } from 'recharts';
 
 import { getSpaceUsage, getSpaceUsageDateRange, SpaceUsagePoint } from 'api/spaceUsage';
+import { useTheme } from '@mui/material/styles';
 
 const formatMonthLabel = (d: string) => {
   const [year, month] = d.split('-');
@@ -43,6 +44,7 @@ const formatDayLabel = (d: string) =>
 type GranularityMode = 'month' | 'day' | 'rolling30';
 
 const SpaceUsageTab: React.FC = () => {
+  const theme = useTheme();
   const [mode, setMode]         = React.useState<GranularityMode>('month');
   const [yearRange, setYearRange] = React.useState<{ earliest: number; latest: number } | null>(null);
   const [year, setYear]         = React.useState<number>(new Date().getFullYear());
@@ -175,8 +177,8 @@ const SpaceUsageTab: React.FC = () => {
             <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id='usageGradient' x1='0' y1='0' x2='0' y2='1'>
-                  <stop offset='5%' stopColor='#1565c0' stopOpacity={0.3} />
-                  <stop offset='95%' stopColor='#1565c0' stopOpacity={0.0} />
+                  <stop offset='5%' stopColor={theme.palette.primary.dark} stopOpacity={0.3} />
+                  <stop offset='95%' stopColor={theme.palette.primary.dark} stopOpacity={0.0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray='3 3' />
@@ -195,7 +197,7 @@ const SpaceUsageTab: React.FC = () => {
                 type='monotone'
                 dataKey='unique_members'
                 name='Unique Members'
-                stroke='#1565c0'
+                stroke={theme.palette.primary.dark}
                 fill='url(#usageGradient)'
                 strokeWidth={2}
                 dot={false}

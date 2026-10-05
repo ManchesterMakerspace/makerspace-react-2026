@@ -55,6 +55,7 @@ import {
   ExternalTemplateStatus,
 } from 'api/systemConfig';
 import { useCapabilities } from 'app/permissions';
+import { softTone } from 'ui/common/statusColors';
 
 type TabKey = 'slack' | 'volunteer' | 'reservations' | 'jobs' | 'security' | 'templates';
 
@@ -430,7 +431,7 @@ export const SlackTab: React.FC<SlackTabProps> = ({
                     icon={<ErrorIcon />}
                     label='Last rebuild failed'
                     size='small'
-                    style={{ marginLeft: 8, backgroundColor: '#ffebee', color: '#c62828' }}
+                    sx={[softTone('error'), { ml: 1 }]}
                   />
                 )}
                 {jobMessage['slack_channel_cache'] && (
@@ -501,10 +502,10 @@ export const SlackTab: React.FC<SlackTabProps> = ({
                 </Grid>
                 <Grid>
                   {slackSyncJob.last_run_status === 'success' && (
-                    <Chip icon={<CheckCircleIcon />} label='Success' size='small' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }} />
+                    <Chip icon={<CheckCircleIcon />} label='Success' size='small' sx={softTone('success')} />
                   )}
                   {slackSyncJob.last_run_status === 'failure' && (
-                    <Chip icon={<ErrorIcon />} label='Failed' size='small' style={{ backgroundColor: '#ffebee', color: '#c62828' }} />
+                    <Chip icon={<ErrorIcon />} label='Failed' size='small' sx={softTone('error')} />
                   )}
                 </Grid>
                 <Grid>
@@ -777,10 +778,10 @@ const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMess
               </Grid>
               <Grid size={{ xs: 6, sm: 2 }}>
                 {job.last_run_status === 'success' && (
-                  <Chip icon={<CheckCircleIcon />} label='Success' size='small' style={{ backgroundColor: '#e8f5e9', color: '#2e7d32' }} />
+                  <Chip icon={<CheckCircleIcon />} label='Success' size='small' sx={softTone('success')} />
                 )}
                 {job.last_run_status === 'failure' && (
-                  <Chip icon={<ErrorIcon />} label='Failed' size='small' style={{ backgroundColor: '#ffebee', color: '#c62828' }} />
+                  <Chip icon={<ErrorIcon />} label='Failed' size='small' sx={softTone('error')} />
                 )}
                 {!job.last_run_status && <Chip label='No data' size='small' />}
               </Grid>

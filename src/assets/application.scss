@@ -23,7 +23,7 @@ h6 > img {
 }
 
 .error-message {
-  color: red;
+  color: var(--color-error);
   height: 8px;
   font-size: 0.8em;
   line-height: 1em;
@@ -98,7 +98,7 @@ h6 > img {
   margin-bottom: 0.5em;
   &.label-float {
     text-overflow: ellipsis;
-    color: #2196F3;
+    color: var(--color-primary);
     transition: all .15s ease-out
   }
   &.filled {
@@ -107,7 +107,7 @@ h6 > img {
   }
   &.invalid {
     @extend .label-float;
-    color: #F44336;
+    color: var(--color-error);
   }
 }
 

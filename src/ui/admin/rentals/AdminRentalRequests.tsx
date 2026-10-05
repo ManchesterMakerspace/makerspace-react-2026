@@ -21,15 +21,10 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { adminListPendingRentals, approveRental, denyRental } from "api/rentals";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
+import { compactInfoBoxSx } from "ui/common/statusColors";
 
 const rowId = (rental: Rental) => rental.id;
 type ActionTarget = { rental: Rental; action: "approve" | "deny" };
-
-const infoBoxStyle: React.CSSProperties = {
-  marginTop: "8px", padding: "8px",
-  backgroundColor: "#e3f2fd", borderRadius: "4px",
-  border: "1px solid #90caf9"
-};
 
 const AdminRentalRequests: React.FC = () => {
   const [actionTarget, setActionTarget] = React.useState<ActionTarget | null>(null);
@@ -138,7 +133,7 @@ const AdminRentalRequests: React.FC = () => {
                 </Typography>
               )}
               {actionTarget.action === "approve" && (
-                <Typography variant="body2" style={infoBoxStyle}>
+                <Typography variant="body2" sx={compactInfoBoxSx}>
                   Approving will activate the rental and generate an invoice for the member.
                 </Typography>
               )}
