@@ -101,6 +101,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.Reservations} element={<ReservationsPage />} />
       <Route path="/tools/:id/request-checkout" element={<CheckoutRequestPage />} />
       <Route path="/fix-tickets" element={<FixTicketsPage />} />
+      <Route path="/fix-tickets-report" element={<FixTicketsPage />} />
       <Route path="/fix-tickets/:id" element={<FixTicketsPage />} />
       <Route path="/volunteer/tasks/:id" element={<FixBountyPage />} />
       <Route path={Routing.Workshops} element={<WorkshopsPage />} />
