@@ -29,9 +29,10 @@ import useReadTransaction from 'ui/hooks/useReadTransaction';
 import useWriteTransaction from 'ui/hooks/useWriteTransaction';
 import {
   adminListVolunteerTasks, adminListVolunteerEvents, adminListVolunteerCredits,
-  adminCompleteVolunteerTask, adminCloseVolunteerEvent,
+  adminCreateVolunteerTask, adminCompleteVolunteerTask, adminCloseVolunteerEvent,
   adminDeleteVolunteerTask, adminDeleteVolunteerEvent, adminDeleteVolunteerCredit,
 } from 'api/volunteer';
+import { listManagedShops } from 'api/toolCheckouts';
 
 describe('volunteer review links', () => {
   let host: HTMLDivElement;
@@ -43,6 +44,7 @@ describe('volunteer review links', () => {
   let reads: Record<string, { isRequesting: boolean; error: string }>;
   const taskId = '000000000000000000000017';
   const eventId = '000000000000000000000008';
+  const createTask = jest.fn();
   const verify = jest.fn();
   const closeEvent = jest.fn();
   const deleteTask = jest.fn();
@@ -74,16 +76,20 @@ describe('volunteer review links', () => {
     ];
     children = [tasks[1]];
     credits = [{ id: 'credit-id', title: 'Approved credit', status: 'approved', creditValue: 1 }];
-    [verify, closeEvent, deleteTask, deleteEvent, deleteCredit, refresh].forEach(mock => mock.mockClear());
+    [createTask, verify, closeEvent, deleteTask, deleteEvent, deleteCredit, refresh].forEach(mock => mock.mockClear());
     (useReadTransaction as jest.Mock).mockImplementation((transaction: unknown, args: any) => {
       const type = transaction === adminListVolunteerTasks ? (args.parentTaskId ? 'children' : 'tasks')
         : transaction === adminListVolunteerEvents ? 'events'
           : transaction === adminListVolunteerCredits ? 'credits' : null;
       const data = { tasks, events, children, credits };
-      return { data: type ? data[type] : [], refresh, ...(type ? reads[type] : { isRequesting: false, error: '' }) };
+      return {
+        data: transaction === listManagedShops ? [{ id: 'woodshop', name: 'Woodshop' }] : type ? data[type] : [],
+        refresh, ...(type ? reads[type] : { isRequesting: false, error: '' }),
+      };
     });
-    (useWriteTransaction as jest.Mock).mockImplementation((transaction: unknown) => ({
-      call: transaction === adminCompleteVolunteerTask ? verify
+    (useWriteTransaction as jest.Mock).mockImplementation((transaction: unknown, onSuccess?: () => void) => ({
+      call: transaction === adminCreateVolunteerTask ? (args: any) => { createTask(args); onSuccess?.(); }
+        : transaction === adminCompleteVolunteerTask ? verify
         : transaction === adminCloseVolunteerEvent ? closeEvent
           : transaction === adminDeleteVolunteerTask ? deleteTask
             : transaction === adminDeleteVolunteerEvent ? deleteEvent
@@ -138,6 +144,20 @@ describe('volunteer review links', () => {
       .find(node => node.textContent?.trim() === label)!;
     expect(option).toBeDefined();
     await act(async () => (option as HTMLElement).click());
+    await flushFocusFrame();
+  }
+
+  async function flushFocusFrame() {
+    await act(async () => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+  }
+
+  function expectStatusFocus(type: 'task' | 'event') {
+    const filter = document.getElementById(`volunteer-${type}s-status`)!;
+    const labelId = `volunteer-${type}s-status-label`;
+    expect(filter.getAttribute('role')).toBe('combobox');
+    expect(filter.getAttribute('aria-labelledby')?.split(' ')).toContain(labelId);
+    expect(document.getElementById(labelId)!.textContent).toBe('Filter by Status');
+    expect(document.activeElement).toBe(filter);
   }
 
   function expectRequestedStatus(type: 'task' | 'event', status: string) {
@@ -342,6 +362,8 @@ describe('volunteer review links', () => {
     await open(`${type}=${id(type)}&shop=woodshop&source=slack#review`);
     const historyLength = window.history.length;
     await act(async () => button(`Show all ${type}s`).click());
+    await flushFocusFrame();
+    expectStatusFocus(type);
 
     const query = new URLSearchParams(window.location.search);
     expect(query.has('task')).toBe(false);
@@ -408,6 +430,7 @@ describe('volunteer review links', () => {
     }
 
     await changeStatus(label);
+    expectStatusFocus(type);
 
     const query = new URLSearchParams(window.location.search);
     expect(query.has('task')).toBe(false);
@@ -430,6 +453,7 @@ describe('volunteer review links', () => {
     const historyLength = window.history.length;
 
     await changeStatus(label);
+    expectStatusFocus('event');
 
     const query = new URLSearchParams(window.location.search);
     expect(query.get('eventStatus')).toBe(status);
@@ -439,6 +463,58 @@ describe('volunteer review links', () => {
     expect(window.location.hash).toBe('#review');
     expect(window.history.length).toBe(historyLength);
     await expectFilterPersists('event', status);
+  });
+
+  it.each([
+    ['task', 'cancelled', 'filter'],
+    ['task', 'submitted', 'filter'],
+    ['event', 'cancelled', 'filter'],
+    ['task', 'cancelled', 'show all'],
+  ] as const)('keeps the workshop task dialog closed after %s navigation following %s (%s)', async (type, outcome, action) => {
+    const reviewSelector = action === 'show all' ? `&task=${taskId}` : '';
+    await open(`createTask=true${reviewSelector}&shop=woodshop&source=workshop#review`);
+    const form = document.getElementById('create-volunteer-task')!;
+    expect(form).not.toBeNull();
+    if (outcome === 'submitted') {
+      const title = form.querySelector('input:not([type="hidden"])') as HTMLInputElement;
+      const description = form.querySelector('textarea') as HTMLTextAreaElement;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(title, 'Tidy the woodshop');
+        title.dispatchEvent(new Event('input', { bubbles: true }));
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(description, 'Sweep the floor');
+        description.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      await act(async () => (document.getElementById('create-volunteer-task-submit') as HTMLButtonElement).click());
+      expect(createTask).toHaveBeenCalledWith({ body: expect.objectContaining({
+        title: 'Tidy the woodshop', description: 'Sweep the floor', shopId: 'woodshop',
+      }) });
+    } else {
+      await act(async () => (document.getElementById('create-volunteer-task-cancel') as HTMLButtonElement).click());
+      expect(createTask).not.toHaveBeenCalled();
+    }
+    await act(async () => new Promise<void>(resolve => setTimeout(resolve, 300)));
+    expect(document.getElementById('create-volunteer-task')).toBeNull();
+    const historyLength = window.history.length;
+    if (type === 'event') await act(async () => document.getElementById('volunteer-tab-events')!.click());
+    if (action === 'show all') {
+      await act(async () => button('Show all tasks').click());
+      await flushFocusFrame();
+    } else {
+      await changeStatus(type === 'task' ? 'Completed' : 'Closed');
+    }
+    expectStatusFocus(type);
+
+    const query = new URLSearchParams(window.location.search);
+    expect(query.has('createTask')).toBe(false);
+    expect(query.has('task')).toBe(false);
+    expect(query.get('shop')).toBe('woodshop');
+    expect(query.get('source')).toBe('workshop');
+    expect(window.location.hash).toBe('#review');
+    expect(window.history.length).toBe(historyLength);
+    expect(document.getElementById('create-volunteer-task')).toBeNull();
+    await expectFilterPersists(type, action === 'show all' ? '' : type === 'task' ? 'completed' : 'closed');
+    if (type === 'event') await act(async () => document.getElementById('volunteer-tab-tasks')!.click());
+    expect(document.getElementById('create-volunteer-task')).toBeNull();
   });
 
   it('validates loaded credit selections and suppresses deletion during loading or errors', async () => {

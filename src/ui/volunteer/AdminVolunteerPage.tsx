@@ -93,9 +93,12 @@ const useVolunteerListNavigation = (tab: 'tasks' | 'events') => {
     const query = new URLSearchParams(location.search);
     query.delete('task');
     query.delete('event');
+    query.delete('createTask');
     query.set('tab', tab);
     query.set(tab === 'tasks' ? 'taskStatus' : 'eventStatus', status || 'all');
     navigate({ pathname: location.pathname, search: `?${query.toString()}`, hash: location.hash }, { replace: true });
+    // The search-keyed tab remounts; return keyboard focus to its filter.
+    requestAnimationFrame(() => document.getElementById(`volunteer-${tab}-status`)?.focus());
   }, [location.pathname, location.search, location.hash, navigate, tab]);
 };
 
@@ -1048,8 +1051,8 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
       <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
-            <FormLabel>Filter by Status</FormLabel>
-            <Select value={statusFilter}
+            <FormLabel id='volunteer-tasks-status-label'>Filter by Status</FormLabel>
+            <Select id='volunteer-tasks-status' labelId='volunteer-tasks-status-label' value={statusFilter}
               onChange={e => {
                 const status = e.target.value as string;
                 setStatusFilter(status); setLinkedTaskId(''); setSelectedIds([]);
@@ -1440,8 +1443,8 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
       <Grid size={{ xs: 12 }}>
         <Grid container spacing={2} alignItems='center'>
           <Grid size={{ xs: 12, sm: 3 }}>
-            <FormLabel>Filter by Status</FormLabel>
-            <Select value={statusFilter}
+            <FormLabel id='volunteer-events-status-label'>Filter by Status</FormLabel>
+            <Select id='volunteer-events-status' labelId='volunteer-events-status-label' value={statusFilter}
               onChange={e => {
                 const status = e.target.value as string;
                 setStatusFilter(status); setLinkedEventId(''); setSelectedIds([]);

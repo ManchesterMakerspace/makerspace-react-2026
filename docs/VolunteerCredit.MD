@@ -78,7 +78,9 @@ After rollout, changing **Filter by Status** on the staff task or event tab also
 leaves the linked-record view and removes the review selectors. The chosen filter
 is stored in `taskStatus` or `eventStatus` (`all` for **All**) and restored when
 you return to the tab or reload. Selecting **Open** or **Closed** replaces a
-previous `eventStatus=all` choice.
+previous `eventStatus=all` choice. List navigation also removes the one-time
+`createTask=true` flag while retaining the shop selection, so changing filters
+does not reopen a closed or successfully submitted workshop task form.
 
 Sources: [staff UI][react-admin], [member UI][react-member],
 [profile tabs][react-profile], [routes][react-routing],
