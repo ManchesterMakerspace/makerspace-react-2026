@@ -47,6 +47,9 @@ export default function FixTicketsPage() {
   const [peopleSearch, setPeopleSearch] = React.useState('');
   const [selectedPeople, setSelectedPeople] = React.useState<FixPerson[]>([]);
   const [revealed, setRevealed] = React.useState('');
+  React.useEffect(() => {
+    setCreate(reportShortcut || query.get('new') === 'true');
+  }, [reportShortcut, query]);
   const mode = query.get('mode') || 'all';
   const sort = query.get('sort') || 'priority';
   const direction = query.get('direction') === 'desc' ? 'desc' : 'asc';
@@ -297,19 +300,23 @@ function NewTicket({ open, catalog, catalogLoading, initialCategory, initialShop
     if (!open) { initialized.current = false; return; }
     if (!catalog || initialized.current) return;
     initialized.current = true;
-    const validShop = initialShop === 'none' || catalog.shops.some(shop => shop.id === initialShop);
-    const shopId = validShop && initialShop !== 'none' ? initialShop : '';
-    const tool = initialTool && shopId ? catalog.tools.find(t => t.id === initialTool && t.shopId === shopId) : undefined;
+    const validShop = !initialShop || initialShop === 'none' || catalog.shops.some(shop => shop.id === initialShop);
+    const requestedTool = initialTool
+      ? catalog.tools.find(t => t.id === initialTool && (!initialShop || initialShop === 'none' || t.shopId === initialShop))
+      : undefined;
+    const shopId = validShop && initialShop !== 'none' ? (initialShop || requestedTool?.shopId || '') : '';
+    const tool = requestedTool && requestedTool.shopId === shopId ? requestedTool : undefined;
     setSelectionWarning(initialTool && !shopId
-      ? 'To preselect a tool, include its shop in the URL as well.'
+      ? 'The tool in this link is unavailable. Choose a tool below.'
       : initialShop && !validShop
         ? 'The shop in this link is unavailable. Choose a shop below.'
         : initialTool && !tool
           ? 'The tool in this link does not belong to the selected shop or is unavailable. Choose a tool below.'
           : '');
-    setForm({ title: '', description: '', category: categories.includes(initialCategory) ? initialCategory : 'broken', shop_id: shopId, tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: false, i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
+    const category = categories.find(value => value.toLowerCase() === initialCategory.trim().toLowerCase()) || 'broken';
+    setForm({ title: '', description: '', category, shop_id: shopId, tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: false, i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
     setError('');
-  }, [open, catalog, initialShop, initialTool]);
+  }, [open, catalog, initialCategory, initialShop, initialTool]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
   const submit = async () => { if (!catalog?.canCreate) return; setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   if (open && !catalog?.canCreate) return <Dialog open onClose={onClose} fullWidth maxWidth="sm">
