@@ -24,6 +24,7 @@ export default function FixTicketsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [query, setQuery] = useSearchParams();
+  const reportShortcut = location.pathname === '/fix-tickets-report';
   const [catalog, setCatalog] = React.useState<FixCatalog>();
   const [loadedTicket, setTicket] = React.useState<FixTicket>();
   const ticket = loadedTicket?.id === id ? loadedTicket : undefined;
@@ -39,13 +40,16 @@ export default function FixTicketsPage() {
   const [message, setMessage] = React.useState('');
   const [outageReview, setOutageReview] = React.useState<{ ticketId: string; reservations: ToolOutageResult['affectedReservations'] }>();
   const [refresh, setRefresh] = React.useState(0);
-  const [create, setCreate] = React.useState(query.get('new') === 'true');
+  const [create, setCreate] = React.useState(reportShortcut || query.get('new') === 'true');
   const [action, setAction] = React.useState('');
   const [form, setForm] = React.useState<Record<string, any>>({});
   const [people, setPeople] = React.useState<FixPerson[]>([]);
   const [peopleSearch, setPeopleSearch] = React.useState('');
   const [selectedPeople, setSelectedPeople] = React.useState<FixPerson[]>([]);
   const [revealed, setRevealed] = React.useState('');
+  React.useEffect(() => {
+    setCreate(reportShortcut || query.get('new') === 'true');
+  }, [reportShortcut, query]);
   const mode = query.get('mode') || 'all';
   const sort = query.get('sort') || 'priority';
   const direction = query.get('direction') === 'desc' ? 'desc' : 'asc';
@@ -274,22 +278,47 @@ export default function FixTicketsPage() {
         {action === 'outage' && <Typography>{ticket?.outOfService ? 'Restore this tool to service? Verify that all outstanding issues are addressed.' : 'Mark this tool out of service? Existing bookings remain and require staff review.'} The Hidden flag is unchanged.</Typography>}
       </Stack></DialogContent><DialogActions><Button disabled={busy} onClick={() => setAction('')}>Cancel</Button><Button variant="contained" disabled={busy || actionInvalid} onClick={submitAction}>{busy ? 'Saving…' : 'Confirm'}</Button></DialogActions>
     </Dialog>
-    <NewTicket open={create} catalog={catalog} catalogLoading={catalogLoading} initialShop={query.get('shop_id') || ''} initialTool={query.get('tool_id') || ''} onClose={() => { setCreate(false); const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }} onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true, state: { ticketMessage: 'Report submitted.' } }); setRefresh(n => n + 1); }} />
+    <NewTicket open={create} catalog={catalog} catalogLoading={catalogLoading}
+      initialCategory={query.get('category') || ''}
+      initialShop={query.get('shop_id') || query.get('shop') || ''}
+      initialTool={query.get('tool_id') || query.get('tool') || ''}
+      onClose={() => {
+        setCreate(false);
+        if (reportShortcut) navigate('/fix-tickets', { replace: true });
+        else { const next = new URLSearchParams(query); next.delete('new'); setQuery(next, { replace: true }); }
+      }}
+      onSaved={() => { setCreate(false); navigate('/fix-tickets', { replace: true, state: { ticketMessage: 'Report submitted.' } }); setRefresh(n => n + 1); }} />
   </Box>;
 }
 
-function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; catalogLoading: boolean; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
+function NewTicket({ open, catalog, catalogLoading, initialCategory, initialShop, initialTool, onClose, onSaved }: { open: boolean; catalog?: FixCatalog; catalogLoading: boolean; initialCategory: string; initialShop: string; initialTool: string; onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = React.useState<Record<string, any>>({});
   const [error, setError] = React.useState(''); const [busy, setBusy] = React.useState(false);
+  const [selectionWarning, setSelectionWarning] = React.useState('');
   const initialized = React.useRef(false);
   React.useEffect(() => {
     if (!open) { initialized.current = false; return; }
     if (!catalog || initialized.current) return;
     initialized.current = true;
-    const tool = catalog.tools.find(t => t.id === initialTool);
-    setForm({ title: '', description: '', category: 'broken', shop_id: tool?.shopId || (initialShop === 'none' ? '' : initialShop), tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: false, i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
+    const validShop = !initialShop || initialShop === 'none' || catalog.shops.some(shop => shop.id === initialShop);
+    const requestedTool = initialTool
+      ? catalog.tools.find(t => t.id === initialTool && (!initialShop || initialShop === 'none' || t.shopId === initialShop))
+      : undefined;
+    const shopId = validShop && initialShop !== 'none' ? (initialShop || requestedTool?.shopId || '') : '';
+    const tool = requestedTool && requestedTool.shopId === shopId ? requestedTool : undefined;
+    setSelectionWarning(initialTool && !shopId
+      ? 'The tool in this link is unavailable. Choose a tool below.'
+      : initialShop && !validShop
+        ? 'The shop in this link is unavailable. Choose a shop below.'
+        : initialTool && !tool
+          ? 'The tool in this link does not belong to the selected shop or is unavailable. Choose a tool below.'
+          : '');
+    const requestedCategory = initialCategory.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const categoryAlias = requestedCategory === 'donation' ? 'donation_offer' : requestedCategory;
+    const category = categories.find(value => value.toLowerCase() === categoryAlias) || 'broken';
+    setForm({ title: '', description: '', category, shop_id: shopId, tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: category === 'donation_offer', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
     setError('');
-  }, [open, catalog, initialShop, initialTool]);
+  }, [open, catalog, initialCategory, initialShop, initialTool]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
   const submit = async () => { if (!catalog?.canCreate) return; setBusy(true); setError(''); try { await fixRequest(base, { ...form, priority: form.priority ? Number(form.priority) : null }); onSaved(); } catch (e: any) { setError(e.message); } finally { setBusy(false); } };
   if (open && !catalog?.canCreate) return <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -299,6 +328,7 @@ function NewTicket({ open, catalog, catalogLoading, initialShop, initialTool, on
   </Dialog>;
   return <Dialog open={open} onClose={() => !busy && onClose()} fullWidth maxWidth="sm"><DialogTitle>Report a problem</DialogTitle><DialogContent><Stack spacing={2} sx={{ pt: 1 }}>
     {error && <Alert severity="error">{error}</Alert>}
+    {selectionWarning && <Alert severity="info">{selectionWarning}</Alert>}
     <Alert severity="info">{form.show_identity ? 'Your identity will be shown to people who can read this ticket and its notifications.' : 'Your identity is hidden except from admins after a privacy acknowledgment.'} Text you write may identify you.{catalog?.centralSlackEnabled && ' Full notes will also be shared in the central tickets Slack channel.'}</Alert>
     <TextField required label="Title" error={invalidFixName(form.title)} helperText={fixNameHint} value={form.title || ''} onChange={e => set('title', e.target.value)} slotProps={{ htmlInput: { maxLength: 150 } }} />
     <TextField required label="Description" multiline minRows={4} value={form.description || ''} onChange={e => set('description', e.target.value)} />
