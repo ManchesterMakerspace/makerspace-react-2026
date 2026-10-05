@@ -313,8 +313,10 @@ function NewTicket({ open, catalog, catalogLoading, initialCategory, initialShop
         : initialTool && !tool
           ? 'The tool in this link does not belong to the selected shop or is unavailable. Choose a tool below.'
           : '');
-    const category = categories.find(value => value.toLowerCase() === initialCategory.trim().toLowerCase()) || 'broken';
-    setForm({ title: '', description: '', category, shop_id: shopId, tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: false, i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
+    const requestedCategory = initialCategory.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const categoryAlias = requestedCategory === 'donation' ? 'donation_offer' : requestedCategory;
+    const category = categories.find(value => value.toLowerCase() === categoryAlias) || 'broken';
+    setForm({ title: '', description: '', category, shop_id: shopId, tool_id: tool?.id || '', uncatalogued_tool: '', priority: '', show_identity: category === 'donation_offer', i_broke_it: false, i_can_fix_it: false, public_read_only: false, submission_key: generateUUID() });
     setError('');
   }, [open, catalog, initialCategory, initialShop, initialTool]);
   const set = (key: string, value: any) => setForm(f => ({ ...f, [key]: value }));
