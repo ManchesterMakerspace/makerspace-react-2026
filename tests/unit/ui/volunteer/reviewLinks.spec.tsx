@@ -131,6 +131,40 @@ describe('volunteer review links', () => {
     return Array.from(host.querySelectorAll('button')).find(node => node.textContent?.trim() === label)!;
   }
 
+  async function changeStatus(label: string) {
+    const filter = host.querySelector('[role="combobox"]')!;
+    await act(async () => filter.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 })));
+    const option = Array.from(document.body.querySelectorAll('[role="option"]'))
+      .find(node => node.textContent?.trim() === label)!;
+    expect(option).toBeDefined();
+    await act(async () => (option as HTMLElement).click());
+  }
+
+  function expectRequestedStatus(type: 'task' | 'event', status: string) {
+    const transaction = type === 'task' ? adminListVolunteerTasks : adminListVolunteerEvents;
+    const calls = (useReadTransaction as jest.Mock).mock.calls.filter(([read]) => read === transaction);
+    expect(calls[calls.length - 1][1].status).toBe(status || undefined);
+  }
+
+  function expectFullList(type: 'task' | 'event', status: string) {
+    expect(document.getElementById(`volunteer-tab-${type}s`)!.getAttribute('aria-selected')).toBe('true');
+    expect(table(type).textContent).toContain(type === 'task' ? 'Other pending claim' : 'Other event');
+    expect(table(type).getAttribute('data-selected')).toBe('[]');
+    expect(button(`Show all ${type}s`)).toBeUndefined();
+    expectRequestedStatus(type, status);
+  }
+
+  async function expectFilterPersists(type: 'task' | 'event', status: string) {
+    expectFullList(type, status);
+    await act(async () => document.getElementById('volunteer-tab-credits')!.click());
+    await act(async () => document.getElementById(`volunteer-tab-${type}s`)!.click());
+    expectFullList(type, status);
+    await act(async () => root.unmount());
+    root = createRoot(host);
+    await renderPage();
+    expectFullList(type, status);
+  }
+
   it('opens the Tasks tab and selects the child claim, with verification still requiring a click', async () => {
     await open(`task=${taskId}`);
     expect(document.getElementById('volunteer-tab-tasks')!.getAttribute('aria-selected')).toBe('true');
@@ -353,6 +387,58 @@ describe('volunteer review links', () => {
     expect(new URLSearchParams(window.location.search).has('event')).toBe(false);
     expect(document.getElementById('volunteer-tab-tasks')!.getAttribute('aria-selected')).toBe('true');
     expect(table('task').textContent).toContain('Other pending claim');
+  });
+
+  it.each([
+    ['task', 'pending', 'Pending Verification'],
+    ['task', 'completed', 'Completed'],
+    ['task', '', 'All'],
+    ['event', 'open', 'Open'],
+    ['event', 'closed', 'Closed'],
+    ['event', '', 'All'],
+  ] as const)('changing a linked %s filter to %s clears review selectors and persists the filter', async (type, status, label) => {
+    await open(`tab=${type}s&task=${taskId}&event=${eventId}&${type}Status=all&shop=woodshop&source=slack#review`);
+    expect(table(type).getAttribute('data-selected')).toBe(JSON.stringify([id(type)]));
+    const historyLength = window.history.length;
+
+    if (status === '') {
+      // Linked review starts on All, so choose another value before testing a return to All.
+      await changeStatus(type === 'task' ? 'Pending Verification' : 'Open');
+      await select(`volunteer-${type}s-table`, [id(type)]);
+    }
+
+    await changeStatus(label);
+
+    const query = new URLSearchParams(window.location.search);
+    expect(query.has('task')).toBe(false);
+    expect(query.has('event')).toBe(false);
+    expect(query.get('tab')).toBe(`${type}s`);
+    expect(query.get(`${type}Status`)).toBe(status || 'all');
+    expect(query.get('shop')).toBe('woodshop');
+    expect(query.get('source')).toBe('slack');
+    expect(window.location.hash).toBe('#review');
+    expect(window.history.length).toBe(historyLength);
+    await expectFilterPersists(type, status);
+  });
+
+  it.each([
+    ['open', 'Open'], ['closed', 'Closed'],
+  ] as const)('changing Show all events to %s replaces the stale all-status query', async (status, label) => {
+    await open(`event=${eventId}&source=slack#review`);
+    await act(async () => button('Show all events').click());
+    expect(new URLSearchParams(window.location.search).get('eventStatus')).toBe('all');
+    const historyLength = window.history.length;
+
+    await changeStatus(label);
+
+    const query = new URLSearchParams(window.location.search);
+    expect(query.get('eventStatus')).toBe(status);
+    expect(query.has('task')).toBe(false);
+    expect(query.has('event')).toBe(false);
+    expect(query.get('source')).toBe('slack');
+    expect(window.location.hash).toBe('#review');
+    expect(window.history.length).toBe(historyLength);
+    await expectFilterPersists('event', status);
   });
 
   it('validates loaded credit selections and suppresses deletion during loading or errors', async () => {

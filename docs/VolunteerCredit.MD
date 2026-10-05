@@ -74,6 +74,12 @@ Use these entry points:
 | Slack, `/volunteer` | Help and subcommands for personal progress, task/event listings, claims, completion submissions, and authorized staff actions. [Command reference](#slack-command-reference) below. |
 | Public displays | `/volunteer/bounties` and `/volunteer/leaderboard`; separate from the authenticated React staff page. |
 
+After rollout, changing **Filter by Status** on the staff task or event tab also
+leaves the linked-record view and removes the review selectors. The chosen filter
+is stored in `taskStatus` or `eventStatus` (`all` for **All**) and restored when
+you return to the tab or reload. Selecting **Open** or **Closed** replaces a
+previous `eventStatus=all` choice.
+
 Sources: [staff UI][react-admin], [member UI][react-member],
 [profile tabs][react-profile], [routes][react-routing],
 [workshops][react-workshops], and [bounty detail][react-bounty].

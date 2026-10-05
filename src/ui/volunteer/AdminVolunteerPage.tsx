@@ -86,15 +86,15 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'events',  label: 'Events' },
 ];
 
-const useShowAllRecords = (tab: TabKey) => {
+const useVolunteerListNavigation = (tab: 'tasks' | 'events') => {
   const location = useLocation();
   const navigate = useNavigate();
-  return React.useCallback(() => {
+  return React.useCallback((status = '') => {
     const query = new URLSearchParams(location.search);
     query.delete('task');
     query.delete('event');
     query.set('tab', tab);
-    if (tab === 'events') query.set('eventStatus', 'all');
+    query.set(tab === 'tasks' ? 'taskStatus' : 'eventStatus', status || 'all');
     navigate({ pathname: location.pathname, search: `?${query.toString()}`, hash: location.hash }, { replace: true });
   }, [location.pathname, location.search, location.hash, navigate, tab]);
 };
@@ -866,11 +866,15 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
   const { canDeleteVolunteerRecords: isAdmin } = useCapabilities();
   const query = new URLSearchParams(search);
   const initialShopId = query.get('shop') || '';
-  const showAllTasks = useShowAllRecords('tasks');
+  const showTaskList = useVolunteerListNavigation('tasks');
+  const taskStatus = query.get('taskStatus');
 
   const [linkedTaskId, setLinkedTaskId] = React.useState(query.get('task') || '');
   const linkedSelectionApplied = React.useRef(false);
-  const [statusFilter, setStatusFilter] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState(
+    query.get('task') || !['available', 'reusable', 'repeatable', 'recurring', 'claimed',
+      'pending', 'completed', 'cancelled', 'denied'].includes(taskStatus) ? '' : taskStatus
+  );
   const [selectedIds, setSelectedIds]   = React.useState<string[]>([]);
   const [createOpen, setCreateOpen]     = React.useState(
     query.get('createTask') === 'true'
@@ -1034,7 +1038,7 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
       {linkedTaskId && (
         <Grid size={{ xs: 12 }}>
           <Alert severity={!isRequesting && !loadError && displayedTasks.length === 0 ? 'warning' : 'info'}
-            action={<Button color='inherit' size='small' onClick={() => { setLinkedTaskId(''); setSelectedIds([]); showAllTasks(); }}>Show all tasks</Button>}>
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedTaskId(''); setSelectedIds([]); showTaskList(); }}>Show all tasks</Button>}>
             {!isRequesting && !loadError && displayedTasks.length === 0
               ? 'This task is unavailable. It may have been deleted.'
               : 'Showing the task linked from your review notification.'}
@@ -1046,7 +1050,11 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value as string); setLinkedTaskId(''); setSelectedIds([]); }}
+              onChange={e => {
+                const status = e.target.value as string;
+                setStatusFilter(status); setLinkedTaskId(''); setSelectedIds([]);
+                showTaskList(status);
+              }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='available'>Available</MenuItem>
@@ -1327,10 +1335,13 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
 
   const query = new URLSearchParams(search);
   const linkedEvent = query.get('event') || '';
-  const showAllEvents = useShowAllRecords('events');
+  const showEventList = useVolunteerListNavigation('events');
+  const eventStatus = query.get('eventStatus');
   const [linkedEventId, setLinkedEventId]          = React.useState(linkedEvent);
   const linkedSelectionApplied = React.useRef(false);
-  const [statusFilter, setStatusFilter]            = React.useState(linkedEvent || query.get('eventStatus') === 'all' ? '' : 'open');
+  const [statusFilter, setStatusFilter]            = React.useState(
+    linkedEvent || eventStatus === 'all' ? '' : eventStatus === 'closed' ? 'closed' : 'open'
+  );
   const [selectedIds, setSelectedIds]              = React.useState<string[]>([]);
   const [createOpen, setCreateOpen]                = React.useState(false);
   const [editTarget, setEditTarget]                = React.useState<VolunteerEvent | null>(null);
@@ -1419,7 +1430,7 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
       {linkedEventId && (
         <Grid size={{ xs: 12 }}>
           <Alert severity={!isRequesting && !loadError && displayedEvents.length === 0 ? 'warning' : 'info'}
-            action={<Button color='inherit' size='small' onClick={() => { setLinkedEventId(''); setSelectedIds([]); showAllEvents(); }}>Show all events</Button>}>
+            action={<Button color='inherit' size='small' onClick={() => { setLinkedEventId(''); setSelectedIds([]); showEventList(); }}>Show all events</Button>}>
             {!isRequesting && !loadError && displayedEvents.length === 0
               ? 'This event is unavailable. It may have been deleted.'
               : 'Showing the event linked from your review notification.'}
@@ -1431,7 +1442,11 @@ const EventsTabInner: React.FC<{ search: string }> = ({ search }) => {
           <Grid size={{ xs: 12, sm: 3 }}>
             <FormLabel>Filter by Status</FormLabel>
             <Select value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value as string); setLinkedEventId(''); setSelectedIds([]); }}
+              onChange={e => {
+                const status = e.target.value as string;
+                setStatusFilter(status); setLinkedEventId(''); setSelectedIds([]);
+                showEventList(status);
+              }}
               fullWidth displayEmpty>
               <MenuItem value=''>All</MenuItem>
               <MenuItem value='open'>Open</MenuItem>
