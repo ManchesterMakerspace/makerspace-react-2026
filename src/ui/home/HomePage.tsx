@@ -8,6 +8,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import { timeToDate } from "ui/utils/timeToDate";
 import HomeInvoices from "./HomeInvoices";
 import HomeVolunteerOpportunities from "./HomeVolunteerOpportunities";
+import { VOLUNTEER_CREDIT_TIMING_MESSAGE, VOLUNTEER_REVIEW_MESSAGE } from "ui/volunteer/volunteerMessages";
 
 export const membershipCoverage = (member: HomeMember): string => {
   const householdRole = member.household?.role || member.householdRole;
@@ -64,10 +65,16 @@ const HomePage: React.FC = () => {
           to={Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUser.id)}>Account Settings</Link>
       </Box>
     </Paper>
-    {volunteerNotice && <Alert severity="success" role="status" onClose={() => setVolunteerNotice("")}>{volunteerNotice}</Alert>}
+    {volunteerNotice && <Alert severity="success" role="status" onClose={() => setVolunteerNotice("")}>
+      <Typography>{volunteerNotice}</Typography>
+      <Typography sx={{ mt: 1 }}>{VOLUNTEER_CREDIT_TIMING_MESSAGE}</Typography>
+      <Typography sx={{ mt: 1 }}>{VOLUNTEER_REVIEW_MESSAGE}</Typography>
+    </Alert>}
     {!isRequesting && !error && data?.member.status === "activeMember" && !!data.availableVolunteerOpportunities?.length &&
-      <HomeVolunteerOpportunities opportunities={data.availableVolunteerOpportunities} onClaim={opportunity => {
-        setVolunteerNotice(`${opportunity.kind === "task" ? "Task claimed" : "Joined event"}: ${opportunity.title}.`);
+      <HomeVolunteerOpportunities opportunities={data.availableVolunteerOpportunities} onClaimStart={() => setVolunteerNotice("")} onClaim={opportunity => {
+        setVolunteerNotice(opportunity.kind === "task"
+          ? `Task claimed: ${opportunity.title}. When you finish the work, mark it complete in your profile's Volunteer tab.`
+          : `Joined event: ${opportunity.title}. Event credits are issued after staff closes the event.`);
         refresh();
       }} />}
     <Paper component="section" aria-labelledby="home-checkouts-title" sx={{ p: { xs: 2, sm: 3 } }}>

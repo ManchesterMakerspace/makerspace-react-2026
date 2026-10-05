@@ -36,6 +36,7 @@ import {
   cancelReservation, getReservationAvailability, getReservationBlackouts
 } from "api/reservations";
 import { claimVolunteerTask } from "api/volunteer";
+import { VOLUNTEER_CREDIT_TIMING_MESSAGE, VOLUNTEER_REVIEW_MESSAGE } from "ui/volunteer/volunteerMessages";
 import {
   SlackChannelDetails, Workshop, WorkshopTool, WorkshopsResponse
 } from "app/entities/workshop";
@@ -379,15 +380,22 @@ const WorkshopVolunteer: React.FC<{
 }> = ({ workshop, onRefresh }) => {
   const [claimingId, setClaimingId] = React.useState("");
   const [error, setError] = React.useState("");
+  const [claimNotice, setClaimNotice] = React.useState(false);
+  React.useEffect(() => { setClaimNotice(false); setError(""); }, [workshop.id]);
 
   const claim = async (id: string) => {
     setClaimingId(id);
+    setClaimNotice(false);
+    setError("");
     const result = await claimVolunteerTask({ id });
     setClaimingId("");
     if (result.error) setError(
       typeof result.error === "string" ? result.error : result.error.message
     );
-    else onRefresh();
+    else {
+      setClaimNotice(true);
+      onRefresh();
+    }
   };
 
   return (
@@ -402,6 +410,11 @@ const WorkshopVolunteer: React.FC<{
           </Button>}
       </Grid>
       {error && <Alert severity="error" style={{ marginTop: 8 }}>{error}</Alert>}
+      {claimNotice && <Alert severity="success" role="status" sx={{ mt: 1 }} onClose={() => setClaimNotice(false)}>
+        <Typography>Task claimed. When you finish the work, mark it complete in your profile's Volunteer tab.</Typography>
+        <Typography sx={{ mt: 1 }}>{VOLUNTEER_CREDIT_TIMING_MESSAGE}</Typography>
+        <Typography sx={{ mt: 1 }}>{VOLUNTEER_REVIEW_MESSAGE}</Typography>
+      </Alert>}
 
       {workshop.volunteerTasks.length === 0 && !workshop.isShopManager && <>
         <Typography style={{ marginTop: 12 }}>
