@@ -169,9 +169,12 @@ export interface ToolCheckoutRequest {
   shopName: string;
   note?: string;
   requestDate: string;
-  status: "open" | "closed" | "deleted";
+  status: "open" | "closed" | "deleted" | "declined";
   messageId?: string;
   checkedOutId?: string;
+  decidedAt?: string | null;
+  decisionReason?: string | null;
+  decidedByName?: string | null;
 }
 
 export interface ToolGroup {

@@ -80,6 +80,8 @@ const JOB_LABELS: Record<string, string> = {
   reservation_canvas_rebuild: 'Reservation Canvas Rebuild',
   member_provisioning_reconciliation: 'Member Provisioning Reconciliation',
   volunteer_event_reminder: 'Volunteer Event Reminders',
+  checkout_request_reminder: 'Checkout Request Reminders',
+  checkout_request_digest: 'Checkout Request Digest',
 };
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
@@ -94,6 +96,8 @@ const JOB_DESCRIPTIONS: Record<string, string> = {
   reservation_canvas_rebuild: "Rebuilds today's and tomorrow's Slack reservation canvases and refreshes owner access.",
   member_provisioning_reconciliation: 'Reconciles Slack/Google Drive provisioning state for all initialized members. Runs hourly.',
   volunteer_event_reminder: 'Sends reminder notifications for upcoming volunteer events. Runs daily.',
+  checkout_request_reminder: 'Posts a still-waiting reminder in the Resource Managers channel for checkout requests open 5 or more days, repeating every 5 days until resolved. Runs daily.',
+  checkout_request_digest: 'Sends each resource manager and approver a daily DM listing the open checkout requests they can act on, grouped by requester with the age of each request. Runs daily.',
 };
 
 const formatDate = (dateStr: string | null): string => {

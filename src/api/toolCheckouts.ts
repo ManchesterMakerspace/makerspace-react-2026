@@ -260,6 +260,15 @@ export const updateToolCheckoutRequest = ({ id, body }: {
 export const deleteToolCheckoutRequest = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/tool_checkout_requests/${id}`));
 
+// An approver declines an open request; the reason is shown to the requester.
+export const declineToolCheckoutRequest = ({ id, body }: {
+  id: string;
+  body: { reason: string }
+}) =>
+  buildResponse<ToolCheckoutRequest>(api.post(`/api/admin/tool_checkout_requests/${id}/decline`, {
+    reason: body.reason,
+  }));
+
 // ── Checkout Approvers ────────────────────────────────────────────────────────
 
 export const listCheckoutApprovers = (_params?: any) =>

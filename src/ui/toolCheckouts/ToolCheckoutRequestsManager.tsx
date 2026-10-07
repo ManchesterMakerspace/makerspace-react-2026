@@ -18,6 +18,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
+import BlockIcon from "@mui/icons-material/Block";
 
 import FormModal from "ui/common/FormModal";
 import ErrorMessage from "ui/common/ErrorMessage";
@@ -36,6 +37,7 @@ import {
   createToolCheckoutRequest,
   updateToolCheckoutRequest,
   deleteToolCheckoutRequest,
+  declineToolCheckoutRequest,
   adminCreateToolCheckout,
 } from "api/toolCheckouts";
 
@@ -109,6 +111,37 @@ const EditNoteModal: React.FC<EditNoteModalProps> = ({ target, onClose, onSave, 
   );
 };
 
+interface DeclineModalProps {
+  target: ToolCheckoutRequest | null;
+  onClose: () => void;
+  onDecline: (reason: string) => void;
+  loading: boolean;
+  error: string;
+}
+
+// A decline needs a reason: it is sent to the member, who otherwise has no way
+// to learn why the request was not approved.
+const DeclineModal: React.FC<DeclineModalProps> = ({ target, onClose, onDecline, loading, error }) => {
+  const [reason, setReason] = React.useState("");
+  const [touched, setTouched] = React.useState(false);
+  React.useEffect(() => { setReason(""); setTouched(false); }, [target?.id]);
+  const missing = !reason.trim();
+
+  return (
+    <FormModal id="decline-tool-checkout-request" isOpen={!!target} title="Decline Checkout Request"
+      closeHandler={onClose} onSubmit={() => { setTouched(true); if (!missing) onDecline(reason.trim()); }}
+      submitText="Decline Request" loading={loading} error={error}>
+      <Typography variant="body2" sx={{ mb: 2 }}>
+        {target ? `${target.memberName} will be told this request for ${target.targetName || target.toolName} was declined, along with your reason.` : ""}
+      </Typography>
+      <TextField fullWidth label="Reason (required)" inputProps={{ maxLength: 255 }}
+        error={touched && missing}
+        helperText={touched && missing ? "Enter a reason for declining." : `${reason.length}/255`}
+        value={reason} onChange={e => setReason(e.target.value)} multiline rows={3} autoFocus />
+    </FormModal>
+  );
+};
+
 interface Props {
   canManage: boolean;
 }
@@ -121,6 +154,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   const [groupRequest, setGroupRequest] = React.useState(null);
   const [requestTarget, setRequestTarget] = React.useState<Tool | null>(null);
   const [editTarget, setEditTarget] = React.useState<ToolCheckoutRequest | null>(null);
+  const [declineTarget, setDeclineTarget] = React.useState<ToolCheckoutRequest | null>(null);
   const [selectedRequestId, setSelectedRequestId] = React.useState<string | undefined>(undefined);
   const [selectedToolId, setSelectedToolId] = React.useState<string | undefined>(undefined);
 
@@ -154,6 +188,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   const onSuccess = React.useCallback(() => {
     setRequestTarget(null);
     setEditTarget(null);
+    setDeclineTarget(null);
     setSelectedRequestId(undefined);
     setSelectedToolId(undefined);
     refreshRequestsRef.current();
@@ -169,6 +204,8 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
     useWriteTransaction(deleteToolCheckoutRequest, onSuccess);
   const { call: approveRequest, isRequesting: approving, error: approveError } =
     useWriteTransaction(adminCreateToolCheckout, onSuccess);
+  const { call: declineRequest, isRequesting: declining, error: declineError } =
+    useWriteTransaction(declineToolCheckoutRequest, onSuccess);
 
   const requestColumns: Column<ToolCheckoutRequest>[] = [
     {
@@ -245,6 +282,12 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
               </>
             )}
             {canManage && selectedRequest && (
+              <Button variant="outlined" color="error" startIcon={<BlockIcon />}
+                onClick={() => setDeclineTarget(selectedRequest)}>
+                Decline
+              </Button>
+            )}
+            {canManage && selectedRequest && (
               <Button variant="contained" color="primary" startIcon={<CheckIcon />}
                 onClick={() => selectedRequest.toolGroupId ? setGroupRequest(selectedRequest) : approveRequest({ body: { memberId: selectedRequest.memberId, toolId: selectedRequest.toolId } })}>
                 Check Out Member
@@ -266,7 +309,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
 
       <Grid size={{ xs: 12 }}>
         <StatefulTable id="tool-checkout-requests-table" title="Open Requests"
-          loading={requestRead.isRequesting || deleting || approving}
+          loading={requestRead.isRequesting || deleting || approving || declining}
           data={requests} error={requestRead.error} columns={requestColumns}
           rowId={requestRowId} totalItems={extractTotalItems(requestRead.response)}
           selectedIds={selectedRequestId} setSelectedIds={setSelectedRequestId} renderSearch={true} />
@@ -304,6 +347,9 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
       <RequestModal target={requestTarget} onClose={() => setRequestTarget(null)}
         onSave={note => requestTarget && createRequest({ body: { ...(requestTarget.targetType === 'group' ? { toolGroupId: requestTarget.id } : { toolId: requestTarget.id }), note } })}
         loading={creating} error={createError} />
+      <DeclineModal target={declineTarget} onClose={() => setDeclineTarget(null)}
+        onDecline={reason => declineTarget && declineRequest({ id: declineTarget.id, body: { reason } })}
+        loading={declining} error={declineError} />
       <EditNoteModal target={editTarget} onClose={() => setEditTarget(null)}
         onSave={note => editTarget && updateRequest({ id: editTarget.id, body: { note } })}
         loading={updating} error={updateError} />
