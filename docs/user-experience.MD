@@ -33,6 +33,10 @@ group requests on the server; changing shops clears the selected resource and
 resets pagination. Search and pagination then apply to the combined scoped catalog.
 Saved reservation group snapshots remain visible on ordinary edits; changing resources drops groups that are no
 longer selectable from the new selection.
+On the open checkout requests list, an approver who selects a request can Decline it
+(outlined error-colored button beside Check Out Member). The dialog requires a reason of
+at most 255 characters, validated inline with the message "Enter a reason for declining.",
+and states that the member will be told the request was declined along with the reason.
 
 This document records the user-interface conventions currently used by the
 Manchester Makerspace member portal. It is both an inventory of the existing
