@@ -216,6 +216,7 @@ const CheckoutRoster: React.FC<Props> = ({
 }) => {
   const { currentUser } = useAuthState();
   const [shopFilter,         setShopFilter]         = React.useState("");
+  const [toolFilter,         setToolFilter]         = React.useState("");
   const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
   const [revokeTarget,       setRevokeTarget]       = React.useState<ToolCheckout | null>(null);
   const [checkoutOpen,       setCheckoutOpen]       = React.useState(false);
@@ -227,13 +228,14 @@ const CheckoutRoster: React.FC<Props> = ({
   const checkoutParams = {
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
+    ...(toolFilter && { toolId: toolFilter }),
     ...(activeFilter === "active"  && { active: true }),
     ...(activeFilter === "revoked" && { active: false }),
   };
 
   // Admin/RM path — skipped (delay=true) when the viewer is a plain member.
   const adminRead = useReadTransaction(listToolCheckouts, checkoutParams, !canManage,
-    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${activeFilter}`);
+    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${activeFilter}`);
 
   // Member self-view path — skipped (delay=true) when the viewer can manage.
   const memberParams = {
@@ -258,6 +260,9 @@ const CheckoutRoster: React.FC<Props> = ({
     : (shops as Shop[]).filter(s => checkoutApproverShopIds.includes(s.id));
   const modalShopIds = new Set(modalShops.map(s => s.id));
   const modalTools = (tools as Tool[]).filter(t => modalShopIds.has(t.shopId));
+  const filterTools = (tools as Tool[])
+    .filter(t => t.shopId === shopFilter)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -402,12 +407,20 @@ const CheckoutRoster: React.FC<Props> = ({
       <Grid size={{ xs: 12, sm: 4 }}>
         <FormLabel style={{ fontSize: 12 }}>Filter by Shop</FormLabel>
         <Select native fullWidth value={shopFilter}
-          onChange={e => setShopFilter((e.target as HTMLSelectElement).value)}>
+          onChange={e => { setShopFilter((e.target as HTMLSelectElement).value); setToolFilter(""); }}>
           <option value="">All Shops</option>
           {(shops as Shop[]).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </Select>
       </Grid>
-      {!memberView && <Grid size={{ xs: 12, sm: 4 }}>
+      {canManage && <Grid size={{ xs: 12, sm: 4 }}>
+        <FormLabel style={{ fontSize: 12 }}>Filter by Tool</FormLabel>
+        <Select native fullWidth value={toolFilter} disabled={!shopFilter}
+          onChange={e => setToolFilter((e.target as HTMLSelectElement).value)}>
+          <option value="">{shopFilter ? "All Tools in Shop" : "Select a shop first"}</option>
+          {filterTools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </Select>
+      </Grid>}
+      {!memberView && <Grid size={{ xs: 6, sm: 2 }}>
         <FormLabel style={{ fontSize: 12 }}>Status</FormLabel>
         <Select native fullWidth value={activeFilter}
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
