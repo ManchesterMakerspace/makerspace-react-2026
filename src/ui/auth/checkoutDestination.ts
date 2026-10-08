@@ -8,7 +8,7 @@ export const checkoutDestination = (): string | null => {
     : pathname === "/login" ? params.get("return_to")
     : pathname === "/auth/callback" || /^\/members\/[^/]+\/settings\/security$/.test(pathname) ? sessionStorage.getItem(key)
     : null;
-  if (candidate && /^\/tools\/[a-f0-9]{24}\/request-checkout$/i.test(candidate)) {
+  if (candidate && /^\/tools\/[a-f0-9]{24}\/(?:request-checkout|check-out-member)$/i.test(candidate)) {
     sessionStorage.setItem(key, candidate);
     return candidate;
   }

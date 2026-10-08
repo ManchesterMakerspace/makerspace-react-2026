@@ -8,6 +8,8 @@ describe("member login destination", () => {
       .toBe("/login?redirect=%2Fhome%3FnewMember%3Dtrue%23next");
     expect(loginUrlForLocation({ pathname: "/tools/abc/request-checkout", search: "", hash: "" }))
       .toBe("/login?return_to=%2Ftools%2Fabc%2Frequest-checkout");
+    expect(loginUrlForLocation({ pathname: "/tools/abc/check-out-member", search: "", hash: "" }))
+      .toBe("/login?return_to=%2Ftools%2Fabc%2Fcheck-out-member");
   });
   it.each([
     ["member", "pending", "/home?newMember=true"],

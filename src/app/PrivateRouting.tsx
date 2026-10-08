@@ -1,4 +1,5 @@
 import CheckoutRequestPage from "ui/workshops/CheckoutRequestPage";
+import CheckoutMemberLinkPage from "ui/workshops/CheckoutMemberLinkPage";
 import * as React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 
@@ -100,6 +101,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.ToolCheckouts} element={<ToolCheckoutsPage />} />
       <Route path={Routing.Reservations} element={<ReservationsPage />} />
       <Route path="/tools/:id/request-checkout" element={<CheckoutRequestPage />} />
+      <Route path="/tools/:id/check-out-member" element={<CheckoutMemberLinkPage />} />
       <Route path="/fix-tickets" element={<FixTicketsPage />} />
       <Route path="/fix-tickets-report" element={<FixTicketsPage />} />
       <Route path="/fix-tickets/:id" element={<FixTicketsPage />} />

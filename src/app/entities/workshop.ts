@@ -45,6 +45,8 @@ export interface WorkshopTool {
   checkout?: WorkshopCheckout;
   checkoutRequest?: WorkshopCheckoutRequest;
   checkoutRequestable: boolean;
+  // The viewer may check a member out on this tool (server rule; also enforced on submit).
+  canCheckoutMember?: boolean;
   reservationAvailable: boolean;
   usersChannel?: string;
   usersChannelDetails?: SlackChannelDetails;

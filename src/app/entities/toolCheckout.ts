@@ -150,6 +150,16 @@ export interface CheckoutApprover {
   toolNames: string[];
 }
 
+export interface FobMemberPreview {
+  memberId: string;
+  name: string;
+  status: string;
+  expirationTime?: number | null;
+  eligible: boolean;
+  error?: string | null;
+  unmetPrerequisites: string[];
+}
+
 export interface ToolCheckoutRequest {
   toolGroupId?: string;
   targetType?: 'tool' | 'group';

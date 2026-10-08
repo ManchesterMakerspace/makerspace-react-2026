@@ -33,6 +33,16 @@ group requests on the server; changing shops clears the selected resource and
 resets pagination. Search and pagination then apply to the combined scoped catalog.
 Saved reservation group snapshots remain visible on ordinary edits; changing resources drops groups that are no
 longer selectable from the new selection.
+Approvers (admin, board, the shop's resource manager, or an approver assigned to the tool) see a
+**Check Out Member** button on a tool's Workshops entry when the server reports `canCheckoutMember`
+for it. It opens a dialog to find the member by **Scan member's fob** (phone NFC; hidden where NFC
+is unavailable) or by search, then shows a confirmation with the member's name, status, expiry and
+whether they are eligible; nothing is recorded until the approver presses **Check Out**. An
+ineligible member shows the reason and a disabled button, and a lost or refused fob shows the
+server's message. The same fob option appears in the Tool Checkouts roster's Check Out Member
+dialog once a tool or group is chosen, which is how a member is checked out on a group by fob (the
+group's review then follows). The public tool page's "Approver? Sign in to check out a member"
+link returns to `/tools/:id/check-out-member`, which opens that tool with the dialog already open.
 On the open checkout requests list, an approver who selects a request can Decline it
 (outlined error-colored button beside Check Out Member). The dialog requires a reason of
 at most 255 characters, validated inline with the message "Enter a reason for declining.",

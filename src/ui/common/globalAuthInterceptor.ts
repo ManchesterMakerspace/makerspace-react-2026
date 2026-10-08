@@ -97,7 +97,7 @@ const handle401 = (dispatch: Function | null = globalDispatch) => {
 };
 
 export const loginUrlForLocation = ({ pathname, search, hash }: Pick<Location, "pathname" | "search" | "hash">): string => {
-  if (/^\/tools\/[^/]+\/request-checkout$/.test(pathname)) {
+  if (/^\/tools\/[^/]+\/(?:request-checkout|check-out-member)$/.test(pathname)) {
     return `${Routing.Login}?return_to=${encodeURIComponent(pathname)}`;
   }
   if (pathname === Routing.Home) {
