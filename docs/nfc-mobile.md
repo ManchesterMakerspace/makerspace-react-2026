@@ -9,6 +9,13 @@ UIDs are uppercase hexadecimal ASCII byte pairs, without separators or prefix. B
 
 Browser NFC requires Android Chrome with NFC hardware enabled, HTTPS, permission, and a visible foreground page. Browser serial numbers may be absent; non-NDEF MIFARE fobs require the native Android reader. Installation as a PWA does not change those limits. Reading never writes or formats a card. UID possession is not identity verification.
 
+Approvers (admin, board, the shop's resource manager, assigned approvers) can also tap a member's fob in the
+Check Out Member dialog on a tool's Workshops entry, or in the Tool Checkouts roster dialog for tools and
+groups. The fob UID is read in inspect mode and sent to `POST /api/admin/tool_checkouts/lookup_card`, which
+names the member and says whether they can be checked out; the approver must confirm before anything is
+recorded, the sign-off is recorded as `fob`, every lookup is audit-logged, and a fob reported lost or stolen is
+refused. The existing admin/board-only card lookup is unchanged.
+
 Shop/tool public links route to the selected resource in Workshops; bounty links route to the existing task view. Portal shortcodes reuse `GET /api/shortcodes/:code`. Other HTTP(S) URLs require an explicit open action. Unsafe schemes are displayed but not executed. Card APIs are never called for ordinary-member NDEF scans.
 
 ## Deploying the web/PWA feature

@@ -11,6 +11,15 @@ describe("checkout login destination", () => {
     clearCheckoutDestination();
     expect(checkoutDestination()).toBeNull();
   });
+  it("retains the check-out-member link across login the same way", () => {
+    const path = "/tools/0123456789abcdef01234567/check-out-member";
+    window.history.replaceState({}, "", `/login?return_to=${encodeURIComponent(path)}`);
+    expect(checkoutDestination()).toBe(path);
+    window.history.replaceState({}, "", "/auth/callback");
+    expect(checkoutDestination()).toBe(path);
+    window.history.replaceState({}, "", "/login?return_to=%2Ftools%2F0123456789abcdef01234567%2Fcheck-out-member%2Fextra");
+    expect(checkoutDestination()).toBeNull();
+  });
   it("retains the validated target across Firebase callback reloads and the login handoff", () => {
     const path = "/tools/0123456789abcdef01234567/request-checkout";
     window.history.replaceState({}, "", `/login?return_to=${encodeURIComponent(path)}`);

@@ -9,7 +9,7 @@ describe('scanned destinations', () => {
     }
   });
   it.each(['/workshops?tool=abc#details', '/reservations?shop=abc', '/tool-checkouts?mode=self-service',
-    '/rentals', `/rentals/spots/${id}`, '/rentals/spots/A-01', `/tools/${id}/request-checkout`,
+    '/rentals', `/rentals/spots/${id}`, '/rentals/spots/A-01', `/tools/${id}/request-checkout`, `/tools/${id}/check-out-member`,
     `/volunteer/tasks/${id}`, '/fix-tickets', `/fix-tickets/${id}`, '/checkout', `/checkout/receipt/${id}`,
     '/billing/invoices', '/members/me/settings', '/agreements/member/abc', '/earned-memberships'])('preserves %s', path => {
     expect(classifyScanLink(path, origin)).toMatchObject({ kind: 'internal', path });

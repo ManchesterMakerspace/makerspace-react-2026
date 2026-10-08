@@ -2,6 +2,7 @@ import AddToolModal from "./AddToolModal";
 import ToolGroupList from 'ui/toolCheckouts/ToolGroupList';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
+import CheckoutMemberDialog from "./CheckoutMemberDialog";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import { useCapabilities } from "app/permissions";
 import * as React from "react";
@@ -26,6 +27,7 @@ import AddIcon from "@mui/icons-material/Add";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
+import HowToRegIcon from "@mui/icons-material/HowToReg";
 import PlaceIcon from "@mui/icons-material/Place";
 
 import {
@@ -120,8 +122,12 @@ const WorkshopDetails: React.FC<{ workshop: Workshop }> = ({ workshop }) => (
   </>
 );
 
-const WorkshopTools: React.FC<{
+export const WorkshopTools: React.FC<{
   selectedToolId?: string;
+  // Open the Check Out Member dialog for selectedToolId once, if the viewer may check members out on it
+  // (arrives from the public tool page's sign-in link).
+  autoCheckoutMember?: boolean;
+  onAutoCheckoutHandled?: () => void;
   workshop: Workshop;
   managedShops: Shop[];
   managedTools: Tool[];
@@ -130,12 +136,23 @@ const WorkshopTools: React.FC<{
   highlightToolId?: string;
   onFindTool?: (toolId: string) => void;
   onPlaceTool?: (toolId: string) => void;
-}> = ({ workshop, managedShops, managedTools, catalogsReady, onRefresh, selectedToolId, highlightToolId, onFindTool, onPlaceTool }) => {
+}> = ({ workshop, managedShops, managedTools, catalogsReady, onRefresh, selectedToolId, highlightToolId, onFindTool, onPlaceTool,
+  autoCheckoutMember, onAutoCheckoutHandled }) => {
   React.useEffect(() => {
     if (selectedToolId) document.getElementById(`tool-${selectedToolId}`)?.scrollIntoView({ block: 'center' });
   }, [selectedToolId]);
   const [addOpen, setAddOpen] = React.useState(false);
   const [requestTool, setRequestTool] = React.useState<WorkshopTool | null>(null);
+  const [checkoutMemberTool, setCheckoutMemberTool] = React.useState<WorkshopTool | null>(null);
+  const autoCheckoutDone = React.useRef(false);
+  React.useEffect(() => {
+    if (!autoCheckoutMember || !selectedToolId || autoCheckoutDone.current) return;
+    const target = workshop.tools.find(candidate => candidate.id === selectedToolId);
+    if (!target) return;
+    autoCheckoutDone.current = true;
+    if (target.canCheckoutMember) setCheckoutMemberTool(target);
+    onAutoCheckoutHandled?.();
+  }, [autoCheckoutMember, selectedToolId, workshop.tools, onAutoCheckoutHandled]);
   const [editTool, setEditTool] = React.useState<Tool | null>(null);
   const managedShop = catalogsReady ? managedShops.find(shop => shop.id === workshop.id) : undefined;
 
@@ -247,6 +264,12 @@ const WorkshopTools: React.FC<{
                   onClick={() => setRequestTool(tool)}>
                   Request Checkout
                 </Button>}
+              {tool.canCheckoutMember &&
+                <Button size="small" startIcon={<HowToRegIcon />}
+                  variant={selectedToolId === tool.id ? "contained" : "outlined"}
+                  onClick={() => setCheckoutMemberTool(tool)}>
+                  Check Out Member
+                </Button>}
               {tool.reservationAvailable &&
                 <Button size="small" variant="contained" component={Link as React.ElementType}
                   to={`${Routing.Reservations}?shop=${workshop.id}&tool=${tool.id}`}>
@@ -277,6 +300,10 @@ const WorkshopTools: React.FC<{
       <RequestCheckoutModal tool={requestTool}
         onClose={() => setRequestTool(null)}
         onCreated={() => { setRequestTool(null); onRefresh(); }} />
+      {checkoutMemberTool &&
+        <CheckoutMemberDialog tool={checkoutMemberTool}
+          onClose={() => setCheckoutMemberTool(null)}
+          onDone={() => { setCheckoutMemberTool(null); onRefresh(); }} />}
     </>
   );
 };
@@ -474,6 +501,7 @@ const WorkshopsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedShop = searchParams.get('shop');
   const requestedTool = searchParams.get('tool');
+  const requestedCheckoutMember = searchParams.get('checkout') === 'member';
   // Set by the Tools tab's "Place on map" button (via a navigation from
   // ToolCheckoutsPage, not a same-page state update) -- selects this shop's
   // Details tab, where the map lives, with this tool preselected in its
@@ -673,6 +701,8 @@ const WorkshopsPage: React.FC = () => {
             </Grid>}
             {tab === "tools" &&
               <WorkshopTools key={workshop.id} workshop={workshop} managedShops={managedShops || []} selectedToolId={requestedTool}
+                autoCheckoutMember={requestedCheckoutMember}
+                onAutoCheckoutHandled={() => { const next = new URLSearchParams(searchParams); next.delete('checkout'); setSearchParams(next, { replace: true }); }}
                 managedTools={managedTools || []} catalogsReady={editorCatalogsReady}
                 onRefresh={load} highlightToolId={tab === "tools" ? highlightToolId : undefined}
                 onFindTool={toolId => { setHighlightToolId(toolId); setTab("details"); }}

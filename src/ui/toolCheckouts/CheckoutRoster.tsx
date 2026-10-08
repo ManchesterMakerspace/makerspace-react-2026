@@ -4,6 +4,7 @@ import * as React from "react";
 import useToolGroups from './useToolGroups';
 import ToolGroupLoadStatus from './ToolGroupLoadStatus';
 import GroupApproval from './GroupApproval';
+import FobScanButton from './FobScanButton';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
@@ -32,7 +33,7 @@ import { useCheckoutCatalog } from "./CheckoutCatalog";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { useAuthState } from "ui/reducer/hooks";
 import extractTotalItems from "ui/utils/extractTotalItems";
-import { ToolCheckout, Shop, Tool } from "app/entities/toolCheckout";
+import { ToolCheckout, Shop, Tool, FobMemberPreview } from "app/entities/toolCheckout";
 import {
   listToolCheckouts, listMemberCheckouts, adminCreateToolCheckout, adminRevokeToolCheckout,
 } from "api/toolCheckouts";
@@ -91,7 +92,8 @@ interface CheckoutModalProps {
   tools: Tool[];
   preselectedMember?: { id: string; name: string };
   onClose: () => void;
-  onCheckout: (memberId: string, toolId: string) => void;
+  // source is "fob" when the member was identified by tapping their fob.
+  onCheckout: (memberId: string, toolId: string, source?: "fob") => void;
   loading: boolean;
   error: string;
   unmetPrerequisites?: string[];
@@ -105,6 +107,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   );
   const [shopId, setShopId] = React.useState("");
   const [toolId, setToolId] = React.useState("");
+  // A member identified by a fob tap, with the server's eligibility verdict for the chosen tool or group.
+  const [fobPreview, setFobPreview] = React.useState<FobMemberPreview | null>(null);
   const groupCatalog = useToolGroups();
   const groups = groupCatalog.groups.filter(group => group.canApprove);
   const [reviewingGroup, setReviewingGroup] = React.useState(false);
@@ -118,8 +122,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   return (
     <FormModal id="create-checkout" isOpen={true} title="Check Out Member on Tool"
       closeHandler={onClose}
-      submitDisabled={groupCatalog.loading || !!groupCatalog.error}
-      onSubmit={() => !groupCatalog.loading && !groupCatalog.error && selectedMember && toolId && (selectedGroup ? setReviewingGroup(true) : onCheckout(selectedMember.value, toolId))}
+      submitDisabled={groupCatalog.loading || !!groupCatalog.error || (!!fobPreview && !fobPreview.eligible)}
+      onSubmit={() => !groupCatalog.loading && !groupCatalog.error && selectedMember && toolId && (selectedGroup ? setReviewingGroup(true) : onCheckout(selectedMember.value, toolId, fobPreview ? "fob" : undefined))}
       submitText="Check Out" loading={loading} error={error}
     >
       <Grid container spacing={2}>
@@ -142,11 +146,31 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
               fullyActiveUnexpired
               name="checkout-member-search"
               placeholder="Search by name or email"
-              onChange={(opt: SelectOption) => setSelectedMember(opt || null)}
+              onChange={(opt: SelectOption) => { setSelectedMember(opt || null); setFobPreview(null); }}
               initialSelection={selectedMember}
             />
           )}
         </Grid>
+        {!preselectedMember && (
+          <Grid size={{ xs: 12 }}>
+            <FobScanButton
+              toolId={selectedGroup ? undefined : toolId || undefined}
+              toolGroupId={selectedGroup?.id}
+              disabled={!toolId}
+              disabledHint="Choose the shop and tool or group first to scan a fob."
+              onMember={preview => {
+                setSelectedMember({ id: preview.memberId, value: preview.memberId, label: preview.name });
+                setFobPreview(preview);
+              }}
+            />
+            {fobPreview && !fobPreview.eligible && (
+              <Typography variant="body2" sx={[toneNotice('warning'), { p: 1, mt: 1, color: 'warning.dark' }]}>
+                {fobPreview.name} cannot be checked out here: {fobPreview.error || "not eligible"}
+                {fobPreview.unmetPrerequisites?.length ? ` Missing: ${fobPreview.unmetPrerequisites.join(", ")}.` : ""}
+              </Typography>
+            )}
+          </Grid>
+        )}
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Shop *</FormLabel>
           <Select native fullWidth value={shopId} inputProps={{ 'aria-label': 'Shop' }}
@@ -158,7 +182,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormLabel style={{ fontSize: 12 }}>Tool *</FormLabel>
           <Select native fullWidth value={toolId} disabled={!shopId} inputProps={{ 'aria-label': 'Tool' }}
-            onChange={e => setToolId((e.target as HTMLSelectElement).value)}>
+            onChange={e => { setToolId((e.target as HTMLSelectElement).value); setFobPreview(null); }}>
             <option value="">— select tool —</option>
             {shopTools.map(t => <option key={t.id} value={t.id}>{toolAvailabilityLabel(t)}</option>)}
             {groups.filter(group => group.shopId === shopId).map(group => <option key={group.id} value={`group:${group.id}`}>{group.name} (Group)</option>)}
@@ -255,9 +279,9 @@ const CheckoutRoster: React.FC<Props> = ({
   const { call: revokeCheckout, isRequesting: revoking, error: revokeError } =
     useWriteTransaction(adminRevokeToolCheckout, onSuccess);
 
-  const handleCheckout = React.useCallback((memberId: string, toolId: string) => {
+  const handleCheckout = React.useCallback((memberId: string, toolId: string, source?: "fob") => {
     setUnmetPrerequisites([]);
-    createCheckout({ body: { memberId, toolId } });
+    createCheckout({ body: { memberId, toolId, ...(source && { source }) } });
   }, [createCheckout]);
 
   const handleRevoke = React.useCallback((reason: string) => {

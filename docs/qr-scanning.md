@@ -38,6 +38,7 @@ also accepted as QR payloads.
 | `/(api/)?(shop|shops)/{id}/public[.html]` | `/workshops?shop={id}` |
 | `/(api/)?(tool|tools)/{id}/public[.html]` | `/workshops?tool={id}` |
 | `/tools/{id}/request-checkout` | Existing checkout request page |
+| `/tools/{id}/check-out-member` | Opens that tool in Workshops with the Check Out Member dialog, for approvers |
 | `/rentals/spots/{id-or-number}` | Existing rental spot flow |
 | `/volunteer/tasks/{id}` | Existing volunteer task page |
 | Workshops, reservations, tool-checkouts, rentals, fix-tickets, billing, checkout/receipts, members, agreements, earned-memberships | Existing member-facing routes; direct SPA query strings and fragments are preserved |

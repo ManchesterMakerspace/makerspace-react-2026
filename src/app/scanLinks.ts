@@ -9,7 +9,7 @@ export type ScanDestination = {
 const id = '[a-f0-9]{24}';
 const publicResource = new RegExp(`^/(?:api/)?(shop|tool|shops|tools)/(${id})/public(?:\\.html)?$`);
 // Only SPA pages belong here: never API, authentication, or server mutation URLs.
-const memberPage = new RegExp(`^/(?:workshops|reservations|tool-checkouts|rentals|rentals/spots/[^/]+|tools/${id}/request-checkout|fix-tickets(?:-report|(?:/${id})?)|volunteer/tasks/${id}|checkout(?:/receipt/[^/]+)?|billing(?:/[^/]+)?|members(?:/[^/]+(?:/(?:settings/[^/]+|[^/]+))?)?|agreements/[^/]+(?:/[^/]+)?|earned-memberships)$`);
+const memberPage = new RegExp(`^/(?:workshops|reservations|tool-checkouts|rentals|rentals/spots/[^/]+|tools/${id}/(?:request-checkout|check-out-member)|fix-tickets(?:-report|(?:/${id})?)|volunteer/tasks/${id}|checkout(?:/receipt/[^/]+)?|billing(?:/[^/]+)?|members(?:/[^/]+(?:/(?:settings/[^/]+|[^/]+))?)?|agreements/[^/]+(?:/[^/]+)?|earned-memberships)$`);
 
 export function classifyScanLink(input: string, portalOrigin: string): ScanDestination {
   const value = input.trim();

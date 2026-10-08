@@ -1,7 +1,8 @@
 import axios from "axios";
 import { ApiDataResponse, ApiErrorResponse } from "makerspace-ts-api-client";
 import {
-  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor, ToolGroup, GroupCheckoutReview
+  Shop, Tool, ToolCheckout, CheckoutApprover, ToolCheckoutRequest, GoogleCalendarColor, ToolGroup, GroupCheckoutReview,
+  FobMemberPreview
 } from "app/entities/toolCheckout";
 import { apiErrorMessage } from "ui/common/apiErrors";
 import { attachGlobalAuthInterceptor } from "ui/common/globalAuthInterceptor";
@@ -210,13 +211,26 @@ export const listMemberCheckouts = (params?: {
     }
   }));
 
+// `source: "fob"` records that the approver identified the member by tapping their fob.
 export const adminCreateToolCheckout = ({ body }: {
-  body: { memberId: string; toolId: string }
+  body: { memberId: string; toolId: string; source?: "fob" }
 }) =>
   buildResponse<ToolCheckout & { unmetPrerequisites?: string[] }>(
     api.post("/api/admin/tool_checkouts", {
       member_id: body.memberId,
       tool_id: body.toolId,
+      ...(body.source && { source: body.source }),
+    })
+  );
+
+// Who a tapped fob belongs to, and whether they can be checked out on the tool.
+// Nothing is created; the approver confirms and then posts the checkout.
+export const lookupToolCheckoutCard = ({ toolId, toolGroupId, uid }: { toolId?: string; toolGroupId?: string; uid: string }) =>
+  buildResponse<FobMemberPreview>(
+    api.post("/api/admin/tool_checkouts/lookup_card", {
+      ...(toolId && { tool_id: toolId }),
+      ...(toolGroupId && { tool_group_id: toolGroupId }),
+      uid,
     })
   );
 
