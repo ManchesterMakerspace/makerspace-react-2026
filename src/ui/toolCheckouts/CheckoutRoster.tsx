@@ -10,6 +10,8 @@ import Typography from "@mui/material/Typography";
 import TextField from "@mui/material/TextField";
 import Select from "@mui/material/Select";
 import FormLabel from "@mui/material/FormLabel";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Checkbox from "@mui/material/Checkbox";
 import Chip from "@mui/material/Chip";
 import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
@@ -217,6 +219,7 @@ const CheckoutRoster: React.FC<Props> = ({
   const { currentUser } = useAuthState();
   const [shopFilter,         setShopFilter]         = React.useState("");
   const [toolFilter,         setToolFilter]         = React.useState("");
+  const [includeInactiveMembers, setIncludeInactiveMembers] = React.useState(false);
   const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
   const [revokeTarget,       setRevokeTarget]       = React.useState<ToolCheckout | null>(null);
   const [checkoutOpen,       setCheckoutOpen]       = React.useState(false);
@@ -225,17 +228,23 @@ const CheckoutRoster: React.FC<Props> = ({
 
   const canManage = !memberView && (isAdmin || isResourceManager);
 
+  // The full roster hides checkouts held by expired, revoked or otherwise inactive members unless asked;
+  // a single member's own list (member profile) always shows everything they hold.
+  const canFilterMembers = canManage && !preselectedMember;
+  const hideInactiveMembers = canFilterMembers && !includeInactiveMembers;
+
   const checkoutParams = {
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
     ...(toolFilter && { toolId: toolFilter }),
     ...(activeFilter === "active"  && { active: true }),
     ...(activeFilter === "revoked" && { active: false }),
+    ...(hideInactiveMembers && { activeMembersOnly: true }),
   };
 
   // Admin/RM path — skipped (delay=true) when the viewer is a plain member.
   const adminRead = useReadTransaction(listToolCheckouts, checkoutParams, !canManage,
-    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${activeFilter}`);
+    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${activeFilter}-${hideInactiveMembers}`);
 
   // Member self-view path — skipped (delay=true) when the viewer can manage.
   const memberParams = {
@@ -428,6 +437,13 @@ const CheckoutRoster: React.FC<Props> = ({
           <option value="revoked">Revoked only</option>
           <option value="all">All</option>
         </Select>
+      </Grid>}
+
+      {canFilterMembers && <Grid size={{ xs: 12 }}>
+        <FormControlLabel
+          control={<Checkbox checked={includeInactiveMembers}
+            onChange={e => setIncludeInactiveMembers(e.target.checked)} />}
+          label="Include expired, revoked and inactive members" />
       </Grid>}
 
       {loadError && <Grid size={{ xs: 12 }}><ErrorMessage error={loadError} /></Grid>}
