@@ -186,6 +186,8 @@ export const listToolCheckouts = (params?: {
   shopId?: string;
   toolId?: string;
   active?: boolean;
+  // Only checkouts held by members who are currently active (unexpired, not revoked/inactive).
+  activeMembersOnly?: boolean;
 }) =>
   buildResponse<ToolCheckout[]>(api.get("/api/admin/tool_checkouts", {
     params: {
@@ -193,6 +195,7 @@ export const listToolCheckouts = (params?: {
       ...(params?.shopId && { shop_id: params.shopId }),
       ...(params?.toolId && { tool_id: params.toolId }),
       ...(params?.active !== undefined && { active: params.active }),
+      ...(params?.activeMembersOnly && { active_members_only: true }),
     }
   }));
 
