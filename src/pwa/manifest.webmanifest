@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Manchester Makerspace Member Portal",
+  "short_name": "Makerspace",
+  "description": "Manchester Makerspace member portal",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#791100",
+  "icons": [
+    {
+      "src": "/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "563x563",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
