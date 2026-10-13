@@ -17,6 +17,9 @@ import LabelIcon from "@mui/icons-material/Label";
 
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 import RentalSpotLabelModal from "./RentalSpotLabelModal";
+import {
+  SPOT_NUMBER_HINT, duplicateSpotNumber, friendlyRentalSpotError, spotNumberProblem, validateSpotForm,
+} from "./rentalSpotErrors";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -55,6 +58,7 @@ const AdminRentalSpots: React.FC = () => {
   const [linkCopied,   setLinkCopied]   = React.useState(false);
   const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
   const [labelSpot, setLabelSpot] = React.useState<RentalSpot | null>(null);
+  const [formError, setFormError] = React.useState("");
   const [linkError, setLinkError] = React.useState("");
   const [copyableLink, setCopyableLink] = React.useState("");
   const [copyingLink, setCopyingLink] = React.useState(false);
@@ -135,17 +139,23 @@ const AdminRentalSpots: React.FC = () => {
   const { call: deleteSpot, isRequesting: deleting, error: deleteError } = useWriteTransaction(adminDeleteRentalSpot, onDeleteSuccess);
   const isSaving = creating || updating;
 
-  const openCreate = () => { setEditTarget(emptySpot()); setIsEditing(false); setModalOpen(true); };
-  const openEdit   = (spot: RentalSpot) => { setEditTarget({ ...spot }); setIsEditing(true); setModalOpen(true); };
-  const setField   = (field: keyof RentalSpot, value: any) => setEditTarget(prev => ({ ...prev, [field]: value }));
+  const openCreate = () => { setEditTarget(emptySpot()); setIsEditing(false); setFormError(""); setModalOpen(true); };
+  const openEdit   = (spot: RentalSpot) => { setEditTarget({ ...spot }); setIsEditing(true); setFormError(""); setModalOpen(true); };
+  const setField   = (field: keyof RentalSpot, value: any) => { setFormError(""); setEditTarget(prev => ({ ...prev, [field]: value })); };
+  const allSpots = Object.values(spots) as RentalSpot[];
+  const numberProblem = spotNumberProblem(editTarget.number || "")
+    || duplicateSpotNumber(editTarget.number || "", allSpots, isEditing ? editTarget.id : undefined);
 
   const handleSave = React.useCallback(() => {
+    // Tell the admin what is wrong before calling the server; the server still enforces the same rules.
+    const problem = validateSpotForm(editTarget, allSpots, isEditing ? editTarget.id : undefined);
+    if (problem) { setFormError(problem); return; }
     if (isEditing && editTarget.id) {
       updateSpot({ id: editTarget.id, body: editTarget as RentalSpot });
     } else {
       createSpot({ body: editTarget as RentalSpot });
     }
-  }, [isEditing, editTarget, createSpot, updateSpot]);
+  }, [isEditing, editTarget, allSpots, createSpot, updateSpot]);
 
   const columns: Column<RentalSpot>[] = [
     {
@@ -249,12 +259,13 @@ const AdminRentalSpots: React.FC = () => {
           closeHandler={() => { setModalOpen(false); setEditTarget(emptySpot()); }}
           onSubmit={handleSave}
           submitText={isEditing ? "Save Changes" : "Create Spot"}
-          loading={isSaving} error={createError || updateError}
+          loading={isSaving} error={formError || friendlyRentalSpotError(createError || updateError)}
         >
           <Grid container spacing={2}>
             <Grid size={{ xs: 6 }}>
               <TextField fullWidth required label="Spot Number"
                 placeholder="e.g. Shelf-1a, LR-Tote-1"
+                error={!!numberProblem} helperText={numberProblem || SPOT_NUMBER_HINT}
                 value={editTarget.number || ""}
                 onChange={e => setField("number", e.target.value)}
               />
