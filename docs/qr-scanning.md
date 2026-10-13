@@ -91,3 +91,26 @@ Xcode. Automated synthetic-camera checks do not replace hardware acceptance.
 - Running iOS configuration twice produced identical project/plist files with
   the camera usage description. iOS compilation and physical-device acceptance
   were not performed. Nothing was deployed or published.
+
+## Printable rental spot labels
+
+Admins can make a printable label for a rental spot: on the Rental Spots admin page, select a spot and choose
+**Label**. The dialog offers two sizes, 4″ × 6″ portrait and 3½″ × 1⅛″ landscape, with a preview, **Download PNG** and
+**Copy Image**.
+
+The label is drawn in the browser as a pure black-and-white PNG at 300 dpi, with its physical size stored in the file,
+so any viewer prints it at true size on any printer: open the file, choose that label's paper size in the print dialog,
+and print at 100%. It contains the full logo (`/assets/FilledLaserableLogo.svg`, the same file the header uses; the
+small label omits it), “Rental Spot”, the spot number, a QR code, and the short link as readable text. The QR code
+encodes the permanent short URL for `/rentals/spots/{id}` from the same allocation call as the QR dialog
+(`POST /api/shortcodes`), so renumbering a spot does not break a printed code, though the number printed on the label
+would then need reprinting. The small label drops `HTTPS://` from the printed text to fit; the QR still encodes it.
+
+Unlike the QR dialog, the label never falls back to the long URL: if the short link cannot be allocated, no label is
+produced and the dialog shows an error, because a printed label is permanent and a long URL does not fit. Short links
+cannot be created for `localhost`, so labels need a real `APP_DOMAIN`. The server also only creates (and later resolves) short links for **active** spots, so the dialog refuses an
+inactive spot with an explanation instead of printing a code that would never open it. No new endpoint, environment variable,
+collection or notification is involved.
+
+Checks: unit tests cover layout bounds and overlap, link fitting, QR modules and the PNG size header; sample labels
+were decoded with a QR reader. Physical printing on each label printer has not been tested.
