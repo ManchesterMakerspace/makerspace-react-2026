@@ -1,4 +1,4 @@
-const simpleGit = require("simple-git");
+const { simpleGit } = require("simple-git");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
@@ -25,7 +25,9 @@ module.exports.tagRepo = async (repo, forceTag) => {
     await git.clone(repoRemote, repoPath);
   }
   git = simpleGit(repoPath);
-  await git.silent(true); // Silence any errors to prevent logging of credentials
+  // simple-git 3 logs to the console unless silenced; 4 removed silent() and only logs when DEBUG enables it.
+  // The remote URL carries credentials, so never run this script with DEBUG=simple-git*.
+  if (typeof git.silent === "function") await git.silent(true);
 
   if (!nextTag) {
     console.log(`Evaluating next tag for ${repo}`);

@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const http = require("http");
-const simpleGit = require("simple-git");
+const { simpleGit } = require("simple-git");
 // const exec = require("child_process").exec;
 const spawn = require("child_process").spawn;
 const execSync = require("child_process").execSync;
