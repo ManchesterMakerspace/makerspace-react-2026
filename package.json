@@ -24,7 +24,7 @@
     "awesome-debounce-promise": "^2.1.0",
     "axios": "^1.20.0",
     "braintree-web": "^3.146.0",
-    "firebase": "^12.19.0",
+    "firebase": "^13.0.0",
     "leaflet": "^1.9.4",
     "lodash-es": "^4.17.21",
     "makerspace-ts-api-client": "2.9.0",
