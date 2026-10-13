@@ -1,5 +1,46 @@
 # NFC, PWA and native builds
 
+## Phone login persistence
+
+On `/login`, iPhone and Android phone clients see **Stay logged in (uncheck this
+on a shared computer)** checked by default. The option is hidden on desktops,
+iPads, Android tablets, and unknown user agents. Detection uses the user agent,
+not screen width; desktop-mode phone browsers may receive ordinary sessions.
+
+Unchecking or rechecking saves a one-year `makerspace_stay_logged_in` preference
+cookie immediately. Logout preserves the preference; clearing browser/app data
+removes it. Web cookies use path `/`, SameSite=Lax, and Secure on HTTPS. Native
+preferences use Capacitor's cookie API at the remote HTTPS portal origin with
+the same path and expiry. Android uses the app-owned `MakerspaceCookies` bridge:
+Capacitor 8's built-in Android getter reads the local WebView instead of its URL
+argument. The bridge exposes only `XSRF-TOKEN` and the preference, sets the
+preference with Secure/SameSite=Lax, and flushes it to disk. iOS uses Capacitor's
+URL-aware cookie API, whose platform implementation manages cookie attributes. Storage failures
+do not block login or change the selection for the current attempt.
+
+The selection applies to password and all provider buttons and survives provider
+redirects through a per-attempt sessionStorage snapshot. If that snapshot cannot
+be stored, redirect completion defaults to no persistence. TOTP challenge or
+required enrollment must finish before Rails issues a remember cookie. Cancelling
+the TOTP screen logs out the pending session. Provider responses honor the same
+TOTP gates as password login.
+
+Rails grants a two-week remember cookie, renewed when it restores a session.
+Phone users with a valid cookie bypass the ordinary idle timeout. Desktop and
+opted-out phone sessions retain the configured idle timeout. Logout, password
+changes/resets, and session-token rotation invalidate remembered credentials;
+existing global logout invalidation is preserved. Native HTTP supplies the WebView
+user agent so Rails can distinguish phones from tablets; credentials remain in
+the native cookie jar, never localStorage. The same Android bridge fixes remote
+CSRF-token lookup for the existing transport without exposing HttpOnly credentials.
+
+Deploy Rails first, followed by the complete React web build and updated native
+builds. No environment changes or generated API client release are required.
+Rails contracts are documented in the companion `docs/authentication.md`.
+Keep `tests/fixtures/mobile_session_clients.json` identical to Rails' fixture.
+Validate real Android/iPhone browser and native app restarts, background/resume,
+provider callbacks, TOTP, logout, and password invalidation before distribution.
+
 Camera-based QR scanning is also available across all three platforms. See
 [QR scanning](qr-scanning.md) for supported links, camera permissions, and checks.
 

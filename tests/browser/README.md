@@ -1,5 +1,15 @@
 # Browser checks
 
+## Mobile login persistence
+
+After `yarn build`, run `node tests/browser/mobile-login.cjs`. It uses the real
+login UI with mocked APIs, shared phone/tablet/desktop user-agent fixtures, and a
+disposable browser. It verifies preference reload/expiry, keyboard access, overflow
+at 320/600/900/1280 px, login payloads, and TOTP cancellation. Screenshots go to
+`tmp/mobile-login-browser`. Failures return nonzero. This does not establish real
+Rails cookie restoration or native-device restart behavior; run Rails auth specs
+and physical Android/iPhone acceptance separately.
+
 ## Checkout shop filter
 
 Build the fixture with `yarn webpack --config tests/browser/shop-filter/webpack.cjs`,

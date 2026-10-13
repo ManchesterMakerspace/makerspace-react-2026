@@ -9,10 +9,11 @@ import { firebaseLoginAction } from 'ui/auth/actions';
 import { checkoutDestination } from './checkoutDestination';
 import { loginDestination } from './loginDestination';
 import { Routing } from 'app/constants';
+import { providerRememberChoice, clearProviderRememberChoice } from './rememberPreference';
 import { ScopedThunkDispatch } from 'ui/reducer';
 
 interface DispatchProps {
-  firebaseLogin: (idToken: string) => Promise<void>;
+  firebaseLogin: (idToken: string, rememberMe: boolean) => Promise<void>;
 }
 
 interface OwnProps {
@@ -39,7 +40,8 @@ class FirebaseCallback extends React.Component<Props, State> {
   async componentDidMount() {
     try {
       const idToken = await completeProviderSignIn();
-      await this.props.firebaseLogin(idToken);
+      await this.props.firebaseLogin(idToken, providerRememberChoice());
+      clearProviderRememberChoice();
       clearProviderSignInState();
       const destination = checkoutDestination();
       const redirect = loginDestination();
@@ -84,7 +86,7 @@ class FirebaseCallback extends React.Component<Props, State> {
 }
 
 const mapDispatchToProps = (dispatch: ScopedThunkDispatch): DispatchProps => ({
-  firebaseLogin: (idToken: string) => dispatch(firebaseLoginAction(idToken)),
+  firebaseLogin: (idToken: string, rememberMe: boolean) => dispatch(firebaseLoginAction(idToken, rememberMe)),
 });
 
 const ConnectedFirebaseCallback = connect(null, mapDispatchToProps)(FirebaseCallback);

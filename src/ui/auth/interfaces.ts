@@ -14,6 +14,7 @@ export interface AuthState {
 export interface AuthForm {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface SignUpForm {

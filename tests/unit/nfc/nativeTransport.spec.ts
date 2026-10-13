@@ -3,6 +3,7 @@ const mockRequest = jest.fn();
 const mockCookies = jest.fn();
 jest.mock('@capacitor/core', () => ({
   Capacitor: { isNativePlatform: () => true, getPlatform: () => 'android' },
+  registerPlugin: () => ({ read: (...args: any[]) => mockCookies(...args) }),
   CapacitorCookies: { getCookies: (...args: any[]) => mockCookies(...args) },
   CapacitorHttp: { request: (...args: any[]) => mockRequest(...args) },
 }));
@@ -27,6 +28,7 @@ describe('native portal session transport', () => {
     const request = mockRequest.mock.calls[1][0];
     expect(request.headers['x-xsrf-token']).toBe('remote+token');
     expect(request.headers.origin).toBeUndefined(); expect(request.headers.cookie).toBeUndefined();
+    expect(request.headers['user-agent']).toBe(navigator.userAgent);
     expect(request.data).toEqual({ version: 'one' }); expect(request.disableRedirects).toBe(true);
   });
   it('does not send remote credentials to another origin', async () => {

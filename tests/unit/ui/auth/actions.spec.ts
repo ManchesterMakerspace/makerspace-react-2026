@@ -4,7 +4,13 @@
 // Mock the module rather than the SDK internals since nothing here exercises it.
 jest.mock("ui/auth/firebase", () => ({ firebaseSignOut: jest.fn() }));
 
-import { loginUserAction } from "ui/auth/actions";
+import { firebaseLoginAction, loginUserAction } from "ui/auth/actions";
+import { listMembersPermissions } from 'makerspace-ts-api-client';
+jest.mock('makerspace-ts-api-client', () => ({
+  ...jest.requireActual('makerspace-ts-api-client'),
+  listMembersPermissions: jest.fn(),
+  isApiErrorResponse: (response: any) => !!response.error,
+}));
 import { Action as AuthAction } from "ui/auth/constants";
 
 describe("loginUserAction", () => {
@@ -13,6 +19,7 @@ describe("loginUserAction", () => {
   let dispatch: jest.Mock;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     dispatch = jest.fn();
   });
 
@@ -62,5 +69,29 @@ describe("loginUserAction", () => {
       type: AuthAction.AuthUserFailure,
       error: "Invalid email or password.",
     });
+  });
+
+  it('sends the password persistence choice without turning a challenge into success', async () => {
+    mockResponse({ totp_required: true }, 202);
+    await (loginUserAction({ ...form, rememberMe: true }) as any)(dispatch);
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body).member.rememberMe).toBe(true);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: AuthAction.TotpRequired });
+    expect(listMembersPermissions).not.toHaveBeenCalled();
+  });
+
+  it('sends the provider choice and handles 202 before attempting to fetch permissions', async () => {
+    mockResponse({ totp_required: true }, 202);
+    await (firebaseLoginAction('token', true) as any)(dispatch);
+    expect(JSON.parse((global.fetch as jest.Mock).mock.calls[0][1].body)).toEqual({ id_token: 'token', rememberMe: true });
+    expect(dispatch).toHaveBeenLastCalledWith({ type: AuthAction.TotpRequired });
+    expect(listMembersPermissions).not.toHaveBeenCalled();
+  });
+
+  it('handles provider enrollment without marking authentication complete', async () => {
+    const member = { id: 'member1', totp_enrollment_required: true };
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, status: 200, json: async () => member });
+    (listMembersPermissions as jest.Mock).mockResolvedValue({ data: [] });
+    await (firebaseLoginAction('token', false) as any)(dispatch);
+    expect(dispatch).toHaveBeenLastCalledWith({ type: AuthAction.AuthEnrollmentRequired, data: { member, permissions: [] } });
   });
 });

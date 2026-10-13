@@ -3,6 +3,7 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 import { checkoutDestination } from "ui/auth/checkoutDestination";
 import { loginDestination } from "ui/auth/loginDestination";
+import { captureProviderRememberChoice } from 'ui/auth/rememberPreference';
 
 const navigate = jest.fn();
 const firebaseLogin = jest.fn().mockResolvedValue(undefined);
@@ -32,6 +33,14 @@ describe("Firebase checkout return handoff", () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     container.remove();
+    jest.restoreAllMocks();
+  });
+  it('uses the captured phone persistence choice through the provider callback', async () => {
+    jest.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (iPhone) Mobile/15E148');
+    captureProviderRememberChoice(true);
+    window.history.replaceState({}, '', '/auth/callback');
+    await act(async () => root.render(<FirebaseCallback />));
+    expect(firebaseLogin).toHaveBeenCalledWith('provider-token', true);
   });
   it.each(["google", "apple", "github", "microsoft"])("keeps the %s return target through callback and login", async provider => {
     const target = "/tools/0123456789abcdef01234567/request-checkout";
@@ -41,7 +50,7 @@ describe("Firebase checkout return handoff", () => {
     window.history.replaceState({}, "", "/auth/callback");
     expect(checkoutDestination()).toBe(target); // App reads this before callback completion.
     await act(async () => root.render(<FirebaseCallback />));
-    expect(firebaseLogin).toHaveBeenCalledWith("provider-token");
+    expect(firebaseLogin).toHaveBeenCalledWith("provider-token", false);
     expect(clearProviderSignInState).toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith(`/login?return_to=${encodeURIComponent(target)}`);
     window.history.replaceState({}, "", navigate.mock.calls[0][0]);
