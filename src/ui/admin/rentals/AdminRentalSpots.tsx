@@ -13,8 +13,10 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import QrCodeIcon from "@mui/icons-material/QrCode";
+import LabelIcon from "@mui/icons-material/Label";
 
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
+import RentalSpotLabelModal from "./RentalSpotLabelModal";
 
 import { RentalSpot, RentalType } from "app/entities/rentalSpot";
 import StatefulTable from "ui/common/table/StatefulTable";
@@ -52,6 +54,7 @@ const AdminRentalSpots: React.FC = () => {
   const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
   const [linkCopied,   setLinkCopied]   = React.useState(false);
   const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
+  const [labelSpot, setLabelSpot] = React.useState<RentalSpot | null>(null);
   const [linkError, setLinkError] = React.useState("");
   const [copyableLink, setCopyableLink] = React.useState("");
   const [copyingLink, setCopyingLink] = React.useState(false);
@@ -202,6 +205,10 @@ const AdminRentalSpots: React.FC = () => {
                   onClick={() => setQrSpot(selectedSpot)}>
                   QR Code
                 </Button>
+                <Button variant="outlined" color="primary" startIcon={<LabelIcon />}
+                  onClick={() => setLabelSpot(selectedSpot)}>
+                  Label
+                </Button>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => openEdit(selectedSpot)}>
                   Edit
@@ -328,6 +335,7 @@ const AdminRentalSpots: React.FC = () => {
       </FormModal>
 
       <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
+      <RentalSpotLabelModal spot={labelSpot} onClose={() => setLabelSpot(null)} />
     </Grid>
   );
 };
