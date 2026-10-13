@@ -5,6 +5,9 @@ import { connect } from "react-redux";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import { captureProviderRememberChoice, clearProviderRememberChoice, isPhoneClient, readRememberPreference, saveRememberPreference } from './rememberPreference';
 
 import { Routing } from "app/constants";
 import { emailValid } from "app/utils";
@@ -45,7 +48,8 @@ interface OwnProps {
 }
 interface DispatchProps {
   loginUser: (authForm: AuthForm) => Promise<void>;
-  firebaseLogin: (idToken: string) => Promise<void>;
+  firebaseLogin: (idToken: string, rememberMe: boolean) => Promise<void>;
+  cancelLogin: () => Promise<void>;
   totpLoginSuccess: (member: any) => Promise<void>;
   pushLocation: (location: string) => void;
   clearTotpRequired: () => void;
@@ -59,6 +63,8 @@ interface StateProps {
   totpEnrollmentRequired: boolean;
 }
 interface State {
+  rememberMe: boolean;
+  preferenceLoaded: boolean;
   requestingPassword: boolean;
   passwordError: string;
   openPassword: boolean;
@@ -79,6 +85,8 @@ class LoginForm extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      rememberMe: isPhoneClient(),
+      preferenceLoaded: false,
       requestingPassword: false,
       openPassword: false,
       passwordError: "",
@@ -95,6 +103,9 @@ class LoginForm extends React.Component<Props, State> {
   public async componentDidMount() {
     if (this.props.auth) return;
 
+    const rememberMe = await readRememberPreference();
+    this.setState({ rememberMe, preferenceLoaded: true });
+
     // Popup authentication must be initialized before the click so that the
     // browser's transient user activation is still valid when Firebase opens it.
     this.setState({ firebaseLoading: true, firebaseError: '' });
@@ -109,12 +120,15 @@ class LoginForm extends React.Component<Props, State> {
   }
 
   private handleFirebaseSignIn = async (signInFn: () => Promise<void | string>) => {
+    const rememberMe = isPhoneClient() && this.state.rememberMe;
+    captureProviderRememberChoice(rememberMe);
     this.setState({ firebaseLoading: true, firebaseError: '' });
     try {
       const idToken = await signInFn();
       if (idToken) {
         console.info('[Firebase Auth] Sending popup credential to the application server');
-        await this.props.firebaseLogin(idToken);
+        await this.props.firebaseLogin(idToken, rememberMe);
+        clearProviderRememberChoice();
         this.setState({ firebaseLoading: false });
       }
     } catch (err) {
@@ -160,9 +174,17 @@ class LoginForm extends React.Component<Props, State> {
     }
   };
 
-  private cancelTotp = () => {
-    this.props.clearTotpRequired();
-    this.setState({ totpError: '' });
+  private cancelTotp = async () => {
+    this.setState({ totpLoading: true });
+    try {
+      await this.props.cancelLogin();
+      this.props.clearTotpRequired();
+      this.setState({ totpError: '' });
+    } catch {
+      this.setState({ totpError: 'Could not cancel sign in. Please try again.' });
+    } finally {
+      this.setState({ totpLoading: false });
+    }
   };
 
   private submitLogin = async (form: Form) => {
@@ -170,7 +192,7 @@ class LoginForm extends React.Component<Props, State> {
 
     if (!form.isValid()) return;
 
-    this.props.loginUser(validAuth);
+    this.props.loginUser({ ...validAuth, rememberMe: isPhoneClient() && this.state.rememberMe });
   }
 
   private submitPasswordRequest = async (form: Form) => {
@@ -253,7 +275,7 @@ class LoginForm extends React.Component<Props, State> {
         <Form
           ref={this.setFormRef}
           id={loginPrefix}
-          loading={isRequesting}
+          loading={isRequesting || !this.state.preferenceLoaded}
           title="Please Sign In"
           onSubmit={this.submitLogin}
           submitText="Sign In"
@@ -279,6 +301,18 @@ class LoginForm extends React.Component<Props, State> {
                 type="password"
               />
             </Grid>
+            {isPhoneClient() && <Grid size={{ xs: 12 }}>
+              <FormControlLabel
+                sx={{ m: 0, alignItems: 'flex-start' }}
+                control={<Checkbox checked={this.state.rememberMe}
+                  disabled={!this.state.preferenceLoaded || isRequesting}
+                  onChange={(_event, checked) => {
+                    this.setState({ rememberMe: checked });
+                    void saveRememberPreference(checked);
+                  }} />}
+                label="Stay logged in (uncheck this on a shared computer)"
+              />
+            </Grid>}
             <Grid size={{ xs: 12 }} style={{textAlign: "center"}}>
               <a id="forgot-password" href="#" onClick={this.openPasswordReset}>Forgot your password?</a>
             </Grid>
@@ -291,7 +325,7 @@ class LoginForm extends React.Component<Props, State> {
           onAppleSignIn={this.handleAppleSignIn}
           onGitHubSignIn={this.handleGitHubSignIn}
           onMicrosoftSignIn={this.handleMicrosoftSignIn}
-          loading={this.state.firebaseLoading}
+          loading={this.state.firebaseLoading || !this.state.preferenceLoaded || isRequesting}
           error={this.state.firebaseError}
         />
       </>
@@ -320,7 +354,16 @@ const mapDispatchToProps = (
 ): Omit<DispatchProps, 'pushLocation'> => {
   return {
     loginUser: (authForm) => dispatch(loginUserAction(authForm)),
-    firebaseLogin: (idToken) => dispatch(firebaseLoginAction(idToken)),
+    firebaseLogin: (idToken, rememberMe) => dispatch(firebaseLoginAction(idToken, rememberMe)),
+    cancelLogin: async () => {
+      const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+      const response = await fetch('/api/members/sign_out', {
+        method: 'DELETE', credentials: 'include',
+        headers: { 'X-XSRF-TOKEN': match ? decodeURIComponent(match[1]) : '' },
+      });
+      if (!response.ok) throw new Error('Could not cancel sign in');
+      clearProviderRememberChoice();
+    },
     totpLoginSuccess: (member) => dispatch(totpLoginSuccessAction(member)),
     clearTotpRequired: () => dispatch({ type: AuthAction.ClearTotpRequired }),
   };

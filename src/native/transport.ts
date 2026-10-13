@@ -1,4 +1,5 @@
-import { Capacitor, CapacitorCookies, CapacitorHttp } from '@capacitor/core';
+import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import { readPortalCookies } from './portalCookies';
 import axios, { AxiosError, AxiosHeaders } from 'axios';
 
 export const portalOrigin = () => process.env.NATIVE_API_ORIGIN || window.location.origin;
@@ -23,11 +24,14 @@ export async function installNativeTransport() {
     const signal = init.signal || (input instanceof Request ? input.signal : undefined);
     if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-      const cookies = await CapacitorCookies.getCookies({ url: origin.href });
+      const cookies = await readPortalCookies(origin.href);
       headers.set('X-XSRF-TOKEN', decodeURIComponent(cookies['XSRF-TOKEN'] || ''));
     }
     // Native cookie jar supplies the session. Never forward local Origin/Cookie headers.
     headers.delete('Origin'); headers.delete('Cookie');
+    // Native HTTP otherwise identifies as its networking library, losing the
+    // WebView's phone/tablet distinction needed by Rails session policy.
+    headers.set('User-Agent', navigator.userAgent);
     let body = init.body ?? (input instanceof Request && !['GET', 'HEAD'].includes(method) ? await input.clone().text() : undefined);
     let data: any = body;
     if (typeof body === 'string' && headers.get('Content-Type')?.includes('application/json')) data = JSON.parse(body);

@@ -13,6 +13,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { loadClientConfig } from 'api/clientConfig';
+import { clearProviderRememberChoice } from './rememberPreference';
 
 export type ProviderKey = 'google' | 'apple' | 'github' | 'microsoft';
 const PROVIDER_KEYS: readonly ProviderKey[] = ['google', 'apple', 'github', 'microsoft'];
@@ -32,6 +33,7 @@ let initializer: Promise<FirebaseServices> | undefined;
 
 /** Clear redirect recovery state after the application server accepts the token. */
 export const clearProviderSignInState = (): void => {
+  clearProviderRememberChoice();
   sessionStorage.removeItem(PENDING_PROVIDER_KEY);
   sessionStorage.removeItem(REDIRECT_STARTED_KEY);
   sessionStorage.removeItem(REDIRECT_USER_UID_KEY);

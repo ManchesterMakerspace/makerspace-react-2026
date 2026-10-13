@@ -173,7 +173,8 @@ export const logoutUserAction = (
 }
 
 export const firebaseLoginAction = (
-  idToken: string
+  idToken: string,
+  rememberMe: boolean = false
 ): ThunkAction<Promise<void>, {}, {}, AnyAction> => async (dispatch) => {
   dispatch({ type: AuthAction.StartAuthRequest });
 
@@ -187,11 +188,26 @@ export const firebaseLoginAction = (
         return match ? decodeURIComponent(match[1]) : '';
       })(),
     },
-    body: JSON.stringify({ id_token: idToken }),
+    body: JSON.stringify({ id_token: idToken, rememberMe }),
   });
+
+  if (response.status === 202) {
+    dispatch({ type: AuthAction.TotpRequired });
+    return;
+  }
 
   if (response.ok) {
     const member = await response.json();
+    if (member.totp_enrollment_required) {
+      const permissionsResponse = await listMembersPermissions({ id: member.id });
+      if (isApiErrorResponse(permissionsResponse)) {
+        dispatch({ type: AuthAction.AuthUserFailure, error: permissionsResponse.error.message });
+      } else {
+        dispatch({ type: AuthAction.AuthEnrollmentRequired,
+          data: { member, permissions: permissionsResponse.data } });
+      }
+      return;
+    }
     await handleAuthWithPermissions(
       { data: member, response } as any,
       dispatch
