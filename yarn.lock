@@ -4048,10 +4048,10 @@ braces@^3.0.3:
   dependencies:
     fill-range "^7.1.1"
 
-braintree-web@^3.145.0:
-  version "3.145.0"
-  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.145.0.tgz#bc967045c923f0aad78aaf91737ff640e52239fa"
-  integrity sha512-/pgVgMZUOTjkJotE9n7WaymreeA/I21fty5b/My/74XJd8psHgb5HZKuZlAcEXLGITx/lut8HODYmHG6v9XQrQ==
+braintree-web@^3.146.0:
+  version "3.146.0"
+  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.146.0.tgz#a9c49a5619406b387d6af9d47f5b5a9acfc0839b"
+  integrity sha512-k0HRzeK30DNTuZAAx+ym0I5ezQHKsms3mwQM/OTVffKbnbBG4vEv/tNK6ieoBAo8Mzx4ZFonCF6syW7UUTlX4Q==
   dependencies:
     "@braintree/asset-loader" "2.1.0"
     "@braintree/browser-detection" "2.1.0"
@@ -4064,7 +4064,7 @@ braintree-web@^3.145.0:
     "@paypal/fastlane-sdk-loader" "1.2.1"
     card-validator "10.0.3"
     credit-card-type "10.2.0"
-    framebus "6.1.0"
+    framebus "6.2.0"
     inject-stylesheet "7.0.0"
     promise-polyfill "8.2.3"
     qrcode "1.5.4"
@@ -5144,10 +5144,10 @@ forwarded@0.2.0:
   resolved "https://registry.yarnpkg.com/forwarded/-/forwarded-0.2.0.tgz#2269936428aad4c15c7ebe9779a84bf0b2a81811"
   integrity sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==
 
-framebus@6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/framebus/-/framebus-6.1.0.tgz#71bed3a0b6d6ccb24312c89bea968bdff8f25fc3"
-  integrity sha512-duaN1OV9gU0yDeEqiJaHs/130e8KXatX2yxTzBheR8UK1pFgxMUknhFS2FEIJRGbsEiXPTHsXC6+gfvJHvie6w==
+framebus@6.2.0:
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/framebus/-/framebus-6.2.0.tgz#f4d8895ede1101852ffb0fcce6f5aa1573e1360c"
+  integrity sha512-EICZE8JPgBetwS+lWCrGPDmhzNmfX8kok+7l9gxt8EnUAoFBbMchydZKTs3aAsw/nR6e2SZUK1ZrZH7fdUsGFQ==
   dependencies:
     "@braintree/uuid" "^2.0.0"
 
