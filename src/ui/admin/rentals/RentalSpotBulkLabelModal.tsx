@@ -6,19 +6,25 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Select from "@mui/material/Select";
 import Typography from "@mui/material/Typography";
 import FormModal from "ui/common/FormModal";
-import { createShortLink } from "api/shortcodes";
+import { ShortLinkError, createShortLink } from "api/shortcodes";
 import {
   LABEL_DPI, LABEL_PRESETS, LabelPresetId, drawLabel, loadFonts, loadLogo,
 } from "./rentalLabel";
 import { PdfLabelPage, browserDeflate, buildPdf, packBilevel, pdfFilename } from "./labelPdf";
+import { LINK_SPACING_MS, summarizeFailures, withRetry } from "./shortLinkRetry";
 
 export const MAX_BULK_LABELS = 200;
-const LINK_CONCURRENCY = 4;
+const LINK_CONCURRENCY = 2; // gentle on the server: a burst of requests can be slowed or refused
 
 interface BulkSpot { id: string; number: string; active?: boolean; }
 
 const byNumber = (a: BulkSpot, b: BulkSpot) => a.number.localeCompare(b.number, undefined, { numeric: true, sensitivity: "base" });
 const nextFrame = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+const pause = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+
+/** One short link, retrying transient failures (rate limits, gateway errors, network blips) with a pause. */
+const fetchShortUrl = (spotId: string, cancelled: () => boolean): Promise<string> =>
+  withRetry(async () => (await createShortLink(`/rentals/spots/${spotId}`)).short_url, pause, cancelled);
 
 // Labels for several rental spots in one PDF: one page per label, each page exactly the label's size. Open the PDF,
 // choose the printer and that label paper size, and print at 100% to print every label in one job.
@@ -28,6 +34,7 @@ const RentalSpotBulkLabelModal: React.FC<{ spots: BulkSpot[]; onClose: () => voi
   const [error, setError] = React.useState("");
   const [pdfUrl, setPdfUrl] = React.useState("");
   const [made, setMade] = React.useState(0);
+  const [attempt, setAttempt] = React.useState(0); // bumped by "Try again"; links already fetched are kept
   const linksRef = React.useRef<Record<string, string>>({}); // short links already fetched, kept when the size changes
   const previewRef = React.useRef<HTMLCanvasElement | null>(null);
   const logoRef = React.useRef<HTMLImageElement | null>(null);
@@ -48,25 +55,38 @@ const RentalSpotBulkLabelModal: React.FC<{ spots: BulkSpot[]; onClose: () => voi
     (async () => {
       // 1. Short links, a few at a time. Each is permanent and the same every time for a given spot.
       const missing = eligible.filter(spot => !linksRef.current[spot.id]);
-      const failed: string[] = [];
+      const failed: Array<{ number: string; status?: number }> = [];
       let cursor = 0;
       let completed = eligible.length - missing.length;
+      let succeeded = 0;
+      let giveUp = false;
       const worker = async () => {
-        while (!cancelled) {
+        while (!cancelled && !giveUp) {
           const spot = missing[cursor++];
           if (!spot) return;
           try {
-            linksRef.current[spot.id] = (await createShortLink(`/rentals/spots/${spot.id}`)).short_url;
-          } catch { failed.push(spot.number); }
+            linksRef.current[spot.id] = await fetchShortUrl(spot.id, () => cancelled);
+            succeeded += 1;
+          } catch (e) {
+            failed.push({ number: spot.number, status: (e as ShortLinkError).status });
+            // Several in a row failing with nothing succeeding means the problem is not a burst (for example
+            // a localhost address): stop instead of working through every spot.
+            if (succeeded === 0 && failed.length >= 3) giveUp = true;
+          }
           completed += 1;
           if (!cancelled) setProgress(p => ({ ...p, done: completed }));
+          await pause(LINK_SPACING_MS); // spread the requests out instead of sending the whole list at once
         }
       };
       await Promise.all(Array.from({ length: Math.min(LINK_CONCURRENCY, missing.length) }, worker));
       if (cancelled) return;
       if (failed.length) {
-        setError(`Could not get a short link for ${failed.length} spot${failed.length === 1 ? "" : "s"}: ${failed.sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).join(", ")}. ` +
-          "No PDF was made, so nothing is missing from it silently. Try again; short links also cannot be made for deleted spots or on a localhost address.");
+        const numbers = failed.map(f => f.number).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        const stopped = giveUp ? ` Stopped after the first ${failed.length} failed with none succeeding.` : "";
+        setError(`Could not get a short link for ${giveUp ? "these" : failed.length} spot${failed.length === 1 ? "" : "s"}: ${numbers.join(", ")}. ` +
+          `The server answered: ${summarizeFailures(failed.map(f => f.status))}.${stopped} ` +
+          `No PDF was made, so nothing is missing from it silently. ${linksRef.current && Object.keys(linksRef.current).length ? "Links already fetched are kept, so Try again only asks for the rest. " : ""}` +
+          "Short links also cannot be made for deleted spots or on a localhost address.");
         return;
       }
 
@@ -103,7 +123,7 @@ const RentalSpotBulkLabelModal: React.FC<{ spots: BulkSpot[]; onClose: () => voi
 
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [presetId, sorted.map(spot => spot.id).join(",")]);
+  }, [presetId, attempt, sorted.map(spot => spot.id).join(",")]);
 
   // The preview canvas only exists once the PDF is ready, so draw the first label into it then.
   React.useEffect(() => {
@@ -152,7 +172,8 @@ const RentalSpotBulkLabelModal: React.FC<{ spots: BulkSpot[]; onClose: () => voi
         Skipped {skipped.length} inactive spot{skipped.length === 1 ? "" : "s"}, which cannot have a short link: {skipped.map(s => s.number).join(", ")}.
         Mark {skipped.length === 1 ? "it" : "them"} active to make {skipped.length === 1 ? "a label" : "labels"}.
       </Alert>}
-      {error && <Alert severity="error" sx={{ mt: 1, textAlign: "left" }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mt: 1, textAlign: "left" }}
+        action={<Button color="inherit" size="small" onClick={() => setAttempt(n => n + 1)}>Try again</Button>}>{error}</Alert>}
     </div>
   </FormModal>;
 };

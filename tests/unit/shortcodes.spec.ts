@@ -17,4 +17,12 @@ describe("short URL API", () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 });
     await expect(createShortLink("/rentals/spots/0123456789abcdef01234567")).rejects.toThrow("Could not create");
   });
+  it("reports the HTTP status and Retry-After so callers making many links can back off", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429, headers: { get: (name: string) => (name === "Retry-After" ? "7" : null) } });
+    await expect(createShortLink("/rentals/spots/0123456789abcdef01234567")).rejects.toMatchObject({ status: 429, retryAfter: 7 });
+  });
+  it("leaves retryAfter empty when the server sends none", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429, headers: { get: () => null } });
+    await expect(createShortLink("/rentals/spots/0123456789abcdef01234567")).rejects.toMatchObject({ status: 429, retryAfter: undefined });
+  });
 });
