@@ -8,21 +8,8 @@ import Typography from "@mui/material/Typography";
 import FormModal from "ui/common/FormModal";
 import { createShortLink } from "api/shortcodes";
 import {
-  LABEL_DPI, LABEL_PRESETS, LOGO_URL, LabelPresetId, drawLabel, labelFilename, labelPngBlob,
+  LABEL_DPI, LABEL_PRESETS, LabelPresetId, drawLabel, labelFilename, labelPngBlob, loadFonts, loadLogo,
 } from "./rentalLabel";
-
-const loadLogo = (): Promise<HTMLImageElement | null> => new Promise(resolve => {
-  const image = new Image();
-  image.onload = () => resolve(image);
-  image.onerror = () => resolve(null);
-  image.src = LOGO_URL;
-});
-
-const loadFonts = async () => {
-  try {
-    await Promise.all(["900 100px Roboto", "700 100px Roboto", "700 100px 'Roboto Mono'"].map(f => document.fonts.load(f)));
-  } catch { /* fall back to the system fonts already in the font stack */ }
-};
 
 // A printable label: logo, spot number, QR code and the short link, as a black-and-white PNG at the label's real
 // size and 300 dpi. Open the downloaded file in any viewer and print it to the printer holding that label size.

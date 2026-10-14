@@ -269,3 +269,18 @@ export const labelPngBlob = (canvas: HTMLCanvasElement): Promise<Blob> => new Pr
 
 export const labelFilename = (number: string, preset: LabelPreset) =>
   `rental-spot-${number.replace(/[^A-Za-z0-9_-]+/g, "-")}-label-${preset.id}.png`;
+
+/** The logo as an image, or null if it cannot be loaded (the label is then drawn without it). */
+export const loadLogo = (): Promise<HTMLImageElement | null> => new Promise(resolve => {
+  const image = new Image();
+  image.onload = () => resolve(image);
+  image.onerror = () => resolve(null);
+  image.src = LOGO_URL;
+});
+
+/** Waits for the label fonts so the canvas does not draw with a fallback; the font stack covers a failed load. */
+export const loadFonts = async () => {
+  try {
+    await Promise.all(["900 100px Roboto", "700 100px Roboto", "700 100px 'Roboto Mono'"].map(f => document.fonts.load(f)));
+  } catch { /* fall back to the system fonts already in the font stack */ }
+};
