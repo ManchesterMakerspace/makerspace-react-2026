@@ -17,6 +17,7 @@ import LabelIcon from "@mui/icons-material/Label";
 
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 import RentalSpotLabelModal from "./RentalSpotLabelModal";
+import RentalSpotBulkLabelModal from "./RentalSpotBulkLabelModal";
 import {
   SPOT_NUMBER_HINT, duplicateSpotNumber, friendlyRentalSpotError, spotNumberProblem, validateSpotForm,
 } from "./rentalSpotErrors";
@@ -54,10 +55,13 @@ const AdminRentalSpots: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = React.useState<RentalSpot | null>(null);
   const [editTarget,   setEditTarget]   = React.useState<Partial<RentalSpot>>(emptySpot());
   const [isEditing,    setIsEditing]    = React.useState(false);
-  const [selectedId,   setSelectedId]   = React.useState<string>(undefined);
+  // Ticking several spots is for bulk actions (labels); exactly one selected spot keeps the single-spot actions.
+  const [selectedIds,  setSelectedIds]  = React.useState<string[]>([]);
+  const selectedId = selectedIds.length === 1 ? selectedIds[0] : undefined;
   const [linkCopied,   setLinkCopied]   = React.useState(false);
   const [qrSpot, setQrSpot] = React.useState<RentalSpot | null>(null);
   const [labelSpot, setLabelSpot] = React.useState<RentalSpot | null>(null);
+  const [bulkLabelOpen, setBulkLabelOpen] = React.useState(false);
   const [formError, setFormError] = React.useState("");
   const [linkError, setLinkError] = React.useState("");
   const [copyableLink, setCopyableLink] = React.useState("");
@@ -124,14 +128,15 @@ const AdminRentalSpots: React.FC = () => {
   );
 
   const selectedSpot = (spots as RentalSpot[]).find(s => s.id === selectedId);
+  const selectedSpots = (spots as RentalSpot[]).filter(s => selectedIds.includes(s.id));
 
   const onSaveSuccess = React.useCallback(() => {
     setModalOpen(false); setEditTarget(emptySpot()); setIsEditing(false);
-    setSelectedId(undefined); refresh();
+    setSelectedIds([]); refresh();
   }, [refresh]);
 
   const onDeleteSuccess = React.useCallback(() => {
-    setDeleteTarget(null); setSelectedId(undefined); refresh(); changePage(0);
+    setDeleteTarget(null); setSelectedIds([]); refresh(); changePage(0);
   }, [refresh, changePage]);
 
   const { call: createSpot, isRequesting: creating, error: createError } = useWriteTransaction(adminCreateRentalSpot, onSaveSuccess);
@@ -229,6 +234,11 @@ const AdminRentalSpots: React.FC = () => {
                 </Button>
               </>
             )}
+            {selectedSpots.length > 1 && (
+              <Button variant="outlined" color="primary" startIcon={<LabelIcon />} onClick={() => setBulkLabelOpen(true)}>
+                Labels ({selectedSpots.length})
+              </Button>
+            )}
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={openCreate}>
               Add Spot
             </Button>
@@ -247,7 +257,7 @@ const AdminRentalSpots: React.FC = () => {
           id="admin-rental-spots-table" title="Rental Spots"
           loading={isRequesting} data={Object.values(spots)} error={error}
           totalItems={extractTotalItems(response)}
-          selectedIds={selectedId} setSelectedIds={setSelectedId}
+          selectedIds={selectedIds} setSelectedIds={setSelectedIds}
           columns={columns} rowId={rowId} renderSearch={true}
         />
       </Grid>
@@ -347,6 +357,7 @@ const AdminRentalSpots: React.FC = () => {
 
       <RentalSpotQrCodeModal spot={qrSpot} onClose={() => setQrSpot(null)} />
       <RentalSpotLabelModal spot={labelSpot} onClose={() => setLabelSpot(null)} />
+      {bulkLabelOpen && <RentalSpotBulkLabelModal spots={selectedSpots} onClose={() => setBulkLabelOpen(false)} />}
     </Grid>
   );
 };
