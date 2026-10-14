@@ -113,14 +113,18 @@ inactive spot with an explanation instead of printing a code that would never op
 collection or notification is involved.
 
 **Many labels at once.** Tick two or more spots in the Rental Spots table (the header checkbox selects the page) and
-choose **Labels (N)**. The dialog gets each spot's short link (a few at a time), draws every label, and builds one PDF
+choose **Labels (N)**. The dialog gets each spot's short link (two at a time with a short pause between requests, so a long list is not
+sent as one burst), draws every label, and builds one PDF
 with one page per label, each page exactly the label size (4″ × 6″ or 3½″ × 1⅛″), in spot-number order. Open the PDF, choose the
 printer and that label paper size once, and print at 100% / actual size: every label prints in one job on the
 default printer, with no printer-specific setup. The PDF is written in the browser (one 1-bit image per page,
 compressed with the browser's built-in compressor), so there is no PDF library and no server involvement beyond the
 same short-link calls. Up to 200 labels at a time. Inactive spots are skipped and listed, because they cannot have a
-short link; if a short link cannot be created for any spot, no PDF is produced and the failing numbers are listed, so
-a label is never silently missing.
+short link. A request that is refused for being too fast (HTTP 429, which the site's proxy may send), or that fails at
+the gateway or network, is retried with growing pauses (honouring `Retry-After`). If a short link still cannot be
+created, no PDF is produced and the dialog lists the failing numbers and what the server answered, so a label is never
+silently missing; **Try again** keeps the links already fetched and asks only for the rest. If the first few requests
+all fail with none succeeding (for example on a `localhost` address) it stops early instead of working through the list.
 
 Checks: unit tests cover layout bounds and overlap, link fitting, QR modules, the PNG size header and the PDF structure
 (cross-reference offsets, page sizes, image decoding); sample labels and PDFs were opened with an independent PDF reader
