@@ -1,5 +1,6 @@
 // @ts-nocheck
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
+import CheckoutRequiredSheetButton from "ui/common/CheckoutRequiredSheetButton";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import * as React from "react";
 import Grid from "@mui/material/Grid";
@@ -413,6 +414,7 @@ const ShopManager: React.FC = () => {
               onClick={() => setQrShop(selectedPublicShop)}>QR Code</Button>}
             {selectedManagedShop && !editingId && (
               <>
+                <CheckoutRequiredSheetButton key={selectedManagedShop.id} kind="shop" resource={selectedManagedShop} />
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => setEditingId(selectedManagedShop.id)}>
                   Edit

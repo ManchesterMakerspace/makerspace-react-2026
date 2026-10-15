@@ -14,6 +14,7 @@ import FormLabel from "@mui/material/FormLabel";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import ToolAnnotationCell from "./ToolAnnotationCell";
 import ToolQrCodeModal from "./ToolQrCodeModal";
+import CheckoutRequiredSheetButton from "ui/common/CheckoutRequiredSheetButton";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -220,6 +221,7 @@ const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) =>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {/* The API scopes this list to tools the user can manage or approve. */}
+            {selectedTool && <CheckoutRequiredSheetButton key={selectedTool.id} kind="tool" resource={selectedTool} />}
             {selectedTool && (
               <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                 onClick={() => setQrTool(selectedTool)}>QR Code</Button>

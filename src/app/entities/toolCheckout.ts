@@ -6,6 +6,7 @@ export interface DurationFee {
 }
 
 export interface Shop {
+  canGenerateCheckoutRequiredSheet?: boolean;
   requestorAnnotation?: string | null;
   id: string;
   floorName?: string;
@@ -69,6 +70,7 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  canGenerateCheckoutRequiredSheet?: boolean;
   allowPending?: boolean;
   outOfService?: boolean;
   requestorAnnotation?: string | null;
