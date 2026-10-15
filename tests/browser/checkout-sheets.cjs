@@ -8,6 +8,7 @@ const root = path.resolve(__dirname, '../..');
 const fixtures = process.env.CHECKOUT_SHEET_FIXTURE_DIR || path.join(root, '../makerspace-rails-2026/tmp/checkout-sheets');
 const output = path.join(root, 'tmp/checkout-sheet-browser');
 const svg = name => fs.readFileSync(path.join(fixtures, `${name}.svg`), 'utf8');
+const sampleNames = ['double', 'single', 'long', 'unbroken', 'blank', 'long-single', 'unbroken-single', 'blank-single'];
 const shopId = '0123456789abcdef01234567', toolId = '0123456789abcdef01234568';
 const member = { id: 'member1', firstname: 'Test', lastname: 'Admin', email: 'test@example.com', role: 'admin', status: 'activeMember', expirationTime: 4102444800000, memberContractOnFile: true, subscription: true };
 const shop = { id: shopId, name: 'Woodworking', slackChannel: 'shop-woodworking', wikiUrl: '', disabled: false, reservable: false, resourceManagers: [], reservationPrerequisiteIds: [], reservationPrerequisiteToolIds: [], canGenerateCheckoutRequiredSheet: true };
@@ -18,7 +19,7 @@ const server = http.createServer((req, res) => {
   let file;
   if (/^\/assets\/[\w.-]+$/.test(pathname)) file = path.join(root, 'dist', pathname.slice(8));
   if (/^\/qr\/[\w.-]+$/.test(pathname)) file = path.join(root, 'node_modules/qr-scanner', pathname.slice(4));
-  if (/^\/fixtures\/(double|single|long|blank)\.svg$/.test(pathname)) file = path.join(fixtures, path.basename(pathname));
+  if (sampleNames.some(name => pathname === `/fixtures/${name}.svg`)) file = path.join(fixtures, path.basename(pathname));
   if (file && fs.existsSync(file)) {
     res.setHeader('Content-Type', file.endsWith('.svg') ? 'image/svg+xml' : file.endsWith('.css') ? 'text/css' : 'text/javascript');
     res.end(fs.readFileSync(file));
@@ -29,7 +30,7 @@ const server = http.createServer((req, res) => {
 });
 
 (async () => {
-  ['double', 'single', 'long', 'blank'].forEach(svg);
+  sampleNames.forEach(svg);
   fs.mkdirSync(output, { recursive: true });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -37,24 +38,59 @@ const server = http.createServer((req, res) => {
   try {
     // Decode the actual server-generated vector QR images after browser rendering.
     const render = await browser.newPage({ viewport: { width: 1100, height: 850 } });
-    for (const name of ['double', 'single', 'long', 'blank']) {
+    for (const name of sampleNames) {
       await render.goto(`${origin}/preview`);
       await render.locator('img').evaluate((img, name) => { img.src = `/fixtures/${name}.svg`; }, name);
       await render.locator('img').evaluate(img => img.decode());
-      const decoded = await render.evaluate(async name => {
+      const geometry = await render.evaluate(source => {
+        const host = document.createElement('div');
+        host.style.cssText = 'position:absolute;left:0;top:0;visibility:hidden';
+        host.innerHTML = source;
+        document.body.appendChild(host);
+        const sheet = host.querySelector('svg');
+        sheet.style.cssText = 'width:1100px;height:850px';
+        const origin = sheet.getBoundingClientRect();
+        const bounds = element => {
+          const box = element.getBoundingClientRect();
+          return { x: box.x - origin.x, y: box.y - origin.y, width: box.width, height: box.height };
+        };
+        const signs = Array.from(sheet.querySelectorAll('.checkout-sign')).map(sign => {
+          const parts = Array.from(sign.children).map(element => ({
+            label: element.getAttribute('class') || element.textContent,
+            ...bounds(element)
+          }));
+          return { parts, qr: bounds(sign.querySelector('.shortcode-qr')) };
+        });
+        host.remove();
+        return signs;
+      }, svg(name));
+      for (const sign of geometry) {
+        for (const box of sign.parts) {
+          assert(box.x >= 25 - 0.1 && box.y >= 25 - 0.1 && box.x + box.width <= 1075 + 0.1 && box.y + box.height <= 825 + 0.1,
+            `${name}: ${box.label} must stay inside the printable area: ${JSON.stringify(box)}`);
+        }
+        for (let i = 0; i < sign.parts.length; i++) {
+          for (const other of sign.parts.slice(i + 1)) {
+            const box = sign.parts[i];
+            const overlap = box.x < other.x + other.width && box.x + box.width > other.x && box.y < other.y + other.height && box.y + box.height > other.y;
+            assert(!overlap, `${name}: ${box.label} overlaps ${other.label}`);
+          }
+        }
+      }
+      const decoded = await render.evaluate(async qrs => {
         const { default: QrScanner } = await import('/qr/qr-scanner.min.js');
         const image = document.querySelector('img');
         const page = document.createElement('canvas'); page.width = 2200; page.height = 1700;
         page.getContext('2d').drawImage(image, 0, 0, 2200, 1700);
         const answers = [];
-        for (const signY of name === 'single' ? [243.75] : [50, 437.5]) {
-          const crop = document.createElement('canvas'); crop.width = crop.height = 400;
-          crop.getContext('2d').drawImage(page, 1680, (signY + 90) * 2, 400, 400, 0, 0, 400, 400);
+        for (const qr of qrs) {
+          const crop = document.createElement('canvas'); crop.width = qr.width * 2; crop.height = qr.height * 2;
+          crop.getContext('2d').drawImage(page, qr.x * 2, qr.y * 2, crop.width, crop.height, 0, 0, crop.width, crop.height);
           answers.push((await QrScanner.scanImage(crop, { returnDetailedScanResult: true })).data);
         }
         return answers;
-      }, name);
-      assert.deepEqual(decoded, Array(name === 'single' ? 1 : 2).fill('HTTPS://MEMBERS.EXAMPLE.ORG/L23456789AB'));
+      }, geometry.map(sign => sign.qr));
+      assert.deepEqual(decoded, Array(name.includes('single') ? 1 : 2).fill('HTTPS://MEMBERS.EXAMPLE.ORG/L23456789AB'));
       await render.locator('img').screenshot({ path: path.join(output, `${name}.png`) });
       const pdf = await render.pdf({ path: path.join(output, `${name}.pdf`), preferCSSPageSize: true, printBackground: true });
       const pdfSource = pdf.toString('latin1');

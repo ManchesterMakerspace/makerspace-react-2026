@@ -10,8 +10,10 @@ the usual sibling checkout. Fixtures come from the real Rails SVG renderer;
 the browser flow itself uses mocked APIs and does not reset a database.
 The check covers both entry paths, capability-based visibility, retry, SVG
 downloads matching previews, one/two signs, keyboard activation and dialog
-overflow at 320/600/900/1280 px. It renders normal, long-name, blank-channel and
-single-sign sheets, decodes every rendered QR, and exports Letter landscape
+overflow at 320/600/900/1280 px. It renders normal, long-name, unbroken-name,
+long-channel and blank-channel sheets in both copy modes, measures printable
+bounds and overlaps, derives QR crops from SVG geometry, decodes every rendered
+QR, and exports Letter landscape
 print PDFs and screenshots under `tmp/checkout-sheet-browser/`. Inspect these
 artifacts for layout. Failures exit nonzero. This does not establish physical
 printer or native-device acceptance.

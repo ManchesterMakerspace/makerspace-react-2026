@@ -13,10 +13,13 @@ one sign keeps its size and is centered on the same 11 × 8.5 inch landscape
 US Letter page. Show loading, recoverable errors with Retry, and no download
 until a valid SVG is available. A missing shop channel warns that the footer is
 blank. Print guidance reads “Print on US Letter, landscape, at 100% / actual size.”
-Each sign uses the existing logo, resource name, smaller “Safety and Operation”
-above “Checkout Required”, shortcode QR and parent shop channel. This printable
-artifact uses the reference sign's burgundy and black rather than UI status
-colors. Changing copy count regenerates the preview; closing or changing the
+Each sign centers the resource name at the top and parent shop channel at the
+bottom in matching small type, with larger “Operation & Safety” beneath the name.
+A 2.4-inch round red-and-white logo and 2.3-inch shortcode QR flank the large
+burgundy “Checkout” / “Required” heading. Beneath the QR, show “Scan QR to” /
+“Request Checkout”. Keep all content within 0.25-inch page margins, with a
+0.25-inch gap between duplicated signs. This printable artifact uses the reference
+sign's colors. Changing copy count regenerates the preview; closing or changing the
 resource discards stale responses and releases Blob URLs. Existing QR dialogs
 and native file-sharing behavior are unchanged.
 
