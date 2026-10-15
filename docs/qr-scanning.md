@@ -91,3 +91,41 @@ Xcode. Automated synthetic-camera checks do not replace hardware acceptance.
 - Running iOS configuration twice produced identical project/plist files with
   the camera usage description. iOS compilation and physical-device acceptance
   were not performed. Nothing was deployed or published.
+
+## Printable rental spot labels
+
+Admins can make a printable label for a rental spot: on the Rental Spots admin page, select a spot and choose
+**Label**. The dialog offers two sizes, 4″ × 6″ portrait and 3½″ × 1⅛″ landscape, with a preview, **Download PNG** and
+**Copy Image**.
+
+The label is drawn in the browser as a pure black-and-white PNG at 300 dpi, with its physical size stored in the file,
+so any viewer prints it at true size on any printer: open the file, choose that label's paper size in the print dialog,
+and print at 100%. It contains the full logo (`/assets/FilledLaserableLogo.svg`, the same file the header uses; the
+small label omits it), “Rental Spot”, the spot number, a QR code, and the short link as readable text. The QR code
+encodes the permanent short URL for `/rentals/spots/{id}` from the same allocation call as the QR dialog
+(`POST /api/shortcodes`), so renumbering a spot does not break a printed code, though the number printed on the label
+would then need reprinting. The small label drops `HTTPS://` from the printed text to fit; the QR still encodes it.
+
+Unlike the QR dialog, the label never falls back to the long URL: if the short link cannot be allocated, no label is
+produced and the dialog shows an error, because a printed label is permanent and a long URL does not fit. Short links
+cannot be created for `localhost`, so labels need a real `APP_DOMAIN`. The server also only creates (and later resolves) short links for **active** spots, so the dialog refuses an
+inactive spot with an explanation instead of printing a code that would never open it. No new endpoint, environment variable,
+collection or notification is involved.
+
+**Many labels at once.** Tick two or more spots in the Rental Spots table (the header checkbox selects the page) and
+choose **Labels (N)**. The dialog gets each spot's short link (two at a time with a short pause between requests, so a long list is not
+sent as one burst), draws every label, and builds one PDF
+with one page per label, each page exactly the label size (4″ × 6″ or 3½″ × 1⅛″), in spot-number order. Open the PDF, choose the
+printer and that label paper size once, and print at 100% / actual size: every label prints in one job on the
+default printer, with no printer-specific setup. The PDF is written in the browser (one 1-bit image per page,
+compressed with the browser's built-in compressor), so there is no PDF library and no server involvement beyond the
+same short-link calls. Up to 200 labels at a time. Inactive spots are skipped and listed, because they cannot have a
+short link. A request that is refused for being too fast (HTTP 429, which the site's proxy may send), or that fails at
+the gateway or network, is retried with growing pauses (honouring `Retry-After`). If a short link still cannot be
+created, no PDF is produced and the dialog lists the failing numbers and what the server answered, so a label is never
+silently missing; **Try again** keeps the links already fetched and asks only for the rest. If the first few requests
+all fail with none succeeding (for example on a `localhost` address) it stops early instead of working through the list.
+
+Checks: unit tests cover layout bounds and overlap, link fitting, QR modules, the PNG size header and the PDF structure
+(cross-reference offsets, page sizes, image decoding); sample labels and PDFs were opened with an independent PDF reader
+and every QR code was decoded. Physical printing on each label printer has not been tested.
