@@ -17,8 +17,8 @@ jest.mock("ui/hooks/useWriteTransaction", () => (transaction: Function, onSucces
   return { call: jest.fn(), isRequesting: false };
 });
 jest.mock("ui/common/Filters/QueryContext", () => ({ withQueryContext: (component: any) => component }));
-jest.mock("ui/common/table/StatefulTable", () => ({ data }: any) => <div data-testid="shops">
-  {data.map((shop: any) => <p key={shop.id}>{shop.name}</p>)}
+jest.mock("ui/common/table/StatefulTable", () => ({ data, setSelectedIds }: any) => <div data-testid="shops">
+  {data.map((shop: any) => <p key={shop.id}><button onClick={() => setSelectedIds(shop.id)}>{shop.name}</button></p>)}
 </div>);
 jest.mock("ui/common/FormModal", () => () => null);
 jest.mock("ui/common/PublicCatalogQrCodeModal", () => () => null);
@@ -72,6 +72,20 @@ describe.each([false, true])("ShopManager with catalog provider=%s", (withCatalo
         : <ShopManager />}
     </Provider>));
   }
+
+  it.each([
+    [true, undefined, true],
+    [false, true, false],
+    [undefined, true, false]
+  ])("uses authenticated shop capability %s regardless of management capability %s", async (authenticated, managed, visible) => {
+    (listShops as jest.Mock).mockResolvedValue({ data: [{ id: "shop-1", name: "Public record", canGenerateCheckoutRequiredSheet: authenticated }], response: {} });
+    (listManagedShops as jest.Mock).mockResolvedValue({ data: [{ id: "shop-1", name: "Managed record", canGenerateCheckoutRequiredSheet: managed }], response: {} });
+    await renderManager();
+    await act(async () => (container.querySelector('[data-testid="shops"] button') as HTMLButtonElement).click());
+    const action = Array.from(container.querySelectorAll("button"))
+      .find(button => button.textContent === "Checkout Required Sheet");
+    expect(Boolean(action)).toBe(visible);
+  });
 
   it("recovers a failed management request through Retry management settings", async () => {
     (listManagedShops as jest.Mock).mockResolvedValueOnce({ error: { message: "Management unavailable" }, response: {} });

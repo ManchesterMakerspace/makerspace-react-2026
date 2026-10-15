@@ -4,7 +4,10 @@
 
 Shop details and physical tools on Workshops, and selected shops/tools on Tool
 Checkouts, offer **Checkout Required Sheet** only when the server returns
-`canGenerateCheckoutRequiredSheet`. One shared dialog previews the exact SVG
+`canGenerateCheckoutRequiredSheet`. The Tool Checkouts shop action reads this
+capability from the authenticated `/api/shops` record, even when `/api/admin/shops`
+omits it; a missing or false authenticated capability hides the action.
+One shared dialog previews the exact SVG
 that **Download SVG** saves. **Signs per sheet** defaults to two stacked signs;
 one sign keeps its size and is centered on the same 11 × 8.5 inch landscape
 US Letter page. Show loading, recoverable errors with Retry, and no download

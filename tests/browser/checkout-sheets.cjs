@@ -84,7 +84,11 @@ const server = http.createServer((req, res) => {
         else if (pathname === '/api/workshops') body = { canAddShop: true, workshops: [{ ...shop,
           canGenerateCheckoutRequiredSheet: permitted, canAddTool: false, isShopManager: false, resourceManagersWikiUrl: '',
           upcomingVolunteerEvents: [], volunteerTasks: [], tools: [{ ...tool, canGenerateCheckoutRequiredSheet: permitted }] }] };
-        else if (['/api/shops', '/api/admin/shops'].includes(pathname)) body = [{ ...shop, canGenerateCheckoutRequiredSheet: permitted }];
+        else if (pathname === '/api/shops') body = [{ ...shop, canGenerateCheckoutRequiredSheet: permitted }];
+        else if (pathname === '/api/admin/shops') {
+          const { canGenerateCheckoutRequiredSheet, ...managedShop } = shop;
+          body = [managedShop];
+        }
         else if (['/api/tools', '/api/admin/tools'].includes(pathname)) body = [{ ...tool, canGenerateCheckoutRequiredSheet: permitted }];
         await route.fulfill({ json: body });
       });

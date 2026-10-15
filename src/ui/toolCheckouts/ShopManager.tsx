@@ -412,9 +412,11 @@ const ShopManager: React.FC = () => {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {selectedPublicShop && canViewShopQrCodes && <Button variant="outlined" startIcon={<QrCodeIcon />}
               onClick={() => setQrShop(selectedPublicShop)}>QR Code</Button>}
+            {selectedPublicShop && !editingId && (
+              <CheckoutRequiredSheetButton key={selectedPublicShop.id} kind="shop" resource={selectedPublicShop} />
+            )}
             {selectedManagedShop && !editingId && (
               <>
-                <CheckoutRequiredSheetButton key={selectedManagedShop.id} kind="shop" resource={selectedManagedShop} />
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
                   onClick={() => setEditingId(selectedManagedShop.id)}>
                   Edit
