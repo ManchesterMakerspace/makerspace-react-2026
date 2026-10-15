@@ -19,6 +19,29 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+export const generateCheckoutRequiredSheet = async (kind: "shop" | "tool", id: string, copies: 1 | 2 = 2): Promise<{
+  svg: string; missingChannel: boolean;
+}> => {
+  try {
+    const response = await api.post(`/api/${kind}s/${encodeURIComponent(id)}/checkout_required_sheet`, { copies },
+      { responseType: "text" });
+    if (!String(response.headers["content-type"]).toLowerCase().startsWith("image/svg+xml") ||
+        typeof response.data !== "string" || !response.data.includes("<svg")) {
+      throw new Error("The server did not return a sheet. Please sign in again or retry.");
+    }
+    return { svg: response.data, missingChannel: response.headers["x-checkout-sheet-warning"] === "missing_shop_channel" };
+  } catch (failure: any) {
+    let body = failure.response?.data;
+    if (typeof body === "string") {
+      try { body = JSON.parse(body); } catch { body = undefined; }
+    }
+    const message = typeof body?.message === "string" ? body.message : body?.error;
+    throw new Error(typeof message === "string" ? message :
+      failure.response ? "Could not generate the sheet. Check your access and try again." :
+        failure.message || "Could not generate the sheet. Please try again.");
+  }
+};
+
 const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
   has: (key: string) => key.toLowerCase() in axiosHeaders,

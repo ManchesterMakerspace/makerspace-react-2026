@@ -1,5 +1,21 @@
 # Browser checks
 
+## Checkout Required sheets
+
+Run `yarn build`. In the Rails checkout, with its disposable test environment
+configured, run `bundle exec rails runner scripts/ci/checkout-sheet-fixtures.rb`.
+Then run `node tests/browser/checkout-sheets.cjs` here. Set
+`CHECKOUT_SHEET_FIXTURE_DIR` to an absolute fixture directory if Rails is not in
+the usual sibling checkout. Fixtures come from the real Rails SVG renderer;
+the browser flow itself uses mocked APIs and does not reset a database.
+The check covers both entry paths, capability-based visibility, retry, SVG
+downloads matching previews, one/two signs, keyboard activation and dialog
+overflow at 320/600/900/1280 px. It renders normal, long-name, blank-channel and
+single-sign sheets, decodes every rendered QR, and exports Letter landscape
+print PDFs and screenshots under `tmp/checkout-sheet-browser/`. Inspect these
+artifacts for layout. Failures exit nonzero. This does not establish physical
+printer or native-device acceptance.
+
 ## Mobile login persistence
 
 After `yarn build`, run `node tests/browser/mobile-login.cjs`. It uses the real

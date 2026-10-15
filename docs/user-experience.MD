@@ -1,5 +1,25 @@
 # User experience and visual design standard
 
+## Checkout Required sheets
+
+Shop details and physical tools on Workshops, and selected shops/tools on Tool
+Checkouts, offer **Checkout Required Sheet** only when the server returns
+`canGenerateCheckoutRequiredSheet`. The Tool Checkouts shop action reads this
+capability from the authenticated `/api/shops` record, even when `/api/admin/shops`
+omits it; a missing or false authenticated capability hides the action.
+One shared dialog previews the exact SVG
+that **Download SVG** saves. **Signs per sheet** defaults to two stacked signs;
+one sign keeps its size and is centered on the same 11 × 8.5 inch landscape
+US Letter page. Show loading, recoverable errors with Retry, and no download
+until a valid SVG is available. A missing shop channel warns that the footer is
+blank. Print guidance reads “Print on US Letter, landscape, at 100% / actual size.”
+Each sign uses the existing logo, resource name, smaller “Safety and Operation”
+above “Checkout Required”, shortcode QR and parent shop channel. This printable
+artifact uses the reference sign's burgundy and black rather than UI status
+colors. Changing copy count regenerates the preview; closing or changing the
+resource discards stale responses and releases Blob URLs. Existing QR dialogs
+and native file-sharing behavior are unchanged.
+
 ## Tool group controls
 
 Add Tool dialogs in Workshops and tool management share the same component and

@@ -28,6 +28,7 @@ export interface WorkshopCheckoutRequest {
 }
 
 export interface WorkshopTool {
+  canGenerateCheckoutRequiredSheet?: boolean;
   outOfService?: boolean;
   open?: boolean;
   id: string;
@@ -74,6 +75,7 @@ export interface WorkshopVolunteerTask {
 }
 
 export interface Workshop {
+  canGenerateCheckoutRequiredSheet?: boolean;
   outOfService?: boolean;
   outOfServiceNote?: string;
   id: string;

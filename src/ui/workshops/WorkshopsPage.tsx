@@ -1,4 +1,5 @@
 import AddToolModal from "./AddToolModal";
+import CheckoutRequiredSheetButton from "ui/common/CheckoutRequiredSheetButton";
 import ToolGroupList from 'ui/toolCheckouts/ToolGroupList';
 import ToolAvailability from "ui/common/ToolAvailability";
 import PublicCatalogQrCodeModal from "ui/common/PublicCatalogQrCodeModal";
@@ -253,6 +254,7 @@ export const WorkshopTools: React.FC<{
               flexWrap: "wrap"
             }}>
               {workshop.isShopManager && <ToolOutageAction tool={tool} onSaved={onRefresh} />}
+              <CheckoutRequiredSheetButton key={tool.id} kind="tool" resource={tool} />
               {tool.gdriveId &&
                 <Button size="small" variant="outlined"
                   href={`https://drive.google.com/drive/folders/${encodeURIComponent(tool.gdriveId)}`}
@@ -683,6 +685,7 @@ const WorkshopsPage: React.FC = () => {
                 </Button>}
                 {canViewShopQrCodes && <Button startIcon={<QrCodeIcon />} variant="outlined"
                   onClick={() => setQrOpen(true)}>QR Code</Button>}
+                <CheckoutRequiredSheetButton key={workshop.id} kind="shop" resource={workshop} />
                 </div>
                 <WorkshopDetails workshop={workshop} />
               </Grid>
