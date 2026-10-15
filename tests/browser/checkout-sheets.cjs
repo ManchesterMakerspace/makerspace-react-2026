@@ -73,6 +73,15 @@ const server = http.createServer((req, res) => {
         return signs;
       }, svg(name));
       const regions = geometry.map(sign => sign.region).sort((a, b) => a.y - b.y);
+      const expectedCopies = name.includes('single') ? 1 : 2;
+      assert.equal(regions.length, expectedCopies, `${name}: expected ${expectedCopies} sign regions`);
+      if (expectedCopies === 1) {
+        const region = regions[0];
+        assert(Math.abs(region.width - 1050) < 1e-6 && Math.abs(region.height - 387.5) < 1e-6,
+          `${name}: single sign must retain its 1050 × 387.5 SVG-unit size`);
+        assert(Math.abs(region.x + region.width / 2 - 550) < 1e-6 && Math.abs(region.y + region.height / 2 - 425) < 1e-6,
+          `${name}: single sign must be centered at (550, 425) SVG units`);
+      }
       for (let i = 1; i < regions.length; i++) {
         const gap = regions[i].y - (regions[i - 1].y + regions[i - 1].height);
         // Touching regions or smaller positive gaps are allowed; overlap is not.
@@ -104,7 +113,7 @@ const server = http.createServer((req, res) => {
         }
         return answers;
       }, geometry.map(sign => sign.qr));
-      assert.deepEqual(decoded, Array(name.includes('single') ? 1 : 2).fill('HTTPS://MEMBERS.EXAMPLE.ORG/L23456789AB'));
+      assert.deepEqual(decoded, Array(expectedCopies).fill('HTTPS://MEMBERS.EXAMPLE.ORG/L23456789AB'));
       await render.locator('img').screenshot({ path: path.join(output, `${name}.png`) });
       const pdf = await render.pdf({ path: path.join(output, `${name}.pdf`), preferCSSPageSize: true, printBackground: true });
       const pdfSource = pdf.toString('latin1');
