@@ -15,7 +15,9 @@ long-channel and blank-channel sheets in both copy modes, measures printable
 bounds and overlaps, derives QR crops from SVG geometry, decodes every rendered
 QR, and exports Letter landscape
 print PDFs and screenshots under `tmp/checkout-sheet-browser/`. Inspect these
-artifacts for layout. Failures exit nonzero. This does not establish physical
+artifacts for layout; `long-channel` and `long-channel-single` specifically cover
+long Slack footers with an ordinary resource name. There are ten fixture SVGs
+in total. Failures exit nonzero. This does not establish physical
 printer or native-device acceptance.
 
 ## Mobile login persistence

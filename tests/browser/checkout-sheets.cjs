@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '../..');
 const fixtures = process.env.CHECKOUT_SHEET_FIXTURE_DIR || path.join(root, '../makerspace-rails-2026/tmp/checkout-sheets');
 const output = path.join(root, 'tmp/checkout-sheet-browser');
 const svg = name => fs.readFileSync(path.join(fixtures, `${name}.svg`), 'utf8');
-const sampleNames = ['double', 'single', 'long', 'unbroken', 'blank', 'long-single', 'unbroken-single', 'blank-single'];
+const sampleNames = ['double', 'single', 'long', 'long-channel', 'unbroken', 'blank', 'long-single', 'long-channel-single', 'unbroken-single', 'blank-single'];
 const shopId = '0123456789abcdef01234567', toolId = '0123456789abcdef01234568';
 const member = { id: 'member1', firstname: 'Test', lastname: 'Admin', email: 'test@example.com', role: 'admin', status: 'activeMember', expirationTime: 4102444800000, memberContractOnFile: true, subscription: true };
 const shop = { id: shopId, name: 'Woodworking', slackChannel: 'shop-woodworking', wikiUrl: '', disabled: false, reservable: false, resourceManagers: [], reservationPrerequisiteIds: [], reservationPrerequisiteToolIds: [], canGenerateCheckoutRequiredSheet: true };
