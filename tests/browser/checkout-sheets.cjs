@@ -59,11 +59,25 @@ const server = http.createServer((req, res) => {
             label: element.getAttribute('class') || element.textContent,
             ...bounds(element)
           }));
-          return { parts, qr: bounds(sign.querySelector('.shortcode-qr')) };
+          // Measure the entire 10.5 × 3.875 inch sign region through its actual
+          // transform, including blank space when the Slack footer is absent.
+          const region = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          region.setAttribute('width', '1050');
+          region.setAttribute('height', '387.5');
+          sign.appendChild(region);
+          const signBounds = bounds(region);
+          region.remove();
+          return { parts, region: signBounds, qr: bounds(sign.querySelector('.shortcode-qr')) };
         });
         host.remove();
         return signs;
       }, svg(name));
+      const regions = geometry.map(sign => sign.region).sort((a, b) => a.y - b.y);
+      for (let i = 1; i < regions.length; i++) {
+        const gap = regions[i].y - (regions[i - 1].y + regions[i - 1].height);
+        // Touching regions or smaller positive gaps are allowed; overlap is not.
+        assert(gap >= -1e-6, `${name}: adjacent sign regions overlap by ${-gap} SVG units`);
+      }
       for (const sign of geometry) {
         for (const box of sign.parts) {
           assert(box.x >= 25 - 0.1 && box.y >= 25 - 0.1 && box.x + box.width <= 1075 + 0.1 && box.y + box.height <= 825 + 0.1,

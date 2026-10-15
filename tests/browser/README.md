@@ -12,7 +12,9 @@ The check covers both entry paths, capability-based visibility, retry, SVG
 downloads matching previews, one/two signs, keyboard activation and dialog
 overflow at 320/600/900/1280 px. It renders normal, long-name, unbroken-name,
 long-channel and blank-channel sheets in both copy modes, measures printable
-bounds and overlaps, derives QR crops from SVG geometry, decodes every rendered
+bounds and overlaps, including separation of the complete duplicated sign regions
+even when their footers are blank. Touching regions and gaps below 0.25 inches are
+allowed; overlapping regions fail. The check derives QR crops from SVG geometry, decodes every rendered
 QR, and exports Letter landscape
 print PDFs and screenshots under `tmp/checkout-sheet-browser/`. Inspect these
 artifacts for layout; `long-channel` and `long-channel-single` specifically cover
