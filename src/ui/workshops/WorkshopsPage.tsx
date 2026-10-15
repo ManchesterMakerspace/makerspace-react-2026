@@ -65,7 +65,7 @@ const SlackChannel: React.FC<{
   details?: SlackChannelDetails;
 }> = ({ name, details }) => {
   if (!name) return <>Not configured</>;
-  const label = `#${name}`;
+  const label = `#${name.replace(/^#+/, "")}`;
   return details?.slackUrl
     ? <a href={details.slackUrl}>{label}</a>
     : <>{label}</>;
