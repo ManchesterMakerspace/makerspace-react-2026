@@ -232,6 +232,12 @@ When implementing responsive behavior:
 - account for touch targets, zoomed text, long names, validation messages,
   reduced-motion preferences, keyboard focus, and mobile safe-area insets.
 
+## Slack channel labels
+
+Shop and tool channel labels display exactly one leading `#`, whether the stored
+name has no prefix, one prefix, or repeated prefixes. Linked and plain-text
+labels use the same formatting; missing channels show "Not configured".
+
 ## Interaction, feedback, and accessibility
 
 Shop editing in `/workshops` reuses `EditShopModal` from `/tool-checkouts`.
