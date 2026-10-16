@@ -209,6 +209,9 @@ export const listToolCheckouts = (params?: {
   shopId?: string;
   toolId?: string;
   active?: boolean;
+  // true: only reinstated pairs (superseded revoked row + its replacement);
+  // false: leave out revoked rows that an active checkout has superseded.
+  reinstated?: boolean;
   // Only checkouts held by members who are currently active (unexpired, not revoked/inactive).
   activeMembersOnly?: boolean;
 }) =>
@@ -218,6 +221,7 @@ export const listToolCheckouts = (params?: {
       ...(params?.shopId && { shop_id: params.shopId }),
       ...(params?.toolId && { tool_id: params.toolId }),
       ...(params?.active !== undefined && { active: params.active }),
+      ...(params?.reinstated !== undefined && { reinstated: params.reinstated }),
       ...(params?.activeMembersOnly && { active_members_only: true }),
     }
   }));
