@@ -129,6 +129,8 @@ export interface ToolCheckout {
   checkedOutAt: string;
   revokedAt?: string;
   revocationReason?: string;
+  // Set on a checkout created by reinstating a revoked one (the revoked record's id).
+  reinstatedFromId?: string;
   signedOffVia: "portal" | "slack";
   approvedById?: string;
   approvedByName?: string;

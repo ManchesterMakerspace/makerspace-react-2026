@@ -270,6 +270,15 @@ export const adminRevokeToolCheckout = ({ id, body }: {
     })
   );
 
+// Admin/board only. Keeps the revoked record and creates a new active checkout.
+export const adminReinstateToolCheckout = ({ id, body }: {
+  id: string;
+  body: { reason: string }
+}) =>
+  buildResponse<ToolCheckout>(
+    api.post(`/api/admin/tool_checkouts/${id}/reinstate`, { reason: body.reason })
+  );
+
 export const listToolCheckoutRequests = (params?: any) =>
   buildResponse<ToolCheckoutRequest[]>(api.get("/api/admin/tool_checkout_requests", {
     params: { ...tableParams(params), include_groups: true }

@@ -17,6 +17,7 @@ import Button from "@mui/material/Button";
 import Tooltip from "@mui/material/Tooltip";
 import IconButton from "@mui/material/IconButton";
 import BlockIcon from "@mui/icons-material/Block";
+import RestoreIcon from "@mui/icons-material/Restore";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
@@ -38,6 +39,7 @@ import extractTotalItems from "ui/utils/extractTotalItems";
 import { ToolCheckout, Shop, Tool, FobMemberPreview } from "app/entities/toolCheckout";
 import {
   listToolCheckouts, listMemberCheckouts, adminCreateToolCheckout, adminRevokeToolCheckout,
+  adminReinstateToolCheckout,
 } from "api/toolCheckouts";
 import { toneNotice } from "ui/common/statusColors";
 
@@ -76,6 +78,50 @@ const RevokeModal: React.FC<RevokeModalProps> = ({ target, onClose, onRevoke, lo
           <Grid size={{ xs: 12 }}>
             <TextField fullWidth required label="Reason for revocation (internal)"
               placeholder="e.g. Failed to follow safety protocols"
+              multiline rows={2} value={reason}
+              onChange={e => setReason(e.target.value)} autoFocus
+            />
+          </Grid>
+        </Grid>
+      )}
+    </FormModal>
+  );
+};
+
+// ── ReinstateModal ────────────────────────────────────────────────────────────
+
+interface ReinstateModalProps {
+  target: ToolCheckout | null;
+  onClose: () => void;
+  onReinstate: (reason: string) => void;
+  loading: boolean;
+  error: string;
+}
+
+const ReinstateModal: React.FC<ReinstateModalProps> = ({ target, onClose, onReinstate, loading, error }) => {
+  const [reason, setReason] = React.useState("");
+  React.useEffect(() => { if (!target) setReason(""); }, [target]);
+  return (
+    <FormModal id="reinstate-checkout" isOpen={!!target} title="Reinstate Checkout"
+      closeHandler={onClose}
+      onSubmit={() => reason.trim() && onReinstate(reason)}
+      submitText="Reinstate" loading={loading} error={error}
+    >
+      {target && (
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12 }}>
+            <Typography>
+              Reinstate <strong>{target.memberName}</strong>'s checkout for{" "}
+              <strong>{target.toolName}</strong> in <strong>{target.shopName}</strong>?
+            </Typography>
+            <Typography variant="caption" color="textSecondary" style={{ display: "block", marginTop: 4 }}>
+              The revoked record is kept and a new checkout is created. The member will be notified via
+              Slack DM. The reason is recorded in the audit log and is internal only.
+            </Typography>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField fullWidth required label="Reason for reinstatement (internal)"
+              placeholder="e.g. Completed safety retraining"
               multiline rows={2} value={reason}
               onChange={e => setReason(e.target.value)} autoFocus
             />
@@ -222,11 +268,14 @@ const CheckoutRoster: React.FC<Props> = ({
   const [includeInactiveMembers, setIncludeInactiveMembers] = React.useState(false);
   const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
   const [revokeTarget,       setRevokeTarget]       = React.useState<ToolCheckout | null>(null);
+  const [reinstateTarget,    setReinstateTarget]    = React.useState<ToolCheckout | null>(null);
   const [checkoutOpen,       setCheckoutOpen]       = React.useState(false);
   const [unmetPrerequisites, setUnmetPrerequisites] = React.useState<string[]>([]);
   const [selectedId,         setSelectedId]         = React.useState<string | undefined>(undefined);
 
   const canManage = !memberView && (isAdmin || isResourceManager);
+  // The server allows only Admin/Board to reinstate; RMs and approvers never see the action.
+  const canReinstate = canManage && !!(currentUser.isAdmin || currentUser.isBoardMember);
 
   // The full roster hides checkouts held by expired, revoked or otherwise inactive members unless asked;
   // a single member's own list (member profile) always shows everything they hold.
@@ -283,6 +332,7 @@ const CheckoutRoster: React.FC<Props> = ({
     if (unmet?.length) setUnmetPrerequisites(unmet);
     setCheckoutOpen(false);
     setRevokeTarget(null);
+    setReinstateTarget(null);
     setSelectedId(undefined);
     refreshRef.current();
     refreshCatalog();
@@ -292,6 +342,14 @@ const CheckoutRoster: React.FC<Props> = ({
     useWriteTransaction(adminCreateToolCheckout, onSuccess);
   const { call: revokeCheckout, isRequesting: revoking, error: revokeError } =
     useWriteTransaction(adminRevokeToolCheckout, onSuccess);
+
+  const { call: reinstateCheckout, isRequesting: reinstating, error: reinstateError } =
+    useWriteTransaction(adminReinstateToolCheckout, onSuccess);
+
+  const handleReinstate = React.useCallback((reason: string) => {
+    if (!reinstateTarget) return;
+    reinstateCheckout({ id: reinstateTarget.id, body: { reason } });
+  }, [reinstateCheckout, reinstateTarget]);
 
   const handleCheckout = React.useCallback((memberId: string, toolId: string, source?: "fob") => {
     setUnmetPrerequisites([]);
@@ -375,6 +433,12 @@ const CheckoutRoster: React.FC<Props> = ({
               </Typography>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
+              {canReinstate && selectedCheckout && !selectedCheckout.active && (
+                <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
+                  onClick={() => setReinstateTarget(selectedCheckout)}>
+                  Reinstate Checkout
+                </Button>
+              )}
               {canManage && selectedCheckout?.active && (
                 <Button variant="outlined" color="secondary" startIcon={<BlockIcon />}
                   onClick={() => setRevokeTarget(selectedCheckout)}>
@@ -397,6 +461,12 @@ const CheckoutRoster: React.FC<Props> = ({
           <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div />
             <div style={{ display: "flex", gap: 8 }}>
+              {canReinstate && selectedCheckout && !selectedCheckout.active && (
+                <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
+                  onClick={() => setReinstateTarget(selectedCheckout)}>
+                  Reinstate Checkout
+                </Button>
+              )}
               {selectedCheckout?.active && (
                 <Button variant="outlined" color="secondary" startIcon={<BlockIcon />}
                   onClick={() => setRevokeTarget(selectedCheckout)}>
@@ -474,6 +544,13 @@ const CheckoutRoster: React.FC<Props> = ({
           unmetPrerequisites={unmetPrerequisites}
         />
       )}
+
+      <ReinstateModal
+        target={reinstateTarget}
+        onClose={() => setReinstateTarget(null)}
+        onReinstate={handleReinstate}
+        loading={reinstating} error={reinstateError}
+      />
 
       <RevokeModal
         target={revokeTarget}
