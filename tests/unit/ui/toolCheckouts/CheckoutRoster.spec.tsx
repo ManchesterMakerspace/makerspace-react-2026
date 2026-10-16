@@ -3,19 +3,27 @@ import { act } from "react";
 import { createRoot, Root } from "react-dom/client";
 
 let mockRows: any[] = [];
-jest.mock('api/toolCheckouts', () => ({ listToolGroups: jest.fn().mockResolvedValue({ data: [] }) }));
-jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: {} }) }));
+let mockCurrentUser: any = {};
+const mockWrites: { fn: any; args: any }[] = [];
+jest.mock('api/toolCheckouts', () => ({
+  listToolGroups: jest.fn().mockResolvedValue({ data: [] }),
+  adminReinstateToolCheckout: jest.fn(),
+}));
+jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: mockCurrentUser }) }));
 jest.mock("ui/hooks/useReadTransaction", () => () => ({ data: mockRows, refresh: jest.fn() }));
-jest.mock("ui/hooks/useWriteTransaction", () => () => ({ call: jest.fn() }));
+jest.mock("ui/hooks/useWriteTransaction", () => (fn: any) => ({ call: (args: any) => mockWrites.push({ fn, args }) }));
 jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({ useCheckoutCatalog: () => ({ data: [{ id: "wood", name: "Woodshop" }, { id: "other", name: "Other shop" }], refresh: jest.fn() }) }));
 jest.mock("ui/common/Filters/QueryContext", () => ({ withQueryContext: (component: any) => component }));
-jest.mock("ui/common/table/StatefulTable", () => ({ data, columns }: any) => <>
-  {data.map((row: any) => <div key={row.id}>{columns.find((column: any) => column.id === "toolName").cell(row)}</div>)}
+jest.mock("ui/common/table/StatefulTable", () => ({ data, columns, setSelectedIds }: any) => <>
+  {data.map((row: any) => <div key={row.id}>
+    {columns.find((column: any) => column.id === "toolName").cell(row)}
+    {setSelectedIds && <button onClick={() => setSelectedIds(row.id)}>Select {row.id}</button>}
+  </div>)}
 </>);
 jest.mock("ui/common/FormModal", () => ({ isOpen, children, onSubmit }: any) => isOpen ? <div>{children}<button onClick={onSubmit}>Submit checkout</button></div> : null);
 jest.mock("ui/common/MemberSearchInput", () => (props: any) => <input data-fully-active={props.fullyActiveUnexpired} />);
 jest.mock("ui/toolCheckouts/GroupApproval", () => ({ group, memberId }: any) => <div>Review {group.name} for {memberId}</div>);
-import { listToolGroups } from 'api/toolCheckouts';
+import { listToolGroups, adminReinstateToolCheckout } from 'api/toolCheckouts';
 import CheckoutRoster from "ui/toolCheckouts/CheckoutRoster";
 
 describe("checkout roster notes and member selection", () => {
@@ -24,6 +32,8 @@ describe("checkout roster notes and member selection", () => {
   beforeAll(() => { (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; });
   beforeEach(() => {
     jest.useFakeTimers();
+    mockCurrentUser = {};
+    mockWrites.length = 0;
     mockRows = [{ id: "checkout", toolName: "Bandsaw", toolNotes: "Cabinet combination: 1234" }];
     container = document.createElement("div");
     document.body.appendChild(container);
@@ -72,4 +82,51 @@ describe("checkout roster notes and member selection", () => {
     expect(container.textContent).toContain('Review Wood kit for trainee');
   });
 
+  describe("reinstating a revoked checkout", () => {
+    const click = async (label: string) => act(async () => {
+      Array.from(container.querySelectorAll("button")).find(button => button.textContent === label)!.click();
+    });
+    const hasButton = (label: string) =>
+      Array.from(container.querySelectorAll("button")).some(button => button.textContent === label);
+    beforeEach(() => {
+      mockRows = [
+        { id: "revoked", toolName: "Lathe", memberName: "Pat", shopName: "Metal", active: false },
+        { id: "live", toolName: "Mill", memberName: "Sam", shopName: "Metal", active: true },
+      ];
+    });
+
+    it("lets an admin reinstate a selected revoked checkout with a reason", async () => {
+      mockCurrentUser = { isAdmin: true };
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      expect(hasButton("Reinstate Checkout")).toBe(false);
+      await click("Select revoked");
+      await click("Reinstate Checkout");
+      const input = container.querySelector("textarea")!;
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(input, "Retrained");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+      await click("Submit checkout");
+      expect(mockWrites).toEqual([{ fn: adminReinstateToolCheckout, args: { id: "revoked", body: { reason: "Retrained" } } }]);
+    });
+
+    it("offers Reinstate to board members", async () => {
+      mockCurrentUser = { isBoardMember: true };
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      await click("Select revoked");
+      expect(hasButton("Reinstate Checkout")).toBe(true);
+    });
+
+    it("never shows Reinstate to resource managers or on an active checkout", async () => {
+      mockCurrentUser = { isResourceManager: true };
+      await act(async () => root.render(<CheckoutRoster isAdmin={false} isResourceManager />));
+      await click("Select revoked");
+      expect(hasButton("Reinstate Checkout")).toBe(false);
+      mockCurrentUser = { isAdmin: true };
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager />));
+      await click("Select live");
+      expect(hasButton("Reinstate Checkout")).toBe(false);
+      expect(hasButton("Revoke Checkout")).toBe(true);
+    });
+  });
 });
