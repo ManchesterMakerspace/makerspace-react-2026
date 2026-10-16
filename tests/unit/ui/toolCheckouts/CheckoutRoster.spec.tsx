@@ -16,7 +16,7 @@ jest.mock("ui/toolCheckouts/CheckoutCatalog", () => ({ useCheckoutCatalog: () =>
 jest.mock("ui/common/Filters/QueryContext", () => ({ withQueryContext: (component: any) => component }));
 jest.mock("ui/common/table/StatefulTable", () => ({ data, columns, setSelectedIds }: any) => <>
   {data.map((row: any) => <div key={row.id}>
-    {columns.find((column: any) => column.id === "toolName").cell(row)}
+    {columns.map((column: any) => <div key={column.id} data-column={column.id}>{column.cell(row)}</div>)}
     {setSelectedIds && <button onClick={() => setSelectedIds(row.id)}>Select {row.id}</button>}
   </div>)}
 </>);
@@ -127,6 +127,61 @@ describe("checkout roster notes and member selection", () => {
       await click("Select live");
       expect(hasButton("Reinstate Checkout")).toBe(false);
       expect(hasButton("Revoke Checkout")).toBe(true);
+    });
+  });
+
+  describe("notes, reinstated status and filter", () => {
+    const column = (id: string, index = 0) => container.querySelectorAll(`[data-column="${id}"]`)[index].textContent;
+    beforeEach(() => {
+      mockRows = [
+        { id: "new", toolName: "Lathe", active: true, reinstatedFromId: "old", reinstatementReason: "Retrained",
+          reinstatedByName: "Bo Board", reinstatedAt: "2026-03-02T12:00:00Z", requestNote: "ignored on reinstated" },
+        { id: "old", toolName: "Lathe", active: false, reinstated: true, reinstatedByCheckoutId: "new",
+          checkedOutAt: "2026-01-01T12:00:00Z", revokedAt: "2026-02-01T12:00:00Z", revocationReason: "Unsafe use",
+          revokedByName: "Al Admin" },
+        { id: "plain", toolName: "Mill", active: true, requestNote: "Building a table" },
+        { id: "gone", toolName: "Saw", active: false, revokedAt: "2026-02-01T12:00:00Z", revocationReason: "Left unattended" },
+      ];
+    });
+
+    it("shows revocation, reinstatement and request notes to managers", async () => {
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      expect(column("notes", 0)).toContain("Reinstated: Retrained");
+      expect(column("notes", 0)).toContain("by Bo Board");
+      expect(column("notes", 1)).toContain("Revoked: Unsafe use");
+      expect(column("notes", 1)).toContain("by Al Admin");
+      expect(column("notes", 2)).toContain("Request note: Building a table");
+      expect(column("notes", 3)).toContain("Revoked: Left unattended");
+    });
+
+    it("has no Notes column in the member's own view", async () => {
+      await act(async () => root.render(<CheckoutRoster memberView isAdmin={false} isResourceManager={false} />));
+      expect(container.querySelector('[data-column="notes"]')).toBeNull();
+    });
+
+    it("labels the superseded revoked row Reinstated and badges its replacement", async () => {
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      expect(column("active", 0)).toContain("Active");
+      expect(column("active", 0)).toContain("Reinstated");
+      expect(column("active", 1)).toContain("Reinstated");
+      expect(column("active", 1)).not.toContain("Revoked");
+      expect(column("active", 3)).toContain("Revoked");
+      expect(column("active", 2)).not.toContain("Reinstated");
+    });
+
+    it("offers the Reinstated status filter", async () => {
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      const options = Array.from(container.querySelectorAll("select option")).map(option => option.textContent);
+      expect(options).toEqual(expect.arrayContaining(["Active only", "Revoked only", "Reinstated", "All"]));
+    });
+
+    it("does not offer Reinstate on a revoked row that was already reinstated", async () => {
+      mockCurrentUser = { isAdmin: true };
+      await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+      await act(async () => { Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Select old")!.click(); });
+      expect(Array.from(container.querySelectorAll("button")).some(b => b.textContent === "Reinstate Checkout")).toBe(false);
+      await act(async () => { Array.from(container.querySelectorAll("button")).find(b => b.textContent === "Select gone")!.click(); });
+      expect(Array.from(container.querySelectorAll("button")).some(b => b.textContent === "Reinstate Checkout")).toBe(true);
     });
   });
 });

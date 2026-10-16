@@ -128,9 +128,22 @@ export interface ToolCheckout {
   shopWikiUrl?: string;
   checkedOutAt: string;
   revokedAt?: string;
-  revocationReason?: string;
   // Set on a checkout created by reinstating a revoked one (the revoked record's id).
   reinstatedFromId?: string;
+  // Derived by the server: this revoked checkout has been superseded by an active reinstated
+  // checkout (reinstatedByCheckoutId). The revoked record itself is never edited.
+  reinstated?: boolean;
+  reinstatedByCheckoutId?: string | null;
+  // Internal notes. The server sends these only to approvers of the tool, RMs, board members and
+  // admins -- never to the member the checkout belongs to or to other members.
+  revocationReason?: string;
+  revokedById?: string;
+  revokedByName?: string;
+  requestNote?: string;
+  reinstatementReason?: string;
+  reinstatedById?: string;
+  reinstatedByName?: string;
+  reinstatedAt?: string;
   signedOffVia: "portal" | "slack";
   approvedById?: string;
   approvedByName?: string;

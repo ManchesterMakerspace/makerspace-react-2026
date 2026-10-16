@@ -42,8 +42,40 @@ import {
   adminReinstateToolCheckout,
 } from "api/toolCheckouts";
 import { toneNotice } from "ui/common/statusColors";
+import { RosterStatusFilter, statusFilterParams, rosterStatus, keepReinstatedPairsTogether } from "./checkoutRosterStatus";
 
 const rowId = (c: ToolCheckout) => c.id;
+
+// ── Notes column ──────────────────────────────────────────────────────────────
+
+const noteLine = (label: string, text?: string, who?: string, at?: string) => (
+  <div style={{ marginBottom: 4 }}>
+    <Typography variant="body2" style={{ overflowWrap: "anywhere" }}>
+      <strong>{label}:</strong> {text || "—"}
+    </Typography>
+    {(who || at) && (
+      <Typography variant="caption" color="textSecondary">
+        {who && `by ${who}`}{who && at && " "}{at && `on ${new Date(at).toLocaleDateString()}`}
+      </Typography>
+    )}
+  </div>
+);
+
+// Internal notes arrive only for viewers the server entitles to them; otherwise the cell is empty.
+export const CheckoutNotes: React.FC<{ row: ToolCheckout }> = ({ row }) => {
+  const lines: React.ReactNode[] = [];
+  if (!row.active) {
+    if (row.revocationReason || row.revokedByName || row.revokedAt) {
+      lines.push(<React.Fragment key="revoked">{noteLine("Revoked", row.revocationReason, row.revokedByName, row.revokedAt)}</React.Fragment>);
+    }
+  } else if (row.reinstatedFromId) {
+    lines.push(<React.Fragment key="reinstated">{noteLine("Reinstated", row.reinstatementReason, row.reinstatedByName, row.reinstatedAt)}</React.Fragment>);
+  }
+  if (row.requestNote) {
+    lines.push(<React.Fragment key="request">{noteLine("Request note", row.requestNote)}</React.Fragment>);
+  }
+  return lines.length ? <div>{lines}</div> : <span>—</span>;
+};
 
 // ── RevokeModal ───────────────────────────────────────────────────────────────
 
@@ -266,7 +298,7 @@ const CheckoutRoster: React.FC<Props> = ({
   const [shopFilter,         setShopFilter]         = React.useState("");
   const [toolFilter,         setToolFilter]         = React.useState("");
   const [includeInactiveMembers, setIncludeInactiveMembers] = React.useState(false);
-  const [activeFilter,       setActiveFilter]       = React.useState<"all" | "active" | "revoked">("active");
+  const [activeFilter,       setActiveFilter]       = React.useState<RosterStatusFilter>("active");
   const [revokeTarget,       setRevokeTarget]       = React.useState<ToolCheckout | null>(null);
   const [reinstateTarget,    setReinstateTarget]    = React.useState<ToolCheckout | null>(null);
   const [checkoutOpen,       setCheckoutOpen]       = React.useState(false);
@@ -286,8 +318,7 @@ const CheckoutRoster: React.FC<Props> = ({
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
     ...(toolFilter && { toolId: toolFilter }),
-    ...(activeFilter === "active"  && { active: true }),
-    ...(activeFilter === "revoked" && { active: false }),
+    ...statusFilterParams(activeFilter),
     ...(hideInactiveMembers && { activeMembersOnly: true }),
   };
 
@@ -306,8 +337,10 @@ const CheckoutRoster: React.FC<Props> = ({
   const memberRead = useReadTransaction(listMemberCheckouts, memberParams, canManage,
     `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${activeFilter}`);
 
-  const { isRequesting, data: checkouts = [], response, refresh, error: loadError } =
+  const { isRequesting, data: loadedCheckouts = [], response, refresh, error: loadError } =
     canManage ? adminRead : memberRead;
+  // A reinstated pair stays together (replacement first) whatever the row order.
+  const checkouts = React.useMemo(() => keepReinstatedPairsTogether(loadedCheckouts as ToolCheckout[]), [loadedCheckouts]);
 
   const { data: shops = [] } = useCheckoutCatalog("shops");
   const { data: tools = [], refresh: refreshCatalog } = useCheckoutCatalog("tools", !canManage);
@@ -325,7 +358,7 @@ const CheckoutRoster: React.FC<Props> = ({
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
 
-  const selectedCheckout = (checkouts as ToolCheckout[]).find(c => c.id === selectedId);
+  const selectedCheckout = checkouts.find(c => c.id === selectedId);
 
   const onSuccess = React.useCallback((state: any) => {
     const unmet = state?.response?.data?.unmetPrerequisites;
@@ -411,10 +444,36 @@ const CheckoutRoster: React.FC<Props> = ({
     },
     {
       id: "active", label: "Status",
-      cell: (row: ToolCheckout) => row.active
-        ? <StatusLabel label="Active"  color={Status.Success} />
-        : <StatusLabel label="Revoked" color={Status.Danger}  />,
+      cell: (row: ToolCheckout) => {
+        switch (rosterStatus(row)) {
+          case "reinstatedActive":
+            return (
+              <span style={{ whiteSpace: "nowrap" }}>
+                <StatusLabel label="Active" color={Status.Success} />{" "}
+                <Chip size="small" label="Reinstated" variant="outlined" />
+              </span>
+            );
+          case "reinstatedRevoked": {
+            const current = checkouts.find(c => c.id === row.reinstatedByCheckoutId);
+            return (
+              <div>
+                <StatusLabel label="Reinstated" color={Status.Default} />
+                <Typography variant="caption" color="textSecondary" style={{ display: "block" }}>
+                  {current ? `Replaced by the active checkout from ${new Date(current.checkedOutAt).toLocaleDateString()}`
+                    : "Replaced by a newer active checkout"}
+                </Typography>
+              </div>
+            );
+          }
+          case "active": return <StatusLabel label="Active" color={Status.Success} />;
+          default: return <StatusLabel label="Revoked" color={Status.Danger} />;
+        }
+      },
     },
+    ...(canManage ? [{
+      id: "notes", label: "Notes",
+      cell: (row: ToolCheckout) => <CheckoutNotes row={row} />,
+    }] : []),
   ];
 
   return (
@@ -433,7 +492,7 @@ const CheckoutRoster: React.FC<Props> = ({
               </Typography>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {canReinstate && selectedCheckout && !selectedCheckout.active && (
+              {canReinstate && selectedCheckout && !selectedCheckout.active && !selectedCheckout.reinstated && (
                 <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
                   onClick={() => setReinstateTarget(selectedCheckout)}>
                   Reinstate Checkout
@@ -461,7 +520,7 @@ const CheckoutRoster: React.FC<Props> = ({
           <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div />
             <div style={{ display: "flex", gap: 8 }}>
-              {canReinstate && selectedCheckout && !selectedCheckout.active && (
+              {canReinstate && selectedCheckout && !selectedCheckout.active && !selectedCheckout.reinstated && (
                 <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
                   onClick={() => setReinstateTarget(selectedCheckout)}>
                   Reinstate Checkout
@@ -505,6 +564,7 @@ const CheckoutRoster: React.FC<Props> = ({
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
           <option value="active">Active only</option>
           <option value="revoked">Revoked only</option>
+          <option value="reinstated">Reinstated</option>
           <option value="all">All</option>
         </Select>
       </Grid>}
@@ -523,7 +583,7 @@ const CheckoutRoster: React.FC<Props> = ({
           id="checkout-roster-table"
           title={memberView ? "Active Checkouts" : preselectedMember ? "Tool Checkouts" : "All Checkouts"}
           loading={isRequesting}
-          data={checkouts as ToolCheckout[]}
+          data={checkouts}
           error={loadError}
           columns={columns}
           rowId={rowId}

@@ -122,6 +122,7 @@ changing, whatever its file type, rather than working from memory of what it say
 | Mocked browser checks | [Browser check guide](tests/browser/README.md). |
 | NFC, fobs, PWA, native transport | [NFC/native implementation](docs/nfc-mobile.md), [mobile environment](docs/mobile-environment.md); [original plan](docs/nfc-capacitor-plan.md) is design history. |
 | QR camera, scan links, permissions | [QR scanning](docs/qr-scanning.md). |
+| User-visible flow, screen, button, or message changes | Update the matching wiki page in the public [WikiPages](https://github.com/ManchesterMakerspace/WikiPages) repository in the same work; follow "Wiki updates" in the [Rails handbook](https://github.com/ManchesterMakerspace/makerspace-rails-2026/blob/master/AGENTS.md#wiki-updates) (test data only, fetch first, no unreleased behavior, ask before pushing to `master`). |
 | Backend contracts or feature semantics | Read the companion Rails handbook and its task-specific documentation table; use the [Rails repository](https://github.com/ManchesterMakerspace/makerspace-rails-2026) when no local checkout is needed. |
 
 Update feature docs when behavior changes, and this handbook plus the Copilot

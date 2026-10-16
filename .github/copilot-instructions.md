@@ -35,3 +35,8 @@ Update overlapping instructions here whenever the canonical handbook changes.
 - For cross-repository changes, read both handbooks and verify API/auth contracts.
   Report changes, checks actually run, failures/missing prerequisites, docs updated,
   and companion-repository or release requirements.
+- When a change alters a user-visible flow, screen, button, or message, update the
+  matching page in the public wiki repository
+  [WikiPages](https://github.com/ManchesterMakerspace/WikiPages) in the same work
+  (see the Rails handbook's "Wiki updates"): test data only, fetch first, do not
+  describe unreleased behavior as live, and ask before pushing to `master`.
