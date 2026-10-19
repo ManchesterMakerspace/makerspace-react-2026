@@ -27,6 +27,8 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
   const canEditNotes = !tool || tool.notes !== undefined;
   const [value, setValue] = React.useState<Partial<Tool>>(() => ({
     name: tool?.name ?? "",
+    checkoutTrainingPlanUrl: tool?.checkoutTrainingPlanUrl ?? "",
+    checkoutExpirationYears: tool?.checkoutExpirationYears ?? null,
     shopId: tool?.shopId ?? initialShopId ?? shops[0]?.id ?? "",
     locationId: tool?.locationId ?? "",
     wikiUrlOverride: tool?.wikiUrlOverride ?? "",
@@ -144,6 +146,15 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
         </RadioGroup>}
         {creatingGroup ? <ToolGroupForm value={group} onChange={setGroup} tools={tools} shops={shops} /> : <Grid container spacing={2}>
           <Grid size={{ xs: 12 }}>
+            <TextField fullWidth label="Checkout Training Plan URL" type="url" value={value.checkoutTrainingPlanUrl || ''}
+              onChange={event => set('checkoutTrainingPlanUrl', event.target.value)} sx={{ mb: 2 }} />
+            <TextField fullWidth select label="Checkouts expire after" value={value.checkoutExpirationYears ?? ''}
+              slotProps={{ select: { native: true } }} sx={{ mb: 2 }}
+              helperText="Applies to new approvals and reinstatements. Existing dates are unchanged."
+              onChange={event => set('checkoutExpirationYears', event.target.value ? Number(event.target.value) : null)}>
+              <option value="">Never</option>
+              {[1, 2, 3, 4, 5].map(year => <option key={year} value={year}>{year}-year{year > 1 ? 's' : ''}</option>)}
+            </TextField>
             <TextField fullWidth required label="Tool Name" value={value.name} autoFocus
               onChange={event => set("name", event.target.value)} />
           </Grid>

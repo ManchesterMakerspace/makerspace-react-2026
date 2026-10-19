@@ -83,6 +83,7 @@ export interface JobScheduleSettings {
 }
 
 export interface SystemConfigData {
+  checkout?: { checkout_expiration_notice_days: number; can_manage: boolean };
   flags: {
     slack_sync_enabled: boolean;
     slack_profile_sync_enabled: boolean;

@@ -19,6 +19,8 @@ export default function ToolGroupForm({ value, onChange, tools, shops }: {
       {shops.map(shop => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
     </TextField>
     <TextField required label="Group name" value={value.name || ''} onChange={event => change({ name: event.target.value })} />
+    <TextField label="Checkout Training Plan URL" type="url" value={value.checkoutTrainingPlanUrl || ''}
+      onChange={event => change({ checkoutTrainingPlanUrl: event.target.value })} />
     <TextField multiline label="Description" value={value.description || ''} onChange={event => change({ description: event.target.value })} />
     <Autocomplete multiple options={options.filter(tool => !value.prerequisiteIds?.includes(tool.id))}
       getOptionLabel={tool => tool.name} value={options.filter(tool => value.includedToolIds?.includes(tool.id))}

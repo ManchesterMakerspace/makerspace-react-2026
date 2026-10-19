@@ -1,11 +1,13 @@
 import { ToolCheckout } from "app/entities/toolCheckout";
 
-export type RosterStatusFilter = "active" | "revoked" | "reinstated" | "all";
+export type RosterStatusFilter = "active" | "expired" | "history" | "revoked" | "reinstated" | "all";
 
 // Query params for the roster's Status filter. "Revoked only" leaves out revoked rows that an
 // active checkout has superseded; those appear under "Reinstated".
-export const statusFilterParams = (filter: RosterStatusFilter): { active?: boolean; reinstated?: boolean } => {
+export const statusFilterParams = (filter: RosterStatusFilter): { active?: boolean; reinstated?: boolean; status?: string } => {
   switch (filter) {
+    case "expired": return { status: "expired" };
+    case "history": return { status: "history" };
     case "active": return { active: true };
     case "revoked": return { active: false, reinstated: false };
     case "reinstated": return { reinstated: true };
@@ -13,9 +15,11 @@ export const statusFilterParams = (filter: RosterStatusFilter): { active?: boole
   }
 };
 
-export type RosterStatus = "active" | "reinstatedActive" | "reinstatedRevoked" | "revoked";
+export type RosterStatus = "expired" | "history" | "active" | "reinstatedActive" | "reinstatedRevoked" | "revoked";
 
 export const rosterStatus = (row: ToolCheckout): RosterStatus => {
+  if (row.expirationStatus === 'history' || row.supersededById) return 'history';
+  if (row.expirationStatus === 'expired') return 'expired';
   if (row.active) return row.reinstatedFromId ? "reinstatedActive" : "active";
   return row.reinstated ? "reinstatedRevoked" : "revoked";
 };

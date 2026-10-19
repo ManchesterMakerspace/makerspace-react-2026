@@ -41,9 +41,9 @@ describe("checkout roster notes and member selection", () => {
   });
   afterEach(() => { act(() => root.unmount()); container.remove(); jest.useRealTimers(); });
 
-  it("exposes tool notes on keyboard focus in My Active Tool Checkouts", async () => {
+  it("exposes tool notes on keyboard focus in My Tool Checkouts", async () => {
     await act(async () => root.render(<CheckoutRoster memberView isAdmin={false} isResourceManager={false} />));
-    expect(container.textContent).toContain("My Active Tool Checkouts");
+    expect(container.textContent).toContain("My Tool Checkouts");
     const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Notes for Bandsaw"]')!;
     expect(trigger.tabIndex).toBe(0);
     await act(async () => trigger.focus());
@@ -90,7 +90,7 @@ describe("checkout roster notes and member selection", () => {
       Array.from(container.querySelectorAll("button")).some(button => button.textContent === label);
     beforeEach(() => {
       mockRows = [
-        { id: "revoked", toolName: "Lathe", memberName: "Pat", shopName: "Metal", active: false },
+        { id: "revoked", toolName: "Lathe", memberName: "Pat", shopName: "Metal", active: false, revokedAt: "2026-10-01T12:00:00Z" },
         { id: "live", toolName: "Mill", memberName: "Sam", shopName: "Metal", active: true },
       ];
     });

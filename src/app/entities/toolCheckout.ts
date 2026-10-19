@@ -70,6 +70,9 @@ export interface GoogleCalendarColor {
 }
 
 export interface Tool {
+  checkoutExpirationYears?: number | null;
+  canManageCheckoutExpiration?: boolean;
+  checkoutTrainingPlanUrl?: string | null;
   canGenerateCheckoutRequiredSheet?: boolean;
   allowPending?: boolean;
   outOfService?: boolean;
@@ -116,6 +119,14 @@ export interface Tool {
 }
 
 export interface ToolCheckout {
+  expiresOn?: string | null;
+  expirationRevision?: number;
+  expirationStatus?: 'active' | 'expired' | 'revoked' | 'history';
+  checkoutTrainingPlanUrl?: string | null;
+  renewedFromId?: string | null;
+  supersededById?: string | null;
+  canManageExpiration?: boolean;
+  canRenew?: boolean;
   outOfService?: boolean;
   id: string;
   memberId: string;
@@ -178,6 +189,7 @@ export interface FobMemberPreview {
 }
 
 export interface ToolCheckoutRequest {
+  checkoutTrainingPlanUrl?: string | null;
   toolGroupId?: string;
   targetType?: 'tool' | 'group';
   targetName?: string;
@@ -205,6 +217,7 @@ export interface ToolCheckoutRequest {
 }
 
 export interface ToolGroup {
+  checkoutTrainingPlanUrl?: string | null;
   id: string;
   shopId: string;
   name: string;

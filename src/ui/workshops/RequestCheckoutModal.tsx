@@ -1,4 +1,5 @@
 import * as React from "react";
+import CheckoutTrainingPlanLink from "ui/toolCheckouts/CheckoutTrainingPlanLink";
 import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
 
@@ -38,6 +39,7 @@ const RequestCheckoutModal: React.FC<{
       closeHandler={onClose} onSubmit={submit} submitText="Submit Request"
       loading={saving} error={error}>
       <ToolAvailability outOfService={tool?.outOfService} />
+      <CheckoutTrainingPlanLink url={tool?.checkoutTrainingPlanUrl} />
       {!!tool?.unmetPrerequisiteNames?.length && <Alert severity="warning">Recommended checkouts: {tool.unmetPrerequisiteNames.join(", ")}</Alert>}
       <TextField fullWidth label="Note" value={note}
         onChange={event => setNote(event.target.value)}
