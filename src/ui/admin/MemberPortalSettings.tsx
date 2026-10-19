@@ -82,6 +82,7 @@ const JOB_LABELS: Record<string, string> = {
   volunteer_event_reminder: 'Volunteer Event Reminders',
   checkout_request_reminder: 'Checkout Request Reminders',
   checkout_request_digest: 'Checkout Request Digest',
+  checkout_expiration_notice: 'Checkout Expiration Notices',
 };
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
@@ -97,6 +98,7 @@ const JOB_DESCRIPTIONS: Record<string, string> = {
   member_provisioning_reconciliation: 'Reconciles Slack/Google Drive provisioning state for all initialized members. Runs hourly.',
   volunteer_event_reminder: 'Sends reminder notifications for upcoming volunteer events. Runs daily.',
   checkout_request_reminder: 'Posts a still-waiting reminder in the Resource Managers channel for checkout requests open 5 or more days, repeating every 5 days until resolved. Runs daily.',
+  checkout_expiration_notice: 'Sends grouped Slack and email warnings for upcoming checkout expiration, plus final expired notices. Runs only when invoked here or from the CLI.',
   checkout_request_digest: 'Sends each resource manager and approver a daily DM listing the open checkout requests they can act on, grouped by requester with the age of each request. Runs daily.',
 };
 
@@ -728,6 +730,13 @@ interface JobsTabProps {
 
 const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMessage, onSettingSave, savingKey }) => (
   <Grid container spacing={2}>
+    {config.checkout?.can_manage && <Grid size={{ xs: 12 }}>
+      <Card variant="outlined"><CardContent><SettingRow
+        label="Checkout expiration advance notice (days)" description="Whole number of at least 4 days. Second warning is 3 days before expiration. No automatic schedule is configured."
+        settingKey="checkout_expiration_notice_days" value={String(config.checkout.checkout_expiration_notice_days)}
+        onSave={onSettingSave} saving={savingKey === 'checkout_expiration_notice_days'} />
+      </CardContent></Card>
+    </Grid>}
     <Grid size={{ xs: 12 }}>
       <Card variant='outlined'>
         <CardHeader
@@ -765,7 +774,7 @@ const JobsTab: React.FC<JobsTabProps> = ({ config, onRunJob, runningJob, jobMess
         </CardContent>
       </Card>
     </Grid>
-    {config.jobs.filter(j => j.key !== 'slack_sync').map((job: JobStatus) => (
+    {config.jobs.filter(j => j.key !== 'slack_sync' && (j.key !== 'checkout_expiration_notice' || config.checkout?.can_manage)).map((job: JobStatus) => (
       <Grid size={{ xs: 12 }} key={job.key}>
         <Card variant='outlined'>
           <CardContent>
@@ -1188,6 +1197,8 @@ const MemberPortalSettings: React.FC = () => {
           setConfig({ ...config, volunteer: { ...config.volunteer, [key]: value } });
         } else if (key === 'reservation_token') {
           setConfig({ ...config, reservation: { ...config.reservation, [key]: value } });
+        } else if (key === 'checkout_expiration_notice_days') {
+          setConfig({ ...config, checkout: { ...config.checkout, checkout_expiration_notice_days: Number(value) } });
         } else if (key.endsWith('_day')) {
           setConfig({ ...config, job_schedule: { ...config.job_schedule, [key]: value } });
         }

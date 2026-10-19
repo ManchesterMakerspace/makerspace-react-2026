@@ -28,6 +28,10 @@ export const CheckoutCatalogProvider: React.FC<React.PropsWithChildren<{ scopeKe
     if (enabled.managedShops) managedShops.refresh();
     if (enabled.tools) tools.refresh();
   }, [enabled, shops.refresh, managedShops.refresh, tools.refresh]);
+  React.useEffect(() => {
+    window.addEventListener('checkout-expiration-changed', refresh);
+    return () => window.removeEventListener('checkout-expiration-changed', refresh);
+  }, [refresh]);
   return <Context.Provider value={{ reads: { shops, managedShops, tools }, enable, refresh }}>
     {children}
   </Context.Provider>;

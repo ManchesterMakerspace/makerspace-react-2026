@@ -80,3 +80,12 @@ this diagnostic must not gate a build or deployment. It uses mocked APIs and the
 tracked `fixtures/shortcode-bootstrap.js`, so a standalone React clone works.
 The fixture represents the Rails shell's path replacement before React starts;
 keep it aligned when that shell contract changes. Sibling Rails assets are optional.
+
+## Checkout expiration
+
+Build with `yarn webpack --config tests/browser/checkout-expiration/webpack.cjs`,
+then run `node tests/browser/checkout-expiration/check.cjs`. Real portal controls
+with mocked APIs exercise training links, keyboard opening, individual Never
+edits/revision payloads, renewal, bulk count confirmation, and overflow at
+320/600/900/1280 px. Screenshots go to `tmp/checkout-expiration-browser`.
+This does not replace transactional Rails or disposable-data E2E coverage.

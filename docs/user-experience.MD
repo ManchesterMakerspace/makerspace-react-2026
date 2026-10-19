@@ -341,3 +341,32 @@ Before considering a UI change complete, confirm that it:
 - reuses the existing logo and visual language rather than inventing a parallel
   style; and
 - updates this document when deliberately changing the shared standard.
+
+## Checkout training plans and expiration
+
+Tool/group editors include Checkout Training Plan URL; tool editors also offer
+Checkouts expire after (Never, 1–5 years). Training plan chips use a separate
+browsing context with noopener/noreferrer on request creation, pending requests,
+workshops, and existing checkouts. Empty/unsafe URLs produce no link.
+
+My Tool Checkouts includes expired and history filters, Eastern expiration dates,
+and a server-authorized Request renewal action. Renewal submits a normal request
+and keeps the expired checkout until approval. Expiration is distinct from
+revocation and does not offer the reinstatement action.
+
+Server capabilities control Edit expiration and Set checkout expirations. The
+individual dialog permits any date or Never and sends the displayed revision;
+a conflict displays the error and refreshes data. Bulk management confirms the
+tool and current non-revoked count, requires a future Eastern date, and displays
+the final affected count. Loading/errors prevent premature submission. Saved
+changes refresh roster, catalog/eligibility, and request data.
+
+Admin Jobs offers Checkout Expiration Notices and Checkout expiration advance
+notice (days), default 14 and minimum 4. Non-admin viewers do not receive these
+controls. Run Now is manual; no schedule is added. Local wrappers handle the
+new Rails contracts without a generated-client package release. Deploy Rails
+and its expiration index first, then the complete portal bundle.
+
+The Reinstated status filter is limited to the authorized management roster,
+which uses the admin endpoint supporting reinstated pairs. My Tool Checkouts
+omits it; switching to that view resets an unsupported selection to Active.

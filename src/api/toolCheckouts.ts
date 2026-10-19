@@ -151,6 +151,8 @@ export const listTools = (params?: { shopId?: string }) =>
   }));
 
 const toolSettingsBody = (body: Partial<Tool>) => ({
+  checkout_training_plan_url: body.checkoutTrainingPlanUrl,
+  checkout_expiration_years: body.checkoutExpirationYears,
   name: body.name,
   requestor_annotation: body.requestorAnnotation,
   wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
@@ -209,6 +211,7 @@ export const listToolCheckouts = (params?: {
   shopId?: string;
   toolId?: string;
   active?: boolean;
+  status?: string;
   // true: only reinstated pairs (superseded revoked row + its replacement);
   // false: leave out revoked rows that an active checkout has superseded.
   reinstated?: boolean;
@@ -221,6 +224,7 @@ export const listToolCheckouts = (params?: {
       ...(params?.shopId && { shop_id: params.shopId }),
       ...(params?.toolId && { tool_id: params.toolId }),
       ...(params?.active !== undefined && { active: params.active }),
+      ...(params?.status && { status: params.status }),
       ...(params?.reinstated !== undefined && { reinstated: params.reinstated }),
       ...(params?.activeMembersOnly && { active_members_only: true }),
     }
@@ -230,6 +234,7 @@ export const listMemberCheckouts = (params?: {
   memberId?: string;
   shopId?: string;
   active?: boolean;
+  status?: string;
   includeHidden?: boolean;
 }) =>
   buildResponse<ToolCheckout[]>(api.get("/api/tool_checkouts", {
@@ -237,6 +242,7 @@ export const listMemberCheckouts = (params?: {
       ...(params?.memberId && { member_id: params.memberId }),
       ...(params?.shopId && { shop_id: params.shopId }),
       ...(params?.active !== undefined && { active: params.active }),
+      ...(params?.status && { status: params.status }),
       ...(params?.includeHidden && { include_hidden: true }),
     }
   }));
@@ -358,6 +364,7 @@ export const saveToolGroup = (body: Partial<ToolGroup>) => {
     prerequisite_ids: body.prerequisiteIds, included_tool_ids: body.includedToolIds,
     reservable: body.reservable, requestable: body.requestable, announce: body.announce,
     announce_channel: body.announceChannel, revision: body.revision,
+    checkout_training_plan_url: body.checkoutTrainingPlanUrl,
   };
   return buildResponse<ToolGroup>(body.id
     ? api.put(`/api/tool_groups/${body.id}`, data) : api.post('/api/tool_groups', data));
@@ -374,3 +381,10 @@ export const approveToolGroup = (id: string, memberId: string, revision: number,
 // resource managers, and every additional checkout approver for the tool.
 export const adminUpdateToolAnnotation = ({ id, annotation }: { id: string; annotation: string | null }) =>
   buildResponse<Tool>(api.patch(`/api/admin/tools/${id}/requestor_annotation`, { requestor_annotation: annotation }));
+
+export const updateCheckoutExpiration = (checkout: ToolCheckout, expiresOn: string | null) =>
+  buildResponse<ToolCheckout>(api.patch(`/api/admin/tool_checkouts/${checkout.id}/expiration`, {
+    expires_on: expiresOn, expiration_revision: checkout.expirationRevision ?? 0,
+  }));
+export const bulkUpdateCheckoutExpirations = (toolId: string, expiresOn: string) =>
+  buildResponse<{ affectedCount: number }>(api.post(`/api/admin/tools/${toolId}/checkout_expirations`, { expires_on: expiresOn }));

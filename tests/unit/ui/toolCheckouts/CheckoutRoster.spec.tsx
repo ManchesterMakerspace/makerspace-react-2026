@@ -41,14 +41,32 @@ describe("checkout roster notes and member selection", () => {
   });
   afterEach(() => { act(() => root.unmount()); container.remove(); jest.useRealTimers(); });
 
-  it("exposes tool notes on keyboard focus in My Active Tool Checkouts", async () => {
+  it("exposes tool notes on keyboard focus in My Tool Checkouts", async () => {
     await act(async () => root.render(<CheckoutRoster memberView isAdmin={false} isResourceManager={false} />));
-    expect(container.textContent).toContain("My Active Tool Checkouts");
+    expect(container.textContent).toContain("My Tool Checkouts");
     const trigger = container.querySelector<HTMLButtonElement>('button[aria-label="Notes for Bandsaw"]')!;
     expect(trigger.tabIndex).toBe(0);
     await act(async () => trigger.focus());
     await act(async () => { jest.advanceTimersByTime(200); });
     expect(document.querySelector('[role="tooltip"]')?.textContent).toBe("Cabinet combination: 1234");
+  });
+
+  it("hides the unsupported Reinstated filter on the member endpoint", async () => {
+    await act(async () => root.render(<CheckoutRoster memberView isAdmin={false} isResourceManager={false} />));
+    expect(container.querySelector('option[value="reinstated"]')).toBeNull();
+    expect(container.querySelector('option[value="expired"]')).not.toBeNull();
+    expect(container.querySelector('option[value="history"]')).not.toBeNull();
+  });
+
+  it("falls back to Active when switching from a reinstated management view to My Checkouts", async () => {
+    await act(async () => root.render(<CheckoutRoster isAdmin isResourceManager={false} />));
+    const select = container.querySelector<HTMLOptionElement>('option[value="reinstated"]')!.parentElement as HTMLSelectElement;
+    await act(async () => { select.value = 'reinstated'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(select.value).toBe('reinstated');
+    await act(async () => root.render(<CheckoutRoster memberView isAdmin={false} isResourceManager={false} />));
+    const active = container.querySelector<HTMLOptionElement>('option[value="active"]')!.parentElement as HTMLSelectElement;
+    expect(active.value).toBe('active');
+    expect(container.querySelector('option[value="reinstated"]')).toBeNull();
   });
 
   it("omits the tooltip for missing or whitespace-only notes", async () => {
@@ -90,7 +108,7 @@ describe("checkout roster notes and member selection", () => {
       Array.from(container.querySelectorAll("button")).some(button => button.textContent === label);
     beforeEach(() => {
       mockRows = [
-        { id: "revoked", toolName: "Lathe", memberName: "Pat", shopName: "Metal", active: false },
+        { id: "revoked", toolName: "Lathe", memberName: "Pat", shopName: "Metal", active: false, revokedAt: "2026-10-01T12:00:00Z" },
         { id: "live", toolName: "Mill", memberName: "Sam", shopName: "Metal", active: true },
       ];
     });

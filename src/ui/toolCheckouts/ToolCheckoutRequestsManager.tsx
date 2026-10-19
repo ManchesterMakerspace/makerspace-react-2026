@@ -1,6 +1,7 @@
 // @ts-nocheck
 import ToolAvailability from "ui/common/ToolAvailability";
 import * as React from "react";
+import CheckoutTrainingPlanLink from './CheckoutTrainingPlanLink';
 import useToolGroups from './useToolGroups';
 import GroupApproval from './GroupApproval';
 import { useCheckoutCatalog } from './CheckoutCatalog';
@@ -70,6 +71,7 @@ export const RequestModal: React.FC<RequestModalProps> = ({ target, onClose, onS
           <Grid size={{ xs: 12 }}>
             <Typography><strong>{target.name}</strong> in <strong>{target.shopName}</strong></Typography>
             <ToolAvailability outOfService={target.outOfService} />
+            <CheckoutTrainingPlanLink url={target.checkoutTrainingPlanUrl} />
             {target.targetType === 'group' && <><Chip label="Group" size="small" /><GroupDetails group={target} /></>}
             {target.prerequisiteNames?.length > 0 && (
               <Typography variant="caption" color="textSecondary">
@@ -175,6 +177,11 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
   const refreshAvailableRef = React.useRef(availableRead.refresh);
   React.useEffect(() => { refreshRequestsRef.current = requestRead.refresh; }, [requestRead.refresh]);
   React.useEffect(() => { refreshAvailableRef.current = availableRead.refresh; }, [availableRead.refresh]);
+  React.useEffect(() => {
+    const refresh = () => { refreshRequestsRef.current(); refreshAvailableRef.current(); };
+    window.addEventListener('checkout-expiration-changed', refresh);
+    return () => window.removeEventListener('checkout-expiration-changed', refresh);
+  }, []);
 
   const requests = (requestRead.data || []) as ToolCheckoutRequest[];
   const catalog = requestCatalog(availableRead.data || [], groups, params, defaultItemsPerPage);
@@ -214,6 +221,7 @@ const ToolCheckoutRequestsManager: React.FC<Props> = ({ canManage }) => {
         <div>
           <Typography variant="body2"><strong>{row.targetName || row.toolName}</strong> {row.targetType === 'group' && <Chip label="Group" size="small" />} <ToolAvailability outOfService={row.outOfService} /></Typography>
           <Typography variant="caption" color="textSecondary">{row.shopName}</Typography>
+          <CheckoutTrainingPlanLink url={row.checkoutTrainingPlanUrl} />
           {!canManage && <RequestorAnnotationTooltip annotation={row.requestorAnnotation} />}
         </div>
       ),

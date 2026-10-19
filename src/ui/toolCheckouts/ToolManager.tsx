@@ -2,6 +2,7 @@
 import ToolAvailability from "ui/common/ToolAvailability";
 import ToolOutageAction from "ui/fixTickets/ToolOutageAction";
 import * as React from "react";
+import { BulkCheckoutExpirationButton } from './CheckoutExpirationActions';
 import ToolGroupList from './ToolGroupList';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -226,6 +227,7 @@ const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) =>
               <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                 onClick={() => setQrTool(selectedTool)}>QR Code</Button>
             )}
+            {selectedTool && <BulkCheckoutExpirationButton key={selectedTool.id} tool={selectedTool} onSaved={() => refreshRef.current()} />}
             {selectedTool && !editingId && canFullyManageSelected && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}

@@ -13,6 +13,9 @@ export interface WorkshopResourceManager {
 }
 
 export interface WorkshopCheckout {
+  checkoutTrainingPlanUrl?: string | null;
+  expiresOn?: string | null;
+  expirationStatus?: string;
   id: string;
   active: boolean;
   checkedOutAt?: string;
@@ -28,6 +31,7 @@ export interface WorkshopCheckoutRequest {
 }
 
 export interface WorkshopTool {
+  checkoutTrainingPlanUrl?: string | null;
   canGenerateCheckoutRequiredSheet?: boolean;
   outOfService?: boolean;
   open?: boolean;

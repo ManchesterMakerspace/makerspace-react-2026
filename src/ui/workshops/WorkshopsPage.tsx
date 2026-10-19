@@ -7,6 +7,7 @@ import CheckoutMemberDialog from "./CheckoutMemberDialog";
 import QrCodeIcon from "@mui/icons-material/QrCode";
 import { useCapabilities } from "app/permissions";
 import * as React from "react";
+import CheckoutTrainingPlanLink from "ui/toolCheckouts/CheckoutTrainingPlanLink";
 import ShopOutageAction from './ShopOutageAction';
 import ToolOutageAction from 'ui/fixTickets/ToolOutageAction';
 import { Link, useSearchParams } from "react-router-dom";
@@ -220,7 +221,8 @@ export const WorkshopTools: React.FC<{
 
               {tool.checkout && <>
                 <Typography variant="body2" style={{ marginTop: 5 }}>
-                  Checkout: {tool.checkout.active ? "Active" : "Revoked"}
+                  Checkout: {tool.checkout.expirationStatus === "expired" ? "Expired" : tool.checkout.active ? "Active" : "Revoked"}
+                  {tool.checkout.expiresOn ? ` — expiration ${tool.checkout.expiresOn}` : " — Never expires"}
                   {tool.checkout.checkedOutAt
                     ? ` since ${moment(tool.checkout.checkedOutAt).format("MMM D, YYYY")}`
                     : ""}
@@ -230,6 +232,7 @@ export const WorkshopTools: React.FC<{
                 </Typography>
               </>}
 
+              <CheckoutTrainingPlanLink url={tool.checkout?.checkoutTrainingPlanUrl || tool.checkoutTrainingPlanUrl} />
               {tool.checkoutRequest &&
                 <Typography variant="body2" style={{ marginTop: 5 }}>
                   Checkout request pending

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import ToolAvailability, { toolAvailabilityLabel } from "ui/common/ToolAvailability";
 import * as React from "react";
+import { CheckoutExpirationActions } from './CheckoutExpirationActions';
 import useToolGroups from './useToolGroups';
 import ToolGroupLoadStatus from './ToolGroupLoadStatus';
 import GroupApproval from './GroupApproval';
@@ -64,7 +65,7 @@ const noteLine = (label: string, text?: string, who?: string, at?: string) => (
 // Internal notes arrive only for viewers the server entitles to them; otherwise the cell is empty.
 export const CheckoutNotes: React.FC<{ row: ToolCheckout }> = ({ row }) => {
   const lines: React.ReactNode[] = [];
-  if (!row.active) {
+  if (row.revokedAt) {
     if (row.revocationReason || row.revokedByName || row.revokedAt) {
       lines.push(<React.Fragment key="revoked">{noteLine("Revoked", row.revocationReason, row.revokedByName, row.revokedAt)}</React.Fragment>);
     }
@@ -307,6 +308,7 @@ const CheckoutRoster: React.FC<Props> = ({
 
   const canManage = !memberView && (isAdmin || isResourceManager);
   // The server allows only Admin/Board to reinstate; RMs and approvers never see the action.
+  const statusFilter = canManage || activeFilter !== "reinstated" ? activeFilter : "active";
   const canReinstate = canManage && !!(currentUser.isAdmin || currentUser.isBoardMember);
 
   // The full roster hides checkouts held by expired, revoked or otherwise inactive members unless asked;
@@ -318,24 +320,25 @@ const CheckoutRoster: React.FC<Props> = ({
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
     ...(toolFilter && { toolId: toolFilter }),
-    ...statusFilterParams(activeFilter),
+    ...statusFilterParams(statusFilter),
     ...(hideInactiveMembers && { activeMembersOnly: true }),
   };
 
   // Admin/RM path — skipped (delay=true) when the viewer is a plain member.
   const adminRead = useReadTransaction(listToolCheckouts, checkoutParams, !canManage,
-    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${activeFilter}-${hideInactiveMembers}`);
+    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${statusFilter}-${hideInactiveMembers}`);
 
   // Member self-view path — skipped (delay=true) when the viewer can manage.
   const memberParams = {
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
-    ...(activeFilter === "active"  && { active: true }),
-    ...(activeFilter === "revoked" && { active: false }),
-    ...(memberView && { active: true, includeHidden: true }),
+    ...(statusFilter === "active"  && { active: true }),
+    ...(statusFilter === "revoked" && { active: false }),
+    ...(memberView && { includeHidden: true }),
+    ...((statusFilter === "expired" || statusFilter === "history") && { status: statusFilter }),
   };
   const memberRead = useReadTransaction(listMemberCheckouts, memberParams, canManage,
-    `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${activeFilter}`);
+    `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${statusFilter}`);
 
   const { isRequesting, data: loadedCheckouts = [], response, refresh, error: loadError } =
     canManage ? adminRead : memberRead;
@@ -355,6 +358,11 @@ const CheckoutRoster: React.FC<Props> = ({
     .filter(t => t.shopId === shopFilter)
     .sort((a, b) => a.name.localeCompare(b.name));
 
+  React.useEffect(() => {
+    const update = () => { refresh(); refreshCatalog(); };
+    window.addEventListener('checkout-expiration-changed', update);
+    return () => window.removeEventListener('checkout-expiration-changed', update);
+  }, [refresh, refreshCatalog]);
   const refreshRef = React.useRef(refresh);
   React.useEffect(() => { refreshRef.current = refresh; }, [refresh]);
 
@@ -459,17 +467,20 @@ const CheckoutRoster: React.FC<Props> = ({
               <div>
                 <StatusLabel label="Reinstated" color={Status.Default} />
                 <Typography variant="caption" color="textSecondary" style={{ display: "block" }}>
-                  {current ? `Replaced by the active checkout from ${new Date(current.checkedOutAt).toLocaleDateString()}`
-                    : "Replaced by a newer active checkout"}
+                  {current ? `Replaced by the checkout from ${new Date(current.checkedOutAt).toLocaleDateString()}`
+                    : "Replaced by a newer checkout"}
                 </Typography>
               </div>
             );
           }
+          case "expired": return <StatusLabel label="Expired" color={Status.Warning} />;
+          case "history": return <StatusLabel label="Renewed" color={Status.Default} />;
           case "active": return <StatusLabel label="Active" color={Status.Success} />;
           default: return <StatusLabel label="Revoked" color={Status.Danger} />;
         }
       },
     },
+    { id: "expiresOn", label: "Expiration / training", cell: (row: ToolCheckout) => <CheckoutExpirationActions checkout={row} onSaved={() => { refresh(); refreshCatalog(); }} /> },
     ...(canManage ? [{
       id: "notes", label: "Notes",
       cell: (row: ToolCheckout) => <CheckoutNotes row={row} />,
@@ -483,22 +494,22 @@ const CheckoutRoster: React.FC<Props> = ({
           <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div>
               <Typography variant="h6">
-                {memberView ? "My Active Tool Checkouts" : "Tool Checkout Roster"}
+                {memberView ? "My Tool Checkouts" : "Tool Checkout Roster"}
               </Typography>
               <Typography variant="body2" color="textSecondary">
                 {memberView
-                  ? "All of your active tool checkouts, including hidden tools."
+                  ? "View current and expired checkouts, training plans, and renewal history."
                   : "All member tool checkouts across all shops."}
               </Typography>
             </div>
             <div style={{ display: "flex", gap: 8 }}>
-              {canReinstate && selectedCheckout && !selectedCheckout.active && !selectedCheckout.reinstated && (
+              {canReinstate && selectedCheckout && selectedCheckout.revokedAt && !selectedCheckout.reinstated && (
                 <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
                   onClick={() => setReinstateTarget(selectedCheckout)}>
                   Reinstate Checkout
                 </Button>
               )}
-              {canManage && selectedCheckout?.active && (
+              {canManage && selectedCheckout && !selectedCheckout.revokedAt && !selectedCheckout.supersededById && (
                 <Button variant="outlined" color="secondary" startIcon={<BlockIcon />}
                   onClick={() => setRevokeTarget(selectedCheckout)}>
                   Revoke Checkout
@@ -520,13 +531,13 @@ const CheckoutRoster: React.FC<Props> = ({
           <Grid container justifyContent="space-between" alignItems="center" sx={{ columnGap: 2, rowGap: 1.5 }}>
             <div />
             <div style={{ display: "flex", gap: 8 }}>
-              {canReinstate && selectedCheckout && !selectedCheckout.active && !selectedCheckout.reinstated && (
+              {canReinstate && selectedCheckout && selectedCheckout.revokedAt && !selectedCheckout.reinstated && (
                 <Button variant="outlined" color="primary" startIcon={<RestoreIcon />}
                   onClick={() => setReinstateTarget(selectedCheckout)}>
                   Reinstate Checkout
                 </Button>
               )}
-              {selectedCheckout?.active && (
+              {selectedCheckout && !selectedCheckout.revokedAt && !selectedCheckout.supersededById && (
                 <Button variant="outlined" color="secondary" startIcon={<BlockIcon />}
                   onClick={() => setRevokeTarget(selectedCheckout)}>
                   Revoke Checkout
@@ -558,13 +569,15 @@ const CheckoutRoster: React.FC<Props> = ({
           {filterTools.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </Select>
       </Grid>}
-      {!memberView && <Grid size={{ xs: 6, sm: 2 }}>
+      {<Grid size={{ xs: 6, sm: 2 }}>
         <FormLabel style={{ fontSize: 12 }}>Status</FormLabel>
-        <Select native fullWidth value={activeFilter}
+        <Select native fullWidth value={statusFilter}
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
           <option value="active">Active only</option>
+          <option value="expired">Expired only</option>
+          <option value="history">Renewal history</option>
           <option value="revoked">Revoked only</option>
-          <option value="reinstated">Reinstated</option>
+          {canManage && <option value="reinstated">Reinstated</option>}
           <option value="all">All</option>
         </Select>
       </Grid>}
@@ -581,7 +594,7 @@ const CheckoutRoster: React.FC<Props> = ({
       <Grid size={{ xs: 12 }}>
         <StatefulTable
           id="checkout-roster-table"
-          title={memberView ? "Active Checkouts" : preselectedMember ? "Tool Checkouts" : "All Checkouts"}
+          title={memberView ? "My Checkouts" : preselectedMember ? "Tool Checkouts" : "All Checkouts"}
           loading={isRequesting}
           data={checkouts}
           error={loadError}
