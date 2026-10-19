@@ -308,6 +308,7 @@ const CheckoutRoster: React.FC<Props> = ({
 
   const canManage = !memberView && (isAdmin || isResourceManager);
   // The server allows only Admin/Board to reinstate; RMs and approvers never see the action.
+  const statusFilter = canManage || activeFilter !== "reinstated" ? activeFilter : "active";
   const canReinstate = canManage && !!(currentUser.isAdmin || currentUser.isBoardMember);
 
   // The full roster hides checkouts held by expired, revoked or otherwise inactive members unless asked;
@@ -319,25 +320,25 @@ const CheckoutRoster: React.FC<Props> = ({
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
     ...(toolFilter && { toolId: toolFilter }),
-    ...statusFilterParams(activeFilter),
+    ...statusFilterParams(statusFilter),
     ...(hideInactiveMembers && { activeMembersOnly: true }),
   };
 
   // Admin/RM path — skipped (delay=true) when the viewer is a plain member.
   const adminRead = useReadTransaction(listToolCheckouts, checkoutParams, !canManage,
-    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${activeFilter}-${hideInactiveMembers}`);
+    `checkouts-admin-${preselectedMember?.id || "all"}-${shopFilter}-${toolFilter}-${statusFilter}-${hideInactiveMembers}`);
 
   // Member self-view path — skipped (delay=true) when the viewer can manage.
   const memberParams = {
     ...(preselectedMember && { memberId: preselectedMember.id }),
     ...(shopFilter && { shopId: shopFilter }),
-    ...(activeFilter === "active"  && { active: true }),
-    ...(activeFilter === "revoked" && { active: false }),
+    ...(statusFilter === "active"  && { active: true }),
+    ...(statusFilter === "revoked" && { active: false }),
     ...(memberView && { includeHidden: true }),
-    ...((activeFilter === "expired" || activeFilter === "history") && { status: activeFilter }),
+    ...((statusFilter === "expired" || statusFilter === "history") && { status: statusFilter }),
   };
   const memberRead = useReadTransaction(listMemberCheckouts, memberParams, canManage,
-    `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${activeFilter}`);
+    `checkouts-self-${preselectedMember?.id || "me"}-${shopFilter}-${statusFilter}`);
 
   const { isRequesting, data: loadedCheckouts = [], response, refresh, error: loadError } =
     canManage ? adminRead : memberRead;
@@ -570,13 +571,13 @@ const CheckoutRoster: React.FC<Props> = ({
       </Grid>}
       {<Grid size={{ xs: 6, sm: 2 }}>
         <FormLabel style={{ fontSize: 12 }}>Status</FormLabel>
-        <Select native fullWidth value={activeFilter}
+        <Select native fullWidth value={statusFilter}
           onChange={e => setActiveFilter((e.target as HTMLSelectElement).value as any)}>
           <option value="active">Active only</option>
           <option value="expired">Expired only</option>
           <option value="history">Renewal history</option>
           <option value="revoked">Revoked only</option>
-          <option value="reinstated">Reinstated</option>
+          {canManage && <option value="reinstated">Reinstated</option>}
           <option value="all">All</option>
         </Select>
       </Grid>}

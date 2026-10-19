@@ -366,3 +366,7 @@ notice (days), default 14 and minimum 4. Non-admin viewers do not receive these
 controls. Run Now is manual; no schedule is added. Local wrappers handle the
 new Rails contracts without a generated-client package release. Deploy Rails
 and its expiration index first, then the complete portal bundle.
+
+The Reinstated status filter is limited to the authorized management roster,
+which uses the admin endpoint supporting reinstated pairs. My Tool Checkouts
+omits it; switching to that view resets an unsupported selection to Active.
