@@ -36,9 +36,9 @@ export class AdminToolCheckoutsPage {
     await this.page.getByRole('button', { name: 'Add Tool' }).click();
     await this.page.waitForSelector('[role="dialog"]', { timeout: 10_000 });
 
-    // Shop select — native select inside dialog
+    // Target the label: the expiration policy select appears before Shop.
     const dialog = this.page.locator('[role="dialog"]');
-    await dialog.locator('select').first().selectOption({ label: shopName });
+    await dialog.getByRole('combobox', { name: /^Shop\b/ }).selectOption({ label: shopName });
 
     // MUI v5: accessible name is the label, not the placeholder
     await this.page.getByRole('textbox', { name: 'Tool Name' }).fill(toolName);
