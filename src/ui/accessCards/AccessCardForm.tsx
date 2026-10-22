@@ -14,6 +14,7 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useModal from "../hooks/useModal";
 import { ActionButton } from "../common/ButtonRow";
+import { useHouseholdSetupToast } from "../member/householdSetup";
 
 const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
   const [error, setError] = React.useState<string>();
@@ -50,11 +51,13 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
     data: member = {} as Member
   } = useReadTransaction(getMember, { id: memberId });
 
+  const showHouseholdToast = useHouseholdSetupToast();
   const onSuccess = React.useCallback(({ reset }) => {
     refreshMember();
     closeModal();
+    showHouseholdToast(member);
     reset();
-  }, [refreshMember, closeModal]);
+  }, [refreshMember, closeModal, member, showHouseholdToast]);
   const { isRequesting: createLoading, error: createError, call: createCard, data: newCard } = useWriteTransaction(adminCreateCard, onSuccess);
   const onSubmit = React.useCallback(() => {
     if (!member.memberContractOnFile) {

@@ -27,6 +27,7 @@ import RenewMember from "./RenewMember";
 import NotificationModal, { Notification } from "./NotificationModal";
 import AdminChangePasswordModal from "./AdminChangePasswordModal";
 import HouseholdModal from "./HouseholdModal";
+import { HouseholdSetupBanner } from "./householdSetup";
 import PreviewMemberContract from "../documents/PreviewMemberContract";
 import { SubRoutes } from "ui/settings/SettingsContainer";
 import { SubscriptionFilter } from "../subscriptions/SubscriptionFilters";
@@ -280,6 +281,7 @@ const MemberProfile: React.FC = () => {
           You must manually deactivate this member in Slack.
         </Box>
       )}
+      {canEditMembers && <HouseholdSetupBanner member={member} />}
       <DetailView
         title={memberTitle}
         basePath={`/members/${memberId}`}
