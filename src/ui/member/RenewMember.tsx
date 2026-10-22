@@ -6,17 +6,20 @@ import useWriteTransaction from "../hooks/useWriteTransaction";
 import { ActionButton } from "../common/ButtonRow";
 import useModal from "../hooks/useModal";
 import Form from "../common/Form";
+import { useHouseholdSetupToast } from "./householdSetup";
 
 
 const RenewMember: React.FC<{ member: Member | MemberSummary, onRenew: () => void }> = ({ member = {} as MemberSummary, onRenew }) => {
   const { isOpen, openModal, closeModal } = useModal();
   const formRef = React.useRef<RenewalForm>(null);
 
+  const showHouseholdToast = useHouseholdSetupToast();
   const onSuccess = React.useCallback(({ reset }) => {
     closeModal();
     onRenew();
+    showHouseholdToast(member);
     reset();
-  }, [closeModal]);
+  }, [closeModal, onRenew, member, showHouseholdToast]);
   const {
     isRequesting: memberRenewing,
     error: renewError,
