@@ -4,6 +4,7 @@ import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { adminMember, basicMember, expiredMember, newVisa, newMastercard } from '../fixtures/testData';
+import { restoreMemberPassword } from '../fixtures/memberPassword';
 
 // ── Test 1: Admin manually renews a member ────────────────────────────────────
 //
@@ -175,12 +176,16 @@ test.describe('Member self-service profile update', () => {
 //
 // Uses paypal_member3 — a clean seeded member not used by other suites.
 // Member changes password via Account Settings, logs out, logs back in with new password.
-// Restores original password at the end so the member is reusable.
+// Restores original password after every attempt, including failed attempts.
 
 test.describe('Member self-service password change', () => {
   const MEMBER_EMAIL    = 'paypal_member3@test.com';
   const ORIGINAL_PASS   = 'password';
   const NEW_PASS        = 'newPassword123';
+
+  test.afterEach(async ({ request }) => {
+    await restoreMemberPassword(request, MEMBER_EMAIL, ORIGINAL_PASS, NEW_PASS);
+  });
 
   test('Member changes password and can sign in with new password', async ({ page }) => {
     const auth     = new AuthPage(page);
@@ -192,7 +197,6 @@ test.describe('Member self-service password change', () => {
 
     // Navigate to Security tab (id="settings-security") — contains password change form
     await page.locator('#settings-security').click();
-    await page.waitForTimeout(500);
 
     // Fill new password form — use exact labels to avoid strict mode violation
     // (both fields match /new password/i since "Confirm New Password" contains "New Password")
@@ -204,8 +208,14 @@ test.describe('Member self-service password change', () => {
     await confirmField.waitFor({ state: 'visible', timeout: 10_000 });
     await confirmField.fill(NEW_PASS);
 
-    await page.locator('#change-password-submit').click();
-    await page.waitForTimeout(2000);
+    const [passwordChange] = await Promise.all([
+      page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/members/change_password' &&
+        response.request().method() === 'PUT'),
+      page.locator('#change-password-submit').click(),
+    ]);
+    expect(passwordChange.status()).toBe(204);
+    await expect(page.getByText('Password updated successfully.', { exact: true })).toBeVisible();
 
     // Sign out
     await auth.logout();
@@ -213,18 +223,6 @@ test.describe('Member self-service password change', () => {
     // Sign in with new password
     await auth.signIn(MEMBER_EMAIL, NEW_PASS);
     await expect(page.getByRole('button', { name: 'Menu' })).toBeVisible({ timeout: 15_000 });
-
-    // Restore original password so subsequent runs don't fail
-    await settings.goto();
-    await page.locator('#settings-security').click();
-    await page.waitForTimeout(500);
-    const restoreField = page.getByRole('textbox', { name: 'New Password', exact: true });
-    await restoreField.waitFor({ state: 'visible', timeout: 10_000 });
-    await restoreField.fill(ORIGINAL_PASS);
-    const restoreConfirm = page.getByRole('textbox', { name: 'Confirm New Password', exact: true });
-    await restoreConfirm.fill(ORIGINAL_PASS);
-    await page.locator('#change-password-submit').click();
-    await page.waitForTimeout(1000);
   });
 });
 
