@@ -30,6 +30,7 @@ export namespace Routing {
   export const Reservations = '/reservations';
   export const Analytics = '/admin/analytics';
   export const Volunteer = '/volunteer';
+  export const IssueFob = '/issue-fob';
   export const SystemSettings = '/admin/system-settings';
   export const SlackIdentityConflicts = '/admin/slack-identity-conflicts';
   export const AuditLog = '/admin/audit-log';

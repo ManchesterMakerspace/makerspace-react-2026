@@ -160,6 +160,7 @@ const toolSettingsBody = (body: Partial<Tool>) => ({
   description: body.description,
   notes: body.notes,
   allow_pending: body.allowPending,
+  grants_fob_issuance: body.grantsFobIssuance,
   shop_id: body.shopId,
   location_id: body.locationId,
   disabled: body.disabled,

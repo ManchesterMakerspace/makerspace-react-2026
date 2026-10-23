@@ -75,6 +75,8 @@ export interface Tool {
   checkoutTrainingPlanUrl?: string | null;
   canGenerateCheckoutRequiredSheet?: boolean;
   allowPending?: boolean;
+  // Admin/board only: an active checkout on this tool lets a member issue first key fobs.
+  grantsFobIssuance?: boolean;
   outOfService?: boolean;
   requestorAnnotation?: string | null;
   open?: boolean;
