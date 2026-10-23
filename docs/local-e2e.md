@@ -63,15 +63,31 @@ Tests that need profile tabs must call `MemberPage.gotoOwnProfile()` explicitly.
 changes the login destination. Signup tests assert the welcome Home destination
 before opening the profile for follow-up checks. `SettingsPage.goto()` uses the
 Home Account Settings link or the existing profile button, not the dropdown.
+`AuthPage.logout()` waits for the public login or landing controls to render;
+an SPA URL change and an already-fired DOMContentLoaded event are insufficient.
+Signing in again reuses a canonical `/login` navigation already in progress,
+while explicit return targets are cleared for the default-landing assertion.
 `MemberRentalsPage.clickProceed()` verifies that signing an agreement opens
 `/members/:id/dues` with the Dues tab selected, rather than falling back to Home.
 
 After building web assets, `node tests/browser/home.cjs` exercises these same
 page objects against the built UI with mocked APIs, including active/pending
 members, staff, restored sessions, explicit profile/settings navigation, and
-rental-agreement signing through to the rental invoice payment action.
+rental-agreement signing through to the rental invoice payment action. It also
+holds session restoration after an expired-session logout to check that the
+authentication helper waits for the login form and avoids a competing navigation.
 This check does not require backend credentials or reset a database; the full
 Rails/Braintree E2E suite remains a separate check.
+
+The self-service password test waits for the password update's `204` response
+and success message before logging out and signing in with the new password.
+An `afterEach` hook restores the seeded password using Playwright's isolated
+`request` fixture, so a navigation or assertion failure cannot leave the retry
+with changed credentials. Cleanup bootstraps its own session, reads the current
+CSRF cookie before each mutation, and verifies the API responses. If the changed
+password is rejected, cleanup confirms the original password still works.
+This uses the API because the seeded `password` value is too weak for the UI's
+current validation. These are test-only changes; portal behavior is unchanged.
 
 ## Ticket UI checks without backend credentials
 

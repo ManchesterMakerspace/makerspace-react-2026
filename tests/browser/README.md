@@ -48,6 +48,7 @@ Build web assets, then run `node tests/browser/home.cjs`. This check uses mocked
 APIs and headless Edge on Windows (Chromium elsewhere). It verifies member/staff
 and TOTP login destinations, protected Home links, checkout request/return refresh,
 the E2E authentication/profile/settings page helpers (including restored sessions),
+expired-session logout with delayed login-form readiness and immediate sign-in,
 rental-agreement signing followed by the profile Dues tab and rental payment,
 due-invoice filtering/pagination/actions, volunteer task/event claims and retries,
 account settings and menu ordering,

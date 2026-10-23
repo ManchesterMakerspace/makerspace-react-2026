@@ -3,9 +3,18 @@ import { Page, expect } from '@playwright/test';
 export class AuthPage {
   constructor(private page: Page) {}
 
+  private async openLogin(): Promise<void> {
+    const url = new URL(this.page.url());
+    // Logout can already be loading /login. Reuse that navigation instead of
+    // starting a competing document request; clear any explicit return target.
+    if (url.pathname !== '/login' || url.search || url.hash) {
+      await this.page.goto('/login');
+    }
+  }
+
   async signIn(email: string, password: string): Promise<void> {
     const navStart = Date.now();
-    await this.page.goto('/login');
+    await this.openLogin();
 
     // page.url() right after goto() reflects the URL Playwright requested,
     // not what the SPA does next. If a previous member's session is still
@@ -25,7 +34,7 @@ export class AuthPage {
 
     if (outcome === 'authenticated') {
       await this.logout();
-      await this.page.goto('/login');
+      await this.openLogin();
     }
 
     // Wait for login form to be ready before filling.
@@ -88,15 +97,12 @@ export class AuthPage {
       await logoutLink.waitFor({ state: 'visible' });
     }
     await logoutLink.click();
-    await this.page.waitForURL(/\/$|\/login/, { timeout: 15_000 });
-    // A request still in flight from the page just logged out of can resolve
-    // with a 401 after this URL match, and globalAuthInterceptor answers that
-    // with its own hard `window.location.href` redirect to /login. Wait for
-    // whatever navigation just landed to fully settle so that redirect can't
-    // still be in progress when the caller's next page.goto('/login') runs —
-    // two navigations to the same URL otherwise race and Playwright reports
-    // the second as "interrupted by another navigation".
-    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForURL(url => url.pathname === '/' || url.pathname === '/login', { timeout: 15_000 });
+    // An SPA URL change leaves the old document's load state satisfied. Wait
+    // for a public screen to render after logout/session restoration instead.
+    await this.page.getByRole('textbox', { name: 'Email', exact: true })
+      .or(this.page.getByRole('link', { name: 'Already a member? Login', exact: true }))
+      .first().waitFor({ state: 'visible', timeout: 15_000 });
   }
 
   async navigateViaMenu(linkName: string): Promise<void> {

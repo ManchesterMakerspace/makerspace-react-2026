@@ -42,6 +42,7 @@ async function mockApi(page, options = {}) {
     else if (/invoice_options|billing\/discounts/.test(url.pathname)) body = [];
     else if (url.pathname === '/api/signup_status') body = { locked: false };
     else if (url.pathname === '/api/members/sign_in') {
+      if (!req.postDataJSON()?.member) await options.beforeSessionRestore?.();
       if (authenticated) body = sessionMember;
       else if (req.postDataJSON()?.member) {
         if (options.totp) { status = 202; body = { totp_required: true }; }
@@ -49,6 +50,7 @@ async function mockApi(page, options = {}) {
       } else { status = 401; body = { error: 'Sign in required' }; }
     } else if (url.pathname === '/api/members/sign_out') {
       authenticated = false; body = {};
+      if (options.expiredLogout) status = 401;
     } else if (url.pathname === '/api/members/totp_sessions') {
       authenticated = true; body = sessionMember;
     } else if (url.pathname.endsWith('/permissions')) body = { billing: true };
@@ -90,6 +92,51 @@ async function mockApi(page, options = {}) {
   let browser;
   try {
     browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || (process.platform === 'win32' ? 'msedge' : undefined), headless: true });
+    // A password change invalidates the old Rails session. Its logout 401 can
+    // hard-navigate to /login while React is still replacing the protected UI.
+    // Hold session restoration to prove logout waits for the actual login form.
+    const logoutPage = await browser.newPage({ baseURL: base });
+    let holdSession = false, releaseSession, sessionStarted;
+    const sessionGate = new Promise(resolve => { releaseSession = resolve; });
+    const sessionRequest = new Promise(resolve => { sessionStarted = resolve; });
+    await mockApi(logoutPage, {
+      authenticated: false,
+      expiredLogout: true,
+      beforeSessionRestore: async () => {
+        if (holdSession) { sessionStarted(); await sessionGate; }
+      },
+    });
+    const logoutAuth = new AuthPage(logoutPage);
+    await logoutAuth.signIn(member.email, 'Password123');
+    await new SettingsPage(logoutPage).goto();
+    holdSession = true;
+    let logoutComplete = false;
+    const loggedOut = logoutAuth.logout().then(() => { logoutComplete = true; });
+    try {
+      await Promise.race([
+        sessionRequest,
+        new Promise((_, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Logout did not restore the public session')), 15_000);
+          timeout.unref();
+          sessionRequest.then(() => clearTimeout(timeout));
+        }),
+      ]);
+      await logoutPage.waitForLoadState('domcontentloaded');
+      await logoutPage.waitForTimeout(250);
+      assert.equal(logoutComplete, false, 'Logout must wait beyond DOMContentLoaded for the login form');
+    } finally {
+      releaseSession();
+      await loggedOut;
+    }
+    let loginDocumentRequests = 0;
+    logoutPage.on('request', request => {
+      if (request.isNavigationRequest() && new URL(request.url()).pathname === '/login') loginDocumentRequests++;
+    });
+    await logoutAuth.signIn(member.email, 'Password123');
+    assert.equal(loginDocumentRequests, 0, 'Sign-in must reuse the ready login page');
+    await logoutPage.close();
+    console.log('PASS expired-session logout waits for the login form and reuses its navigation');
+
     for (const width of [320, 600, 900, 1280]) {
       const rentalPage = await browser.newPage({ viewport: { width, height: 1000 } });
       const state = await mockApi(rentalPage);
