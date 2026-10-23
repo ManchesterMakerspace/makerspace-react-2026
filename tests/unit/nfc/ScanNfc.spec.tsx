@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { act } from 'react';
 import { createRoot, Root } from 'react-dom/client';
-let mockCaps = { canScanNfc: true, canManageNfcCards: false };
+let mockCaps: any = { canScanNfc: true, canManageNfcCards: false };
 let mockRead: (tag: any) => void;
 const mockStop = jest.fn();
 const mockNavigate = jest.fn();
@@ -76,6 +76,19 @@ describe('NFC interaction flows', () => {
     const candidate = jest.fn();
     await act(async () => root.render(<ScanNfc onUid={candidate} />)); await click('SCAN NFC');
     await act(async () => mockRead({ ...empty, uid: card.uid })); expect(candidate).toHaveBeenCalledWith(card.uid);
+  });
+  it('lets a fob issuer enroll a UID without the admin-only card lookup', async () => {
+    mockCaps.canManageNfcCards = false; mockCaps.canIssueFobs = true;
+    const candidate = jest.fn();
+    await act(async () => root.render(<ScanNfc onUid={candidate} />)); await click('SCAN NFC');
+    await act(async () => mockRead({ ...empty, uid: card.uid }));
+    expect(candidate).toHaveBeenCalledWith(card.uid);
+    expect(lookupNfcCard).not.toHaveBeenCalled();
+  });
+  it('offers enrollment scanning to nobody who is neither staff nor a fob issuer', async () => {
+    mockCaps.canManageNfcCards = false; mockCaps.canIssueFobs = false;
+    await act(async () => root.render(<ScanNfc onUid={jest.fn()} />));
+    expect(document.body.textContent).not.toContain('SCAN NFC');
   });
   it('ignores a late lookup after Cancel', async () => {
     mockCaps.canManageNfcCards = true;

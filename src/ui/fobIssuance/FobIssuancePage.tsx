@@ -91,7 +91,7 @@ const FobIssuancePage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 720 }}>
+    <Paper id="fob-issuance-page" sx={{ maxWidth: 720, p: 3 }}>
       <Typography variant="h5" gutterBottom>Issue a Key Fob</Typography>
       <Typography variant="body2" gutterBottom>
         For a member who does not have a key fob yet. Check their ID, then register their new fob.
@@ -201,7 +201,7 @@ const FobIssuancePage: React.FC = () => {
           </Button>
         </Paper>
       )}
-    </Box>
+    </Paper>
   );
 };
 

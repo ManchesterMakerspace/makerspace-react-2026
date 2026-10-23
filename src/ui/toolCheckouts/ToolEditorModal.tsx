@@ -5,6 +5,7 @@ import { adminCreateTool, adminUpdateTool, saveToolGroup } from "api/toolCheckou
 import { adminListLocations } from "api/locations";
 import ToolGroupForm, { emptyGroup } from './ToolGroupForm';
 import FormModal from "ui/common/FormModal";
+import { ReactReduxContext } from "react-redux";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import { flattenTree } from "./locationTree";
 import ReservationSettingsFields from "./ReservationSettingsFields";
@@ -25,6 +26,10 @@ interface ToolEditorModalProps {
 const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, initialShopId, onClose, onSaved, onPlaceOnMap }) => {
   // An omitted private field is a visibility decision, not an empty note.
   const canEditNotes = !tool || tool.notes !== undefined;
+  // Read without requiring a Provider (the editor is also rendered standalone in tests).
+  const currentUser = React.useContext(ReactReduxContext)?.store.getState()?.auth?.currentUser;
+  // Capability flag: the server ignores it from resource managers, so only offer it to admin and board.
+  const canSetFobIssuer = !!(currentUser?.isAdmin || currentUser?.isBoardMember);
   const [value, setValue] = React.useState<Partial<Tool>>(() => ({
     name: tool?.name ?? "",
     checkoutTrainingPlanUrl: tool?.checkoutTrainingPlanUrl ?? "",
@@ -39,6 +44,7 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
     open: tool?.open ?? false,
     disabled: tool?.disabled ?? false,
     allowPending: tool?.allowPending ?? false,
+    grantsFobIssuance: tool?.grantsFobIssuance ?? false,
     announce: tool?.announce ?? false,
     announceChannel: tool?.announceChannel ?? "",
     usersChannel: tool?.usersChannel ?? "",
@@ -213,6 +219,11 @@ const ToolEditorModal: React.FC<ToolEditorModalProps> = ({ tool, shops, tools, i
             <FormControlLabel label="Allow pending members to request checkout and reservations" control={<Checkbox
               checked={value.allowPending} onChange={event => set("allowPending", event.target.checked)} />} />
           </Grid>
+          {canSetFobIssuer && <Grid size={{ xs: 12 }}>
+            <FormControlLabel label="Fob Issuer: members with an active checkout on this tool can issue first key fobs" control={<Checkbox
+              id="tool-grants-fob-issuance" checked={!!value.grantsFobIssuance} onChange={event => set("grantsFobIssuance", event.target.checked)} />} />
+            <Typography variant="caption" component="div">Only one tool can be the Fob Issuer. Set its prerequisites (for example orientation) as usual.</Typography>
+          </Grid>}
           <Grid size={{ xs: 12 }}>
             <FormControlLabel label="Announce requests and checkouts" control={<Checkbox checked={value.announce} onChange={event => set("announce", event.target.checked)} />} />
           </Grid>

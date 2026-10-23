@@ -30,7 +30,7 @@ const ScanNfc = React.forwardRef<NfcController, { hiddenTrigger?: boolean; onUid
   const request = React.useRef<AbortController>(undefined);
   const generation = React.useRef(0);
   const retryButton = React.useRef<HTMLButtonElement>(null);
-  const allowed = !totpEnrollmentRequired && (onUid ? caps.canManageNfcCards : caps.canScanNfc);
+  const allowed = !totpEnrollmentRequired && (onUid ? (caps.canManageNfcCards || caps.canIssueFobs) : caps.canScanNfc);
   const cancel = React.useCallback(() => {
     generation.current++;
     stop.current();
@@ -70,6 +70,9 @@ const ScanNfc = React.forwardRef<NfcController, { hiddenTrigger?: boolean; onUid
           }
           setCard(found || undefined);
           if (!found) setMessage('No registered card found for this UID.');
+        } else if (onUid && caps.canIssueFobs && result.uid) {
+          // Fob issuers cannot inspect cards (admin-only lookup); the server rejects a UID that is already registered.
+          onUid(result.uid); close(); return;
         } else if (onUid) { throw new Error('No UID available. Try the Android app for non-NDEF fobs.'); }
         const destinations = await Promise.all(result.urls.map(url => resolveScanLink(url, portalOrigin(), controller.signal)));
         if (version !== generation.current) return;
