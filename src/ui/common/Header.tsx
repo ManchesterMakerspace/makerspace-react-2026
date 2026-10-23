@@ -160,6 +160,7 @@ class Header extends React.Component<Props, State> {
     // Privileged menu items — alphabetized
     const privilegedItems: JSX.Element[] = [
       this.renderMenuNavLink("/fix-tickets", "Fix Tickets", "fix-tickets", <CampaignIcon fontSize="small" />),
+      ...(computeCapabilities(currentUser).canIssueFobs ? [this.renderMenuNavLink(Routing.IssueFob, "Issue Fob", "issue-fob")] : []),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.Analytics, "Analytics", "analytics")] : []),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.AuditLog, "Audit Log", "audit-log")] : []),
       ...(billingEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.Billing, "Billing", "billing")] : []),

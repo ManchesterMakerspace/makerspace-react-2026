@@ -39,6 +39,7 @@ const MemberPortalSettings = lazyRoute(() => import(/* webpackChunkName: "admin-
 const SlackIdentityConflictsPage = lazyRoute(() => import(/* webpackChunkName: "admin-slack-identity-conflicts" */ 'ui/admin/SlackIdentityConflictsPage'));
 const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-volunteer", webpackPrefetch: true */ 'ui/volunteer/AdminVolunteerPage'));
 const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
+const FobIssuancePage = lazyRoute(() => import(/* webpackChunkName: "fob-issuance" */ 'ui/fobIssuance/FobIssuancePage'));
 const AuditLogPage = lazyRoute(() => import(/* webpackChunkName: "admin-audit-log", webpackPrefetch: true */ 'ui/auditLog/AuditLogPage'));
 
 interface Props {
@@ -107,6 +108,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path="/fix-tickets/:id" element={<FixTicketsPage />} />
       <Route path="/volunteer/tasks/:id" element={<FixBountyPage />} />
       <Route path={Routing.Workshops} element={<WorkshopsPage />} />
+      {caps.canIssueFobs         && <Route path={Routing.IssueFob}         element={<FobIssuancePage />} />}
       {caps.canManageVolunteer   && <Route path={Routing.Volunteer}        element={<AdminVolunteerPage />} />}
       {caps.canViewAnalytics      && <Route path={Routing.Analytics}       element={<AdminAnalyticsPage />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}

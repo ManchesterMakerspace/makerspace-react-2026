@@ -15,6 +15,7 @@ import { AuthMember } from 'ui/auth/interfaces';
 export interface UserCapabilities {
   canScanNfc: boolean;
   canManageNfcCards: boolean;
+  canIssueFobs: boolean; // holds the fob-issuer checkout (Rails decides; the server enforces it)
   // Member management
   canViewAllMembers:           boolean; // admin, board, rm
   canEditMembers:              boolean; // admin, board
@@ -57,6 +58,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
   const board    = !!user?.isBoardMember;
   const rm       = !!user?.isResourceManager;
   const approver = !!(user as any)?.isCheckoutApprover;
+  const fobIssuer = !!(user as any)?.isFobIssuer;
   const managesShops = rm && ((user as any)?.resourceManagerShopIds || []).length > 0;
 
   const privileged = admin || board;
@@ -64,6 +66,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
   return {
     canScanNfc: !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
     canManageNfcCards: privileged && !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
+    canIssueFobs: fobIssuer && !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
     canViewAllMembers:           privileged || rm,
     canEditMembers:              privileged,
     canCreateMembers:            privileged,
