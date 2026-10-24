@@ -281,6 +281,37 @@ callbacks on the intended deployment/device. Document platform/hardware gaps.
 Preserve read-only NFC scanning, safe URLs, and the PWA policy against caching
 authenticated data or offline mutations.
 
+### Finding and removing dead code
+
+`node scripts/find-unreachable.js` lists, without changing anything, the files nothing
+imports, the files only tests import, and file names that exist in more than one folder.
+`--exports` adds exported names no other file mentions (mostly types; not worth a PR).
+It builds the import graph with the project's own TypeScript resolution from the real
+entry points (`src/app/main.tsx`, `src/native/main.ts`) and follows lazy `import()`.
+
+Answer these from the repository; do not ask the maintainer for facts it already holds:
+
+- **Is it imported anywhere?** The script says. A file loaded by a computed path or named
+  only in a webpack config is invisible to it, so also `grep` the file's name across
+  `src`, `tests`, `docs`, and the `*.config.js` files.
+- **Is another copy the live one?** For a same-named pair, check which one a route or
+  importer actually uses (`PrivateRouting.tsx`, `PublicRouting.tsx`), then diff them. Keep
+  the live one; if the other has newer edits, port them first.
+- **Is anyone editing it?** `git log -3 -- <file>`, then list branches that touch it:
+  `for b in $(git branch -r | grep -v HEAD); do git diff --name-only origin/master...$b | grep -q <file> && echo $b; done`,
+  and check whether each has an open PR. A merged PR with a stale branch is not active work.
+- **Is it an unfinished feature rather than dead code?** A screen or API wrapper for an
+  endpoint that was added recently and has no caller yet may be waiting for its other half.
+  Check `git log` for the file and the matching Rails route before deleting.
+
+Delete in small commits, one theme each, and keep a file that has a history of edits in
+its own commit so it can be reverted alone. After each commit re-run the script, because
+removing a file can leave the files it imported unreachable. Stop when it reports none.
+Verify with `yarn typecheck`, `yarn test`, `yarn build`, and
+`NATIVE_API_ORIGIN=https://portal.example.test yarn build:native` (any HTTPS origin works
+for a compile check). Do not create a second copy of a component when replacing one;
+move it, so a "v2" never sits beside the original.
+
 ### Other pitfalls
 
 Use manifests/workflows as command authority, not historical comments. Retained

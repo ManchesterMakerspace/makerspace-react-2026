@@ -35,6 +35,10 @@ Update overlapping instructions here whenever the canonical handbook changes.
 - For cross-repository changes, read both handbooks and verify API/auth contracts.
   Report changes, checks actually run, failures/missing prerequisites, docs updated,
   and companion-repository or release requirements.
+- Dead or duplicate code: run `node scripts/find-unreachable.js`, answer ownership and
+  use questions from the repo (imports, `git log`, open branches, PRs) instead of asking,
+  delete in themed commits, and re-run until it reports none. See "Finding and removing
+  dead code" in [AGENTS.md](../AGENTS.md).
 - When a change alters a user-visible flow, screen, button, or message, update the
   matching page in the public wiki repository
   [WikiPages](https://github.com/ManchesterMakerspace/WikiPages) in the same work
