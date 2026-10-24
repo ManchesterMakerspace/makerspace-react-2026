@@ -64,6 +64,8 @@ const reach = (starts) => {
 const fromApp = reach(ENTRIES.filter(e => graph.has(e)));
 const fromTests = reach(testFiles);
 const rel = f => f.replace(`${root}/`, '');
+// Escape every regular-expression metacharacter, backslash included.
+const escapeRegExp = text => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const unreachable = srcFiles.filter(f => !fromApp.has(f));
 const dead = unreachable.filter(f => !fromTests.has(f)).sort();
@@ -91,7 +93,7 @@ if (withExports) {
     const re = /export\s+(?:declare\s+)?(?:async\s+)?(?:const|let|var|function\*?|class|interface|type|enum)\s+([A-Za-z0-9_$]+)/g;
     while ((m = re.exec(texts.get(f)))) names.add(m[1]);
     for (const n of names) {
-      const word = new RegExp(`\\b${n.replace(/\$/g, '\\$')}\\b`);
+      const word = new RegExp(`\\b${escapeRegExp(n)}\\b`);
       if (![...texts].some(([g, t]) => g !== f && word.test(t))) unused.push(`${rel(f)} :: ${n}`);
     }
   }
