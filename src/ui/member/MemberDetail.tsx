@@ -28,6 +28,7 @@ import NotificationModal, { Notification } from "./NotificationModal";
 import AdminChangePasswordModal from "./AdminChangePasswordModal";
 import HouseholdModal from "./HouseholdModal";
 import { HouseholdSetupBanner } from "./householdSetup";
+import { ActiveRentalsBanner } from "./activeRentals";
 import PreviewMemberContract from "../documents/PreviewMemberContract";
 import { SubRoutes } from "ui/settings/SettingsContainer";
 import { SubscriptionFilter } from "../subscriptions/SubscriptionFilters";
@@ -282,6 +283,7 @@ const MemberProfile: React.FC = () => {
         </Box>
       )}
       {canEditMembers && <HouseholdSetupBanner member={member} />}
+      {canEditMembers && <ActiveRentalsBanner member={member} />}
       <DetailView
         title={memberTitle}
         basePath={`/members/${memberId}`}
