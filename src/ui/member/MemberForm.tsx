@@ -17,6 +17,7 @@ import { fields as memberFormField, MemberRoleOptions } from "ui/member/constant
 import Form from "ui/common/Form";
 import { toDatePicker } from "ui/utils/timeToDate";
 import { memberStatusLabelMap } from "./MemberStatusLabel";
+import { ActiveRentalsStatusNote } from "./activeRentals";
 import { states } from "./states";
 import { listShops } from "api/toolCheckouts";
 import { Shop } from "app/entities/toolCheckout";
@@ -285,6 +286,7 @@ class MemberForm extends React.Component<OwnProps, State> {
               {Object.entries(memberStatusLabelMap).map(
                 ([key, value]) => <option id={`${fields.status.name}-option-${kebabCase(key)}`} key={kebabCase(key)} value={key}>{value}</option>)}
             </Select>
+            <ActiveRentalsStatusNote member={member} />
           </Grid>
           <Grid size={{ xs: 12 }}>
             <FormLabel component="legend">{fields.role.label}</FormLabel>
