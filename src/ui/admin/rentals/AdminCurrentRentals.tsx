@@ -23,6 +23,7 @@ import { useCapabilities } from "app/permissions";
 import { RentalStatus } from "app/entities/rentalSpot";
 import { markRentalVacated } from "api/rentals";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
+import { RentalNotesCell } from "./RentalNotesCell";
 
 const rowId = (rental: Rental) => rental.id;
 
@@ -102,6 +103,11 @@ const AdminCurrentRentalsInner: React.FC = () => {
         }
         return <StatusLabel label={label} color={color} />;
       },
+    },
+    {
+      id: "notes", label: "Notes",
+      cell: (r: Rental) => <RentalNotesCell rental={r} />,
+      width: 220,
     },
   ];
 
