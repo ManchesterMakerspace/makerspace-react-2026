@@ -6,6 +6,7 @@ export interface AuditLog {
   id:              string;
   logType:         string;
   eventType:       string;
+  category:        string;
   actorId:         string | null;
   actorName:       string | null;
   subjectId:       string | null;
@@ -23,6 +24,7 @@ export interface AuditLog {
 }
 
 export interface AuditLogQueryParams {
+  category?:   string;
   logType?:    string;
   eventType?:  string;
   actorId?:    string;
@@ -70,3 +72,13 @@ api.interceptors.request.use(config => {
 
 export const adminListAuditLogs = (params: AuditLogQueryParams) =>
   buildResponse<AuditLog[]>(api.get('/api/admin/audit_logs', { params }));
+
+export interface AuditLogFilterChoices {
+  categories: { value: string; label: string }[];
+  eventTypes: { value: string; category: string }[];
+}
+
+// The filter choices come from the server: the categories, and the event
+// types that actually occur in the log, so the lists cannot go stale.
+export const adminListAuditLogFilters = () =>
+  buildResponse<AuditLogFilterChoices>(api.get('/api/admin/audit_logs/filters'));

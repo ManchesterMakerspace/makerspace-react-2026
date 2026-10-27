@@ -2,7 +2,7 @@ import * as React from 'react';
 import Typography from '@mui/material/Typography';
 
 import { AuditLog } from 'api/auditLogs';
-import { adminListAuditLogs } from 'api/auditLogs';
+import { adminListAuditLogs, adminListAuditLogFilters } from 'api/auditLogs';
 import { Column } from 'ui/common/table/Table';
 import { SortDirection } from 'ui/common/table/constants';
 import StatefulTable from 'ui/common/table/StatefulTable';
@@ -10,15 +10,12 @@ import { useQueryContext, withQueryContext } from 'ui/common/Filters/QueryContex
 import useReadTransaction from 'ui/hooks/useReadTransaction';
 import extractTotalItems from 'ui/utils/extractTotalItems';
 import { timeToDateAndTime } from 'ui/utils/timeToDate';
-import { EVENT_TYPE_OPTIONS } from './AuditLogFilters';
-import AuditLogFilters from './AuditLogFilters';
+import AuditLogFilters, { DEFAULT_CATEGORY, eventTypeLabel } from './AuditLogFilters';
 import AuditLogDetail from './AuditLogDetail';
-
-const friendlyEventType = (eventType: string): string =>
-  EVENT_TYPE_OPTIONS[eventType] || eventType;
 
 const AuditLogsTable: React.FC = () => {
   const { params, setParam } = useQueryContext({
+    category:  DEFAULT_CATEGORY,
     logType:   undefined,
     eventType: undefined,
     actorId:   undefined,
@@ -32,6 +29,12 @@ const AuditLogsTable: React.FC = () => {
   const { isRequesting, error, data = [], response, refresh } = useReadTransaction(
     adminListAuditLogs,
     params
+  );
+
+  const { data: choices } = useReadTransaction(adminListAuditLogFilters, {});
+  const categoryLabels = React.useMemo(
+    () => Object.fromEntries((choices?.categories || []).map(option => [option.value, option.label])),
+    [choices]
   );
 
   const rowId = React.useCallback((log: AuditLog) => log.id, []);
@@ -54,7 +57,14 @@ const AuditLogsTable: React.FC = () => {
     {
       id: 'eventType',
       label: 'Event',
-      cell: (row: AuditLog) => friendlyEventType(row.eventType),
+      cell: (row: AuditLog) => (
+        <>
+          <Typography variant='body2'>{eventTypeLabel(row.eventType)}</Typography>
+          {categoryLabels[row.category] && (
+            <Typography variant='caption' color='textSecondary'>{categoryLabels[row.category]}</Typography>
+          )}
+        </>
+      ),
       defaultSortDirection: SortDirection.Desc,
     },
     {
@@ -104,7 +114,7 @@ const AuditLogsTable: React.FC = () => {
 
   return (
     <>
-      <AuditLogFilters onChange={refresh} />
+      <AuditLogFilters onChange={refresh} choices={choices} />
 
       <StatefulTable
         id='audit-logs-table'
