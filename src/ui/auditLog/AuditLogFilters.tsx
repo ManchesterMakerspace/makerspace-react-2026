@@ -13,15 +13,11 @@ import { withFilterButton } from 'ui/common/FilterButton';
 import { toDatePicker, dateToMidnight } from 'ui/utils/timeToDate';
 import MemberSearchInput from 'ui/common/MemberSearchInput';
 import { SelectOption } from 'ui/common/AsyncSelect';
+import { AuditLogFilterChoices } from 'api/auditLogs';
 
-export const LOG_TYPE_OPTIONS: Record<string, string> = {
-  '':       'All',
-  'member': 'Member',
-  'portal': 'Portal / Settings',
-};
-
+// Friendlier names for some event types; anything else is shown by
+// humanizing its event type (see eventTypeLabel).
 export const EVENT_TYPE_OPTIONS: Record<string, string> = {
-  '':                        'All',
   'member_updated':          'Member Updated',
   'membership_revoked':      'Membership Revoked',
   'invoice_created':         'Invoice Created',
@@ -30,10 +26,39 @@ export const EVENT_TYPE_OPTIONS: Record<string, string> = {
   'rental_cancelled':        'Rental Cancelled',
   'password_changed':        'Password Changed',
   'portal_setting_changed':  'Portal Setting Changed',
+  'system_email_sent':       'Email Sent',
+  'slack_message_sent':      'Slack Message Sent',
+  'slack_message_failed':    'Slack Message Failed',
 };
 
-const AuditLogFilters: React.FC<{ close: () => void; onChange: () => void }> = ({ close, onChange }) => {
+export const eventTypeLabel = (eventType: string): string =>
+  EVENT_TYPE_OPTIONS[eventType] ||
+  eventType.split('_').filter(Boolean).map(word => word[0].toUpperCase() + word.slice(1)).join(' ');
+
+// The screen opens on everything except Slack messages, so admin actions are
+// not buried under routine bot posts.
+export const DEFAULT_CATEGORY = 'all_except_slack';
+
+// "All" has its own value: an empty category would be refilled with the
+// default by useQueryContext.
+export const ALL_CATEGORIES = 'all';
+
+// Values that are not a single category, so they do not narrow the Event list.
+const BROAD_CATEGORIES = [ALL_CATEGORIES, DEFAULT_CATEGORY];
+
+const AuditLogFilters: React.FC<{ close: () => void; onChange: () => void; choices?: AuditLogFilterChoices }> = ({ close, onChange, choices }) => {
   const { params, setParam } = useQueryContext();
+  const category = params.category || DEFAULT_CATEGORY;
+  const eventTypes = (choices?.eventTypes || [])
+    .filter(eventType => BROAD_CATEGORIES.includes(category) || eventType.category === category);
+
+  // A different category can rule out the chosen event, so clear it.
+  const onCategoryChange = React.useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
+    setParam('category', (event.target.value as string) || DEFAULT_CATEGORY);
+    setParam('eventType', undefined);
+    onChange();
+    close();
+  }, [setParam, onChange, close]);
 
   const onSelectChange = React.useCallback((param: string) => (event: React.ChangeEvent<{ value: unknown }>) => {
     const value = event.target.value as string;
@@ -69,14 +94,15 @@ const AuditLogFilters: React.FC<{ close: () => void; onChange: () => void }> = (
 
       <Grid size={{ xs: 12 }} style={{ marginBottom: '1em' }}>
         <FormControl fullWidth>
-          <FormLabel>Type</FormLabel>
+          <FormLabel>Category</FormLabel>
           <Select
-            value={params.logType || ''}
-            onChange={onSelectChange('logType')}
+            value={category}
+            onChange={onCategoryChange}
             displayEmpty
+            inputProps={{ 'aria-label': 'Category' }}
           >
-            {Object.entries(LOG_TYPE_OPTIONS).map(([value, label]) => (
-              <MenuItem key={value} value={value}>{label}</MenuItem>
+            {(choices?.categories || [{ value: DEFAULT_CATEGORY, label: 'All except Slack messages' }, { value: ALL_CATEGORIES, label: 'All' }]).map(option => (
+              <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -89,9 +115,11 @@ const AuditLogFilters: React.FC<{ close: () => void; onChange: () => void }> = (
             value={params.eventType || ''}
             onChange={onSelectChange('eventType')}
             displayEmpty
+            inputProps={{ 'aria-label': 'Event' }}
           >
-            {Object.entries(EVENT_TYPE_OPTIONS).map(([value, label]) => (
-              <MenuItem key={value} value={value}>{label}</MenuItem>
+            <MenuItem value=''>All</MenuItem>
+            {eventTypes.map(eventType => (
+              <MenuItem key={eventType.value} value={eventType.value}>{eventTypeLabel(eventType.value)}</MenuItem>
             ))}
           </Select>
         </FormControl>
