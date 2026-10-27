@@ -222,12 +222,12 @@ const ToolManager: React.FC<{ onPlaceOnMap?: (shopId: string, toolId: string) =>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {/* The API scopes this list to tools the user can manage or approve. */}
-            {selectedTool && <CheckoutRequiredSheetButton key={selectedTool.id} kind="tool" resource={selectedTool} />}
+            {selectedTool && <CheckoutRequiredSheetButton key={`sheet-${selectedTool.id}`} kind="tool" resource={selectedTool} />}
             {selectedTool && (
               <Button variant="outlined" color="primary" startIcon={<QrCodeIcon />}
                 onClick={() => setQrTool(selectedTool)}>QR Code</Button>
             )}
-            {selectedTool && <BulkCheckoutExpirationButton key={selectedTool.id} tool={selectedTool} onSaved={() => refreshRef.current()} />}
+            {selectedTool && <BulkCheckoutExpirationButton key={`expirations-${selectedTool.id}`} tool={selectedTool} onSaved={() => refreshRef.current()} />}
             {selectedTool && !editingId && canFullyManageSelected && (
               <>
                 <Button variant="outlined" color="primary" startIcon={<EditIcon />}
