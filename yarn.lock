@@ -1235,9 +1235,9 @@
     tslib "^2.1.0"
 
 "@capacitor/ios@8":
-  version "8.5.2"
-  resolved "https://registry.yarnpkg.com/@capacitor/ios/-/ios-8.5.2.tgz#05f805fc6e4b0478156212f06a30862abae67a67"
-  integrity sha512-eOT2S67AfTFG7KN0T3oxwAajrJz4rSye+ODfvChiwrk0F/+kWufFM1qU6cDjGJUOfwdAoeuEpZyWHSwZlu4GFg==
+  version "8.5.3"
+  resolved "https://registry.yarnpkg.com/@capacitor/ios/-/ios-8.5.3.tgz#3bed5ce0673bc04ad9a961458337658472388c52"
+  integrity sha512-HnnV92Jl8+3x0JUloXUMjFcUsQI8wHFVsKwkLn72DfRZXYGZW11tQbmNOWOnRTljaU18FdI1b9ipT09SzzPDNw==
 
 "@cspotcode/source-map-support@^0.8.0":
   version "0.8.1"
