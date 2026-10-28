@@ -18,6 +18,7 @@ import LabelIcon from "@mui/icons-material/Label";
 import RentalSpotQrCodeModal from "./RentalSpotQrCodeModal";
 import RentalSpotLabelModal from "./RentalSpotLabelModal";
 import RentalSpotBulkLabelModal from "./RentalSpotBulkLabelModal";
+import { RentalNotesCell } from "./RentalNotesCell";
 import {
   SPOT_NUMBER_HINT, duplicateSpotNumber, friendlyRentalSpotError, spotNumberProblem, validateSpotForm,
 } from "./rentalSpotErrors";
@@ -201,6 +202,11 @@ const AdminRentalSpots: React.FC = () => {
       cell: (row: RentalSpot) => row.active
         ? <StatusLabel label="Active"   color={Status.Success} />
         : <StatusLabel label="Disabled" color={Status.Danger} />,
+    },
+    {
+      id: "notes", label: "Notes",
+      cell: (row: RentalSpot) => <RentalNotesCell rental={row} />,
+      width: 220,
     },
   ];
 
