@@ -1199,9 +1199,9 @@
   integrity sha512-uKBlsrXH0IdvUn69e/KKYbZ32A06pcrUdG8LWuZ/6y33YMXZXLEEdNSwl+jKS/SrsTWqnePs8EqSWaiQM3mUGA==
 
 "@capacitor/browser@8":
-  version "8.0.4"
-  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-8.0.4.tgz#6a51e03a3f6690fad1bc638e6da0c302418088a2"
-  integrity sha512-ORZ4u/y+7aMuu6yVuk6SP529fUZyqcbnuHB1q5McpA3o2SYfVoi28iB8rsQjI2ad1qlKJd29ZUuGtspXLBDlWg==
+  version "8.0.5"
+  resolved "https://registry.yarnpkg.com/@capacitor/browser/-/browser-8.0.5.tgz#c3b2e2ec38ac37c929a1f476b2ffa7cdfd981266"
+  integrity sha512-qqcEjUqs9kG1naF+tsD8rERuZ3wuIfXzvoIJEERHI4RNWwNSUqAHHduaKhkyb+t01VyVPa0ydx0mZ/eOskk2Ug==
 
 "@capacitor/cli@8.5.3":
   version "8.5.3"
