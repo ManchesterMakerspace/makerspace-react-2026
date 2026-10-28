@@ -69,6 +69,12 @@ export interface TotpSettings {
   require_totp_rm: boolean;
 }
 
+export interface SecuritySettings {
+  /** Minutes of inactivity before a signed-in member is signed out (server default 30). */
+  devise_timeout_minutes?: string;
+  ticket_open_limit?: number | string;
+}
+
 export interface ReservationSettings {
   reservation_token: string;
 }
@@ -98,6 +104,7 @@ export interface SystemConfigData {
   volunteer: VolunteerSettings;
   totp: TotpSettings;
   reservation: ReservationSettings;
+  security?: SecuritySettings;
   job_schedule: JobScheduleSettings;
 }
 

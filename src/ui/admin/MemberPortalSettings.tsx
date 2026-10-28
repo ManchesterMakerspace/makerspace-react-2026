@@ -126,6 +126,14 @@ export const validateTicketBountyLimit = (value: string) =>
   /^[+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(value.trim()) && Number.isFinite(Number(value)) && Number(value) >= 0.5
     ? '' : 'Enter a number of at least 0.5.';
 
+// The server reads this with Ruby's Integer(), which parses a leading zero as octal ("030" would save
+// 24 minutes), so only a plain positive whole number is accepted.
+export const validateIdleTimeoutMinutes = (value: string) =>
+  /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value))
+    ? '' : 'Enter a whole number of minutes, at least 1, with no leading zero.';
+
+export const DEFAULT_IDLE_TIMEOUT_MINUTES = '30';
+
 export const SettingRow: React.FC<SettingRowProps> = ({ label, description, settingKey, value, onSave, saving, validate }) => {
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft]     = React.useState(value);
@@ -898,12 +906,16 @@ const SecurityTab: React.FC = () => {
     require_totp_rm:    false,
     signup_lockout_enabled: false,
   });
+  const [idleTimeout, setIdleTimeout] = React.useState(DEFAULT_IDLE_TIMEOUT_MINUTES);
+  const [savingTimeout, setSavingTimeout] = React.useState(false);
 
   React.useEffect(() => {
     getSystemConfigs()
       .then(result => {
         const totp = (result as any)?.data?.totp;
         const systemFlags = (result as any)?.data?.flags;
+        const timeout = (result as any)?.data?.security?.devise_timeout_minutes;
+        if (timeout) setIdleTimeout(String(timeout));
         if (totp || systemFlags) {
           setFlags(prev => ({
             require_totp_admin: totp ? !!totp.require_totp_admin : prev.require_totp_admin,
@@ -919,6 +931,15 @@ const SecurityTab: React.FC = () => {
         setLoading(false);
       });
   }, []);
+
+  const handleTimeoutSave = async (key: string, value: string) => {
+    setSavingTimeout(true);
+    try {
+      const { error: err } = await updateSystemSetting({ key, value });
+      if (err) throw new Error(err.message || 'Unable to save. Please try again.');
+      setIdleTimeout(value);
+    } finally { setSavingTimeout(false); }
+  };
 
   const handleToggle = async (key: string, value: boolean) => {
     setSaving(true);
@@ -970,6 +991,25 @@ const SecurityTab: React.FC = () => {
         onToggle={handleToggle}
         saving={saving}
       />
+
+      <Grid size={{ xs: 12 }}><Divider style={{ margin: '16px 0' }} /></Grid>
+      <Grid size={{ xs: 12 }}>
+        <Typography variant='h6' gutterBottom>Sessions</Typography>
+        <Typography variant='body2' color='textSecondary' style={{ marginBottom: 16 }}>
+          A member who does nothing for this long is signed out and must sign in again.
+          It applies to everyone at once, including people already signed in. Members on a phone who
+          chose Stay logged in are not affected.
+        </Typography>
+        <SettingRow
+          label='Idle Session Timeout (minutes)'
+          description='Whole minutes of inactivity before sign-out. Default 30.'
+          settingKey='devise_timeout_minutes'
+          value={idleTimeout}
+          onSave={handleTimeoutSave}
+          saving={savingTimeout}
+          validate={validateIdleTimeoutMinutes}
+        />
+      </Grid>
 
       <Grid size={{ xs: 12 }}><Divider style={{ margin: '16px 0' }} /></Grid>
       <Grid size={{ xs: 12 }}>
