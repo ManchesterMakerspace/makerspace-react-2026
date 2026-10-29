@@ -3,14 +3,43 @@ import Tooltip from '@mui/material/Tooltip';
 import Box from '@mui/material/Box';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import InfoOutlined from '@mui/icons-material/InfoOutlined';
+import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
 import SecurityIcon from '@mui/icons-material/Security';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { ROLE_BADGE_COLORS } from 'ui/common/statusColors';
 
-// Mailtrap webhook event values (event field, not status)
-const GOOD_STATUSES = ['delivery', 'open', 'click'];
+type EmailTone = 'success' | 'info' | 'warning' | 'error';
+
+// Mailtrap webhook event values (event field, not status), plus "sent", which
+// the server reports when an email went out but Mailtrap has said nothing yet.
+// Red is kept for addresses we cannot reach; softer problems are amber.
+const STATUS_TONES: Record<string, EmailTone> = {
+  'delivery':    'success',
+  'open':        'success',
+  'click':       'success',
+  'sent':        'info',
+  'soft bounce': 'warning',
+  'spam':        'warning',
+  'unsubscribe': 'warning',
+  'bounce':      'error',
+  'reject':      'error',
+  'suspension':  'error',
+};
+
+// Each tone has its own shape, so the meaning does not depend on color alone.
+const TONE_ICONS: Record<EmailTone, typeof CheckCircleIcon> = {
+  success: CheckCircleIcon,
+  info:    ScheduleSendIcon,
+  warning: WarningAmberIcon,
+  error:   ErrorIcon,
+};
+
+// A "sent" email with still no report after this long deserves a look.
+const SENT_STALE_MS = 24 * 60 * 60 * 1000;
 
 const STATUS_LABELS: Record<string, string> = {
+  'sent':        'Email sent — no delivery report yet',
   'delivery':    'Email delivered successfully',
   'open':        'Email opened (may include automated prefetch)',
   'click':       'Email link clicked by recipient',
@@ -35,26 +64,28 @@ export interface SlackData {
 }
 
 export const EmailStatusIcon: React.FC<{ mailtrap?: MailtrapData }> = ({ mailtrap }) => {
-  if (!mailtrap) {
+  // The server reports "unknown" when nothing has been sent to the current
+  // address. That is the usual state for long-standing members, so it stays quiet.
+  if (!mailtrap || mailtrap.status === 'unknown') {
     return (
-      <Tooltip title='No email delivery data on record'>
-        <InfoOutlined fontSize='small' sx={{ color: 'text.disabled', verticalAlign: 'middle' }} />
+      <Tooltip title='No email has been sent to this address yet'>
+        <EmailOutlinedIcon fontSize='small' sx={{ color: 'text.disabled', verticalAlign: 'middle' }} />
       </Tooltip>
     );
   }
 
   const { status, timestamp, email } = mailtrap;
-  const isGood = GOOD_STATUSES.includes(status);
-  const label = STATUS_LABELS[status] || `Email status: ${status}`;
-  const formattedTime = timestamp ? new Date(timestamp).toLocaleString() : '';
+  const sentAt = timestamp ? new Date(timestamp) : undefined;
+  const stale = status === 'sent' && !!sentAt && Date.now() - sentAt.getTime() > SENT_STALE_MS;
+  const tone: EmailTone = stale ? 'warning' : STATUS_TONES[status] || 'warning';
+  const label = stale ? 'Email sent more than a day ago — still no delivery report' : STATUS_LABELS[status] || `Email status: ${status}`;
+  const formattedTime = sentAt ? sentAt.toLocaleString() : '';
   const tooltipText = `${label}${formattedTime ? ` (${formattedTime})` : ''}${email ? ` — ${email}` : ''}`;
+  const ToneIcon = TONE_ICONS[tone];
 
   return (
     <Tooltip title={tooltipText}>
-      {isGood
-        ? <CheckCircleIcon fontSize='small' color='success' sx={{ verticalAlign: 'middle' }} />
-        : <ErrorIcon fontSize='small' color='error' sx={{ verticalAlign: 'middle' }} />
-      }
+      <ToneIcon fontSize='small' color={tone} sx={{ verticalAlign: 'middle' }} />
     </Tooltip>
   );
 };
