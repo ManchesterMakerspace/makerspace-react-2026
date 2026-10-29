@@ -32,6 +32,7 @@ const SlackIdentityConflictsPage: React.FC = () => {
   const [loading, setLoading] = React.useState(true);
   const [resolving, setResolving] = React.useState<string | null>(null);
   const [error, setError] = React.useState('');
+  const [liveCheckUnavailable, setLiveCheckUnavailable] = React.useState(false);
   const [confirmTarget, setConfirmTarget] = React.useState<ConfirmTarget | null>(null);
 
   const load = React.useCallback(async () => {
@@ -42,6 +43,7 @@ const SlackIdentityConflictsPage: React.FC = () => {
       setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to load Slack identity conflicts.');
     } else {
       setConflicts(result.data?.conflicts || []);
+      setLiveCheckUnavailable(result.data?.live_check === 'unavailable');
     }
     setLoading(false);
   }, []);
@@ -85,9 +87,18 @@ const SlackIdentityConflictsPage: React.FC = () => {
         </Typography>
       </Grid>
       {error && <Grid size={{ xs: 12 }}><Alert severity='error'>{error}</Alert></Grid>}
-      {conflicts.length === 0 && (
+      {liveCheckUnavailable && (
         <Grid size={{ xs: 12 }}>
-          <Typography color='textSecondary'>No Slack identity conflicts right now.</Typography>
+          <Alert severity='warning'>
+            The live check of Slack could not finish, so only conflicts saved earlier are shown. Reload in a minute to try again.
+          </Alert>
+        </Grid>
+      )}
+      {conflicts.length === 0 && !error && (
+        <Grid size={{ xs: 12 }}>
+          <Typography color='textSecondary'>
+            {liveCheckUnavailable ? 'No saved Slack identity conflicts.' : 'No Slack identity conflicts right now.'}
+          </Typography>
         </Grid>
       )}
       {conflicts.map(conflict => (

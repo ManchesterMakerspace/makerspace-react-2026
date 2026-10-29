@@ -40,7 +40,7 @@ export interface SlackIdentityConflict {
 }
 
 export const getSlackIdentityConflicts = () =>
-  buildResponse<{ conflicts: SlackIdentityConflict[] }>(
+  buildResponse<{ conflicts: SlackIdentityConflict[]; live_check?: 'fresh' | 'cached' | 'unavailable' }>(
     api.get('/api/admin/slack_identity_conflicts')
   );
 
