@@ -38,6 +38,8 @@ export interface MemberProvisioning {
     joinedAt?: string | null;
     fullMemberAt?: string | null;
     manualActionRequired?: 'invite' | 'promotion' | null;
+    lastError?: string | null;
+    lastAttemptAt?: string | null;
   };
   googleDrive: {
     status: GoogleDriveProvisioningStatus;
@@ -94,6 +96,28 @@ const statusIcon = (status: string) => {
 const formatTimestamp = (value?: string | null) =>
   value ? new Date(value).toLocaleString() : undefined;
 
+// Why a Slack indicator is red, in plain words, from the error the server stored.
+// An unrecognized error is shown as it came from Slack.
+export const slackReason = (slack: MemberProvisioning['slack']): string | undefined => {
+  if (!slack.status.startsWith('manual_') || !slack.lastError) return undefined;
+  const error = slack.lastError;
+  if (/email changed/i.test(error)) {
+    return 'Their email was changed. Use the Slack button on their profile to re-invite them: it deactivates their old Slack account and invites the new address.';
+  }
+  if (/inviter_email_not_verified/.test(error)) {
+    return 'Slack rejected the invite: the Slack account that sends invites has not verified its email address in Slack.';
+  }
+  if (/not allowed for revoked, inactive, non-member, or expired/i.test(error)) {
+    return 'Not eligible for Slack: membership is expired, inactive or revoked.';
+  }
+  return error;
+};
+
+const slackLabel = (slack: MemberProvisioning['slack'], timestamp?: string) => {
+  const reason = slackReason(slack);
+  return `${SLACK_LABELS[slack.status]}${timestamp ? ` (${timestamp})` : ''}${reason ? `. ${reason}` : ''}`;
+};
+
 export const SlackProvisioningIcon: React.FC<{
   provisioning?: MemberProvisioning;
   fallbackLinkedName?: string;
@@ -116,8 +140,7 @@ export const SlackProvisioningIcon: React.FC<{
     provisioning.slack.joinedAt ||
     provisioning.slack.inviteConfirmedAt
   );
-  const label = `${SLACK_LABELS[status]}${timestamp ? ` (${timestamp})` : ''}`;
-  return <Tooltip title={label}>{statusIcon(status)}</Tooltip>;
+  return <Tooltip title={slackLabel(provisioning.slack, timestamp)}>{statusIcon(status)}</Tooltip>;
 };
 
 const driveLabel = (googleDrive: MemberProvisioning['googleDrive']) => {
@@ -140,6 +163,7 @@ export const ProvisioningStatusChip: React.FC<{
     ? provisioning.slack.status
     : provisioning.googleDrive.status;
   const label = kind === 'slack' ? SLACK_LABELS[status as SlackProvisioningStatus] : driveLabel(provisioning.googleDrive);
+  const tooltip = kind === 'slack' ? slackLabel(provisioning.slack) : label;
   const color = status === 'full_member' || status === 'complete'
     ? 'success'
     : status.startsWith('manual_') || status === 'failed' || status === 'blocked' || status === 'permanently_failed'
@@ -147,7 +171,7 @@ export const ProvisioningStatusChip: React.FC<{
       : 'warning';
 
   return (
-    <Tooltip title={label}>
+    <Tooltip title={tooltip}>
       <Chip size='small' color={color} label={label} />
     </Tooltip>
   );
