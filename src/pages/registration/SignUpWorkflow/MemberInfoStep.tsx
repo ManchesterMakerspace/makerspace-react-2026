@@ -14,6 +14,7 @@ import { SignUpForm } from "ui/auth/interfaces";
 import FormModal from "ui/common/FormModal";
 import useModal from "ui/hooks/useModal";
 import { states } from "ui/member/states";
+import { signupSourceDetailPrompt, signupSourceOptions } from "ui/member/signupSources";
 import { useSearchQuery } from "hooks/useSearchQuery";
 import { discountParam, invoiceOptionParam } from "../MembershipOptions";
 import { TextInput } from "components/Form/inputs/TextInput";
@@ -45,6 +46,22 @@ const ConfirmEmailField: React.FC = () => {
         return undefined;
       }}
     />
+  );
+};
+
+// A typed follow-up (which class, or who told them) is asked only for the sources that have one
+const SourceDetailField: React.FC = () => {
+  const values = useFormValues();
+  const prompt = signupSourceDetailPrompt(values[SignUpFields.signupSource.name] as string);
+  if (!prompt) return null;
+  return (
+    <Grid size={{ xs: 12 }}>
+      <TextInput
+        label={prompt.signupLabel}
+        fieldName={SignUpFields.signupSourceDetail.name}
+        placeholder={prompt.placeholder}
+      />
+    </Grid>
   );
 };
 
@@ -223,6 +240,18 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
                   }}
                 />
               </Grid>
+
+              {/* How they found us */}
+              <Grid size={{ xs: 12 }}>
+                <SelectInput
+                  fieldName={SignUpFields.signupSource.name}
+                  label={SignUpFields.signupSource.label}
+                  placeholder={SignUpFields.signupSource.placeholder}
+                  defaultValue=""
+                  options={signupSourceOptions(SignUpFields.signupSource.placeholder)}
+                />
+              </Grid>
+              <SourceDetailField />
 
               <Grid size={{ xs: 12 }}>
                 <TurnstileWidget

@@ -122,4 +122,13 @@ export const SignUpFields: FormFields = {
     placeholder: "Postal Code",
     error: "Required"
   },
+  signupSource: {
+    label: "How did you hear about us?",
+    name: `${signUpPrefix}-signupSource`,
+    placeholder: "Select one",
+  },
+  signupSourceDetail: {
+    label: "Tell us more",
+    name: `${signUpPrefix}-signupSourceDetail`,
+  },
 }

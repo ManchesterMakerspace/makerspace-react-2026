@@ -107,6 +107,15 @@ export const fields = (admin: boolean, member?: Partial<Member>): FormFields => 
       label: "Notes",
       name: `${formPrefix}-notes`,
     },
+    signupSource: {
+      label: "How they found us",
+      name: `${formPrefix}-signupSource`,
+      placeholder: "Not recorded",
+    },
+    signupSourceDetail: {
+      label: "Class name",
+      name: `${formPrefix}-signupSourceDetail`,
+    },
   },
   silenceEmails: {
     label: "Receive emails? (Excludes membership notifications)",
