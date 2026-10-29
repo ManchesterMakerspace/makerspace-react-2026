@@ -16,25 +16,45 @@ type MinProps = Pick<MemberSummary, "status" | "expirationTime"> & {
   subscriptionId?: string;
   paidPendingStart?: boolean;
 };
+// Statuses the server accepts that the dropdown above does not offer (the first fob
+// promotes a pending member, and suspension is rare), so they are labeled here only.
+const PENDING = "pending";
+const SUSPENDED = "suspended";
+const FOB_NOT_ISSUED = "Fob not issued";
+
 const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member, id }) => {
-  const inactive = ![MemberStatus.ActiveMember, MemberStatus.NonMember].includes(member.status as MemberStatus);
+  // A pending member has signed up but has no fob yet (the first fob makes them Active).
+  // They are labeled like an active member, by their term, with the missing fob added
+  // once a term is running.
+  const pending = member.status === PENDING;
+  const suspended = member.status === SUSPENDED;
+  const inactive = !pending && ![MemberStatus.ActiveMember, MemberStatus.NonMember].includes(member.status as MemberStatus);
   const current = member.expirationTime > Date.now();
 
   let statusColor;
-  if (!member.expirationTime) {
+  if (suspended) {
+    statusColor = Status.Danger;
+  } else if (!member.expirationTime) {
     statusColor = Status.Info;
+  } else if (pending && current) {
+    statusColor = Status.Warn;
   } else {
     statusColor = current && !inactive ? Status.Success : Status.Danger;
   }
 
   let label;
-  if (inactive) {
+  if (suspended) {
+    label = "Suspended";
+  } else if (inactive) {
     label = memberStatusLabelMap[member.status];
   } else {
     if (!member.expirationTime) {
       label = member.subscriptionId ? "Not started" : "N/A";
     } else {
       label = current ? "Active" : "Expired";
+    }
+    if (pending && member.expirationTime) {
+      label = `${label} · ${FOB_NOT_ISSUED}`;
     }
   }
 
