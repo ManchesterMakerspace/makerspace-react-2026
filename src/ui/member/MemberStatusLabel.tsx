@@ -15,6 +15,10 @@ export const memberStatusLabelMap = {
 type MinProps = Pick<MemberSummary, "status" | "expirationTime"> & {
   subscriptionId?: string;
   paidPendingStart?: boolean;
+  // False when no fob has ever been issued. Absent from an older server, and from
+  // payloads that do not carry it, in which case only a pending member counts as
+  // having no fob.
+  fobIssued?: boolean;
 };
 // Statuses the server accepts that the dropdown above does not offer (the first fob
 // promotes a pending member, and suspension is rare), so they are labeled here only.
@@ -24,19 +28,21 @@ const FOB_NOT_ISSUED = "Fob not issued";
 
 const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member, id }) => {
   // A pending member has signed up but has no fob yet (the first fob makes them Active).
-  // They are labeled like an active member, by their term, with the missing fob added
-  // once a term is running.
+  // They are labeled like an active member, by their term. Whatever the stored status,
+  // a member whose term is running with no fob ever issued gets "Fob not issued" added.
   const pending = member.status === PENDING;
   const suspended = member.status === SUSPENDED;
   const inactive = !pending && ![MemberStatus.ActiveMember, MemberStatus.NonMember].includes(member.status as MemberStatus);
   const current = member.expirationTime > Date.now();
+  const noFob = member.fobIssued === undefined ? pending : !member.fobIssued;
+  const fobMissingOnTerm = !inactive && noFob && !!member.expirationTime;
 
   let statusColor;
   if (suspended) {
     statusColor = Status.Danger;
   } else if (!member.expirationTime) {
     statusColor = Status.Info;
-  } else if (pending && current) {
+  } else if (fobMissingOnTerm && current) {
     statusColor = Status.Warn;
   } else {
     statusColor = current && !inactive ? Status.Success : Status.Danger;
@@ -53,7 +59,7 @@ const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member
     } else {
       label = current ? "Active" : "Expired";
     }
-    if (pending && member.expirationTime) {
+    if (fobMissingOnTerm) {
       label = `${label} · ${FOB_NOT_ISSUED}`;
     }
   }
