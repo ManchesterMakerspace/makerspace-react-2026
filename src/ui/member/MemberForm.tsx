@@ -19,6 +19,8 @@ import { toDatePicker } from "ui/utils/timeToDate";
 import { memberStatusLabelMap } from "./MemberStatusLabel";
 import { ActiveRentalsStatusNote } from "./activeRentals";
 import { states } from "./states";
+import { REFERRAL_SIGNUP_SOURCE, signupSourceDetailPrompt, signupSourceOptions } from "./signupSources";
+import MemberSearchInput from "ui/common/MemberSearchInput";
 import { listShops } from "api/toolCheckouts";
 import { Shop } from "app/entities/toolCheckout";
 
@@ -47,6 +49,8 @@ interface State {
   subscription: boolean;
   silenceEmails: boolean;
   role: string;
+  signupSource: string;
+  referredByMemberId: string;
   resourceManagerShopIds: string[];
   shops: Shop[];
 }
@@ -62,6 +66,8 @@ class MemberForm extends React.Component<OwnProps, State> {
       subscription: false,
       silenceEmails: false,
       role: props.member?.role || "member",
+      signupSource: (props.member as any)?.signupSource || "",
+      referredByMemberId: (props.member as any)?.referredByMemberId || "",
       resourceManagerShopIds: (props.member as any)?.resourceManagerShopIds || [],
       shops: [],
     }
@@ -74,6 +80,8 @@ class MemberForm extends React.Component<OwnProps, State> {
       subscription: member && member.subscription || false,
       silenceEmails: member && !!member.silenceEmails || false,
       role: member?.role || "member",
+      signupSource: (member as any)?.signupSource || "",
+      referredByMemberId: (member as any)?.referredByMemberId || "",
       resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
     });
     listShops().then(result => this.setState({ shops: (result.data || []) as Shop[] }));
@@ -88,6 +96,8 @@ class MemberForm extends React.Component<OwnProps, State> {
         subscription: member && member.subscription || false,
         silenceEmails: member && !!member.silenceEmails || false,
         role: member?.role || "member",
+        signupSource: (member as any)?.signupSource || "",
+        referredByMemberId: (member as any)?.referredByMemberId || "",
         resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
       });
       this.formRef && this.formRef.resetForm();
@@ -119,6 +129,8 @@ class MemberForm extends React.Component<OwnProps, State> {
       silenceEmails,
       memberContractOnFile,
       subscription,
+      // The linked referrer only applies to "friend"; sending blank clears it.
+      ...isAdmin && { referredByMemberId: this.state.signupSource === REFERRAL_SIGNUP_SOURCE ? this.state.referredByMemberId : "" },
       resourceManagerShopIds: RESOURCE_MANAGER_TAGGABLE_ROLES.includes(this.state.role) ? this.state.resourceManagerShopIds : [],
     };
   }
@@ -339,6 +351,45 @@ class MemberForm extends React.Component<OwnProps, State> {
               multiline
             />
           </Grid>
+          <Grid size={{ xs: 12 }}>
+            <FormLabel component="legend">{fields.signupSource.label}</FormLabel>
+            <Select
+              name={fields.signupSource.name}
+              id={fields.signupSource.name}
+              value={this.state.signupSource}
+              onChange={event => this.setState({ signupSource: event.target.value as string })}
+              fullWidth
+              native
+            >
+              {signupSourceOptions(fields.signupSource.placeholder).map(
+                ({ value, label }) => <option id={`${fields.signupSource.name}-option-${value || "none"}`} key={value || "none"} value={value}>{label}</option>)}
+            </Select>
+          </Grid>
+          {signupSourceDetailPrompt(this.state.signupSource) && (
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                value={(member as any).signupSourceDetail}
+                label={signupSourceDetailPrompt(this.state.signupSource).staffLabel}
+                name={fields.signupSourceDetail.name}
+                id={fields.signupSourceDetail.name}
+              />
+            </Grid>
+          )}
+          {this.state.signupSource === REFERRAL_SIGNUP_SOURCE && (
+            <Grid size={{ xs: 12 }}>
+              <FormLabel component="legend">Link the member who referred them</FormLabel>
+              <MemberSearchInput
+                name="member-form-referredByMember"
+                placeholder="Search members by name or email..."
+                excludeIds={member.id ? [member.id] : []}
+                initialSelection={(member as any).referredByMemberId
+                  ? { value: (member as any).referredByMemberId, label: (member as any).referredByMemberName || "", id: (member as any).referredByMemberId }
+                  : undefined}
+                onChange={selection => this.setState({ referredByMemberId: selection?.value || "" })}
+              />
+            </Grid>
+          )}
           <Grid size={{ xs: 12 }}>
             <FormControlLabel
               control={
