@@ -16,14 +16,15 @@ async function settledDialog(page) {
     return true;
   });
 }
-const publicRoot = path.resolve(root, '../makerspace-rails-2026/public');
 const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/assets/makerspace-react.css"><script defer src="/assets/makerspace-react.js"></script></head><body></body></html>';
 const server = http.createServer((request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
   let file;
   if (/^\/assets\/[\w.-]+$/.test(pathname)) file = path.join(root, 'dist', pathname.slice(8));
   if (pathname === '/assets/FilledLaserableLogo.svg') file = path.join(root, 'src/assets/FilledLaserableLogo.svg');
-  if (['/service-worker.js', '/manifest.webmanifest', '/offline.html', '/pwa-icon.png'].includes(pathname)) file = path.join(publicRoot, pathname.slice(1));
+  if (['/service-worker.js', '/manifest.webmanifest', '/offline.html', '/pwa-icon-192.png', '/favicon.png'].includes(pathname)) {
+    file = path.join(root, 'dist', pathname.slice(1));
+  }
   if (file && fs.existsSync(file)) {
     response.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.webmanifest') ? 'application/manifest+json' : file.endsWith('.png') ? 'image/png' : file.endsWith('.svg') ? 'image/svg+xml' : 'text/html');
     response.end(fs.readFileSync(file));
@@ -95,7 +96,7 @@ const server = http.createServer((request, response) => {
         await navigator.serviceWorker.ready;
         return Promise.all((await caches.keys()).map(async name => (await (await caches.open(name)).keys()).map(request => new URL(request.url).pathname)));
       });
-      assert(cacheKeys.flat().every(path => ['/offline.html', '/pwa-icon.png'].includes(path)));
+      assert(cacheKeys.flat().every(path => ['/offline.html', '/pwa-icon-192.png', '/favicon.png'].includes(path)));
       await context.close(); console.log(`PASS NFC member/admin flows and layout at ${width}px`);
     }
     // Simulate the native platform for real iframe rendering. Bridge HTTP is
