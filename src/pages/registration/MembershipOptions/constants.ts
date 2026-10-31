@@ -2,8 +2,8 @@ import { InvoiceOption } from "makerspace-ts-api-client";
 
 export const noneInvoiceOption: InvoiceOption = {
   id: "none",
-  name: "None",
-  description: "Paid with cash, Eventbrite or select an option later",
+  name: "Other",
+  description: "Prepaid with class or voucher",
   amount: undefined,
   resourceClass: undefined,
   quantity: 0,

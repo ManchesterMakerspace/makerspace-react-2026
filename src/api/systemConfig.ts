@@ -88,6 +88,13 @@ export interface JobScheduleSettings {
   garbage_collect_day: string;
 }
 
+/** Days after a member's first payment / their signup before the first reminder email goes out
+ *  (7 sends it on day 8). Whole numbers 1 to 14, as strings like the other settings. */
+export interface ReminderSettings {
+  fob_reminder_days: string;
+  signup_reminder_days: string;
+}
+
 export interface SystemConfigData {
   checkout?: { checkout_expiration_notice_days: number; can_manage: boolean };
   flags: {
@@ -98,6 +105,8 @@ export interface SystemConfigData {
     require_totp_board: boolean;
     require_totp_rm: boolean;
     signup_lockout_enabled: boolean;
+    fob_reminder_enabled: boolean;
+    signup_reminder_enabled: boolean;
   };
   jobs: JobStatus[];
   slack: SlackSettings;
@@ -106,6 +115,8 @@ export interface SystemConfigData {
   reservation: ReservationSettings;
   security?: SecuritySettings;
   job_schedule: JobScheduleSettings;
+  /** Absent from an older server. */
+  reminders?: ReminderSettings;
 }
 
 export type TemplateStatusValue =

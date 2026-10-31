@@ -55,7 +55,10 @@ const MemberStatusLabel: React.FC<{ member: MinProps; id?: string }> = ({ member
     label = memberStatusLabelMap[member.status];
   } else {
     if (!member.expirationTime) {
-      label = member.subscriptionId ? "Not started" : "N/A";
+      // A non-member with no term is named for what they are, not shown as "N/A".
+      label = member.subscriptionId
+        ? "Not started"
+        : member.status === MemberStatus.NonMember ? memberStatusLabelMap[MemberStatus.NonMember] : "N/A";
     } else {
       label = current ? "Active" : "Expired";
     }
