@@ -39,8 +39,27 @@ export interface SlackIdentityConflict {
   conflicting_slack_email: string;
 }
 
+export type SlackLiveCheck = 'fresh' | 'cached' | 'scanning' | 'unavailable';
+
+export interface SlackScanProgress {
+  checked: number;
+  // Null until a scan has finished once, so there is nothing to compare with yet.
+  estimated_total: number | null;
+  // Seconds Slack asked us to wait before the next piece (0 when not waiting).
+  waiting_seconds: number;
+}
+
+export interface SlackIdentityConflictsResponse {
+  conflicts: SlackIdentityConflict[];
+  live_check?: SlackLiveCheck;
+  // Slack accounts one piece of the check looks at (the slack_conflict_scan_size setting).
+  scan_size?: number;
+  // Present while live_check is "scanning".
+  progress?: SlackScanProgress;
+}
+
 export const getSlackIdentityConflicts = () =>
-  buildResponse<{ conflicts: SlackIdentityConflict[]; live_check?: 'fresh' | 'cached' | 'unavailable' }>(
+  buildResponse<SlackIdentityConflictsResponse>(
     api.get('/api/admin/slack_identity_conflicts')
   );
 
