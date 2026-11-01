@@ -8,6 +8,7 @@ import {
   Chip,
   Button,
   CircularProgress,
+  LinearProgress,
   Alert,
   Dialog,
   DialogActions,
@@ -21,34 +22,91 @@ import {
   resolveSlackIdentityConflict,
   dismissSlackIdentityConflict,
   SlackIdentityConflict,
+  SlackLiveCheck,
+  SlackScanProgress,
 } from 'api/slackIdentityConflicts';
+import { updateSystemSetting } from 'api/systemConfig';
 import { softTone } from 'ui/common/statusColors';
+import { SettingRow } from 'ui/admin/MemberPortalSettings';
 
 type ConflictAction = 'link' | 'keep';
 type ConfirmTarget = { conflict: SlackIdentityConflict; action: ConflictAction };
+
+export const SLACK_SCAN_SIZE_KEY = 'slack_conflict_scan_size';
+export const MIN_SLACK_SCAN_SIZE = 10;
+export const MAX_SLACK_SCAN_SIZE = 500;
+export const DEFAULT_SLACK_SCAN_SIZE = 200;
+
+// Matches the server: a whole number from 10 to 500.
+export const validateSlackScanSize = (value: string) =>
+  /^\d+$/.test(value) && Number(value) >= MIN_SLACK_SCAN_SIZE && Number(value) <= MAX_SLACK_SCAN_SIZE
+    ? '' : `Enter a whole number from ${MIN_SLACK_SCAN_SIZE} to ${MAX_SLACK_SCAN_SIZE}.`;
+
+// The request that returns a piece of the check already takes seconds; this only spaces the next one.
+const POLL_PAUSE_MS = 300;
+
+const errorText = (error: any, fallback: string) =>
+  typeof error === 'string' ? error : error?.message || fallback;
 
 const SlackIdentityConflictsPage: React.FC = () => {
   const [conflicts, setConflicts] = React.useState<SlackIdentityConflict[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [resolving, setResolving] = React.useState<string | null>(null);
   const [error, setError] = React.useState('');
-  const [liveCheckUnavailable, setLiveCheckUnavailable] = React.useState(false);
+  const [liveCheck, setLiveCheck] = React.useState<SlackLiveCheck | ''>('');
+  const [progress, setProgress] = React.useState<SlackScanProgress | null>(null);
+  const [scanSize, setScanSize] = React.useState(DEFAULT_SLACK_SCAN_SIZE);
+  const [savingScanSize, setSavingScanSize] = React.useState(false);
   const [confirmTarget, setConfirmTarget] = React.useState<ConfirmTarget | null>(null);
+  // Only the latest request may update the page, and nothing may after the page is closed.
+  const requestId = React.useRef(0);
+  const timer = React.useRef<number | undefined>(undefined);
+  // A conflict resolved here can still be in a response that was already on its way back.
+  const resolved = React.useRef<Set<string>>(new Set());
 
-  const load = React.useCallback(async () => {
-    setLoading(true);
+  const load = React.useCallback(async (initial = false) => {
+    const id = ++requestId.current;
+    window.clearTimeout(timer.current);
+    if (initial) setLoading(true);
     setError('');
     const result = await getSlackIdentityConflicts();
+    if (id !== requestId.current) return;
     if (result.error) {
-      setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to load Slack identity conflicts.');
+      setError(errorText(result.error, 'Unable to load Slack identity conflicts.'));
+      setLiveCheck('');
+      setProgress(null);
     } else {
-      setConflicts(result.data?.conflicts || []);
-      setLiveCheckUnavailable(result.data?.live_check === 'unavailable');
+      const data = result.data;
+      setConflicts((data?.conflicts || []).filter(c => !resolved.current.has(c.slack_id)));
+      setLiveCheck(data?.live_check || 'fresh');
+      setProgress(data?.progress || null);
+      if (data?.scan_size) setScanSize(data.scan_size);
+      if (data?.live_check === 'scanning') {
+        // The server checks one piece of Slack per request, so keep asking until it is done.
+        const wait = (data.progress?.waiting_seconds || 0) * 1000;
+        timer.current = window.setTimeout(() => load(), wait + POLL_PAUSE_MS);
+      }
     }
     setLoading(false);
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load(true);
+    return () => { requestId.current += 1; window.clearTimeout(timer.current); };
+  }, [load]);
+
+  const saveScanSize = async (key: string, value: string) => {
+    setSavingScanSize(true);
+    try {
+      const { error: err } = await updateSystemSetting({ key, value });
+      if (err) throw new Error(errorText(err, 'Unable to save. Please try again.'));
+      setScanSize(Number(value));
+    } finally {
+      setSavingScanSize(false);
+    }
+    // The server dropped the scan in progress, so check again with the new number.
+    load();
+  };
 
   const confirmResolve = async () => {
     if (!confirmTarget) return;
@@ -66,8 +124,9 @@ const SlackIdentityConflictsPage: React.FC = () => {
         });
 
     if (result.error) {
-      setError(typeof result.error === 'string' ? result.error : result.error.message || 'Unable to resolve this conflict.');
+      setError(errorText(result.error, 'Unable to resolve this conflict.'));
     } else {
+      resolved.current.add(conflict.slack_id);
       setConflicts(current => current.filter(c => c.slack_id !== conflict.slack_id));
     }
     setResolving(null);
@@ -75,6 +134,8 @@ const SlackIdentityConflictsPage: React.FC = () => {
   };
 
   if (loading) return <CircularProgress />;
+
+  const scanning = liveCheck === 'scanning';
 
   return (
     <Grid container spacing={2} style={{ padding: 24, maxWidth: 900, margin: '0 auto' }}>
@@ -86,18 +147,50 @@ const SlackIdentityConflictsPage: React.FC = () => {
           Slack account should stay linked to the member.
         </Typography>
       </Grid>
-      {error && <Grid size={{ xs: 12 }}><Alert severity='error'>{error}</Alert></Grid>}
-      {liveCheckUnavailable && (
+      {error && (
         <Grid size={{ xs: 12 }}>
-          <Alert severity='warning'>
-            The live check of Slack could not finish, so only conflicts saved earlier are shown. Reload in a minute to try again.
+          <Alert severity='error' action={<Button color='inherit' size='small' onClick={() => load()}>Try again</Button>}>
+            {error}
+          </Alert>
+        </Grid>
+      )}
+      {scanning && (
+        <Grid size={{ xs: 12 }}>
+          <Alert severity='info' icon={<CircularProgress size={18} />}>
+            <strong>Checking Slack in small steps.</strong>{' '}
+            {progress?.waiting_seconds
+              ? `Slack asked us to slow down, so the next step starts in about ${progress.waiting_seconds} seconds. `
+              : ''}
+            {progress && progress.checked > 0
+              ? `${progress.checked}${progress.estimated_total ? ` of about ${progress.estimated_total}` : ''} Slack accounts checked so far. `
+              : ''}
+            Conflicts found so far are listed below, and more may appear. You can keep this page open.
+            <LinearProgress
+              style={{ marginTop: 8 }}
+              {...(progress?.estimated_total
+                ? { variant: 'determinate' as const, value: Math.min(100, Math.round(100 * progress.checked / progress.estimated_total)) }
+                : {})}
+            />
+          </Alert>
+        </Grid>
+      )}
+      {liveCheck === 'unavailable' && (
+        <Grid size={{ xs: 12 }}>
+          <Alert
+            severity='warning'
+            action={<Button color='inherit' size='small' onClick={() => load()}>Try again</Button>}
+          >
+            The live check of Slack could not finish, so only conflicts saved earlier are shown.
+            If it keeps failing, lower the number of Slack accounts checked per request below, then try again.
           </Alert>
         </Grid>
       )}
       {conflicts.length === 0 && !error && (
         <Grid size={{ xs: 12 }}>
           <Typography color='textSecondary'>
-            {liveCheckUnavailable ? 'No saved Slack identity conflicts.' : 'No Slack identity conflicts right now.'}
+            {scanning
+              ? 'No Slack identity conflicts found so far.'
+              : liveCheck === 'unavailable' ? 'No saved Slack identity conflicts.' : 'No Slack identity conflicts right now.'}
           </Typography>
         </Grid>
       )}
@@ -145,6 +238,18 @@ const SlackIdentityConflictsPage: React.FC = () => {
           </Card>
         </Grid>
       ))}
+
+      <Grid size={{ xs: 12 }} style={{ marginTop: 16 }}>
+        <SettingRow
+          label='Slack accounts checked per request'
+          description={`Slack is checked this many accounts at a time, so each request stays short. Lower it (${MIN_SLACK_SCAN_SIZE} to ${MAX_SLACK_SCAN_SIZE}, default ${DEFAULT_SLACK_SCAN_SIZE}) if the check keeps failing; the whole check just takes more steps.`}
+          settingKey={SLACK_SCAN_SIZE_KEY}
+          value={String(scanSize)}
+          onSave={saveScanSize}
+          saving={savingScanSize}
+          validate={validateSlackScanSize}
+        />
+      </Grid>
 
       <Dialog open={!!confirmTarget} onClose={() => !resolving && setConfirmTarget(null)}>
         {confirmTarget?.action === 'link' ? (
