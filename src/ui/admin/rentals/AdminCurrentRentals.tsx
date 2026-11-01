@@ -21,7 +21,8 @@ import RenewRental from "ui/rentals/RenewRental";
 import DeleteRentalModal from "ui/rentals/DeleteRentalModal";
 import { useCapabilities } from "app/permissions";
 import { RentalStatus } from "app/entities/rentalSpot";
-import { markRentalVacated } from "api/rentals";
+import { markRentalVacated, verifyRentalVacated } from "api/rentals";
+import ErrorMessage from "ui/common/ErrorMessage";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import { RentalNotesCell } from "./RentalNotesCell";
 
@@ -34,6 +35,7 @@ const getRentalStatus = (row: Rental): { label: string; color: Status } => {
       case RentalStatus.Pending:          return { label: "Pending Approval",   color: Status.Warn };
       case RentalStatus.PendingAgreement: return { label: "Pending Agreement",  color: Status.Warn };
       case RentalStatus.Vacating:         return { label: "Vacating",           color: Status.Warn };
+      case RentalStatus.AwaitingVerification: return { label: "Awaiting Verification", color: Status.Warn };
       case RentalStatus.Cancelled:        return { label: "Cancelled",          color: Status.Default };
       case RentalStatus.Denied:           return { label: "Denied",             color: Status.Danger };
       case RentalStatus.AgreementDenied:  return { label: "Agreement Declined", color: Status.Danger };
@@ -62,9 +64,11 @@ const AdminCurrentRentalsInner: React.FC = () => {
 
   const selectedRental   = rentals.find(r => r.id === selectedId);
   const selectedVacating = (selectedRental as any)?.status === "vacating";
+  const selectedAwaitingVerification = (selectedRental as any)?.status === RentalStatus.AwaitingVerification;
 
   const onMarkVacatedSuccess = React.useCallback(() => { refresh(); setSelectedId(null); }, [refresh]);
   const { call: doMarkVacated, isRequesting: markingVacated } = useWriteTransaction(markRentalVacated, onMarkVacatedSuccess);
+  const { call: doVerifyVacated, isRequesting: verifyingVacated, error: verifyError } = useWriteTransaction(verifyRentalVacated, onMarkVacatedSuccess);
 
   const columns: Column<Rental>[] = [
     {
@@ -131,10 +135,28 @@ const AdminCurrentRentalsInner: React.FC = () => {
                 Mark Vacated
               </Button>
             )}
+            {selectedAwaitingVerification && (
+              <Button
+                id="rentals-list-verify-vacated"
+                variant="contained"
+                color="secondary"
+                disabled={verifyingVacated}
+                onClick={() => selectedRental && doVerifyVacated({ id: selectedRental.id })}
+                style={{ marginRight: "8px" }}
+              >
+                Verify Vacated
+              </Button>
+            )}
             {isAdmin && <DeleteRentalModal rental={selectedRental} onDelete={onAction} />}
           </Grid>
         </Grid>
       </Grid>
+
+      {verifyError && (
+        <Grid size={{ xs: 12 }}>
+          <ErrorMessage error={verifyError} />
+        </Grid>
+      )}
 
       <Grid size={{ xs: 12 }}>
         <StatefulTable

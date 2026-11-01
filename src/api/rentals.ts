@@ -93,6 +93,11 @@ export const cancelRental = ({ id, body }: { id: string; body: { vacated: boolea
 export const markRentalVacated = ({ id }: { id: string }) =>
   buildResponse<{}>(api.post(`/api/rentals/${id}/mark_vacated`));
 
+// Staff (resource manager, board or admin, not the rental's own member) confirm the space is empty and
+// release a rental the member says they have vacated
+export const verifyRentalVacated = ({ id }: { id: string }) =>
+  buildResponse<{}>(api.post(`/api/rentals/${id}/verify_vacated`));
+
 // Called when member declines the agreement — voids the rental
 export const declineRentalAgreement = ({ id }: { id: string }) =>
   buildResponse<{}>(api.delete(`/api/rentals/${id}/decline_agreement`));
