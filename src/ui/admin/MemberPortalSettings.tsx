@@ -84,6 +84,7 @@ const JOB_LABELS: Record<string, string> = {
   checkout_request_digest: 'Checkout Request Digest',
   checkout_expiration_notice: 'Checkout Expiration Notices',
   member_reminders: 'Member Reminder Emails',
+  rental_vacating_check: 'Rental Vacating Reminder',
 };
 
 const JOB_DESCRIPTIONS: Record<string, string> = {
@@ -101,6 +102,7 @@ const JOB_DESCRIPTIONS: Record<string, string> = {
   checkout_request_reminder: 'Posts a still-waiting reminder in the Resource Managers channel for checkout requests open 5 or more days, repeating every 5 days until resolved. Runs daily.',
   checkout_expiration_notice: 'Sends grouped Slack and email warnings for upcoming checkout expiration, plus final expired notices. Runs only when invoked here or from the CLI.',
   checkout_request_digest: 'Sends each resource manager and approver a daily DM listing the open checkout requests they can act on, grouped by requester with the age of each request. Runs daily.',
+  rental_vacating_check: 'Posts one list to Members Relations of rentals still vacating after their end date and rentals a member says they have vacated, until staff verify the space is empty and release them. Never changes a rental. Runs daily.',
   member_reminders: 'Sends the two member reminder emails (and a Slack DM) that are switched on above: the key fob reminder for members who paid but have no fob, and the finish-joining reminder for new signups. Runs daily.',
 };
 

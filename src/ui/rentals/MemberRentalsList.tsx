@@ -19,7 +19,7 @@ import ErrorMessage from "ui/common/ErrorMessage";
 import { timeToDate } from "ui/utils/timeToDate";
 import useReadTransaction from "ui/hooks/useReadTransaction";
 import useWriteTransaction from "ui/hooks/useWriteTransaction";
-import { cancelRental, markRentalVacated } from "api/rentals";
+import { cancelRental, markRentalVacated, verifyRentalVacated } from "api/rentals";
 import { RentalStatus, RentalStatusDisplay } from "app/entities/rentalSpot";
 import { withQueryContext, useQueryContext } from "ui/common/Filters/QueryContext";
 import extractTotalItems from "ui/utils/extractTotalItems";
@@ -34,6 +34,7 @@ const statusColor = (status: string): Status => {
     case RentalStatus.Pending:          return Status.Warn;
     case RentalStatus.PendingAgreement: return Status.Warn;
     case RentalStatus.Vacating:         return Status.Warn;
+    case RentalStatus.AwaitingVerification: return Status.Warn;
     case RentalStatus.Cancelled:        return Status.Default;
     case RentalStatus.AgreementDenied:  return Status.Danger;
     case RentalStatus.Denied:           return Status.Danger;
@@ -48,7 +49,7 @@ const getDenialReason = (rental: Rental): string => {
 };
 
 type CancelStep = "confirm" | "vacated";
-type ModalMode  = "cancel" | "mark_vacated";
+type ModalMode  = "cancel" | "mark_vacated" | "verify_vacated";
 
 const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = ({ member, onUpdate }) => {
   const [cancelTarget, setCancelTarget] = React.useState<Rental | null>(null);
@@ -82,6 +83,7 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   const selectedStatus = selectedRental ? (selectedRental as any).status as RentalStatus : null;
   const isCancellable  = selectedStatus == null || [RentalStatus.Active, RentalStatus.Pending, RentalStatus.PendingAgreement].includes(selectedStatus);
   const isVacating     = selectedStatus === RentalStatus.Vacating;
+  const isAwaitingVerification = selectedStatus === RentalStatus.AwaitingVerification;
 
   const openCancel = (rental: Rental) => {
     setCancelTarget(rental); setCancelStep("confirm"); setModalMode("cancel");
@@ -89,6 +91,10 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
 
   const openMarkVacated = (rental: Rental) => {
     setCancelTarget(rental); setModalMode("mark_vacated");
+  };
+
+  const openVerifyVacated = (rental: Rental) => {
+    setCancelTarget(rental); setModalMode("verify_vacated");
   };
 
   const closeModal = () => {
@@ -102,11 +108,14 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
   const { call: doCancel,      isRequesting: cancelling,     error: cancelError }      = useWriteTransaction(cancelRental,      onSuccess);
   const { call: doMarkVacated, isRequesting: markingVacated, error: markVacatedError } = useWriteTransaction(markRentalVacated, onSuccess);
 
+  const { call: doVerifyVacated, isRequesting: verifying, error: verifyError } = useWriteTransaction(verifyRentalVacated, onSuccess);
+
   const handleVacated    = (vacated: boolean) => { if (cancelTarget) doCancel({ id: cancelTarget.id, body: { vacated } }); };
   const handleMarkVacated = () => { if (cancelTarget) doMarkVacated({ id: cancelTarget.id }); };
+  const handleVerifyVacated = () => { if (cancelTarget) doVerifyVacated({ id: cancelTarget.id }); };
 
-  const isRequesting2 = cancelling || markingVacated;
-  const activeError   = cancelError || markVacatedError;
+  const isRequesting2 = cancelling || markingVacated || verifying;
+  const activeError   = cancelError || markVacatedError || verifyError;
 
   const columns: Column<Rental>[] = [
     {
@@ -142,6 +151,14 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
           );
         }
 
+        if (status === RentalStatus.AwaitingVerification) {
+          return (
+            <Tooltip title="Waiting for staff to check that the space is empty before it is released" placement="top">
+              <span><StatusLabel label={RentalStatusDisplay[status]} color={statusColor(status)} /></span>
+            </Tooltip>
+          );
+        }
+
         return (
           <StatusLabel
             label={RentalStatusDisplay[status] || status}
@@ -171,6 +188,12 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
               <Button variant="outlined" color="secondary"
                 onClick={() => openMarkVacated(selectedRental)}>
                 {asAdmin ? `Mark Vacated for ${memberName}` : "Mark Vacated"}
+              </Button>
+            )}
+            {selectedRental && isAwaitingVerification && asAdmin && (
+              <Button variant="contained" color="secondary"
+                onClick={() => openVerifyVacated(selectedRental)}>
+                {`Verify Vacated for ${memberName}`}
               </Button>
             )}
           </div>
@@ -223,7 +246,9 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
             )}
           </Typography>
           <Typography variant="body2" style={{ marginTop: "8px", padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
-            <strong>Yes</strong> — {asAdmin ? "The rental" : "Your rental"} will end immediately and the space will be available for other members.
+            <strong>Yes</strong> — {asAdmin
+              ? "The rental will end immediately and the space will be available for other members."
+              : "Staff will check that the space is empty, then your rental ends and the space is available for other members."}
           </Typography>
           <Typography variant="body2" style={{ marginTop: "8px", padding: "10px", backgroundColor: "#f5f5f5", borderRadius: "4px" }}>
             <strong>No</strong> — {asAdmin ? "The rental" : "Your rental"} will remain active until <strong>{expiryDisplay}</strong>. Please ensure {asAdmin ? `${memberName} has` : "you have"} vacated by then.
@@ -255,7 +280,9 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
             )}
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            Confirming will immediately end {asAdmin ? `${memberName}'s rental` : "your rental"} and return the space to the available pool.
+            {asAdmin
+              ? `Confirming will immediately end ${memberName}'s rental and return the space to the available pool.`
+              : "Confirming tells staff you have removed your belongings. Your rental ends and the space is released once staff have checked that it is empty."}
           </Typography>
           <ErrorMessage error={activeError} />
         </DialogContent>
@@ -264,6 +291,27 @@ const MemberRentalsList: React.FC<{ member: Member; onUpdate?: () => void }> = (
           <Button variant="contained" color="secondary" disabled={isRequesting2}
             onClick={handleMarkVacated}>
             {isRequesting2 ? "Processing..." : asAdmin ? "Confirm Member Has Vacated" : "Yes, I Have Vacated"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Verify Vacated (staff) */}
+      <Dialog open={!!cancelTarget && modalMode === "verify_vacated"} onClose={closeModal}>
+        <DialogTitle>{`Verify ${memberName} Has Vacated`}</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Have you checked that rental <strong>{cancelTarget?.number}</strong> is empty?
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Verifying ends {memberName}'s rental, tells them it has ended, and returns the space to the available pool.
+          </Typography>
+          <ErrorMessage error={activeError} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeModal} disabled={isRequesting2}>Cancel</Button>
+          <Button variant="contained" color="secondary" disabled={isRequesting2}
+            onClick={handleVerifyVacated}>
+            {isRequesting2 ? "Processing..." : "Verify Vacated"}
           </Button>
         </DialogActions>
       </Dialog>
