@@ -1,5 +1,7 @@
 import * as React from 'react';
 import Typography from '@mui/material/Typography';
+import Chip from '@mui/material/Chip';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 import { AuditLog } from 'api/auditLogs';
 import { adminListAuditLogs, adminListAuditLogFilters } from 'api/auditLogs';
@@ -10,7 +12,7 @@ import { useQueryContext, withQueryContext } from 'ui/common/Filters/QueryContex
 import useReadTransaction from 'ui/hooks/useReadTransaction';
 import extractTotalItems from 'ui/utils/extractTotalItems';
 import { timeToDateAndTime } from 'ui/utils/timeToDate';
-import AuditLogFilters, { DEFAULT_CATEGORY, eventTypeLabel } from './AuditLogFilters';
+import AuditLogFilters, { ALL_CATEGORIES, DEFAULT_CATEGORY, eventTypeLabel } from './AuditLogFilters';
 import AuditLogDetail from './AuditLogDetail';
 
 const AuditLogsTable: React.FC = () => {
@@ -38,6 +40,14 @@ const AuditLogsTable: React.FC = () => {
   );
 
   const rowId = React.useCallback((log: AuditLog) => log.id, []);
+
+  // The default view leaves Slack messages out, which is easy to miss: say so, and make showing them one click.
+  const hidingSlackMessages = (params.category || DEFAULT_CATEGORY) === DEFAULT_CATEGORY;
+  const showSlackMessages = React.useCallback(() => {
+    setParam('category', ALL_CATEGORIES);
+    setParam('eventType', undefined);
+    refresh();
+  }, [setParam, refresh]);
 
   const handleSelect = React.useCallback((id: string) => {
     setExpandedId(prev => (prev === id ? undefined : id));
@@ -114,7 +124,19 @@ const AuditLogsTable: React.FC = () => {
 
   return (
     <>
-      <AuditLogFilters onChange={refresh} choices={choices} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <AuditLogFilters onChange={refresh} choices={choices} />
+        {hidingSlackMessages && (
+          <Chip
+            id='audit-log-hiding-slack'
+            size='small'
+            variant='outlined'
+            icon={<VisibilityOffIcon />}
+            label='Hiding Slack messages. Click to show them.'
+            onClick={showSlackMessages}
+          />
+        )}
+      </div>
 
       <StatefulTable
         id='audit-logs-table'

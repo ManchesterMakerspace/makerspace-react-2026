@@ -92,6 +92,29 @@ describe('audit log category filter', () => {
     expect(lastCategory()).toBe('all');
   });
 
+  describe('the hidden Slack messages chip', () => {
+    const chip = () => document.getElementById('audit-log-hiding-slack');
+
+    it('says Slack messages are hidden on the default view, and showing them is one click', async () => {
+      await act(async () => root.render(<AuditLogsTable />));
+      expect(chip()?.textContent).toContain('Hiding Slack messages');
+
+      await act(async () => chip()!.click());
+      expect(lastCategory()).toBe('all');
+      expect(chip()).toBeNull();
+    });
+
+    it('is not shown once another category is chosen', async () => {
+      await act(async () => root.render(<AuditLogsTable />));
+      await act(async () => buttonNamed('Filters').click());
+      const options = await openSelect('Category');
+      await act(async () => options.find(option => option.textContent === 'Billing')!.click());
+
+      expect(lastCategory()).toBe('billing');
+      expect(chip()).toBeNull();
+    });
+  });
+
   it('narrows the Event list to the chosen category and clears an event that no longer applies', async () => {
     await act(async () => root.render(<AuditLogsTable />));
     await act(async () => buttonNamed('Filters').click());
