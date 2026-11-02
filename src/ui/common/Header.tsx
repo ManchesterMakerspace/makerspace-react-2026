@@ -260,7 +260,7 @@ class Header extends React.Component<Props, State> {
     return (
       <AppBar color="default" style={{ marginBottom: "1em" }} position="static" title="Manchester Makerspace">
         <Toolbar>
-          <Typography variant="h6" color="inherit" className="flex">
+          <Typography variant="h6" color="inherit" className="flex" sx={{ minWidth: 0, flexBasis: 0 }}>
             <img src={logoUrl} alt="Manchester Makerspace" />
           </Typography>
           <Help />

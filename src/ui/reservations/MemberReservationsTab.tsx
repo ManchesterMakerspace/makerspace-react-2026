@@ -1,3 +1,4 @@
+import ReservationStatusNote, { reservationStatusLabel } from './ReservationStatusNote';
 import * as React from "react";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -57,11 +58,11 @@ const ReservationDetails: React.FC<{ reservation: Reservation }> = ({
     >
       <strong><ReservationTitle reservation={reservation} /></strong>{" "}
       <Chip
-        label={reservation.status}
+        label={reservationStatusLabel(reservation.status)}
         color={statusColor(reservation.status)}
         size="small"
       />
-      <Typography variant="body2">
+      <ReservationStatusNote reservation={reservation} /><Typography variant="body2">
         {moment(reservation.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
         {moment(reservation.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} ·{" "}
         {resources}

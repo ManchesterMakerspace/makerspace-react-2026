@@ -40,6 +40,13 @@ describe("member reservation grouping", () => {
   const now = Date.parse("2026-08-06T12:00:00Z");
   const future = "2026-08-06T13:00:00Z";
   const past = "2026-08-06T11:00:00Z";
+  it('shows abandoned reservations immediately in terminal and history views', () => {
+    const grouped=groupMemberReservations([reservation('no-show','abandoned',future)],now);
+    expect(grouped.upcoming).toEqual([]);
+    expect(grouped.pending).toEqual([]);
+    expect(grouped.cancelled.map(item=>item.id)).toEqual(['no-show']);
+    expect(grouped.history.map(item=>item.id)).toEqual(['no-show']);
+  });
 
   it("separates upcoming, pending, terminal future, and past reservations", () => {
     const grouped = groupMemberReservations([
