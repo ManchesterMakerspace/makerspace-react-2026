@@ -47,7 +47,7 @@ export const groupMemberReservations = (
   now = Date.now()
 ) => {
   const future = reservations.filter(item => new Date(item.endAt).getTime() > now);
-  const terminalStatuses = new Set(["cancelled", "denied"]);
+  const terminalStatuses = new Set(["cancelled", "denied", "abandoned"]);
 
   const awaitingApproval = (item: Reservation) => item.status === "pending" ||
     (item.status === "unpaid" && (item.approvalReasons || []).length > 0);
@@ -57,7 +57,7 @@ export const groupMemberReservations = (
     pending: future.filter(awaitingApproval),
     cancelled: future.filter(item => terminalStatuses.has(item.status)),
     history: reservations
-      .filter(item => new Date(item.endAt).getTime() <= now)
+      .filter(item => item.status === "abandoned" || new Date(item.endAt).getTime() <= now)
       .slice()
       .reverse(),
   };

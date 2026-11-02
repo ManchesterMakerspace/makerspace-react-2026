@@ -1,3 +1,4 @@
+import ReservationStatusNote, { reservationStatusLabel } from './ReservationStatusNote';
 import ToolAvailability from "ui/common/ToolAvailability";
 import { selectableGroupIds } from './selectableGroupIds';
 import { reservationResourceLabel } from './resourceLabel';
@@ -196,11 +197,12 @@ const ReservationsPage: React.FC = () => {
     if (blackoutResult.data) setBlackoutOccurrences(blackoutResult.data);
     if (mineResult.data) setMine(mineResult.data);
     if (isManager) {
-      const [futureResult, cancelledResult] = await Promise.all([
+      const [futureResult, cancelledResult, abandonedResult] = await Promise.all([
         listManagedReservations({ future: true }),
-        listManagedReservations({ status: "cancelled" })
+        listManagedReservations({ status: "cancelled" }),
+        listManagedReservations({ status: "abandoned" })
       ]);
-      const combined = [...(futureResult.data || []), ...(cancelledResult.data || [])];
+      const combined = [...(futureResult.data || []), ...(cancelledResult.data || []), ...(abandonedResult.data || [])];
       setManaged(Array.from(new Map(combined.map(item => [item.id, item])).values()));
     }
   }, [date, shopId, isManager, canUseCreateUi]);
@@ -420,7 +422,7 @@ const ReservationsPage: React.FC = () => {
   const upcomingManaged = managed.filter(item =>
     (item.status === "approved" || (item.status === "unpaid" && item.approvalReasons.length === 0)) &&
     moment(item.endAt).isAfter(moment()));
-  const cancelledManaged = managed.filter(item => item.status === "cancelled").reverse();
+  const cancelledManaged = managed.filter(item => ["cancelled", "abandoned"].includes(item.status)).reverse();
   const failedManaged = managed.filter(item => item.calendarSyncStatus === "failed");
   if (loading) return <Grid container justifyContent="center"><CircularProgress /></Grid>;
 
@@ -631,7 +633,7 @@ const ReservationsPage: React.FC = () => {
           <Grid container alignItems="center" spacing={1}>
             <Grid size={{ xs: 12, sm: 7 }}>
               <strong><ReservationTitle reservation={item} /></strong>{" "}
-              <Chip label={item.status} color={statusColor(item.status)} size="small" />
+              <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
               <Typography variant="body2">{moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")} · {reservationResourceLabel(item)}</Typography>
               {item.status === "pending" && <ApprovalDetails details={item.approvalDetails} compact />}
             </Grid>
@@ -647,7 +649,7 @@ const ReservationsPage: React.FC = () => {
         {memberReservations.pending.length === 0 && <Typography color="textSecondary">No reservations pending approval.</Typography>}
         {memberReservations.pending.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <strong><ReservationTitle reservation={item} /></strong>{" "}
-          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
@@ -659,12 +661,12 @@ const ReservationsPage: React.FC = () => {
           </div>
         </Paper>)}
 
-        <Typography variant="subtitle2" style={{ marginTop: 16 }}>Cancelled</Typography>
+        <Typography variant="subtitle2" style={{ marginTop: 16 }}>Cancelled or abandoned</Typography>
         {memberReservations.cancelled.length === 0 &&
-          <Typography color="textSecondary">No cancelled or denied upcoming reservations.</Typography>}
+          <Typography color="textSecondary">No cancelled, denied, or abandoned reservations.</Typography>}
         {memberReservations.cancelled.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <strong><ReservationTitle reservation={item} /></strong>{" "}
-          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
@@ -678,7 +680,7 @@ const ReservationsPage: React.FC = () => {
           <Typography color="textSecondary">No past reservations.</Typography>}
         {memberReservations.history.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <strong><ReservationTitle reservation={item} /></strong>{" "}
-          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
           <Typography variant="body2">
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–
             {moment(item.endAt).tz(ZONE).format("MMM D, YYYY HH:mm")} · {reservationResourceLabel(item)}
@@ -694,7 +696,7 @@ const ReservationsPage: React.FC = () => {
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
-                <Chip label={item.status} color={statusColor(item.status)} size="small" />
+                <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
                 <Typography variant="body2">{item.shopName}: {reservationResourceLabel(item)} · {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–{moment(item.endAt).tz(ZONE).format("MMM D, HH:mm")}</Typography>
                 <ApprovalDetails details={item.approvalDetails} compact />
               </Grid>
@@ -713,7 +715,7 @@ const ReservationsPage: React.FC = () => {
             <Grid container alignItems="center">
               <Grid size={{ xs: 12, sm: 8 }}>
                 <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
-                <Chip label={item.status} color={statusColor(item.status)} size="small" />
+                <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
                 <Typography variant="body2">
                   {item.shopName}: {reservationResourceLabel(item)} ·{" "}
                   {moment(item.startAt).tz(ZONE).format("MMM D, HH:mm")}–
@@ -732,12 +734,12 @@ const ReservationsPage: React.FC = () => {
               <strong><ReservationTitle reservation={item} /></strong>: {item.calendarSyncError || "Calendar synchronization failed."}
             </Alert>)}
           </>}
-        <Typography variant="subtitle2" style={{ marginTop: 18 }}>Cancelled</Typography>
+        <Typography variant="subtitle2" style={{ marginTop: 18 }}>Cancelled or abandoned</Typography>
         {cancelledManaged.length === 0 &&
-          <Typography color="textSecondary">No cancelled reservations in your managed shops.</Typography>}
+          <Typography color="textSecondary">No cancelled or abandoned reservations in your managed shops.</Typography>}
         {cancelledManaged.map(item => <Paper key={item.id} style={{ padding: 12, marginTop: 8 }}>
           <strong><ReservationTitle reservation={item} /></strong> — {item.memberName}{" "}
-          <Chip label={item.status} color={statusColor(item.status)} size="small" />
+          <Chip label={reservationStatusLabel(item.status)} color={statusColor(item.status)} size="small" /><ReservationStatusNote reservation={item} />
           <Typography variant="body2">
             {item.shopName}: {reservationResourceLabel(item)} ·{" "}
             {moment(item.startAt).tz(ZONE).format("MMM D, YYYY HH:mm")}–

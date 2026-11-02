@@ -90,3 +90,12 @@ with mocked APIs exercise training links, keyboard opening, individual Never
 edits/revision payloads, renewal, bulk count confirmation, and overflow at
 320/600/900/1280 px. Screenshots go to `tmp/checkout-expiration-browser`.
 This does not replace transactional Rails or disposable-data E2E coverage.
+
+## Reservation terminal history
+
+After `yarn build`, run `node tests/browser/reservations.cjs`.
+The production bundle uses mocked APIs in a disposable browser, without external
+writes. It checks immediate abandoned history, the voluntary-release explanation,
+terminal action suppression, keyboard tabs, and overflow at 320/600/900/1280 px.
+Inspect `tmp/reservation-browser/history-*.png` and `managed-*.png`.
+It uses Edge on Windows and Playwright Chromium elsewhere.

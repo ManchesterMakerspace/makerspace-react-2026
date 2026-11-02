@@ -370,3 +370,15 @@ and its expiration index first, then the complete portal bundle.
 The Reinstated status filter is limited to the authorized management roster,
 which uses the admin endpoint supporting reinstated pairs. My Tool Checkouts
 omits it; switching to that view resets an unsupported selection to Active.
+
+## Reader reservation release and history
+
+Abandoned bookings appear immediately in member history and manager terminal lists,
+even before their original end. The status is **Abandoned**, with “Released after
+no check-in within 15 minutes” and a note that fees are unchanged. Ordinary early
+owner logoff is **cancelled**, with its release explanation. Neither terminal state
+offers edit/approve/cancel actions or appears in active agendas.
+
+The reservation browser check covers small/medium/large layouts and keyboard tabs.
+The shared header logo has an SVG namespace and a shrinkable container so it does
+not push the menu beyond a narrow viewport.

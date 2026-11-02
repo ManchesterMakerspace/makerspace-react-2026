@@ -1,6 +1,6 @@
 import { Shop, Tool, ToolGroup } from "./toolCheckout";
 
-export type ReservationStatus = "pending" | "unpaid" | "approved" | "denied" | "cancelled";
+export type ReservationStatus = "pending" | "unpaid" | "approved" | "denied" | "cancelled" | "abandoned";
 export type ReservationScope = "shop" | "tools";
 
 export interface ReservationApprovalDetail {
@@ -11,6 +11,10 @@ export interface ReservationApprovalDetail {
 }
 
 export interface Reservation {
+  readerRevision?: number;
+  arrivedAt?: string;
+  abandonedAt?: string;
+  abandonmentReason?: string;
   selectedToolIds?: string[];
   toolGroupIds?: string[];
   groupSnapshots?: Array<{ id: string; name: string; revision: number; tool_ids: string[]; prerequisite_ids: string[] }>;
