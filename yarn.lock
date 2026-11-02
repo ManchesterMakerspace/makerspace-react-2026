@@ -3099,10 +3099,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/braintree-web@^3.143.0":
-  version "3.143.0"
-  resolved "https://registry.yarnpkg.com/@types/braintree-web/-/braintree-web-3.143.0.tgz#f231e6406b4f01ae7634a2acfc84dc2d36bef8a5"
-  integrity sha512-coLPuEWUj6oLPoYH/peCAwTpzdQ6QwWiL3NvWMQI19yoAsJlGlBZtT+pIS375X8GH5SzNwYvoxu43sH14lVfmQ==
+"@types/braintree-web@^3.143.2":
+  version "3.143.2"
+  resolved "https://registry.yarnpkg.com/@types/braintree-web/-/braintree-web-3.143.2.tgz#1302b7fb6d391a71e35ff229a17f3e2808a215fe"
+  integrity sha512-eRCbmKRMDvFbJUUv7CSVXrmRcKlrYd0gORjA2nQpOblIpbGsqYvPs3t5Am0DZWQ3rVwAer8b6BhaK967BlIIeg==
   dependencies:
     "@types/googlepay" "*"
     "@types/paypal-checkout-components" "*"
@@ -4048,10 +4048,10 @@ braces@^3.0.3:
   dependencies:
     fill-range "^7.1.1"
 
-braintree-web@^3.146.0:
-  version "3.146.0"
-  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.146.0.tgz#a9c49a5619406b387d6af9d47f5b5a9acfc0839b"
-  integrity sha512-k0HRzeK30DNTuZAAx+ym0I5ezQHKsms3mwQM/OTVffKbnbBG4vEv/tNK6ieoBAo8Mzx4ZFonCF6syW7UUTlX4Q==
+braintree-web@^3.147.0:
+  version "3.147.0"
+  resolved "https://registry.yarnpkg.com/braintree-web/-/braintree-web-3.147.0.tgz#5cbb5156b26bddeccb016efe0b08b7e94d09842c"
+  integrity sha512-0c/7LAYQfWThr5E40B6diBav6AY2Z0vixQy3MLxeZn/q+lwns8NpkVl5H1c4Tw607lk9Y7tC1zwmyGmJ3uhA/w==
   dependencies:
     "@braintree/asset-loader" "2.1.0"
     "@braintree/browser-detection" "2.1.0"
@@ -4065,7 +4065,7 @@ braintree-web@^3.146.0:
     card-validator "10.0.3"
     credit-card-type "10.2.0"
     framebus "6.2.0"
-    inject-stylesheet "7.0.0"
+    inject-stylesheet "7.1.0"
     promise-polyfill "8.2.3"
     qrcode "1.5.4"
     restricted-input "4.0.3"
@@ -5535,10 +5535,10 @@ ini@^4.1.1:
   resolved "https://registry.yarnpkg.com/ini/-/ini-4.1.3.tgz#4c359675a6071a46985eb39b14e4a2c0ec98a795"
   integrity sha512-X7rqawQBvfdjS10YU1y1YVreA3SsLrW9dX2CewP2EbBJM4ypVNLDkO5y04gejPwKIY9lR+7r9gn3rFPt/kmWFg==
 
-inject-stylesheet@7.0.0:
-  version "7.0.0"
-  resolved "https://registry.yarnpkg.com/inject-stylesheet/-/inject-stylesheet-7.0.0.tgz#4a97d0a78398d6cfb322048e9b1638e0194e7feb"
-  integrity sha512-PjZfvYXKKPz7Y8uDAQPbY3qGMzgB5sjU5PDvvdlkqw751iipPULS4pIBzmrWkDV9fgObgSUpxwHGTSufESoPZQ==
+inject-stylesheet@7.1.0:
+  version "7.1.0"
+  resolved "https://registry.yarnpkg.com/inject-stylesheet/-/inject-stylesheet-7.1.0.tgz#34f812d5d7c21f3305800eaf4ea90e8691e0ef5e"
+  integrity sha512-ZlIaWtpbqdNf88dFqniEpDftLc9504obcBbflglb7LBMiZuIlmr0w6UsikyCnVNc2fzRzL2gZPJa8PW4MXIw+g==
 
 "internmap@1 - 2":
   version "2.0.3"
