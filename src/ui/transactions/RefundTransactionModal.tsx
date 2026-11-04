@@ -1,5 +1,7 @@
 import * as React from "react";
 import Typography from "@mui/material/Typography";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 
 import { Transaction, TransactionStatusEnum, deleteTransaction, adminDeleteTransaction } from "makerspace-ts-api-client";
 import FormModal from "ui/common/FormModal";
@@ -39,6 +41,9 @@ const RefundTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transa
                           (!isAdmin && !!(transaction.invoice && transaction.invoice.refundRequested)) // Already been requested
   let label: string =  isAdmin ? "Refund transaction" : "Request Refund";
 
+  // A refund returns the money only. Staff must acknowledge they will fix the expiration date by hand when it applies.
+  const [acknowledged, setAcknowledged] = React.useState(false);
+
   const onWriteSuccess = React.useCallback(() => {
     closeModal();
     onSuccess && onSuccess();
@@ -57,7 +62,7 @@ const RefundTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transa
         variant={"contained"}
         color={"secondary"}
         disabled={disabled}
-        onClick={openModal}
+        onClick={() => { setAcknowledged(false); openModal(); }}
       />
       {isOpen && (
         <FormModal
@@ -68,6 +73,7 @@ const RefundTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transa
           title={title}
           onSubmit={onSubmit}
           error={error}
+          submitDisabled={isAdmin && !acknowledged}
         >
           <Typography gutterBottom>
             {text}
@@ -86,6 +92,19 @@ const RefundTransactionModal: React.FC<OwnProps> = ({ transaction = {} as Transa
             <KeyValueItem label="Description">
               <span id="refund-transaction-description">{transaction.invoice.description}</span>
             </KeyValueItem>
+          }
+          { isAdmin &&
+            <FormControlLabel
+              sx={{ mt: 1 }}
+              control={
+                <Checkbox
+                  id="refund-transaction-acknowledge"
+                  checked={acknowledged}
+                  onChange={(event) => setAcknowledged(event.target.checked)}
+                />
+              }
+              label="A refund does not change the member's expiration date. If this was a membership payment, I will check the date and correct it by hand if needed. For a household, the second adult follows the primary's date."
+            />
           }
         </FormModal>
       )}
