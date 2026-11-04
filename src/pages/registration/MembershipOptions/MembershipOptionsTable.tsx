@@ -41,7 +41,10 @@ export const MembershipOptionsTable: React.FC<Props> = ({ showNoneOption, onSele
     {
       id: "description",
       label: "Description",
-      cell: (row: InvoiceOption) => row.description
+      cell: (row: InvoiceOption) => {
+        const size = (row as InvoiceOption & { householdSize?: number | null }).householdSize;
+        return size ? `${row.description} Covers up to ${size} adults at the same address.` : row.description;
+      }
     },
     {
       id: "amount",

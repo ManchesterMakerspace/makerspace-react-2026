@@ -36,6 +36,7 @@ const ToolCheckoutsPage = lazyRoute(() => import(/* webpackChunkName: "admin-too
 const ReservationsPage = lazyRoute(() => import(/* webpackChunkName: "member-reservations", webpackPrefetch: true */ 'ui/reservations/ReservationsPage'));
 const WorkshopsPage = lazyRoute(() => import(/* webpackChunkName: "member-workshops", webpackPrefetch: true */ 'ui/workshops/WorkshopsPage'));
 const MemberPortalSettings = lazyRoute(() => import(/* webpackChunkName: "admin-portal-settings", webpackPrefetch: true */ 'ui/admin/MemberPortalSettings'));
+const JoinHouseholdPage = lazyRoute(() => import(/* webpackChunkName: "household-join" */ 'ui/household/JoinHouseholdPage'));
 const SlackIdentityConflictsPage = lazyRoute(() => import(/* webpackChunkName: "admin-slack-identity-conflicts" */ 'ui/admin/SlackIdentityConflictsPage'));
 const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-volunteer", webpackPrefetch: true */ 'ui/volunteer/AdminVolunteerPage'));
 const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
@@ -93,6 +94,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       <Route path={Routing.Members} element={<MembersList />} />
       <Route path={`${Routing.Documents}`} element={<AgreementContainer />} />
       <Route path={Routing.SignUp} element={<SignUpWorkflow />} />
+      <Route path={Routing.HouseholdJoin} element={<JoinHouseholdPage />} />
       <Route path={`${Routing.Settings}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<SettingsContainer />} />
       <Route path={`${Routing.Profile}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<MemberDetail />} />
       <Route path={Routing.RentalSpotDeepLink} element={<RentalSpotDeepLink />} />

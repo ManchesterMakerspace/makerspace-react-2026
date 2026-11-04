@@ -55,6 +55,15 @@ export const fields = {
     validate: (val: string) => !!val,
     error: 'Number of months to renew is required'
   },
+  householdSize: {
+    label: 'Household size (adults covered, optional)',
+    name: `${formPrefix}-household-size`,
+    placeholder: 'Leave blank for a single membership. 2 or more makes this a household plan.',
+    transform: (val: string) => {
+      const size = parseInt(String(val ?? '').trim(), 10);
+      return Number.isFinite(size) && size > 0 ? size : null;
+    },
+  },
   [Properties.PlanId]: {
     label: 'Billing Plan (optional)',
     name: `${formPrefix}-billing-plan`,
