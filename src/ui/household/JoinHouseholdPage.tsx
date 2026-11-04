@@ -119,7 +119,12 @@ const JoinHouseholdPage: React.FC = () => {
     </Page>;
   }
   if (error || !data) {
-    return <Page title="Household invitation"><Alert severity="error">{error || "This invitation link is not valid."}</Alert></Page>;
+    return <Page title="Household invitation">
+      <Alert severity="error">{error || "This invitation link is not valid."}</Alert>
+      <Typography sx={{ mt: 2 }}>
+        Signed in as someone else? Log out from the menu at the top, then open the link in your email again.
+      </Typography>
+    </Page>;
   }
   return <JoinHouseholdView
     preview={data}

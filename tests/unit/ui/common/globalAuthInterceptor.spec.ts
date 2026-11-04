@@ -18,6 +18,8 @@ describe("global authentication interception", () => {
     expect(shouldRedirectToLogin("/signup")).toBe(false);
     expect(shouldRedirectToLogin("/resetPassword")).toBe(false);
     expect(shouldRedirectToLogin("/auth/callback")).toBe(false);
+    // The emailed household invitation must reach its own page before anyone is signed in.
+    expect(shouldRedirectToLogin("/household/join")).toBe(false);
   });
 
   it("handles a 401 from an isolated Axios instance", async () => {
