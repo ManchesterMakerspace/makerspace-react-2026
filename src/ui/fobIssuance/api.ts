@@ -46,6 +46,7 @@ const send = async <T>(url: string, init?: RequestInit): Promise<Outcome<T>> => 
 };
 
 export const fobIssuanceApi = {
+  member: (id: string) => send<FobIssuanceMember>(`/api/fob_issuance/members/${encodeURIComponent(id)}`),
   searchMembers: (term: string) =>
     send<FobIssuanceMember[]>(`/api/fob_issuance/members?search=${encodeURIComponent(term)}`),
   newCard: () => send<{ uid?: string | null }>("/api/fob_issuance/cards/new"),

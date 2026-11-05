@@ -8,6 +8,9 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Alert from "@mui/material/Alert";
 import { adminGetNewCard, adminCreateCard, getMember, Member, isApiErrorResponse } from "makerspace-ts-api-client";
+import { Alert } from '@mui/material';
+import { useLocation } from 'react-router-dom';
+import { EnrollmentChoices, readerInstructions, useCardEnrollment } from 'ui/nfc/CardEnrollment';
 import ScanNfc from 'ui/nfc/ScanNfc';
 
 import FormModal from "ui/common/FormModal";
@@ -30,6 +33,10 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
   }, [setError, setIdVerified]);
 
   const { isOpen, openModal, closeModal } = useModal();
+  const enrollment = useCardEnrollment(memberId, 'admin', isOpen);
+  const [notice, setNotice] = React.useState('');
+  const location = useLocation();
+  React.useEffect(() => { if (new URLSearchParams(location.search).get('enroll') === '1') openModal(); }, [memberId, location.search]);
   const getNewCard = async () => {
     const version = ++candidateVersion.current;
     setCandidate(undefined); setCandidateSource('import'); setError(''); setNewCardLoading(true);
@@ -53,14 +60,16 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
   } = useReadTransaction(getMember, { id: memberId });
 
   const showHouseholdToast = useHouseholdSetupToast();
-  const onSuccess = React.useCallback(({ reset }) => {
+  const onSuccess = React.useCallback(({ reset, response }) => {
+    setNotice(`${readerInstructions} UID: ${response.data.uid}`);
     refreshMember();
     closeModal();
     showHouseholdToast(member);
     reset();
   }, [refreshMember, closeModal, member, showHouseholdToast]);
   const { isRequesting: createLoading, error: createError, call: createCard, data: newCard } = useWriteTransaction(adminCreateCard, onSuccess);
-  const onSubmit = React.useCallback(() => {
+  const onSubmit = React.useCallback(async () => {
+    if (enrollment.busy || createLoading) return;
     if (!member.memberContractOnFile) {
       setError("Member has not signed the member contract. A key fob cannot be issued until the contract is on file.");
       return;
@@ -76,6 +85,13 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
       return;
     }
 
+    if (enrollment.native) {
+      try {
+        await enrollment.enroll(candidate);
+        setNotice(`Fob enrollment complete. UID: ${candidate}`); refreshMember(); closeModal(); showHouseholdToast(member);
+      } catch (error) { setError((error as Error).message); }
+      return;
+    }
     createCard({
       body: {
         ...{ source: candidateSource },
@@ -83,10 +99,11 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
         uid: candidate,
       }
     });
-  }, [candidate, candidateSource, createCard, setError, member.id, member.memberContractOnFile, idVerified]);
+  }, [candidate, candidateSource, createCard, setError, member.id, member.memberContractOnFile, idVerified, enrollment, createLoading]);
 
   return (
     <>
+      {notice && <Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert>}
       <ActionButton
         id="member-detail-open-card-modal"
         color="primary"
@@ -103,12 +120,15 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
       {isOpen && <FormModal
         id="card-form"
         loading={createLoading || newCardLoading}
+        submitDisabled={enrollment.busy}
         isOpen={true}
         title="Register New Fob"
         closeHandler={closeModal}
         onSubmit={onSubmit}
         error={createError || error}
       >
+        <EnrollmentChoices memberId={memberId} flow="admin" native={enrollment.native} setNative={enrollment.setNative} disabled={enrollment.busy || createLoading} />
+        {enrollment.progress && <Alert severity="info" role="status">{enrollment.progress}</Alert>}
         <Typography variant="body1" gutterBottom>Instructions to register new member key fob</Typography>
         {(member && member.cardId) ?
           <Typography variant="body1" gutterBottom>Access card exists for {member.firstname}</Typography>
@@ -129,11 +149,12 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
                 id="card-form-import-new-key"
                 color="primary"
                 variant="contained"
+                disabled={enrollment.busy}
                 onClick={getNewCard}
               >
                 Import New Key
               </Button>
-              <ScanNfc onUid={uid => { candidateVersion.current++; setCandidateSource('nfc'); setCandidate(uid); setError(''); setNewCardLoading(false); }} />
+              {!enrollment.busy && <ScanNfc onUid={uid => { candidateVersion.current++; setCandidateSource('nfc'); setCandidate(uid); setError(''); setNewCardLoading(false); }} />}
             </div>
           </li>
           <li>Confirm new card identifier is displayed here:
