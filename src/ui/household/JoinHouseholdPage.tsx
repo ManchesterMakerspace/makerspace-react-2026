@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from "@mui/material";
 
 import {
@@ -12,10 +12,14 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { useAuthState } from "ui/reducer/hooks";
 import { buildProfileRouting } from "ui/member/utils";
 import { COME_IN_MESSAGE } from "./HouseholdCard";
+import { captureInviteToken, clearInviteToken } from "./inviteToken";
 
-const useToken = () => new URLSearchParams(useLocation().search).get("token") || "";
-
-export const joinLink = (token: string) => `${Routing.HouseholdJoin}?token=${encodeURIComponent(token)}`;
+// The link carries the token in the URL fragment; it is kept for this tab and taken out of the address bar. The sign-in and
+// sign-up pages the person passes through never need it in a URL, because this page reads it back from the tab's storage.
+const useToken = () => {
+  const [token] = React.useState(() => captureInviteToken());
+  return token;
+};
 
 const Page: React.FC<{ title: string; children?: React.ReactNode }> = ({ title, children }) => (
   <Stack component="main" spacing={2} sx={{ maxWidth: 640, mx: "auto", my: 4, px: 2 }}>
@@ -46,8 +50,8 @@ export const JoinHouseholdPublic: React.FC = () => {
   }
 
   const problem = invitationProblem(data);
-  const redirect = encodeURIComponent(joinLink(token));
-  const signUp = `${Routing.SignUp}?householdInvite=${encodeURIComponent(token)}&email=${encodeURIComponent(data.invited_email)}`;
+  const redirect = encodeURIComponent(Routing.HouseholdJoin);
+  const signUp = `${Routing.SignUp}?householdInvite=1&email=${encodeURIComponent(data.invited_email || "")}`;
   return <Page title={`${data.inviter_name || "A member"} invited you to a household membership`}>
     {problem ? <Alert severity="warning">{problem}</Alert> : <>
       <Typography sx={{ mb: 2 }}>
@@ -81,14 +85,16 @@ export const JoinHouseholdView: React.FC<{
     {!preview.payment_accepted && !blocked && <Alert severity="warning" sx={{ mb: 2 }}>
       The household payment has not been accepted yet, so you cannot join yet. Ask {preview.primary_name || "them"} to check their payment.
     </Alert>}
-    <Typography sx={{ mb: 1 }}>The address on your account must match the household's.</Typography>
-    <Box component="dl" sx={{ m: 0, mb: 2 }}>
-      <Typography component="dt" variant="caption" color="textSecondary">Household address</Typography>
-      <Typography component="dd" sx={{ m: 0, mb: 1 }}>{preview.household_address || "Not available"}</Typography>
-      <Typography component="dt" variant="caption" color="textSecondary">Your address</Typography>
-      <Typography component="dd" sx={{ m: 0 }}>{preview.your_address}</Typography>
-    </Box>
-    {!preview.address_matches && <Alert severity="warning" sx={{ mb: 2 }}>
+    {preview.status === "pending" && <>
+      <Typography sx={{ mb: 1 }}>The address on your account must match the household's.</Typography>
+      <Box component="dl" sx={{ m: 0, mb: 2 }}>
+        <Typography component="dt" variant="caption" color="textSecondary">Household address</Typography>
+        <Typography component="dd" sx={{ m: 0, mb: 1 }}>{preview.household_address || "Not available"}</Typography>
+        <Typography component="dt" variant="caption" color="textSecondary">Your address</Typography>
+        <Typography component="dd" sx={{ m: 0 }}>{preview.your_address}</Typography>
+      </Box>
+    </>}
+    {preview.status === "pending" && !preview.address_matches && <Alert severity="warning" sx={{ mb: 2 }}>
       These do not match. <RouterLink to={profileUrl}>Update the address on your profile</RouterLink>, then come back and press Join.
       The street number, street name and postal code must match.
     </Alert>}
@@ -107,7 +113,7 @@ const JoinHouseholdPage: React.FC = () => {
   const { currentUser } = useAuthState();
   const { data, isRequesting, error } = useReadTransaction(previewHouseholdInvitation, { token }, !token, `household-preview-${token}`, true);
   const [joined, setJoined] = React.useState(false);
-  const join = useWriteTransaction(acceptHouseholdInvitation, () => setJoined(true));
+  const join = useWriteTransaction(acceptHouseholdInvitation, () => { clearInviteToken(); setJoined(true); });
 
   if (!token) return <Page title="Household invitation"><Alert severity="error">This invitation link is not valid.</Alert></Page>;
   if (isRequesting && !data) return <Page title="Household invitation"><CircularProgress aria-label="Loading invitation" /></Page>;

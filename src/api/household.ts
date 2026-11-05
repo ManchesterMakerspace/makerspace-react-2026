@@ -19,6 +19,11 @@ api.interceptors.request.use(config => {
 
 // The public invitation lookup must work before sign-in, so it must not trigger the sign-in redirect the interceptor adds.
 const publicApi = axios.create({ withCredentials: true });
+publicApi.interceptors.request.use(config => {
+  config.headers.set('X-XSRF-TOKEN', getCsrfToken());
+  config.headers.set('Content-Type', 'application/json');
+  return config;
+});
 
 const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
@@ -78,10 +83,11 @@ export interface HouseholdState {
   invitation_id?: string;
 }
 
+// Once an invitation is cancelled, expired or used the server returns only its status: no names, email or address.
 export interface HouseholdInvitationPublic {
   status: 'pending' | 'expired' | 'accepted' | 'revoked';
   inviter_name: string | null;
-  invited_email: string;
+  invited_email: string | null;
   expires_at: string;
 }
 
@@ -107,14 +113,15 @@ export const resendHouseholdInvitation = ({ id }: { id: string }) =>
 export const revokeHouseholdInvitation = ({ id }: { id: string }) =>
   buildResponse<HouseholdState>(api.delete(`/api/household/invitations/${id}`));
 
+// The token is sent in the request body, never in a path or query string, so it is not written to request logs.
 export const previewHouseholdInvitation = ({ token }: { token: string }) =>
-  buildResponse<HouseholdInvitationPreview>(api.get('/api/household/invitations/preview', { params: { token } }));
+  buildResponse<HouseholdInvitationPreview>(api.post('/api/household/invitations/preview', { token }));
 
 export const acceptHouseholdInvitation = ({ token }: { token: string }) =>
   buildResponse<HouseholdState>(api.post('/api/household/invitations/accept', { token }));
 
 export const getHouseholdInvitationPublic = ({ token }: { token: string }) =>
-  buildResponse<HouseholdInvitationPublic>(publicApi.get(`/api/household_invitations/${encodeURIComponent(token)}`));
+  buildResponse<HouseholdInvitationPublic>(publicApi.post('/api/household_invitations/lookup', { token }));
 
 // Staff view of a member's household (Admin::GroupsController, camelCase serializer).
 export interface StaffHouseholdMember {

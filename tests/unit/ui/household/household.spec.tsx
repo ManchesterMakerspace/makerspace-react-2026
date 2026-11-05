@@ -171,5 +171,13 @@ describe('household flow', () => {
       expect(container.textContent).toContain('This invitation has expired');
       expect(container.textContent).toContain('Something failed');
     });
+
+    it.each(['expired', 'revoked', 'accepted'])('shows no household or address details for a %s invitation', (status) => {
+      render({ status, primary_name: null, household_address: null, address_matches: false, payment_accepted: false });
+      expect(joinButton().disabled).toBe(true);
+      expect(container.textContent).not.toContain('Household address');
+      expect(container.textContent).not.toContain('Your address');
+      expect(container.textContent).not.toContain('These do not match');
+    });
   });
 });

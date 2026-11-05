@@ -97,7 +97,7 @@ const SignUpWorkflowContent: React.FC = () => {
   });
   const invitedToHousehold = !!householdInvite;
   const completionDestination = invitedToHousehold
-    ? `${Routing.HouseholdJoin}?token=${encodeURIComponent(householdInvite)}`
+    ? Routing.HouseholdJoin
     : isNewMember ? buildNewMemberHomeRoute() : buildProfileRouting(currentUser.id);
 
   const skipPaymentSteps = invoiceOptionIdParam === noneInvoiceOption.id;
