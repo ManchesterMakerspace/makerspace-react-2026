@@ -23,6 +23,8 @@ const RENTAL_SPOT_DEEP_LINK_PREFIX = `${Routing.Rentals}/spots/`;
 const publicPaths = [
   Routing.Login, Routing.SignUp, Routing.PasswordReset, FIREBASE_CALLBACK_PATH,
   RENTAL_SPOT_DEEP_LINK_PREFIX,
+  // The emailed household invitation: the visitor chooses to sign in or create an account from that page.
+  Routing.HouseholdJoin,
 ];
 
 // A 401 is an expected, locally handled result while establishing a session.

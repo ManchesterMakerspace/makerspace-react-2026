@@ -39,6 +39,12 @@ export const MembershipOptionCard: React.FC<Props> = ({ option, signUpButton, ch
 
         {children}
 
+        {(option as InvoiceOption & { householdSize?: number | null }).householdSize ? <Grid size={{ xs: 12 }}>
+          <Typography variant="body2" color="textSecondary">
+            Covers up to {(option as InvoiceOption & { householdSize?: number | null }).householdSize} adults at the same address
+          </Typography>
+        </Grid> : null}
+
         <Grid size={{ xs: 6 }}>
           <Box textAlign="left">
             {option.amount && <Typography variant="body1">

@@ -29,6 +29,7 @@ import NotificationModal, { Notification } from "./NotificationModal";
 import AdminChangePasswordModal from "./AdminChangePasswordModal";
 import HouseholdModal from "./HouseholdModal";
 import { HouseholdSetupBanner } from "./householdSetup";
+import StaffHouseholdPanel from "./StaffHouseholdPanel";
 import { ActiveRentalsBanner } from "./activeRentals";
 import PreviewMemberContract from "../documents/PreviewMemberContract";
 import { SubRoutes } from "ui/settings/SettingsContainer";
@@ -433,6 +434,7 @@ const MemberProfile: React.FC = () => {
                 {!(member as any).householdRole && canEditMembers && (
                   <span id="member-detail-household-role" style={{ color: "grey" }}>None</span>
                 )}
+                {canEditMembers && !!(member as any).householdRole && <StaffHouseholdPanel memberId={member.id} />}
               </KeyValueItem>
             )}
             {isOwnProfile && <PreviewMemberContract />}

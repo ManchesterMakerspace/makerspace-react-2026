@@ -31,7 +31,7 @@ import { TurnstileWidget, TurnstileWidgetHandle } from "components/Turnstile/Tur
 import { submitSignUpWithTurnstile } from "./turnstileSignup";
 
 // Confirm email field that validates against the email field value
-const ConfirmEmailField: React.FC = () => {
+const ConfirmEmailField: React.FC<{ defaultValue?: string }> = ({ defaultValue }) => {
   const values = useFormValues();
   const emailValue = values[SignUpFields.email.name] as string;
   return (
@@ -40,6 +40,7 @@ const ConfirmEmailField: React.FC = () => {
       label={SignUpFields.confirmEmail.label}
       fieldName={SignUpFields.confirmEmail.name}
       placeholder={SignUpFields.confirmEmail.placeholder}
+      defaultValue={defaultValue}
       validate={(val: string) => {
         if (!val) return "Required";
         if (val.trim() !== emailValue?.trim()) return "Email addresses do not match";
@@ -75,10 +76,14 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
   
   const { isRequesting, error } = useAuthState();
 
-  const { membershipOptionId, discountId } = useSearchQuery({
-    membershipOptionId: invoiceOptionParam, 
-    discountId: discountParam, 
+  const { membershipOptionId, discountId, householdInvite, invitedEmail } = useSearchQuery({
+    membershipOptionId: invoiceOptionParam,
+    discountId: discountParam,
+    householdInvite: "householdInvite",
+    invitedEmail: "email",
   })
+  // An invited second adult must register with the address the invitation was sent to.
+  const emailDefault = householdInvite && invitedEmail ? invitedEmail : undefined;
 
   const submit = React.useCallback(async ({ values }: FormState) => {
     const validSignUp = Object.entries(SignUpFields).reduce((vals, [key, { name, transform }]) => ({
@@ -218,10 +223,11 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
                   label={SignUpFields.email.label}
                   fieldName={SignUpFields.email.name}
                   placeholder={SignUpFields.email.placeholder}
+                  defaultValue={emailDefault}
                 />
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <ConfirmEmailField />
+                <ConfirmEmailField defaultValue={emailDefault} />
               </Grid>
 
               {/* Password */}

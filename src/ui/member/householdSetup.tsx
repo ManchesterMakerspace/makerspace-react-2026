@@ -16,7 +16,8 @@ export const HouseholdSetupBanner: React.FC<{ member?: unknown }> = ({ member })
   return (
     <Alert id="member-household-setup-banner" severity="warning" role="status" sx={{ marginBottom: 2 }}>
       <strong>Household setup needed.</strong> This member is on a household membership plan but has no
-      household yet. Choose <strong>Create Household</strong>, then <strong>Manage Household</strong> and
+      household yet. Once their payment is accepted they can invite the second adult by email from their
+      own home page. Or choose <strong>Create Household</strong>, then <strong>Manage Household</strong> and
       <strong> Add Secondary Member</strong> for the second adult. The second adult needs an account with
       the same street address and postal code, and should not also have their own subscription.
     </Alert>

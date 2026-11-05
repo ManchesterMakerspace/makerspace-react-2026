@@ -8,6 +8,7 @@ import { useAuthState } from "ui/reducer/hooks";
 import { timeToDate } from "ui/utils/timeToDate";
 import HomeInvoices from "./HomeInvoices";
 import HomeVolunteerOpportunities from "./HomeVolunteerOpportunities";
+import HouseholdCard from "ui/household/HouseholdCard";
 import { VOLUNTEER_CREDIT_TIMING_MESSAGE, VOLUNTEER_REVIEW_MESSAGE } from "ui/volunteer/volunteerMessages";
 
 export const membershipCoverage = (member: HomeMember): string => {
@@ -65,6 +66,7 @@ const HomePage: React.FC = () => {
           to={Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUser.id)}>Account Settings</Link>
       </Box>
     </Paper>
+    {!welcome && !isRequesting && !error && <HouseholdCard />}
     {volunteerNotice && <Alert severity="success" role="status" onClose={() => setVolunteerNotice("")}>
       <Typography>{volunteerNotice}</Typography>
       <Typography sx={{ mt: 1 }}>{VOLUNTEER_CREDIT_TIMING_MESSAGE}</Typography>

@@ -6,6 +6,7 @@ import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
+import Alert from "@mui/material/Alert";
 import { adminGetNewCard, adminCreateCard, getMember, Member, isApiErrorResponse } from "makerspace-ts-api-client";
 import ScanNfc from 'ui/nfc/ScanNfc';
 
@@ -113,6 +114,12 @@ const AccessCardForm: React.FC<{ memberId: string }> = ({ memberId }) => {
           <Typography variant="body1" gutterBottom>Access card exists for {member.firstname}</Typography>
           : <Typography color="secondary" variant="body1" gutterBottom>No access card exists for {member.firstname}</Typography>
         }
+        {!!(member as { householdRole?: string }).householdRole && (
+          <Alert id="card-form-household-note" severity="info" sx={{ mb: 1 }}>
+            {member.firstname} is part of a household membership. Each adult needs their own fob, and each must be here in person with
+            photo ID. After this one, issue the other adult's fob too.
+          </Alert>
+        )}
         <ol className="instruction-list">
           <li>Scan a new keyfob at the front door and import it, or use this device's SCAN NFC option.</li>
           <li>

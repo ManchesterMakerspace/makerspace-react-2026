@@ -47,7 +47,9 @@ interface Step {
   component?: React.ComponentType;
 }
 
-const getSteps = (requiresPayment: boolean = true): Step[] => [
+// An invited second adult only creates an account and signs the agreement: joining the household is free, so there is no
+// membership or payment to choose, and the workflow ends on the page that joins them to the household.
+const getSteps = (requiresPayment: boolean = true, invitedToHousehold: boolean = false): Step[] => [
   {
     label: "Basic Info",
     component: MemberInfoStep
@@ -56,11 +58,11 @@ const getSteps = (requiresPayment: boolean = true): Step[] => [
     label: "Agreements",
     component: AgreementStep
   },
-  {
+  ...invitedToHousehold ? [] : [{
     label: "Membership",
     component: MembershipSelectStep
-  },
-  ...requiresPayment ? [
+  }],
+  ...requiresPayment && !invitedToHousehold ? [
     {
       label: "Payment",
       component: PaymentStep
@@ -84,18 +86,22 @@ const SignUpWorkflowContent: React.FC = () => {
   const { current: authLoadingOnMount } = React.useRef(isRequesting);
   // Capture once, before signing the agreement or refreshing the paid member.
   const { current: isNewMember } = React.useRef(!currentUser.memberContractOnFile || currentUser.status === "pending");
-  const completionDestination = isNewMember ? buildNewMemberHomeRoute() : buildProfileRouting(currentUser.id);
-
   const {
     invoiceOptionId: invoiceOptionIdParam,
-    paymentMethodId: paymentMethodIdParam
+    paymentMethodId: paymentMethodIdParam,
+    householdInvite
   } = useSearchQuery({
     invoiceOptionId: invoiceOptionParam,
-    paymentMethodId: paymentMethodQueryParam
+    paymentMethodId: paymentMethodQueryParam,
+    householdInvite: "householdInvite"
   });
+  const invitedToHousehold = !!householdInvite;
+  const completionDestination = invitedToHousehold
+    ? Routing.HouseholdJoin
+    : isNewMember ? buildNewMemberHomeRoute() : buildProfileRouting(currentUser.id);
 
   const skipPaymentSteps = invoiceOptionIdParam === noneInvoiceOption.id;
-  const steps = getSteps(!skipPaymentSteps);
+  const steps = getSteps(!skipPaymentSteps, invitedToHousehold);
   const stepOrder = steps.map(step => step.component);
 
   const determineStartStep = React.useCallback((): number => {
@@ -172,7 +178,7 @@ const SignUpWorkflowContent: React.FC = () => {
 
   const { component: Component } = currentStep;
 
-  const disableBack = activeStep <= stepOrder.indexOf(MembershipSelectStep);
+  const disableBack = invitedToHousehold || activeStep <= stepOrder.indexOf(MembershipSelectStep);
   const nextLabel = activeStep === stepOrder.indexOf(ReviewStep) ? "Submit Payment" :
                     (activeStep === stepOrder.length - 1 ? "Submit" : "Next");
   return (
