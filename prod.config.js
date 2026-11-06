@@ -116,7 +116,11 @@ module.exports = env => ({
       filename: "./index.html"
     }),
     new CopyWebpackPlugin({
-      patterns: [{ from: "src/assets/favicon.png", to: "favicon.png" }]
+      patterns: [
+        { from: "src/assets/favicon.png", to: "favicon.png" },
+        { from: "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png", to: "pwa-icon-192.png" },
+        { from: "src/pwa", to: ".", globOptions: { ignore: ["**/*.png"] } }
+      ]
     }),
     new webpack.EnvironmentPlugin({
       BILLING_ENABLED: true,
