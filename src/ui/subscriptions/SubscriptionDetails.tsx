@@ -15,6 +15,7 @@ import { sessionLoginUserAction } from "ui/auth/actions";
 import ErrorMessage from "ui/common/ErrorMessage";
 import { useAuthState } from "../reducer/hooks";
 import NoSubscriptionDetails from "../subscriptions/NoSubscriptionDetails";
+import PayNowPanel from "ui/payNow/PayNowPanel";
 
 export const SubscriptionDetailsInner: React.FC<{ subscription: Subscription, invoice?: Invoice}> = ({ invoice, subscription }) => {
   const type = subscription && renderPlanType(subscription.planId);
@@ -75,6 +76,7 @@ const SubscriptionDetails: React.FC<Props> = ({ subscriptionId, onLoad }) => {
 
   return !subscriptionId || wasCancelled || isCanceled(subscription) ? <NoSubscriptionDetails member={currentUser}/> : (
     <>
+      <PayNowPanel variant="inline" subscriptionId={subscriptionId} onPaid={onChange} />
       <SubscriptionDetailsInner subscription={subscription} />
       <ErrorMessage error={subError} />
       <Grid container spacing={3}>
