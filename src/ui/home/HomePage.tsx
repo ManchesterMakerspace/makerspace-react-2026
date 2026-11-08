@@ -41,11 +41,13 @@ const HomePage: React.FC = () => {
   const { search } = useLocation();
   const welcome = new URLSearchParams(search).get("newMember") === "true";
   const [volunteerNotice, setVolunteerNotice] = React.useState("");
+  const [paidNotice, setPaidNotice] = React.useState(false);
   const { data, isRequesting, error, refresh } = useReadTransaction(getHome, {}, false, "member-home", true, true);
 
   return <Stack component="main" spacing={3} sx={{ maxWidth: 1000, mx: "auto", my: 3, overflowWrap: "anywhere" }}>
     {!welcome && !isRequesting && !error && data?.member.subscriptionId &&
-      <PayNowPanel variant="banner" subscriptionId={data.member.subscriptionId} onPaid={refresh} />}
+      <PayNowPanel variant="banner" subscriptionId={data.member.subscriptionId} onPaid={() => { setPaidNotice(true); refresh(); }} />}
+    {paidNotice && <Alert severity="success" role="status" onClose={() => setPaidNotice(false)}>Payment received, your access is restored.</Alert>}
     <Paper component="section" aria-labelledby="home-title" sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography id="home-title" component="h1" variant={welcome ? "h3" : "h4"}
         sx={{ mb: 2, color: welcome ? "secondary.main" : "text.primary", fontSize: welcome ? { xs: "2.5rem", sm: "3rem" } : undefined }}>
