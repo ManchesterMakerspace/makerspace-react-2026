@@ -100,8 +100,8 @@ const PayNowPanel: React.FC<Props> = ({ subscriptionId, variant, onPaid }) => {
     if (!blocked) return "";
     if (blocked.reason === "hard_decline") return "This card cannot be tried again. Update your payment method first, then pay.";
     if (blocked.reason === "cooldown") return `You can try again${blocked.nextAt ? ` after ${formatWhen(blocked.nextAt)}` : " in an hour"}.`;
-    if (blocked.reason === "daily_cap") return "You have reached today's limit of 3 payment attempts. Try again tomorrow, or ask staff for help.";
-    return "Pay now is not available for this payment. Please contact staff.";
+    if (blocked.reason === "daily_cap") return "You have reached today's limit of 3 payment attempts. Try again tomorrow, or ask a board member for help.";
+    return "Pay now is not available for this payment. Please contact a board member.";
   })();
 
   return <Alert
