@@ -5,6 +5,7 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 import { getHome } from "api/home";
 import { claimVolunteerTask, checkinVolunteerEvent } from "api/volunteer";
 import { listInvoices } from "makerspace-ts-api-client";
+import { getPayNowSubscription, payNow } from "api/payNow";
 
 let homeState: any;
 let invoiceState: any;
@@ -17,6 +18,7 @@ jest.mock("ui/hooks/useReadTransaction", () => ({ __esModule: true, default: (..
 jest.mock("ui/reducer/hooks", () => ({ useAuthState: () => ({ currentUser: { id: "me", role: "admin" }, permissions: { billing: true } }) }));
 jest.mock("ui/checkout/cart", () => ({ useEmptyCart: () => emptyCart, useAddToCart: () => addToCart }));
 jest.mock("api/volunteer", () => ({ claimVolunteerTask: jest.fn(), checkinVolunteerEvent: jest.fn() }));
+jest.mock("api/payNow", () => ({ getPayNowSubscription: jest.fn(), payNow: jest.fn() }));
 import HomePage, { membershipCoverage } from "ui/home/HomePage";
 
 const Location = () => { const location = useLocation(); return <span data-location>{location.pathname}</span>; };
@@ -30,6 +32,8 @@ describe("Home page", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     refreshHome.mockReset();
+    (getPayNowSubscription as jest.Mock).mockReset().mockResolvedValue({ data: { id: "sub1", status: "Active", canPayNow: false, payNowBlockedReason: null, lastFailureMessage: null, nextPayNowAt: null } });
+    (payNow as jest.Mock).mockReset();
     (claimVolunteerTask as jest.Mock).mockReset();
     (checkinVolunteerEvent as jest.Mock).mockReset();
     homeState = { data: {
@@ -197,5 +201,37 @@ describe("Home page", () => {
     expect(button("Join Event").disabled).toBe(true);
     await act(async () => finish!({ data: {} }));
     expect(refreshHome).toHaveBeenCalledTimes(1);
+  });
+  describe("Pay now banner", () => {
+    const pastDue = { id: "sub1", status: "Past Due", amount: "65.00", canPayNow: true, payNowBlockedReason: null, lastFailureMessage: "insufficient funds", nextPayNowAt: null };
+
+    it("appears at the top for a member with a past-due subscription, and not for a new member's welcome page", async () => {
+      homeState.data.member = { ...homeState.data.member, subscriptionId: "sub1" };
+      (getPayNowSubscription as jest.Mock).mockResolvedValue({ data: pastDue });
+      await render("/home");
+      expect(container.querySelector("[data-testid='pay-now-banner']")?.textContent).toContain("didn't go through (insufficient funds)");
+      expect(container.querySelector("main")?.firstElementChild?.getAttribute("data-testid")).toBe("pay-now-banner");
+      expect(getPayNowSubscription).toHaveBeenCalledWith({ id: "sub1" });
+    });
+
+    it("is absent when the subscription is not past due, or the member has none", async () => {
+      homeState.data.member = { ...homeState.data.member, subscriptionId: "sub1" };
+      await render("/home");
+      expect(container.querySelector("[data-testid='pay-now-banner']")).toBeNull();
+      jest.clearAllMocks();
+      homeState.data.member = { ...homeState.data.member, subscriptionId: undefined };
+      await render("/home");
+      expect(getPayNowSubscription).not.toHaveBeenCalled();
+    });
+
+    it("refreshes the member and keeps a success message after paying", async () => {
+      homeState.data.member = { ...homeState.data.member, subscriptionId: "sub1" };
+      (getPayNowSubscription as jest.Mock).mockResolvedValue({ data: pastDue });
+      (payNow as jest.Mock).mockResolvedValue({ paid: true, subscription: { ...pastDue, status: "Active" } });
+      await render("/home");
+      await act(async () => { button("Pay now").click(); });
+      expect(refreshHome).toHaveBeenCalled();
+      expect(container.querySelector("[role='status']")?.textContent).toContain("Payment received, your access is restored.");
+    });
   });
 });
