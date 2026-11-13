@@ -107,3 +107,12 @@ writes. It checks immediate abandoned history, the voluntary-release explanation
 terminal action suppression, keyboard tabs, and overflow at 320/600/900/1280 px.
 Inspect `tmp/reservation-browser/history-*.png` and `managed-*.png`.
 It uses Edge on Windows and Playwright Chromium elsewhere.
+
+
+## Phone enrollment fallback
+
+`node tests/browser/nfc.cjs` also checks Issue Fob without native/Web NFC: app intent,
+reader import, keyboard submission through the existing API, persistent completion
+instructions and UID, dismissal, and overflow at 320/600/900/1280 pixels. It writes
+`tmp/nfc-browser/fallback-form-*.png` and `fallback-success-*.png`. APIs are mocked;
+this does not verify RF programming or actual app installation/handoff.
