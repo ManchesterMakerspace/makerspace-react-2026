@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { CreditCard } from '../fixtures/testData';
 
 const FRAMES = {
@@ -85,6 +85,25 @@ export class PaymentPage {
 
   async confirmPayment(): Promise<void> {
     await this.page.getByRole('button', { name: 'Confirm' }).click();
+  }
+
+  async confirmPaymentAndWaitForReceipt(): Promise<void> {
+    // Register before clicking so fast responses cannot be missed. Match error
+    // responses too, so a rejection fails here rather than as a receipt timeout.
+    const [response] = await Promise.all([
+      this.page.waitForResponse(response =>
+        new URL(response.url()).pathname === '/api/billing/transactions' &&
+        response.request().method() === 'POST', { timeout: 60_000 }),
+      this.confirmPayment(),
+    ]);
+    expect(response.status(), 'Rental payment must succeed').toBe(200);
+    const transaction = await response.json();
+    expect(transaction.invoice?.id, 'Payment response must identify the paid invoice').toBeTruthy();
+    await expect(this.page).toHaveURL(url =>
+      url.pathname === `/checkout/receipt/${transaction.invoice.id}`, { timeout: 30_000 });
+    await expect(this.page.getByRole('heading', { name: 'Thank you for your purchase!' }))
+      .toBeVisible();
+    await expect(this.page.getByRole('button', { name: 'Return to profile' })).toBeVisible();
   }
 
   async returnToProfile(): Promise<void> {

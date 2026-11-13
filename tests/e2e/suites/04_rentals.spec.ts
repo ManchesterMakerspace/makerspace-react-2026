@@ -1,22 +1,21 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test, TOTE_PLAN, uniqueRentalNames } from '../fixtures/rental';
 import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { AdminRentalsPage } from '../pages/AdminRentalsPage';
 import { MemberRentalsPage } from '../pages/MemberRentalsPage';
-import { adminMember, basicMember } from '../fixtures/testData';
+import { adminMember } from '../fixtures/testData';
 
-const GREEN_TOTE      = 'Green Tote';
-const TOTE_PLAN       = 'Monthly Tote Rental';
-const GT1             = 'GT1';
-const GT1_LOCATION    = 'Classroom';
-const GT1_DESCRIPTION = 'Large Green Tote';
+const TOTE_LOCATION    = 'Classroom';
+const TOTE_DESCRIPTION = 'Large Green Tote';
 
 // ── Test 6: Admin creates rental type and spot ────────────────────────────────
 
 test.describe('Admin creates rental type and spot', () => {
 
-  test('Admin creates Green Tote type and GT1 spot', async ({ page }) => {
+  test('Admin creates Green Tote type and rental spot', async ({ page }) => {
+    const { typeName, spotNumber } = uniqueRentalNames();
     const auth    = new AuthPage(page);
     const rentals = new AdminRentalsPage(page);
 
@@ -27,39 +26,39 @@ test.describe('Admin creates rental type and spot', () => {
     await rentals.goToTab('Rental Types');
     await rentals.waitForTypesTable();
     await rentals.clickAddType();
-    await rentals.fillRentalTypeForm(GREEN_TOTE, TOTE_PLAN);
+    await rentals.fillRentalTypeForm(typeName, TOTE_PLAN);
     await rentals.submitRentalTypeForm();
-    await rentals.verifyTypeInTable(GREEN_TOTE);
+    await rentals.verifyTypeInTable(typeName);
 
     // Create rental spot
     await rentals.goToTab('Rental Spots');
     await rentals.waitForSpotsTable();
     await rentals.clickAddSpot();
     await rentals.fillRentalSpotForm({
-      number:         GT1,
-      location:       GT1_LOCATION,
-      rentalTypeName: GREEN_TOTE,
-      description:    GT1_DESCRIPTION,
+      number:         spotNumber,
+      location:       TOTE_LOCATION,
+      rentalTypeName: typeName,
+      description:    TOTE_DESCRIPTION,
     });
     await rentals.submitRentalSpotForm();
 
     // Search and verify
-    await rentals.searchForSpot(GT1);
-    await rentals.verifySpotInTable(GT1);
+    await rentals.searchForSpot(spotNumber);
+    await rentals.verifySpotInTable(spotNumber);
   });
 });
 
-// ── Test 7: Member self-assigns rental spot (depends on Test 6) ───────────────
+// ── Test 7: Member self-assigns an independently provisioned rental spot ──────
 
 test.describe('Member self-assigns rental spot', () => {
 
-  test('Member self-assigns GT1, signs agreement, pays invoice', async ({ page }) => {
+  test('Member self-assigns rental spot, signs agreement, pays invoice', async ({ page, rentalFixture }) => {
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
     const payment = new PaymentPage(page);
 
-    await auth.signIn(basicMember.email, basicMember.password);
+    await auth.signIn(rentalFixture.email, rentalFixture.password);
     await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
@@ -67,11 +66,11 @@ test.describe('Member self-assigns rental spot', () => {
     // Verify Rentals tab visible
     await expect(page.getByRole('tab', { name: /rentals/i })).toBeVisible();
 
-    // Select GT1 from dropdown
+    // Each attempt owns its spot and member, including any outstanding invoices.
     await member.clickTab('Rentals');
     await rentals.waitForRentalsTab();
     await expect(page.getByRole('combobox', { name: 'Select an Available Rental' })).toBeVisible();
-    await rentals.selectSpot(GT1);
+    await rentals.selectSpot(rentalFixture.spotNumber);
     await expect(page.getByRole('button', { name: 'Confirm Rental' })).toBeVisible();
 
     // Confirm and sign agreement
@@ -83,16 +82,16 @@ test.describe('Member self-assigns rental spot', () => {
     await rentals.clickProceed();
     await member.waitForProfile();
 
-    // Verify GT1 in rentals table
+    // Verify this attempt's spot in the rentals table
     await member.dismissRentalAgreementModal();
     await member.reloadProfile();
     await member.dismissRentalAgreementModal();
     await member.clickTab('Rentals');
-    await rentals.verifyRentalInTable(GT1);
+    await rentals.verifyRentalInTable(rentalFixture.spotNumber);
 
     // Pay rental invoice from Dues tab
     await member.clickTab('Dues');
-    await page.waitForTimeout(1000);
+    await expect(page.getByRole('checkbox')).toHaveCount(1);
     await rentals.selectDuesInvoice();
     await payment.paySelectedDues();
 
@@ -103,7 +102,7 @@ test.describe('Member self-assigns rental spot', () => {
     // Step 2: Review and confirm
     await page.getByRole('button', { name: 'Submit Payment' }).click();
     await page.getByRole('checkbox', { name: 'I agree' }).check();
-    await page.getByRole('button', { name: 'Confirm' }).click();
+    await payment.confirmPaymentAndWaitForReceipt();
     await payment.returnToProfile();
     await member.dismissRentalAgreementModal();
 

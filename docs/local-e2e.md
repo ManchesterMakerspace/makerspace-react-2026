@@ -89,6 +89,25 @@ password is rejected, cleanup confirms the original password still works.
 This uses the API because the seeded `password` value is too weak for the UI's
 current validation. These are test-only changes; portal behavior is unchanged.
 
+The rental suite can run independently of the admin rental-creation test. Each
+payment attempt provisions a unique member, rental type, and spot through the API,
+and gives that member its own Braintree sandbox customer and saved Visa using the
+same sandbox nonce as the Rails seed. Retries and `--repeat-each` never reuse an
+earlier attempt's invoices or subscriptions. Fixture setup requires `BT_ENV=sandbox`
+and has a 120-second budget. Records remain in the disposable database for failure
+inspection until its next reset; sandbox customers/subscriptions remain upstream.
+The admin creation test also uses unique type/spot names on every attempt.
+
+Payment confirmation registers a response listener before clicking Confirm,
+allows up to 60 seconds for `POST /api/billing/transactions`, and checks for HTTP
+200 before asserting the matching invoice receipt URL and success heading. An
+error response fails immediately instead of becoming a missing-button timeout.
+To check attempt isolation with the Rails/Braintree prerequisites above:
+
+```sh
+npx playwright test tests/e2e/suites/04_rentals.spec.ts --project=chromium --repeat-each=2
+```
+
 ## Ticket UI checks without backend credentials
 
 `node scripts/check_fix_tickets.cjs --tickets-only` builds an isolated UI fixture
