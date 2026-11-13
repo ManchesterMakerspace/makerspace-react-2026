@@ -114,6 +114,14 @@ npx playwright test tests/e2e/suites/04_rentals.spec.ts --project=chromium --rep
 
 ## Ticket UI checks without backend credentials
 
+The Rails-backed reporter-anonymity test uses separate browser contexts for the
+reporter, another member, and the admin. Each actor signs in normally and reads
+the same ticket; the ordinary member must not see the reporter or reveal control,
+while the admin explicitly reveals the reporter. Separate cookie jars avoid an
+account-switching race where a late response restores the previous session after
+logout. Additional contexts close even if an assertion fails. Login/logout and
+session-restoration coverage remains in the authentication suites.
+
 `node scripts/check_fix_tickets.cjs --tickets-only` builds an isolated UI fixture
 and checks navigation, catalog loading/failure, cancellation, and the E2E page
 helper's note/resolution flow at four widths. This harness uses installed
