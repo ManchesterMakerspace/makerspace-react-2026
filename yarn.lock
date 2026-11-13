@@ -6364,11 +6364,6 @@ make-error@^1.1.1, make-error@^1.3.6:
   resolved "https://registry.yarnpkg.com/make-error/-/make-error-1.3.6.tgz#2eb2e37ea9b67c4891f684a1394799af484cf7a2"
   integrity sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==
 
-makerspace-ts-api-client@2.9.0:
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/makerspace-ts-api-client/-/makerspace-ts-api-client-2.9.0.tgz#81d0f3af900a9ad12fea9a2350188f201724e5e3"
-  integrity sha512-vUg63oEiQFVFpfI+RsiQplKIxxiMnWBxDnKZhLmKVCsRg3UT5qqWbH9sE3tIGhUceNiftf1h5S4EVc+AuAy5cQ==
-
 "makerspace-ts-api-client@file:vendor/makerspace-ts-api-client-2.10.0.tgz":
   version "2.10.0"
   resolved "file:vendor/makerspace-ts-api-client-2.10.0.tgz#bf83860ddd9ebe72fcbbaaa63279dc6b46887731"
@@ -6504,10 +6499,10 @@ minizlib@^3.1.0:
   dependencies:
     minipass "^7.1.2"
 
-moment-timezone@^0.6.5:
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.6.5.tgz#a8153ebe88199bd76f2d2ce329eb1d568eafbdee"
-  integrity sha512-KKzZAxGv2Qx4cnk6eSlvf4C+DLFW52vmMY5MN7UARY7GONbozkutylQG3DrrtmLCTXdQ5XZrqao9cI16bLFzXA==
+moment-timezone@^0.6.6:
+  version "0.6.6"
+  resolved "https://registry.yarnpkg.com/moment-timezone/-/moment-timezone-0.6.6.tgz#a2f6fe85002ef199645f96b1e94842897158bf8a"
+  integrity sha512-LF5AAYsMduXFW2ungr/D9JqNq9ykZyhWgYG6wFtdGZW5ZlBDTBgTUFqW8EC7Fa+Dvs3IMZxlWkSR09sW2D/+0w==
   dependencies:
     moment "^2.29.4"
 
