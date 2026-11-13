@@ -52,6 +52,11 @@ describe('rental attempt isolation', () => {
     expect(typeCalls[0][1].data.displayName).not.toBe(typeCalls[1][1].data.displayName);
     expect(typeCalls[0][1].headers['X-XSRF-TOKEN']).toBe('rotated+token');
     expect(calls.filter(([path]) => path === '/api/billing/payment_methods')).toHaveLength(2);
+    const memberCalls = calls.filter(([path]) => path === '/api/admin/members');
+    expect(memberCalls[0][1].data).toMatchObject({
+      phone: '6035550100', memberContractOnFile: true,
+      address: { street: '12 Test Street', city: 'Manchester', state: 'NH', postalCode: '03101' },
+    });
   });
 
   it('refuses non-sandbox setup before making requests', async () => {

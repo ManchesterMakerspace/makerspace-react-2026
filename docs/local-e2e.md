@@ -96,7 +96,11 @@ same sandbox nonce as the Rails seed. Retries and `--repeat-each` never reuse an
 earlier attempt's invoices or subscriptions. Fixture setup requires `BT_ENV=sandbox`
 and has a 120-second budget. Records remain in the disposable database for failure
 inspection until its next reset; sandbox customers/subscriptions remain upstream.
-The admin creation test also uses unique type/spot names on every attempt.
+The admin creation test also uses unique type/spot names on every attempt. The
+cancellation test in `05_admin_rentals_lifecycle.spec.ts` uses this same isolated
+fixture rather than depending on a spot created by the preceding suite. Fixture
+members include complete contact information so profile notifications do not
+redirect the rental flow to Personal Information settings.
 
 Payment confirmation registers a response listener before clicking Confirm,
 allows up to 60 seconds for `POST /api/billing/transactions`, and checks for HTTP

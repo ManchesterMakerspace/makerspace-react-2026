@@ -54,6 +54,8 @@ export async function createRentalFixture(request: APIRequestContext) {
   const member = await post('/api/admin/members', {
     firstname: 'Rental', lastname: 'Test', email, role: 'member',
     status: 'activeMember', memberContractOnFile: true,
+    phone: '6035550100',
+    address: { street: '12 Test Street', city: 'Manchester', state: 'NH', postalCode: '03101' },
   });
   const activated = await request.put(`/api/admin/members/${member.id}`, {
     headers: await headers(), data: { expirationTime: Date.now() + 30 * 86400_000 },
