@@ -21,6 +21,7 @@ import { useCapabilities } from 'app/permissions';
 import { useAuthState } from 'ui/reducer/hooks';
 import LoadingOverlay from 'ui/common/LoadingOverlay';
 import { defaultLoginDestination } from 'ui/auth/loginDestination';
+import { ProviderSourcePrompt } from 'pages/registration/SignUpWorkflow/ProviderSourcePrompt';
 
 const lazyRoute = <T extends React.ComponentType<any>>(factory: () => Promise<{ default: T }>) => React.lazy(factory);
 const HomePage = lazyRoute(() => import(/* webpackChunkName: "member-home" */ 'ui/home/HomePage'));
@@ -42,6 +43,7 @@ const AdminVolunteerPage = lazyRoute(() => import(/* webpackChunkName: "admin-vo
 const AdminAnalyticsPage = lazyRoute(() => import(/* webpackChunkName: "admin-analytics", webpackPrefetch: true */ 'ui/admin/AdminAnalyticsPage'));
 const FobIssuancePage = lazyRoute(() => import(/* webpackChunkName: "fob-issuance" */ 'ui/fobIssuance/FobIssuancePage'));
 const AuditLogPage = lazyRoute(() => import(/* webpackChunkName: "admin-audit-log", webpackPrefetch: true */ 'ui/auditLog/AuditLogPage'));
+const EventbriteBrowser = lazyRoute(() => import(/* webpackChunkName: "eventbrite" */ 'ui/eventbrite/EventbriteBrowser'));
 
 interface Props {
   currentUserId: string;
@@ -67,7 +69,7 @@ const RedirectHome: React.FC<{ currentUserId: string }> = ({ currentUserId }) =>
 
 const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
   const caps = useCapabilities();
-  const { totpEnrollmentRequired } = useAuthState();
+  const { totpEnrollmentRequired, currentUser } = useAuthState();
   const billingEnabled = permissions[Whitelists.billing] || false;
   const earnedMembershipEnabled = caps.canManageEarnedMemberships && permissions[Whitelists.earnedMembership];
 
@@ -82,6 +84,8 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       </Routes>
     );
   }
+
+  if (currentUser?.signupSourcePromptPending) return <ProviderSourcePrompt />;
 
   return (
     <React.Suspense fallback={<LoadingOverlay id="body" />}>
@@ -116,6 +120,7 @@ const PrivateRouting: React.FC<Props> = ({ currentUserId, permissions }) => {
       {caps.canViewPortalSettings && <Route path={Routing.SystemSettings}  element={<MemberPortalSettings />} />}
       {caps.canViewPortalSettings && <Route path={Routing.SlackIdentityConflicts} element={<SlackIdentityConflictsPage />} />}
       {caps.canViewAuditLog      && <Route path={Routing.AuditLog}         element={<AuditLogPage />} />}
+      {caps.canViewEventbriteHistory && <Route path={Routing.Eventbrite} element={<EventbriteBrowser />} />}
       {billingEnabled && <Route path={`${Routing.Billing}/${Routing.PathPlaceholder.Resource}${Routing.PathPlaceholder.Optional}`} element={<BillingContainer />} />}
       {billingEnabled && <Route path={Routing.Receipt} element={<Receipt />} />}
       {billingEnabled && <Route path={Routing.Checkout} element={<CheckoutPage />} />}

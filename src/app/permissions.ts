@@ -13,6 +13,7 @@ import { AuthMember } from 'ui/auth/interfaces';
  * Zero component changes needed.
  */
 export interface UserCapabilities {
+  canViewEventbriteHistory: boolean;
   canScanNfc: boolean;
   canManageNfcCards: boolean;
   canIssueFobs: boolean; // holds the fob-issuer checkout (Rails decides; the server enforces it)
@@ -64,6 +65,7 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
   const privileged = admin || board;
 
   return {
+    canViewEventbriteHistory: privileged || rm,
     canScanNfc: !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
     canManageNfcCards: privileged && !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),
     canIssueFobs: fobIssuer && !!user?.id && user.status === 'activeMember' && Number(user.expirationTime) > Date.now(),

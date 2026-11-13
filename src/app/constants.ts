@@ -36,6 +36,7 @@ export namespace Routing {
   export const SystemSettings = '/admin/system-settings';
   export const SlackIdentityConflicts = '/admin/slack-identity-conflicts';
   export const AuditLog = '/admin/audit-log';
+  export const Eventbrite = '/admin/eventbrite';
   export const Checkout = '/checkout';
   export const Receipt = `${Checkout}/receipt/${PathPlaceholder.InvoiceId}`;
   export const PasswordReset = '/resetPassword';
