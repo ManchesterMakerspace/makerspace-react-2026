@@ -382,3 +382,21 @@ offers edit/approve/cancel actions or appears in active agendas.
 The reservation browser check covers small/medium/large layouts and keyboard tabs.
 The shared header logo has an SVG namespace and a shrinkable container so it does
 not push the menu beyond a narrow viewport.
+## Eventbrite and signup attribution
+
+The optional source question shares a component across password signup, first
+provider onboarding and staff member editing. It offers dated events, existing
+sources, Other with free text, an explicit decline and Referral from Member.
+Event loading failure leaves other answers available and offers Retry; Refresh
+event choices recovers a stale selection. Existing event snapshots survive edits.
+
+Resource Managers, Board and Admins see Eventbrite in the menu and member profile.
+The read-only browser uses Events/Orders/Attendees tabs, labeled filters, responsive
+cards, paging, and a details dialog for tickets/attendees. Loading, empty, error/
+Retry, invalid, refunded and email-link mismatch states are explicit. Ordinary
+members do not fetch imported history. Details use text and existing MUI styling;
+no private URLs, credentials or raw API payloads appear in the UI.
+
+The generated client 2.10.0 is temporarily a tested local package in `vendor/`.
+After npm publication, replace its file dependency with registry version 2.10.0
+and regenerate `yarn.lock` before the coordinated release.

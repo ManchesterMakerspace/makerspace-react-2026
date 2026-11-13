@@ -6369,6 +6369,10 @@ makerspace-ts-api-client@2.9.0:
   resolved "https://registry.yarnpkg.com/makerspace-ts-api-client/-/makerspace-ts-api-client-2.9.0.tgz#81d0f3af900a9ad12fea9a2350188f201724e5e3"
   integrity sha512-vUg63oEiQFVFpfI+RsiQplKIxxiMnWBxDnKZhLmKVCsRg3UT5qqWbH9sE3tIGhUceNiftf1h5S4EVc+AuAy5cQ==
 
+"makerspace-ts-api-client@file:vendor/makerspace-ts-api-client-2.10.0.tgz":
+  version "2.10.0"
+  resolved "file:vendor/makerspace-ts-api-client-2.10.0.tgz#bf83860ddd9ebe72fcbbaaa63279dc6b46887731"
+
 math-intrinsics@^1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/math-intrinsics/-/math-intrinsics-1.1.0.tgz#a0dd74be81e2aa5c2f27e65ce283605ee4e2b7f9"

@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { test } from '../fixtures/rental';
 import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { AdminRentalsPage } from '../pages/AdminRentalsPage';
@@ -13,7 +14,6 @@ const APPROVAL_TYPE    = 'Approval Tote';
 const APPROVAL_PLAN    = 'Monthly Tote Rental';
 const APPROVE_MEMBER   = 'basic_member6@test.com';
 const DENY_MEMBER      = 'basic_member7@test.com';
-const CANCEL_MEMBER    = 'basic_member8@test.com';
 
 // ── Setup: admin creates a rental type + spot that requires approval ──────────
 
@@ -186,39 +186,12 @@ test.describe('Admin denies a rental request', () => {
 
 test.describe('Member cancels their rental', () => {
 
-  test.beforeAll(async ({ browser }) => {
-    // GT1 may be occupied from 04_rentals suite — free it via admin before this test
-    const page    = await browser.newPage();
-    const auth    = new AuthPage(page);
-    const rentals = new AdminRentalsPage(page);
-
-    await auth.signIn(adminMember.email, adminMember.password);
-    await rentals.goto();
-    await rentals.goToTab('Current Rentals');
-    await page.waitForTimeout(1000);
-
-    const row = page.getByRole('row').filter({ hasText: /GT1/i }).first();
-    if (await row.isVisible({ timeout: 5_000 })) {
-      await row.locator('input[type="checkbox"]').check({ force: true });
-      await page.getByRole('button', { name: /cancel rental|vacate/i }).click();
-      const dialog = page.getByRole('dialog');
-      await dialog.waitFor({ state: 'visible', timeout: 10_000 });
-      // FormModal's submit button reuses the same label as the trigger
-      // ("Cancel Rental"), not a generic confirm/submit/yes — scope to the
-      // dialog so we don't re-match the page's other rental action buttons.
-      await dialog.getByRole('button', { name: 'Cancel Rental' }).click();
-      await dialog.waitFor({ state: 'hidden', timeout: 15_000 });
-      await page.waitForTimeout(1000);
-    }
-    await page.close();
-  });
-
-  test('Member self-assigns GT1 spot then cancels it', async ({ page }) => {
+  test('Member self-assigns rental spot then cancels it', async ({ page, rentalFixture }) => {
     const auth    = new AuthPage(page);
     const member  = new MemberPage(page);
     const rentals = new MemberRentalsPage(page);
 
-    await auth.signIn(CANCEL_MEMBER, 'password');
+    await auth.signIn(rentalFixture.email, rentalFixture.password);
     await member.gotoOwnProfile();
     await member.dismissNotificationModal();
     await member.dismissRentalAgreementModal();
@@ -226,7 +199,7 @@ test.describe('Member cancels their rental', () => {
     await rentals.waitForRentalsTab();
 
     // Claim the non-approval spot
-    await rentals.selectSpot('GT1');
+    await rentals.selectSpot(rentalFixture.spotNumber);
     await rentals.confirmRental();
     await page.waitForTimeout(1000);
 
@@ -243,12 +216,12 @@ test.describe('Member cancels their rental', () => {
     await member.reloadProfile();
     await member.dismissRentalAgreementModal();
     await member.clickTab('Rentals');
-    await rentals.verifyRentalInTable('GT1');
+    await rentals.verifyRentalInTable(rentalFixture.spotNumber);
 
     // Cancel rental — select via the row's checkbox; the actual "Cancel
     // Rental" action button lives outside the row, in the page's button
     // bar, and only appears once a row is selected.
-    const rentalRow = page.getByRole('row').filter({ hasText: /GT1/ }).first();
+    const rentalRow = page.getByRole('row').filter({ hasText: rentalFixture.spotNumber }).first();
     await rentalRow.waitFor({ state: 'visible', timeout: 10_000 });
     await rentalRow.locator('input[type="checkbox"]').check({ force: true });
     await page.getByRole('button', { name: 'Cancel Rental' }).click();
@@ -270,8 +243,8 @@ test.describe('Member cancels their rental', () => {
     await member.reloadProfile();
     await member.clickTab('Rentals');
 
-    // GT1 should no longer be listed as an active rental
-    await expect(page.getByRole('row').filter({ hasText: /GT1/ })
+    // This attempt's spot should no longer be listed as an active rental
+    await expect(page.getByRole('row').filter({ hasText: rentalFixture.spotNumber })
       .filter({ hasText: /active/i }))
       .not.toBeVisible({ timeout: 10_000 });
   });

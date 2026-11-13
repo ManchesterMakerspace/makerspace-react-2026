@@ -24,6 +24,7 @@ export interface SignUpForm {
   password: string;
   signupSource?: string;
   signupSourceDetail?: string;
+  signupEventbriteEventId?: string;
   "cf-turnstile-response": string;
   address: {
     street: string;
@@ -35,6 +36,7 @@ export interface SignUpForm {
 }
 
 export type AuthMember = Member & {
+  signupSourcePromptPending?: boolean;
   isAdmin: boolean;
   isBoardMember: boolean;
   isResourceManager: boolean;

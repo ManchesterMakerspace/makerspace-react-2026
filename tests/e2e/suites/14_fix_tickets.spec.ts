@@ -62,7 +62,7 @@ test.describe('Staff manages a ticket', () => {
 // ── Test 3: Reporter anonymity ────────────────────────────────────────────────
 
 test.describe('Reporter anonymity', () => {
-  test('Identity is hidden from other members but revealable by admin', async ({ page }) => {
+  test('Identity is hidden from other members but revealable by admin', async ({ page, browser, baseURL }) => {
     const auth = new AuthPage(page);
     const tickets = new FixTicketsPage(page);
 
@@ -76,17 +76,36 @@ test.describe('Reporter anonymity', () => {
       publicReadOnly: true,
     });
 
-    await auth.signIn(basicMember1.email, basicMember1.password);
-    await tickets.goto();
-    await tickets.openTicketByTitle(title);
-    await expect(page.getByText('Submitter:')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Reveal reporter' })).not.toBeVisible();
+    // Each actor gets a fresh cookie jar. Switching accounts in the reporter's
+    // page can race late session responses from the previous member's requests.
+    // browser.newPage creates its own context, disposed when the page closes.
+    await test.step('Another member cannot see or reveal the reporter', async () => {
+      const otherMemberPage = await browser.newPage({ baseURL });
+      try {
+        await new AuthPage(otherMemberPage).signIn(basicMember1.email, basicMember1.password);
+        const otherMemberTickets = new FixTicketsPage(otherMemberPage);
+        await otherMemberTickets.goto();
+        await otherMemberTickets.openTicketByTitle(title);
+        await expect(otherMemberPage.getByText('Submitter:')).not.toBeVisible();
+        await expect(otherMemberPage.getByRole('button', { name: 'Reveal reporter' })).not.toBeVisible();
+      } finally {
+        await otherMemberPage.close();
+      }
+    });
 
-    await auth.signIn(adminMember.email, adminMember.password);
-    await tickets.goto();
-    await tickets.openTicketByTitle(title);
-    const revealed = await tickets.revealReporter();
-    expect(revealed).toContain('Reporter:');
+    await test.step('An admin can explicitly reveal the reporter', async () => {
+      const adminPage = await browser.newPage({ baseURL });
+      try {
+        await new AuthPage(adminPage).signIn(adminMember.email, adminMember.password);
+        const adminTickets = new FixTicketsPage(adminPage);
+        await adminTickets.goto();
+        await adminTickets.openTicketByTitle(title);
+        const revealed = await adminTickets.revealReporter();
+        expect(revealed).toContain('Reporter:');
+      } finally {
+        await adminPage.close();
+      }
+    });
   });
 });
 

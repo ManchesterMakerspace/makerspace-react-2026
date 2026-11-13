@@ -41,6 +41,7 @@ import useWriteTransaction from "ui/hooks/useWriteTransaction";
 import { invoiceOptionParam, noneInvoiceOption } from "../MembershipOptions/constants";
 import { DisplayedFeedbackProvider } from "components/Feedback/DisplayedFeedback";
 import { SignUpFeedbackNotification } from "./SignUpFeedbackNotification";
+import { ProviderSourcePrompt } from './ProviderSourcePrompt';
 
 interface Step {
   label: string;
@@ -177,6 +178,8 @@ const SignUpWorkflowContent: React.FC = () => {
   }
 
   const { component: Component } = currentStep;
+
+  if (currentUser.signupSourcePromptPending) return <ProviderSourcePrompt />;
 
   const disableBack = invitedToHousehold || activeStep <= stepOrder.indexOf(MembershipSelectStep);
   const nextLabel = activeStep === stepOrder.indexOf(ReviewStep) ? "Submit Payment" :

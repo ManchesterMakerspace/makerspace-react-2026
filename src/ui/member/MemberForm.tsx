@@ -19,10 +19,13 @@ import { toDatePicker } from "ui/utils/timeToDate";
 import { memberStatusLabelMap } from "./MemberStatusLabel";
 import { ActiveRentalsStatusNote } from "./activeRentals";
 import { states } from "./states";
-import { REFERRAL_SIGNUP_SOURCE, signupSourceDetailPrompt, signupSourceOptions } from "./signupSources";
+import { REFERRAL_SIGNUP_SOURCE } from "./signupSources";
 import MemberSearchInput from "ui/common/MemberSearchInput";
 import { listShops } from "api/toolCheckouts";
 import { Shop } from "app/entities/toolCheckout";
+import { SignupSourceQuestion } from './SignupSourceQuestion';
+import { sourcePayload } from 'api/eventbrite';
+const sourceChoice = (member: any) => member?.signupSource === 'eventbrite' ? `event:${member.signupEventbriteEventId}` : member?.signupSource || '';
 
 // Mirrors Member::RESOURCE_MANAGER_TAGGABLE_ROLES on the backend -- an admin
 // or board member already manages every shop regardless of this tagging, but
@@ -50,6 +53,7 @@ interface State {
   silenceEmails: boolean;
   role: string;
   signupSource: string;
+  signupSourceDetail: string;
   referredByMemberId: string;
   resourceManagerShopIds: string[];
   shops: Shop[];
@@ -66,7 +70,8 @@ class MemberForm extends React.Component<OwnProps, State> {
       subscription: false,
       silenceEmails: false,
       role: props.member?.role || "member",
-      signupSource: (props.member as any)?.signupSource || "",
+      signupSource: sourceChoice(props.member),
+      signupSourceDetail: (props.member as any)?.signupSourceDetail || '',
       referredByMemberId: (props.member as any)?.referredByMemberId || "",
       resourceManagerShopIds: (props.member as any)?.resourceManagerShopIds || [],
       shops: [],
@@ -80,7 +85,8 @@ class MemberForm extends React.Component<OwnProps, State> {
       subscription: member && member.subscription || false,
       silenceEmails: member && !!member.silenceEmails || false,
       role: member?.role || "member",
-      signupSource: (member as any)?.signupSource || "",
+      signupSource: sourceChoice(member),
+      signupSourceDetail: (member as any)?.signupSourceDetail || '',
       referredByMemberId: (member as any)?.referredByMemberId || "",
       resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
     });
@@ -96,7 +102,8 @@ class MemberForm extends React.Component<OwnProps, State> {
         subscription: member && member.subscription || false,
         silenceEmails: member && !!member.silenceEmails || false,
         role: member?.role || "member",
-        signupSource: (member as any)?.signupSource || "",
+        signupSource: sourceChoice(member),
+        signupSourceDetail: (member as any)?.signupSourceDetail || '',
         referredByMemberId: (member as any)?.referredByMemberId || "",
         resourceManagerShopIds: (member as any)?.resourceManagerShopIds || []
       });
@@ -126,6 +133,7 @@ class MemberForm extends React.Component<OwnProps, State> {
     const updatedMember = await form.simpleValidate<Member>(fields);
     return {
       ...updatedMember,
+      ...isAdmin && sourcePayload(this.state.signupSource, this.state.signupSourceDetail),
       silenceEmails,
       memberContractOnFile,
       subscription,
@@ -352,30 +360,11 @@ class MemberForm extends React.Component<OwnProps, State> {
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            <FormLabel component="legend">{fields.signupSource.label}</FormLabel>
-            <Select
-              name={fields.signupSource.name}
-              id={fields.signupSource.name}
-              value={this.state.signupSource}
-              onChange={event => this.setState({ signupSource: event.target.value as string })}
-              fullWidth
-              native
-            >
-              {signupSourceOptions(fields.signupSource.placeholder).map(
-                ({ value, label }) => <option id={`${fields.signupSource.name}-option-${value || "none"}`} key={value || "none"} value={value}>{label}</option>)}
-            </Select>
+            <input type="hidden" name={fields.signupSource.name} value={sourcePayload(this.state.signupSource).signupSource} />
+            <SignupSourceQuestion value={this.state.signupSource} detail={this.state.signupSourceDetail}
+              onChange={value => this.setState({ signupSource: value })} onDetail={value => this.setState({ signupSourceDetail: value })}
+              savedEvent={(member as any).signupEventbriteEventSnapshot ? { id: (member as any).signupEventbriteEventId, ...(member as any).signupEventbriteEventSnapshot } : undefined} />
           </Grid>
-          {signupSourceDetailPrompt(this.state.signupSource) && (
-            <Grid size={{ xs: 12 }}>
-              <TextField
-                fullWidth
-                value={(member as any).signupSourceDetail}
-                label={signupSourceDetailPrompt(this.state.signupSource).staffLabel}
-                name={fields.signupSourceDetail.name}
-                id={fields.signupSourceDetail.name}
-              />
-            </Grid>
-          )}
           {this.state.signupSource === REFERRAL_SIGNUP_SOURCE && (
             <Grid size={{ xs: 12 }}>
               <FormLabel component="legend">Link the member who referred them</FormLabel>

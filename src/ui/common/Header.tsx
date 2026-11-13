@@ -163,6 +163,7 @@ class Header extends React.Component<Props, State> {
       ...(computeCapabilities(currentUser).canIssueFobs ? [this.renderMenuNavLink(Routing.IssueFob, "Issue Fob", "issue-fob")] : []),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.Analytics, "Analytics", "analytics")] : []),
       ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.AuditLog, "Audit Log", "audit-log")] : []),
+      ...(computeCapabilities(currentUser).canViewEventbriteHistory ? [this.renderMenuNavLink(Routing.Eventbrite, "Eventbrite", "eventbrite")] : []),
       ...(billingEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.Billing, "Billing", "billing")] : []),
       ...(earnedMembershipEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.EarnedMemberships, "Earned Memberships", "earnedMembership")] : []),
       ...(isPrivileged ? [this.renderMenuNavLink(Routing.Members, "Members", "members")] : []),

@@ -14,7 +14,6 @@ import { SignUpForm } from "ui/auth/interfaces";
 import FormModal from "ui/common/FormModal";
 import useModal from "ui/hooks/useModal";
 import { states } from "ui/member/states";
-import { signupSourceDetailPrompt, signupSourceOptions } from "ui/member/signupSources";
 import { useSearchQuery } from "hooks/useSearchQuery";
 import { discountParam, invoiceOptionParam } from "../MembershipOptions";
 import { TextInput } from "components/Form/inputs/TextInput";
@@ -29,6 +28,17 @@ import { CollectionOf } from "app/interfaces";
 import { useAuthState } from "ui/reducer/hooks";
 import { TurnstileWidget, TurnstileWidgetHandle } from "components/Turnstile/TurnstileWidget";
 import { submitSignUpWithTurnstile } from "./turnstileSignup";
+import { SignupSourceQuestion } from 'ui/member/SignupSourceQuestion';
+import { sourcePayload } from 'api/eventbrite';
+import { useFormContext } from 'components/Form/FormContext';
+
+const SourceQuestion = () => {
+  const { values, setValue } = useFormContext();
+  return <SignupSourceQuestion value={values[SignUpFields.signupSource.name] || ''}
+    detail={values[SignUpFields.signupSourceDetail.name] || ''}
+    onChange={value => setValue(SignUpFields.signupSource.name, value)}
+    onDetail={value => setValue(SignUpFields.signupSourceDetail.name, value)} />;
+};
 
 // Confirm email field that validates against the email field value
 const ConfirmEmailField: React.FC<{ defaultValue?: string }> = ({ defaultValue }) => {
@@ -47,22 +57,6 @@ const ConfirmEmailField: React.FC<{ defaultValue?: string }> = ({ defaultValue }
         return undefined;
       }}
     />
-  );
-};
-
-// A typed follow-up (which class, or who told them) is asked only for the sources that have one
-const SourceDetailField: React.FC = () => {
-  const values = useFormValues();
-  const prompt = signupSourceDetailPrompt(values[SignUpFields.signupSource.name] as string);
-  if (!prompt) return null;
-  return (
-    <Grid size={{ xs: 12 }}>
-      <TextInput
-        label={prompt.signupLabel}
-        fieldName={SignUpFields.signupSourceDetail.name}
-        placeholder={prompt.placeholder}
-      />
-    </Grid>
   );
 };
 
@@ -97,6 +91,7 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
       signUpForm => dispatch(submitSignUpAction(signUpForm)),
       {
         ...rest as SignUpForm,
+        ...sourcePayload(rest.signupSource, rest.signupSourceDetail),
         address: {
           street,
           unit,
@@ -249,15 +244,8 @@ export const MemberInfoStep: React.FC<{ children?: React.ReactNode }> = ({ child
 
               {/* How they found us */}
               <Grid size={{ xs: 12 }}>
-                <SelectInput
-                  fieldName={SignUpFields.signupSource.name}
-                  label={SignUpFields.signupSource.label}
-                  placeholder={SignUpFields.signupSource.placeholder}
-                  defaultValue=""
-                  options={signupSourceOptions(SignUpFields.signupSource.placeholder)}
-                />
+                <SourceQuestion />
               </Grid>
-              <SourceDetailField />
 
               <Grid size={{ xs: 12 }}>
                 <TurnstileWidget
