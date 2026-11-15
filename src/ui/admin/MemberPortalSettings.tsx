@@ -384,6 +384,15 @@ export const SlackTab: React.FC<SlackTabProps> = ({
             />
             <Divider style={{ margin: '8px 0' }} />
             <SettingRow
+              label='Upcoming Events Channel'
+              description='Eventbrite announcements and daily reminders; blank uses upcoming-events. Existing messages stay in their original channel.'
+              settingKey='slack_channel_upcoming_events'
+              value={config.slack.slack_channel_upcoming_events || 'upcoming-events'}
+              onSave={onSettingSave}
+              saving={savingKey === 'slack_channel_upcoming_events'}
+            />
+            <Divider style={{ margin: '8px 0' }} />
+            <SettingRow
               label='New Members Channel'
               description='Welcome messages for new Slack members'
               settingKey='slack_channel_new_members'

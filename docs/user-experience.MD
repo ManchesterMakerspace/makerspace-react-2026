@@ -400,3 +400,10 @@ no private URLs, credentials or raw API payloads appear in the UI.
 The generated client 2.10.0 is temporarily a tested local package in `vendor/`.
 After npm publication, replace its file dependency with registry version 2.10.0
 and regenerate `yarn.lock` before the coordinated release.
+
+## Upcoming Eventbrite channel
+
+Portal Settings → Slack includes Upcoming Events Channel using the existing
+editable setting row. Blank restores upcoming-events. The helper explains that
+existing messages remain in their original channel. The local settings wrapper
+handles the additive field without a generated-client release.

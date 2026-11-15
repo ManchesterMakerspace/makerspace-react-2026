@@ -2,6 +2,10 @@
 
 ## Eventbrite
 
+After building, `node tests/browser/eventbrite-announcements.cjs` checks the
+Upcoming Events Channel setting with mocked APIs: keyboard editing, channel
+normalization, blank/default behavior, and 320/600/900/1280 px layouts.
+
 After `yarn build`, run `node tests/browser/eventbrite.cjs`. The production bundle
 uses mocked APIs in a disposable Edge/Chromium session to verify staff history,
 retry, details, keyboard access, ordinary-member denial, provider answer/skip and overflow at

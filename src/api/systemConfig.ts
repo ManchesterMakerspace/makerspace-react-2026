@@ -36,6 +36,7 @@ export interface JobStatus {
 }
 
 export interface SlackSettings {
+  slack_channel_upcoming_events?: string;
   slack_channel_treasurer: string;
   slack_channel_rm: string;
   slack_channel_admin: string;
