@@ -24,7 +24,6 @@ import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import { ScopedThunkDispatch, State as ReduxState } from "ui/reducer";
 import { logoutUserAction } from "ui/auth/actions";
 import { AuthMember } from "ui/auth/interfaces";
-import { memberIsAdmin, memberIsBoardMember, memberIsResourceManager } from "ui/member/utils";
 import { Routing, Whitelists } from "app/constants";
 import Help from "ui/common/Help";
 import ScanNfc, { NfcController } from 'ui/nfc/ScanNfc';
@@ -120,11 +119,10 @@ class Header extends React.Component<Props, State> {
   ) => {
     const match = this.props.location && this.props.location.pathname === path;
     return (
-      <Link key={id} id={id} to={path} style={{ outline: "none", textDecoration: "none", color: "unset" }} onClick={this.detachMenu}>
-        <ListItemButton selected={match} sx={{ py: 0.75, px: 2, gap: 1 }}>
-          {icon}{label}
-        </ListItemButton>
-      </Link>
+      <MenuItem component={Link} key={id} id={id} to={path} selected={match}
+        onClick={this.detachMenu} sx={{ py: 0.75, px: 2, gap: 1 }}>
+        {icon}{label}
+      </MenuItem>
     );
   }
 
@@ -145,34 +143,19 @@ class Header extends React.Component<Props, State> {
     const profileUrl = Routing.Profile.replace(Routing.PathPlaceholder.MemberId, currentUser.id);
     const settingsUrl = Routing.Settings.replace(Routing.PathPlaceholder.MemberId, currentUser.id);
 
-    const isAdmin = currentUser.isAdmin;
-    const isBoardMember = currentUser.isBoardMember;
-    const isRM = currentUser.isResourceManager;
+    const caps = computeCapabilities(currentUser);
 
-    // Access levels
-    const isAdminOrBoard = isAdmin || isBoardMember;
-    const isPrivileged   = isAdmin || isBoardMember || isRM;
-    const canManageShopFees    = isPrivileged;
-    const canManageCheckouts   = true;
-    const canManageVolunteer   = isPrivileged;
-    const canManageRentals     = isPrivileged;
-
-    // Privileged menu items — alphabetized
-    const privilegedItems: JSX.Element[] = [
+    // Everyday navigation, including self-service pages available to all members.
+    const navigationItems: JSX.Element[] = [
       this.renderMenuNavLink("/fix-tickets", "Fix Tickets", "fix-tickets", <CampaignIcon fontSize="small" />),
-      ...(computeCapabilities(currentUser).canIssueFobs ? [this.renderMenuNavLink(Routing.IssueFob, "Issue Fob", "issue-fob")] : []),
-      ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.Analytics, "Analytics", "analytics")] : []),
-      ...(isAdminOrBoard ? [this.renderMenuNavLink(Routing.AuditLog, "Audit Log", "audit-log")] : []),
-      ...(computeCapabilities(currentUser).canViewEventbriteHistory ? [this.renderMenuNavLink(Routing.Eventbrite, "Eventbrite", "eventbrite")] : []),
-      ...(billingEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.Billing, "Billing", "billing")] : []),
-      ...(earnedMembershipEnabled && isAdminOrBoard ? [this.renderMenuNavLink(Routing.EarnedMemberships, "Earned Memberships", "earnedMembership")] : []),
-      ...(isPrivileged ? [this.renderMenuNavLink(Routing.Members, "Members", "members")] : []),
-      ...(isAdmin ? [this.renderMenuNavLink(Routing.SystemSettings, "Portal Settings", "system-settings")] : []),
-      ...(canManageRentals ? [this.renderMenuNavLink(Routing.AdminRentals, "Rentals", "rentals")] : []),
+      ...(caps.canIssueFobs ? [this.renderMenuNavLink(Routing.IssueFob, "Issue Fob", "issue-fob")] : []),
+      ...(earnedMembershipEnabled && caps.canManageEarnedMemberships ? [this.renderMenuNavLink(Routing.EarnedMemberships, "Earned Memberships", "earnedMembership")] : []),
+      ...(caps.canViewAllMembers ? [this.renderMenuNavLink(Routing.Members, "Members", "members")] : []),
+      ...(caps.canManageRentals ? [this.renderMenuNavLink(Routing.AdminRentals, "Rentals", "rentals")] : []),
       this.renderMenuNavLink(Routing.Reservations, "Reservations", "reservations"),
-      ...(canManageShopFees ? [this.renderMenuNavLink(Routing.ShopFees, "Shop Fees", "shop-fees")] : []),
-      ...(canManageCheckouts ? [this.renderMenuNavLink(Routing.ToolCheckouts, "Tool Checkouts", "tool-checkouts")] : []),
-      ...(canManageVolunteer ? [this.renderMenuNavLink(Routing.Volunteer, "Volunteer", "volunteer")] : []),
+      ...(caps.canManageShopFees ? [this.renderMenuNavLink(Routing.ShopFees, "Shop Fees", "shop-fees")] : []),
+      this.renderMenuNavLink(Routing.ToolCheckouts, "Tool Checkouts", "tool-checkouts"),
+      ...(caps.canManageVolunteer ? [this.renderMenuNavLink(Routing.Volunteer, "Volunteer", "volunteer")] : []),
       this.renderMenuNavLink(
         Routing.Workshops,
         "Workshops",
@@ -181,7 +164,15 @@ class Header extends React.Component<Props, State> {
       ),
     ];
 
-    // Settings submenu items - shown when privilegedItems.length < 5
+    const administrativeItems: JSX.Element[] = [
+      ...(caps.canViewAnalytics ? [this.renderMenuNavLink(Routing.Analytics, "Analytics", "analytics")] : []),
+      ...(caps.canViewAuditLog ? [this.renderMenuNavLink(Routing.AuditLog, "Audit Log", "audit-log")] : []),
+      ...(billingEnabled && caps.canManageBilling ? [this.renderMenuNavLink(Routing.Billing, "Billing", "billing")] : []),
+      ...(caps.canViewEventbriteHistory ? [this.renderMenuNavLink(Routing.Eventbrite, "Eventbrite", "eventbrite")] : []),
+      ...(caps.canViewPortalSettings ? [this.renderMenuNavLink(Routing.SystemSettings, "Portal Settings", "system-settings")] : []),
+    ];
+
+    // Settings submenu items - shown for the shorter member menu.
     const settingsSubRoutes = [
       { route: "security", label: "Security", id: "settings-submenu-security" },
     ];
@@ -204,6 +195,9 @@ class Header extends React.Component<Props, State> {
           className="menu-button"
           color="inherit"
           aria-label="Menu"
+          aria-haspopup="menu"
+          aria-controls={menuOpen ? "menu-appbar" : undefined}
+          aria-expanded={menuOpen}
           onClick={this.attachMenu}
         >
           <MenuIcon />
@@ -223,19 +217,19 @@ class Header extends React.Component<Props, State> {
           <MenuItem onClick={() => { this.detachMenu(); this.qrScanner.current?.start(); }} sx={{ gap: 1 }}>
             <QrCodeScannerIcon fontSize="small" />Scan QR
           </MenuItem>
-          {computeCapabilities(currentUser).canScanNfc && <MenuItem onClick={() => { this.detachMenu(); this.nfcScanner.current?.start(); }} sx={{ gap: 1 }}>
+          {caps.canScanNfc && <MenuItem onClick={() => { this.detachMenu(); this.nfcScanner.current?.start(); }} sx={{ gap: 1 }}>
             <NfcIcon fontSize="small" />SCAN NFC
           </MenuItem>}
           {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/subscriptions`, "Subscriptions", "settings-submenu-subscriptions")}
           {billingEnabled && this.renderMenuNavLink(`${settingsUrl}/payment-methods`, "Payment Methods", "settings-submenu-payment-methods", <AddCardIcon fontSize="small" />)}
 
-          {/* Privileged section */}
-          {privilegedItems.length > 0 && <Divider />}
-          {privilegedItems}
+          {/* Everyday navigation */}
+          {navigationItems.length > 0 && <Divider />}
+          {navigationItems}
 
-          {/* Settings submenu - shown when privilegedItems.length < 5 */}
-          {privilegedItems.length < 5 && settingsItems.length > 0 && <Divider />}
-          {privilegedItems.length < 5 && settingsItems}
+          {/* Settings submenu - shown for the shorter member menu */}
+          {navigationItems.length < 5 && settingsItems.length > 0 && <Divider />}
+          {navigationItems.length < 5 && settingsItems}
 
           {/* Logout */}
           <Divider />
@@ -243,6 +237,10 @@ class Header extends React.Component<Props, State> {
             <ExitToAppIcon fontSize="small" />
             Logout
           </MenuItem>
+
+          {/* Administrative tools stay at the bottom, with no empty separator. */}
+          {administrativeItems.length > 0 && <Divider id="administrative-menu-divider" />}
+          {administrativeItems}
         </Menu>
         <ScanNfc ref={this.nfcScanner} hiddenTrigger />
         <ScanQr ref={this.qrScanner} />
@@ -280,7 +278,7 @@ const mapStateToProps = (state: ReduxState, _ownProps: OwnProps): StateProps => 
   return {
     currentUser,
     billingEnabled: !!permissions[Whitelists.billing] || false,
-    earnedMembershipEnabled: (memberIsAdmin(currentUser) || memberIsBoardMember(currentUser)) && !!permissions[Whitelists.earnedMembership] || false,
+    earnedMembershipEnabled: !!permissions[Whitelists.earnedMembership],
     authRequesting: isRequesting,
     totpEnrollmentRequired,
   };
