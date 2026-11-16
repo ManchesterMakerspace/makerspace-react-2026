@@ -400,3 +400,21 @@ no private URLs, credentials or raw API payloads appear in the UI.
 The generated client 2.10.0 is temporarily a tested local package in `vendor/`.
 After npm publication, replace its file dependency with registry version 2.10.0
 and regenerate `yarn.lock` before the coordinated release.
+
+## Upcoming Eventbrite channel
+
+Portal Settings → Slack includes Upcoming Events Channel using the existing
+editable setting row. Blank restores upcoming-events. The helper explains that
+existing messages remain in their original channel. The local settings wrapper
+handles the additive field without a generated-client release.
+
+## Header menu groups
+
+The right-hand menu keeps everyday navigation and Logout ahead of a final group,
+separated by a divider: Analytics, Audit Log, Billing, Eventbrite, Portal Settings.
+Use the shared capabilities to hide inaccessible items; Billing also requires its
+feature flag. Portal Settings remains admin-only. Hide the final divider when none
+of these items is available. Tool Checkouts remains available to all signed-in
+members for self-service, regardless of checkout-management capabilities.
+Navigation links use MUI MenuItem so arrow-key navigation, focus styling, Escape
+and keyboard activation work consistently with the other menu actions.

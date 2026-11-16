@@ -1,6 +1,17 @@
 # Browser checks
 
+## Header menu
+
+After `yarn build`, run `node tests/browser/header-menu.cjs`. Mocked sessions cover
+admin, Board, Resource Manager and ordinary-member visibility, disabled billing,
+the final administrative group/separator, keyboard focus and navigation, and
+320/600/900/1280 px layouts. Screenshots are in `tmp/header-menu-browser`.
+
 ## Eventbrite
+
+After building, `node tests/browser/eventbrite-announcements.cjs` checks the
+Upcoming Events Channel setting with mocked APIs: keyboard editing, channel
+normalization, blank/default behavior, and 320/600/900/1280 px layouts.
 
 After `yarn build`, run `node tests/browser/eventbrite.cjs`. The production bundle
 uses mocked APIs in a disposable Edge/Chromium session to verify staff history,
