@@ -5,7 +5,7 @@ export class AdminVolunteerPage {
 
   async goto(): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu' }).click();
-    await this.page.getByRole('link', { name: 'Volunteer' }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: 'Volunteer', exact: true }).click();
     await this.page.waitForURL(/\/volunteer/, { timeout: 15_000 });
     await this.page.getByRole('tablist').waitFor({ state: 'visible', timeout: 15_000 });
   }

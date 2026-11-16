@@ -41,6 +41,7 @@ async function mockApi(page, options = {}) {
     if (url.pathname === '/api/config') body = { wiki_url: '' };
     else if (/invoice_options|billing\/discounts/.test(url.pathname)) body = [];
     else if (url.pathname === '/api/signup_status') body = { locked: false };
+    else if (url.pathname === '/api/signup_events') body = [];
     else if (url.pathname === '/api/members/sign_in') {
       if (!req.postDataJSON()?.member) await options.beforeSessionRestore?.();
       if (authenticated) body = sessionMember;

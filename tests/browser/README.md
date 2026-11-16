@@ -6,6 +6,10 @@ After `yarn build`, run `node tests/browser/header-menu.cjs`. Mocked sessions co
 admin, Board, Resource Manager and ordinary-member visibility, disabled billing,
 the final administrative group/separator, keyboard focus and navigation, and
 320/600/900/1280 px layouts. Screenshots are in `tmp/header-menu-browser`.
+The check invokes the actual E2E menu helpers for My Profile, Members, generic
+navigation, Billing, Rentals, Tool Checkouts and Volunteer, verifying destination
+URLs and menu dismissal for each accessible route. Run `node tests/browser/home.cjs`
+as well to cover login followed by profile navigation in the smoke-test setup.
 
 ## Eventbrite
 

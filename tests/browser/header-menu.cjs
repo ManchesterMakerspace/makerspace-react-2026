@@ -5,6 +5,13 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert/strict');
 const root = path.resolve(__dirname, '../..');
+require('ts-node').register({ transpileOnly: true, compilerOptions: { module: 'commonjs', rootDir: root, ignoreDeprecations: '6.0' } });
+const { AuthPage } = require('../e2e/pages/AuthPage.ts');
+const { MemberPage } = require('../e2e/pages/MemberPage.ts');
+const { BillingPage } = require('../e2e/pages/BillingPage.ts');
+const { AdminRentalsPage } = require('../e2e/pages/AdminRentalsPage.ts');
+const { AdminToolCheckoutsPage } = require('../e2e/pages/AdminToolCheckoutsPage.ts');
+const { AdminVolunteerPage } = require('../e2e/pages/AdminVolunteerPage.ts');
 const screenshots = path.join(root, 'tmp/header-menu-browser');
 const server = http.createServer((req, res) => {
   const filename = path.basename(new URL(req.url, 'http://localhost').pathname);
@@ -34,12 +41,13 @@ const cases = [
       const page = await browser.newPage();
       const errors = [];
       page.on('pageerror', error => errors.push(error.message));
-      const member = { id: 'test', firstname: 'Test', lastname: 'Member', email: 'test@example.com', role: scenario.role, status: 'activeMember', expirationTime: 4102444800000, memberContractOnFile: true };
+      const member = { id: 'test', firstname: 'Test', lastname: 'Member', email: 'test@example.com', role: scenario.role, status: 'activeMember', expirationTime: 4102444800000, memberContractOnFile: true, address: { street: '12 Main St', city: 'Manchester', state: 'NH', postalCode: '03101' } };
       await page.route('**/api/**', async route => {
         const url = new URL(route.request().url());
         let body = [];
         if (url.pathname === '/api/config') body = { wiki_url: '' };
         if (url.pathname === '/api/members/sign_in') body = member;
+        if (url.pathname === `/api/members/${member.id}` || url.pathname === `/api/admin/members/${member.id}`) body = member;
         if (url.pathname.endsWith('/permissions')) body = { billing: scenario.billing, earned_membership: true };
         if (url.pathname === '/api/home') body = { member, slack: { accepted: true }, availableCheckouts: [], availableVolunteerOpportunities: [] };
         await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -95,9 +103,33 @@ const cases = [
       await page.keyboard.press('Enter');
       await page.getByRole('menu').waitFor({ state: 'hidden' });
       assert.equal(new URL(page.url()).pathname, '/home');
+
+      // Exercise the same helpers as Rails-backed E2E against the real header,
+      // so changes to menu semantics cannot leave their selectors behind.
+      const profile = new MemberPage(page);
+      const routes = [
+        ['My Profile', () => profile.gotoOwnProfile(), `/members/${member.id}`],
+        ['Home', () => new AuthPage(page).navigateViaMenu('Home'), '/home'],
+        ['Tool Checkouts', () => new AdminToolCheckoutsPage(page).goto(), '/tool-checkouts'],
+      ];
+      if (scenario.role !== 'member') {
+        routes.push(['Members', () => profile.goToMembersList(), '/members']);
+        routes.push(['Volunteer', () => new AdminVolunteerPage(page).goto(), '/volunteer']);
+      }
+      if (['admin', 'board_member'].includes(scenario.role)) {
+        routes.push(['Rentals', () => new AdminRentalsPage(page).goto(), '/admin/rentals']);
+        if (scenario.billing) routes.push(['Billing', () => new BillingPage(page).goto(), '/billing']);
+      }
+      for (const [label, navigate, destination] of routes) {
+        await navigate();
+        await page.waitForURL(url => url.pathname === destination);
+        await page.getByRole('menu').waitFor({ state: 'hidden' });
+        assert.equal(new URL(page.url()).pathname, destination, `${scenario.role}: ${label} helper destination`);
+      }
+      console.log(`PASS E2E menu helpers: ${scenario.role}, billing=${scenario.billing}`);
       assert.deepEqual(errors, []);
       await page.close();
     }
-    console.log('Header menu: role/feature visibility, bottom grouping, keyboard focus and four widths passed');
+    console.log('Header menu: E2E helpers, role/feature visibility, bottom grouping, keyboard focus and four widths passed');
   } finally { await browser.close(); server.close(); }
 })().catch(error => { console.error(error); server.close(); process.exitCode = 1; });
