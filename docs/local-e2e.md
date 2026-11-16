@@ -59,14 +59,22 @@ Screenshots, videos and retry traces are in `tmp/playwright-results`.
 regular members land on `/home` (`?newMember=true` for pending members), while
 admins, board members, and resource managers retain their own profile landing.
 Tests that need profile tabs must call `MemberPage.gotoOwnProfile()` explicitly.
-`waitForProfile()` only waits for a profile that was already requested; it never
-changes the login destination. Signup tests assert the welcome Home destination
+`waitForProfile()` waits for the profile URL and Membership Status, which remains
+visible with billing disabled; it never changes the login destination.
+Signup tests assert the welcome Home destination
 before opening the profile for follow-up checks. `SettingsPage.goto()` uses the
 Home Account Settings link or the existing profile button, not the dropdown.
 `AuthPage.logout()` waits for the public login or landing controls to render;
 an SPA URL change and an already-fired DOMContentLoaded event are insufficient.
 Signing in again reuses a canonical `/login` navigation already in progress,
 while explicit return targets are cleared for the default-landing assertion.
+Header navigation uses MUI menu items: page helpers select the exact accessible
+name with `getByRole('menu').getByRole('menuitem', ...)`. Links elsewhere on a page
+still use the `link` role. `node tests/browser/header-menu.cjs` exercises all seven
+menu navigation helpers against the built UI with mocked APIs, including member
+profile/list, generic navigation, billing, rentals, checkouts and volunteer pages.
+Run it after menu changes alongside `node tests/browser/home.cjs`, which checks
+the login-to-profile flows used by the member smoke suite.
 `MemberRentalsPage.clickProceed()` verifies that signing an agreement opens
 `/members/:id/dues` with the Dues tab selected, rather than falling back to Home.
 

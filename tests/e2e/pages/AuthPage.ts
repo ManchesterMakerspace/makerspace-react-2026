@@ -107,6 +107,6 @@ export class AuthPage {
 
   async navigateViaMenu(linkName: string): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu' }).click();
-    await this.page.getByRole('link', { name: linkName, exact: true }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: linkName, exact: true }).click();
   }
 }

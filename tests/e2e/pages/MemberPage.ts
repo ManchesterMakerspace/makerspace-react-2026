@@ -6,13 +6,14 @@ export class MemberPage {
 
   async gotoOwnProfile(): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu', exact: true }).click();
-    await this.page.getByRole('link', { name: 'My Profile', exact: true }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: 'My Profile', exact: true }).click();
     await this.waitForProfile();
   }
 
   async waitForProfile(): Promise<void> {
     await this.page.waitForURL(/\/members\//, { timeout: 30_000 });
-    await this.page.locator('#member-detail-type').waitFor({ state: 'attached', timeout: 30_000 });
+    // Membership status is present even when billing hides Membership Type.
+    await this.page.locator('#member-detail-status').waitFor({ state: 'attached', timeout: 30_000 });
   }
 
   async reloadProfile(): Promise<void> {
@@ -100,7 +101,7 @@ export class MemberPage {
 
   async goToMembersList(): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu' }).click();
-    await this.page.getByRole('link', { name: 'Members', exact: true }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: 'Members', exact: true }).click();
     await this.page.waitForURL(/\/members$/, { timeout: 15_000 });
   }
 

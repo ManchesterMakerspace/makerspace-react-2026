@@ -5,7 +5,7 @@ export class AdminToolCheckoutsPage {
 
   async goto(): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu' }).click();
-    await this.page.getByRole('link', { name: 'Tool Checkouts' }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: 'Tool Checkouts', exact: true }).click();
     await this.page.waitForLoadState('networkidle');
   }
 

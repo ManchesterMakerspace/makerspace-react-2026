@@ -5,7 +5,7 @@ export class BillingPage {
 
   async goto(): Promise<void> {
     await this.page.getByRole('button', { name: 'Menu' }).click();
-    await this.page.getByRole('link', { name: 'Billing' }).click();
+    await this.page.getByRole('menu').getByRole('menuitem', { name: 'Billing', exact: true }).click();
     await this.page.waitForURL(/\/billing/, { timeout: 15_000 });
     await this.page.waitForLoadState('networkidle');
   }
