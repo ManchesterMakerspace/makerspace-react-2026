@@ -11,6 +11,8 @@ import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { EnrollmentChoices, readerInstructions, useCardEnrollment } from 'ui/nfc/CardEnrollment';
+import { useLocation } from 'react-router-dom';
 import ScanNfc from "ui/nfc/ScanNfc";
 import { fobIssuanceApi, FobIssuanceMember } from "./api";
 
@@ -33,6 +35,18 @@ const FobIssuancePage: React.FC = () => {
   const [success, setSuccess] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
+  const enrollment = useCardEnrollment(selected?.id || '', 'issuer', !!selected);
+  const location = useLocation();
+  React.useEffect(() => {
+    const id = new URLSearchParams(location.search).get('enrollMember');
+    if (!id || !/^[a-f0-9]{24}$/i.test(id)) return;
+    let active = true;
+    fobIssuanceApi.member(id).then(outcome => {
+      if (!active) return;
+      if (outcome.error) setError(outcome.error); else chooseMember(outcome.data);
+    });
+    return () => { active = false; };
+  }, [location.search]);
   React.useEffect(() => {
     const term = search.trim();
     if (term.length < MIN_SEARCH) {
@@ -70,7 +84,7 @@ const FobIssuancePage: React.FC = () => {
   };
 
   const issue = async () => {
-    if (!selected) return;
+    if (!selected || busy || enrollment.busy) return;
     if (!selected.memberContractOnFile) {
       return setError("This member has not signed the member contract. A key fob cannot be issued until it is on file.");
     }
@@ -79,10 +93,14 @@ const FobIssuancePage: React.FC = () => {
 
     setBusy(true);
     setError("");
-    const outcome = await fobIssuanceApi.issue(selected.id, candidate, source);
+    let outcome: { error?: string };
+    try {
+      if (enrollment.native) { await enrollment.enroll(candidate); outcome = {}; }
+      else outcome = await fobIssuanceApi.issue(selected.id, candidate, source);
+    } catch (error) { outcome = { error: (error as Error).message }; }
     setBusy(false);
     if (outcome.error) return setError(outcome.error);
-    setSuccess(`Key fob issued to ${displayName(selected)}. They can try it at the front door now.`);
+    setSuccess(enrollment.native ? `Fob enrollment complete for ${displayName(selected)}. UID: ${candidate}` : `${readerInstructions} UID: ${candidate}`);
     setResults((existing) => existing.filter((member) => member.id !== selected.id));
     setSelected(undefined);
     setCandidate(undefined);
@@ -98,12 +116,13 @@ const FobIssuancePage: React.FC = () => {
         Members who already have a fob must see a board member.
       </Typography>
 
-      {success && <Alert id="fob-issuance-success" severity="success" sx={{ my: 2 }}>{success}</Alert>}
+      {success && <Alert id="fob-issuance-success" onClose={() => setSuccess('')} severity="success" sx={{ my: 2 }}>{success}</Alert>}
       {error && <Alert id="fob-issuance-error" severity="error" sx={{ my: 2 }}>{error}</Alert>}
 
       <TextField
         id="fob-issuance-search"
         label="Find a member by name or email"
+        disabled={busy || enrollment.busy}
         value={search}
         onChange={(event) => { setSearch(event.target.value); setError(""); }}
         fullWidth
@@ -123,6 +142,7 @@ const FobIssuancePage: React.FC = () => {
             {results.map((member) => (
               <ListItemButton
                 key={member.id}
+                disabled={busy || enrollment.busy}
                 selected={selected?.id === member.id}
                 onClick={() => chooseMember(member)}
                 id={`fob-issuance-member-${member.id}`}
@@ -174,14 +194,16 @@ const FobIssuancePage: React.FC = () => {
             label="Verified member's name and address with valid identification"
           />
 
+          <EnrollmentChoices memberId={selected.id} flow="issuer" native={enrollment.native} setNative={enrollment.setNative} disabled={busy || enrollment.busy} />
+          {enrollment.progress && <Alert severity="info" role="status">{enrollment.progress}</Alert>}
           <Box sx={{ my: 2 }}>
             <Typography variant="body2" gutterBottom>
               Scan the new key fob at the front door, then import it. Or use this device's scan option.
             </Typography>
-            <Button id="fob-issuance-import" variant="contained" onClick={importNewKey}>Import New Key</Button>
-            <ScanNfc
+            <Button id="fob-issuance-import" disabled={busy || enrollment.busy} variant="contained" onClick={importNewKey}>Import New Key</Button>
+            {!enrollment.busy && <ScanNfc
               onUid={(uid) => { setSource("nfc"); setCandidate(uid); setError(""); }}
-            />
+            />}
             <Typography variant="body2" sx={{ mt: 1 }}>
               Key fob:{" "}
               <span id="fob-issuance-uid">
@@ -194,7 +216,7 @@ const FobIssuancePage: React.FC = () => {
             id="fob-issuance-submit"
             variant="contained"
             color="primary"
-            disabled={busy || !selected.memberContractOnFile}
+            disabled={busy || enrollment.busy || !selected.memberContractOnFile}
             onClick={issue}
           >
             Issue Key Fob

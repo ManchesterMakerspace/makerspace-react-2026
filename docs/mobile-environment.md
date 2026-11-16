@@ -10,6 +10,8 @@
 | `ANDROID_KEY_ALIAS` | Release signing key alias | No |
 | `ANDROID_KEY_PASSWORD` | Release signing key password | Yes |
 
-No new backend environment variables are required. Existing `MLAB_URI` must point
+Native protected-card enrollment requires Rails to receive the existing gateway
+`READER_KEY_ENCRYPTION_KEY` through server deployment secrets. It is never a mobile
+build variable. Existing `MLAB_URI` must point
 to a replica set for transactional card operations. The packaged app uses the
 existing Rails session and XSRF cookie mechanisms.

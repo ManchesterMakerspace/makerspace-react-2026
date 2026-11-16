@@ -98,6 +98,44 @@ const server = http.createServer((request, response) => {
       assert(cacheKeys.flat().every(path => ['/offline.html', '/pwa-icon.png'].includes(path)));
       await context.close(); console.log(`PASS NFC member/admin flows and layout at ${width}px`);
     }
+    // Reader fallback is available even when neither native NFC nor Web NFC exists.
+    for (const width of [320, 600, 900, 1280]) {
+      const context = await browser.newContext({ viewport: { width, height: 900 } });
+      const page = await context.newPage();
+      const member = { id: '0123456789abcdef01234567', firstname: 'Test', lastname: 'Recipient',
+        email: 'recipient@example.test', status: 'pending', memberContractOnFile: true,
+        addressStreet: '1 Test Street', addressCity: 'Manchester', addressState: 'NH', addressPostalCode: '03101' };
+      let assignments = 0;
+      await page.route('**/api/**', async route => {
+        const url = new URL(route.request().url()); let body = {};
+        if (url.pathname === '/api/members/sign_in') body = { id: 'operator', firstname: 'Test', lastname: 'Issuer', role: 'member',
+          isFobIssuer: true, status: 'activeMember', expirationTime: Date.now() + 86400000 };
+        else if (url.pathname.endsWith('/permissions')) body = [];
+        else if (url.pathname === '/api/fob_issuance/members') body = [member];
+        else if (url.pathname === '/api/fob_issuance/cards/new') body = { uid: '00112233' };
+        else if (url.pathname === '/api/fob_issuance/cards') {
+          assignments++; assert.deepEqual(route.request().postDataJSON(), { member_id: member.id, uid: '00112233', source: 'import' });
+          body = { uid: '00112233' };
+        } else if (url.pathname.includes('card_enrollments')) throw Error('Fallback must use existing assignment');
+        await route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
+      });
+      await page.goto(`${origin}/issue-fob`);
+      await page.getByLabel('Find a member by name or email').fill('Test');
+      await page.locator(`#fob-issuance-member-${member.id}`).click();
+      assert((await page.getByRole('link', { name: 'Continue in Android app' }).getAttribute('href')).includes('package=org.manchestermakerspace.portal'));
+      await page.getByRole('button', { name: 'Use enrollment reader instead' }).click();
+      await page.getByRole('button', { name: 'Import New Key' }).click();
+      await page.getByLabel("Verified member's name and address with valid identification").check();
+      await page.screenshot({ path: path.join(root, `tmp/nfc-browser/fallback-form-${width}.png`), fullPage: true });
+      assert(await page.locator('#fob-issuance-page').evaluate(el => el.scrollWidth <= el.clientWidth + 1));
+      await page.locator('#fob-issuance-submit').focus(); await page.keyboard.press('Enter');
+      const notice = page.locator('#fob-issuance-success');
+      await notice.waitFor(); assert((await notice.textContent()).includes('present it to an enrollment-enabled reader'));
+      assert((await notice.textContent()).includes('00112233')); assert.equal(assignments, 1);
+      await page.screenshot({ path: path.join(root, `tmp/nfc-browser/fallback-success-${width}.png`), fullPage: true });
+      await notice.getByRole('button', { name: 'Close' }).click(); await notice.waitFor({ state: 'hidden' });
+      await context.close(); console.log(`PASS reader fallback assignment/instructions at ${width}px`);
+    }
     // Simulate the native platform for real iframe rendering. Bridge HTTP is
     // independently exercised by nativeTransport.spec.ts; no device is implied.
     for (const width of [320, 600, 900, 1280]) {
