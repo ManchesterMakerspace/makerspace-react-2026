@@ -122,10 +122,12 @@ npx playwright test tests/e2e/suites/04_rentals.spec.ts --project=chromium --rep
 
 ## Ticket UI checks without backend credentials
 
-The Rails-backed reporter-anonymity test uses separate browser contexts for the
-reporter, another member, and the admin. Each actor signs in normally and reads
-the same ticket; the ordinary member must not see the reporter or reveal control,
-while the admin explicitly reveals the reporter. Separate cookie jars avoid an
+The Rails-backed reporter-anonymity and repair-bounty tests use separate browser
+contexts for the reporter, another member, and the admin. Each actor signs in
+normally. The anonymity test checks that an ordinary member cannot see the
+reporter or reveal control, while the admin explicitly reveals the reporter.
+The bounty test has the admin create a bounty for the reported ticket and a
+different member claim that same bounty. Separate cookie jars avoid an
 account-switching race where a late response restores the previous session after
 logout. Additional contexts close even if an assertion fails. Login/logout and
 session-restoration coverage remains in the authentication suites.
