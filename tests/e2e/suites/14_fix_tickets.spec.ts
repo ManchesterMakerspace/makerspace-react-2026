@@ -146,7 +146,7 @@ test.describe('Marking a ticket tool out of service', () => {
 // ── Test 5: Bounty creation and claim ─────────────────────────────────────────
 
 test.describe('Repair bounty lifecycle', () => {
-  test('Admin creates a bounty and another member claims it', async ({ page }) => {
+  test('Admin creates a bounty and another member claims it', async ({ page, browser, baseURL }) => {
     const auth = new AuthPage(page);
     const tickets = new FixTicketsPage(page);
 
@@ -155,23 +155,41 @@ test.describe('Repair bounty lifecycle', () => {
     const title = `E2E bounty ticket ${RUN_ID}`;
     await tickets.reportProblem({ title, description: 'Needs a volunteer to fix it.', category: 'Broken' });
 
-    await auth.signIn(adminMember.email, adminMember.password);
-    await tickets.goto();
-    await tickets.openTicketByTitle(title);
-    await tickets.makeBounty({
-      title: `Fix: ${title}`,
-      description: 'Bring your own tools; replacement part is on the shelf.',
-      creditValue: 1,
+    // Keep actors in separate cookie jars, as in the anonymity test above.
+    // Late responses from the reporter must not restore that session after logout.
+    const bountyHref = await test.step('Admin creates a bounty for the reported ticket', async () => {
+      const adminPage = await browser.newPage({ baseURL });
+      try {
+        await new AuthPage(adminPage).signIn(adminMember.email, adminMember.password);
+        const adminTickets = new FixTicketsPage(adminPage);
+        await adminTickets.goto();
+        await adminTickets.openTicketByTitle(title);
+        await adminTickets.makeBounty({
+          title: `Fix: ${title}`,
+          description: 'Bring your own tools; replacement part is on the shelf.',
+          creditValue: 1,
+        });
+
+        const bountyLink = await adminTickets.bountyLink();
+        await expect(bountyLink).toBeVisible({ timeout: 10_000 });
+        const href = await bountyLink.getAttribute('href');
+        expect(href).toBeTruthy();
+        return href!;
+      } finally {
+        await adminPage.close();
+      }
     });
 
-    const bountyLink = await tickets.bountyLink();
-    await expect(bountyLink).toBeVisible({ timeout: 10_000 });
-    const bountyHref = await bountyLink.getAttribute('href');
-    expect(bountyHref).toBeTruthy();
-
-    await auth.signIn(basicMember1.email, basicMember1.password);
-    await page.goto(bountyHref!);
-    await page.getByRole('button', { name: 'Claim bounty' }).click();
-    await expect(page.getByRole('button', { name: 'Submit completion for verification' })).toBeVisible({ timeout: 10_000 });
+    await test.step('Another member claims the bounty', async () => {
+      const claimantPage = await browser.newPage({ baseURL });
+      try {
+        await new AuthPage(claimantPage).signIn(basicMember1.email, basicMember1.password);
+        await claimantPage.goto(bountyHref);
+        await claimantPage.getByRole('button', { name: 'Claim bounty' }).click();
+        await expect(claimantPage.getByRole('button', { name: 'Submit completion for verification' })).toBeVisible({ timeout: 10_000 });
+      } finally {
+        await claimantPage.close();
+      }
+    });
   });
 });
