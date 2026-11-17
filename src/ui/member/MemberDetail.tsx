@@ -48,6 +48,7 @@ import GoogleDriveInviteButton from 'ui/member/GoogleDriveInviteButton';
 import GoogleDriveProvisioningBlockToggle from 'ui/member/GoogleDriveProvisioningBlockToggle';
 import SlackInviteButton from 'ui/member/SlackInviteButton';
 import MemberDeleteToggle from 'ui/member/MemberDeleteToggle';
+import ContinuousPaidMembership from 'ui/member/ContinuousPaidMembership';
 import FirebaseUnlinkButton from "ui/auth/FirebaseUnlinkButton";
 import {
   MemberProvisioning,
@@ -406,6 +407,7 @@ const MemberProfile: React.FC = () => {
                   </a>
                 )}
             </KeyValueItem>}
+            <ContinuousPaidMembership member={member} />
             {member.notes && <KeyValueItem label="Notes">
               <div id="member-detail-notes" className="preformatted">{member.notes}</div>
             </KeyValueItem>}

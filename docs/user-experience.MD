@@ -263,6 +263,13 @@ labels use the same formatting; missing channels show "Not configured".
 
 ## Interaction, feedback, and accessibility
 
+The member profile's continuous paid membership control follows the shared MUI
+patterns. Its estimated-history chip includes a text explanation. Admin increases
+use a titled dialog with current/proposed values and a required correction reason.
+Loading/error states disable saving, Retry reloads failed reads, and a conflict
+refreshes current value/revision while preserving the proposed correction for
+review. See [feature behavior](continuous-paid-membership.md).
+
 Shop editing in `/workshops` reuses `EditShopModal` from `/tool-checkouts`.
 Tool creation and editing in both catalogs use `ToolEditorModal`, with the same
 fields, validation, and save behavior, including the pending-member checkbox. Load complete, permission-scoped management records before
@@ -397,8 +404,9 @@ Retry, invalid, refunded and email-link mismatch states are explicit. Ordinary
 members do not fetch imported history. Details use text and existing MUI styling;
 no private URLs, credentials or raw API payloads appear in the UI.
 
-The generated client 2.10.0 is temporarily a tested local package in `vendor/`.
-After npm publication, replace its file dependency with registry version 2.10.0
+The generated client 2.11.0 is temporarily a tested local package in `vendor/`
+(including the Eventbrite and paid membership contracts).
+After npm publication, replace its file dependency with registry version 2.11.0
 and regenerate `yarn.lock` before the coordinated release.
 
 ## Upcoming Eventbrite channel

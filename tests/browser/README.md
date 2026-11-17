@@ -1,5 +1,15 @@
 # Browser checks
 
+## Continuous paid membership
+
+Build with `yarn webpack --config tests/browser/paid-membership/webpack.cjs`, then
+run `node tests/browser/paid-membership/check.cjs`. Real profile controls with
+mocked APIs cover owner/Admin/Board/Resource Manager visibility, estimated history,
+keyboard dialog access/focus, integer/reason validation, success, conflict refresh,
+loading/retry, revoked eligibility and overflow at 320/600/900/1280 px. Screenshots
+are saved under `tmp/paid-membership-browser`. This does not replace Rails-backed
+disposable-data acceptance or processor refund verification.
+
 ## Header menu
 
 After `yarn build`, run `node tests/browser/header-menu.cjs`. Mocked sessions cover
