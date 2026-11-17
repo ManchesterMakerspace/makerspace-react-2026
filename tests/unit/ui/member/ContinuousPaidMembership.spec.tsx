@@ -42,6 +42,16 @@ describe('continuous paid membership profile control', () => {
     expect(button('Increase paid membership months')).toBeUndefined();
   });
 
+  it('reloads the count after a profile status change revokes membership', async () => {
+    await render();
+    mockGet.mockResolvedValueOnce({ continuousPaidMembershipMonths: 0, revision: 8, estimated: true });
+    await act(async () => {
+      root.render(<ContinuousPaidMembership member={{ ...member, status: 'revoked' }} />);
+    });
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(host.textContent).toContain('Continuous paid membership: 0 months');
+  });
+
   it.each([{ id: 'other' }, { id: 'other', isResourceManager: true }])('does not fetch another profile for an unauthorized viewer', async user => {
     mockUser = user; await render();
     expect(mockGet).not.toHaveBeenCalled();

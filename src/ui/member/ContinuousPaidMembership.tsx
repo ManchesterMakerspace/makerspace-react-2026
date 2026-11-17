@@ -38,7 +38,7 @@ export default function ContinuousPaidMembership({ member }: {
     setBalance(undefined); setOpen(false); setSuccess('');
     if (allowed) void load();
     return () => { generation.current++; };
-  }, [allowed, load]);
+  }, [allowed, load, member.status, member.expirationTime]);
 
   if (!allowed) return null;
   const eligible = member.status !== 'revoked' && !!member.expirationTime &&

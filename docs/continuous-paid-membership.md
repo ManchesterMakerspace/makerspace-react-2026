@@ -21,6 +21,8 @@ disables repeat submission. Success updates the counter. A 409 refreshes the
 current value/revision and keeps the dialog open for review before a new submit;
 read failures provide **Retry** and disable edits. Revoked, deadline-expired and
 missing-expiration profiles explain that eligibility/expiration must be restored.
+Profile status or expiration updates refresh the displayed count, so a revocation
+shows its reset without requiring a page reload.
 
 The dedicated Axios wrapper uses the existing global auth/native transport and
 the current XSRF cookie on each request. GET returns the stored integer, revision
