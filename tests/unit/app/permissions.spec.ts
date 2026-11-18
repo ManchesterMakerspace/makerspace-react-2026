@@ -1,6 +1,13 @@
 import { computeCapabilities } from "app/permissions";
 
 describe("resource-scoped checkout capabilities", () => {
+  it('limits paid membership visibility to self/admin/Board and corrections to Admin', () => {
+    expect(computeCapabilities({ isAdmin: true } as any).canIncreasePaidMembershipMonths).toBe(true);
+    expect(computeCapabilities({ isBoardMember: true } as any).canViewOtherPaidMembershipMonths).toBe(true);
+    expect(computeCapabilities({ isBoardMember: true } as any).canIncreasePaidMembershipMonths).toBe(false);
+    expect(computeCapabilities({ isResourceManager: true } as any).canViewOtherPaidMembershipMonths).toBe(false);
+    expect(computeCapabilities({} as any).canViewOtherPaidMembershipMonths).toBe(false);
+  });
   it('limits NFC inspection to active unexpired admins and board members', () => {
     const user = { id: 'member', status: 'activeMember', expirationTime: Date.now() + 60000 } as any;
     expect(computeCapabilities(user).canScanNfc).toBe(true);

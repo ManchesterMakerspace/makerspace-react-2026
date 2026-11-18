@@ -23,6 +23,8 @@ export interface UserCapabilities {
   canCreateMembers:            boolean; // admin, board
   canChangeOtherPasswords:     boolean; // admin, board
   canViewEmailStatus:          boolean; // admin, board, rm
+  canViewOtherPaidMembershipMonths: boolean; // admin, board
+  canIncreasePaidMembershipMonths: boolean; // admin ONLY
 
   // Billing & invoices
   canManageInvoices:           boolean; // admin, board
@@ -74,6 +76,8 @@ export const computeCapabilities = (user: AuthMember): UserCapabilities => {
     canCreateMembers:            privileged,
     canChangeOtherPasswords:     privileged,
     canViewEmailStatus:          privileged || rm,
+    canViewOtherPaidMembershipMonths: privileged,
+    canIncreasePaidMembershipMonths: admin,
 
     canManageInvoices:           privileged,
     canSettleInvoices:           privileged,
