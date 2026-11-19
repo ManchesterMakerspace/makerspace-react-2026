@@ -77,9 +77,9 @@ export default function ContinuousPaidMembership({ member }: {
         <Chip size="small" label="Estimated history" />
       </Tooltip>}
       {canIncreasePaidMembershipMonths && <>
-        <Button variant="outlined" disabled={loading || !!loadError || !eligible} onClick={() => {
+        <Button variant="outlined" size="small" disabled={loading || !!loadError || !eligible} onClick={() => {
           setProposed(''); setReason(''); setSaveError(''); setSuccess(''); setOpen(true);
-        }}>Increase paid membership months</Button>
+        }}>Adjust months</Button>
         {!eligible && <Typography variant="body2" color="text.secondary">
           Restore membership eligibility and expiration before increasing paid membership months.
         </Typography>}

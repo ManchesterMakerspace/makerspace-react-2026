@@ -21,7 +21,7 @@ test('Admin reviews a conflict and saves an audited integer increase through rea
   await page.goto(`/members/${members.member.id}`);
   await expect(page.getByText('Continuous paid membership: 11 months', { exact: true })).toBeVisible();
   await expect(page.getByText('Estimated history', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Increase paid membership months', exact: true }).click();
+  await page.getByRole('button', { name: 'Adjust months', exact: true }).click();
   await page.getByLabel('Proposed months').fill('12');
   await page.getByLabel('Correction reason').fill('Verified browser fixture receipt');
   const cookie = (await page.context().cookies()).find(value => value.name === 'XSRF-TOKEN');
@@ -50,7 +50,7 @@ for (const role of ['board_member', 'resource_manager', 'member']) {
     const read = await page.request.get(`/api/members/${members.member.id}/continuous_paid_membership`);
     expect(read.status()).toBe(role === 'resource_manager' ? 403 : 200);
     if (role !== 'resource_manager') await expect(page.getByText(/Continuous paid membership: \d+ months/)).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Increase paid membership months', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Adjust months', exact: true })).toHaveCount(0);
     const cookie = (await page.context().cookies()).find(value => value.name === 'XSRF-TOKEN');
     const write = await page.request.put(`/api/admin/members/${members.member.id}/continuous_paid_membership`, {
       headers: { 'X-XSRF-TOKEN': cookie ? decodeURIComponent(cookie.value) : '' },
