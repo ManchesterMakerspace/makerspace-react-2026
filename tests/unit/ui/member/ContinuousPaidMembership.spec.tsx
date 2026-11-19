@@ -39,7 +39,7 @@ describe('continuous paid membership profile control', () => {
     await render();
     expect(host.textContent).toContain('Continuous paid membership: 11 months');
     expect(host.textContent).toContain('Estimated history');
-    expect(button('Increase paid membership months')).toBeUndefined();
+    expect(button('Adjust months')).toBeUndefined();
   });
 
   it('reloads the count after a profile status change revokes membership', async () => {
@@ -61,12 +61,12 @@ describe('continuous paid membership profile control', () => {
   it('allows Board to read another profile without exposing corrections', async () => {
     mockUser = { id: 'board', isBoardMember: true }; await render();
     expect(mockGet).toHaveBeenCalledWith('subject');
-    expect(button('Increase paid membership months')).toBeUndefined();
+    expect(button('Adjust months')).toBeUndefined();
   });
 
   it('requires an integer increase and reason, then sends the displayed revision', async () => {
     mockUser = { id: 'admin', isAdmin: true }; await render();
-    await act(async () => button('Increase paid membership months').click());
+    await act(async () => button('Adjust months').click());
     await enter('Proposed months', '11.5'); await enter('Correction reason', 'Verified receipt');
     expect(button('Save increase').disabled).toBe(true);
     await enter('Proposed months', '11'); expect(button('Save increase').disabled).toBe(true);
@@ -81,7 +81,7 @@ describe('continuous paid membership profile control', () => {
     mockUser = { id: 'admin', isAdmin: true }; await render();
     mockIncrease.mockRejectedValueOnce(Object.assign(new Error('Conflict'), { status: 409 }));
     mockGet.mockResolvedValueOnce({ continuousPaidMembershipMonths: 15, revision: 9, estimated: false });
-    await act(async () => button('Increase paid membership months').click());
+    await act(async () => button('Adjust months').click());
     await enter('Proposed months', '12'); await enter('Correction reason', 'Verified receipt');
     await act(async () => button('Save increase').click());
     expect(document.body.textContent).toContain('Current value: 15 months');

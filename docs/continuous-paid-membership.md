@@ -14,8 +14,9 @@ another profile. `canViewOtherPaidMembershipMonths` and
 `canIncreasePaidMembershipMonths` are dedicated capabilities. The latter is Admin
 only. Generic profile editing cannot change the counter.
 
-**Increase paid membership months** opens an accessible MUI dialog with the
-current value, **Proposed months**, and required **Correction reason**. The value
+The compact, outlined **Adjust months** button opens the accessible MUI
+**Increase paid membership months** dialog with the current value,
+**Proposed months**, and required **Correction reason**. The value
 must be a greater whole number; the reason is retained in the audit log. Saving
 disables repeat submission. Success updates the counter. A 409 refreshes the
 current value/revision and keeps the dialog open for review before a new submit;
