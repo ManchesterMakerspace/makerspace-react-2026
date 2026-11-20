@@ -92,6 +92,7 @@ export const adminCreateShop = ({ body }: { body: Partial<Shop> }) =>
     wiki_url: body.wikiUrlOverride ?? body.wikiUrl,
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
+    slack_announce_empty_reservations: body.slackAnnounceEmptyReservations,
     reservable: body.reservable,
     max_concurrent_reservations: body.maxConcurrentReservations,
     reservation_horizon_days: body.reservationHorizonDays,
@@ -115,6 +116,9 @@ export const adminUpdateShop = ({ id, body }: { id: string; body: Partial<Shop> 
     gdrive_id: body.gdriveId,
     slack_channel: normalizeSlackChannel(body.slackChannel),
     disabled: body.disabled,
+    ...(body.slackAnnounceEmptyReservations !== undefined && {
+      slack_announce_empty_reservations: body.slackAnnounceEmptyReservations,
+    }),
     reservable: body.reservable,
     max_concurrent_reservations: body.maxConcurrentReservations,
     reservation_horizon_days: body.reservationHorizonDays,
