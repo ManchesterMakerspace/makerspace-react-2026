@@ -49,7 +49,7 @@
     "@babel/preset-react": "^8.0.1",
     "@babel/preset-typescript": "^8.0.7",
     "@capacitor/cli": "8.5.3",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.1",
     "@types/braintree-web": "^3.143.0",
     "@types/jest": "^30.0.0",
     "@types/leaflet": "^1.9.12",
