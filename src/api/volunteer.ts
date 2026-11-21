@@ -2,6 +2,7 @@ import axios from 'axios';
 import { ApiDataResponse, ApiErrorResponse } from 'makerspace-ts-api-client';
 import { VolunteerCredit, VolunteerTask, VolunteerEvent, VolunteerSummary } from 'app/entities/volunteer';
 import { attachGlobalAuthInterceptor } from 'ui/common/globalAuthInterceptor';
+import { apiErrorMessage } from 'ui/common/apiErrors';
 
 const wrapHeaders = (axiosHeaders: any) => ({
   get: (key: string) => axiosHeaders[key.toLowerCase()] ?? null,
@@ -20,9 +21,12 @@ const buildResponse = async <T>(
   } catch (err) {
     const responseError = err.response?.data?.error;
     const error = err.response
-      ? typeof responseError === 'string'
-        ? { message: responseError }
-        : responseError || { message: err.response.data?.message || (typeof err.response.data === 'string' ? err.response.data : err.message) }
+      ? {
+        ...(responseError && typeof responseError === 'object' && !Array.isArray(responseError) ? responseError : {}),
+        message: typeof err.response.data === 'string'
+          ? err.response.data
+          : apiErrorMessage(err.response.data, err.message),
+      }
       : { message: err.message };
     return { error, response: err.response } as unknown as ApiErrorResponse;
   }
@@ -122,6 +126,7 @@ export const adminCreateVolunteerTask = ({ body }: { body: Partial<VolunteerTask
     prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status || 'available',
     days:         body.days ?? null,
+    day_of_week:  body.dayOfWeek ?? null,
   }));
 
 export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Partial<VolunteerTask> & { days?: number | null } }) =>
@@ -133,6 +138,7 @@ export const adminUpdateVolunteerTask = ({ id, body }: { id: string; body: Parti
     prerequisite_tool_ids: body.prerequisiteToolIds || [],
     status:       body.status,
     ...(body.days !== undefined && { days: body.days }),
+    ...(body.dayOfWeek !== undefined && { day_of_week: body.dayOfWeek }),
   }));
 
 export const adminCompleteVolunteerTask = ({ id }: { id: string }) =>

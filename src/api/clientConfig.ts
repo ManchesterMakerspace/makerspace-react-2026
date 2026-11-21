@@ -6,6 +6,7 @@ export interface ClientConfig {
   firebase_auth_domain?: unknown;
   firebase_auth_type?: unknown;
   turnstile_site_key?: unknown;
+  volunteer_task_max_credit?: number;
 }
 
 let configRequest: Promise<ClientConfig> | undefined;
