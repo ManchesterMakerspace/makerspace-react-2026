@@ -6,19 +6,20 @@ export interface ClientConfig {
   firebase_auth_domain?: unknown;
   firebase_auth_type?: unknown;
   turnstile_site_key?: unknown;
+  volunteer_task_max_credit?: number;
 }
 
 let configRequest: Promise<ClientConfig> | undefined;
 
-/** Load public runtime configuration supplied by Rails. */
-export const loadClientConfig = (): Promise<ClientConfig> => {
-  if (configRequest) return configRequest;
+/** Fresh reads bypass the shared snapshot without changing other callers' cache. */
+export const loadClientConfig = ({ refresh = false }: { refresh?: boolean } = {}): Promise<ClientConfig> => {
+  if (configRequest && !refresh) return configRequest;
 
   if (typeof fetch !== "function") {
     return Promise.resolve({ wiki_url: "" });
   }
 
-  configRequest = fetch("/api/config", {
+  const request = fetch("/api/config", {
     headers: { "Content-Type": "application/json" },
   })
     .then(async response => {
@@ -34,11 +35,12 @@ export const loadClientConfig = (): Promise<ClientConfig> => {
     })
     .catch(error => {
       // Allow a transient network/configuration failure to be retried later.
-      configRequest = undefined;
+      if (configRequest === request) configRequest = undefined;
       throw error;
     });
 
-  return configRequest;
+  if (!refresh) configRequest = request;
+  return request;
 };
 
 /** Backward-compatible name used by consumers that only need Wiki configuration. */

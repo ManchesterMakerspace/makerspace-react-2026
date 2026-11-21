@@ -48,6 +48,7 @@ import { SelectOption } from 'ui/common/AsyncSelect';
 import useReadTransaction from 'ui/hooks/useReadTransaction';
 import useWriteTransaction from 'ui/hooks/useWriteTransaction';
 import extractTotalItems from 'ui/utils/extractTotalItems';
+import { loadClientConfig } from 'api/clientConfig';
 import { useCapabilities } from 'app/permissions';
 
 import { VolunteerCredit, VolunteerTask, VolunteerTaskStatus, VolunteerEvent } from 'app/entities/volunteer';
@@ -140,6 +141,24 @@ const eventStatusLabel = (status: string): { label: string; color: Status } => {
 const MULTI_USE_STATUSES: VolunteerTaskStatus[] = ['reusable', 'repeatable', 'recurring'];
 const CANCELLABLE_STATUSES: VolunteerTaskStatus[] = ['available', 'reusable', 'repeatable', 'recurring'];
 const EDITABLE_STATUSES: VolunteerTaskStatus[]    = ['available', 'claimed', 'reusable', 'repeatable', 'recurring'];
+
+const WEEKDAYS = [
+  { value: 1, label: 'Monday' }, { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' }, { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' }, { value: 6, label: 'Saturday' },
+  { value: 0, label: 'Sunday' },
+];
+
+const TaskWeekdayField = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
+  <Grid size={{ xs: 12, sm: 6 }}>
+    <TextField select label='Day of week' value={value} onChange={event => onChange(event.target.value)}
+      fullWidth slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+      helperText='Available to claim only on this day, in Eastern time.'>
+      <MenuItem value=''>Any day</MenuItem>
+      {WEEKDAYS.map(day => <MenuItem key={day.value} value={String(day.value)}>{day.label}</MenuItem>)}
+    </TextField>
+  </Grid>
+);
 
 interface VolunteerShopFieldsProps {
   shopLocked?: boolean;
@@ -519,12 +538,13 @@ interface TaskFormState {
   creditValue: string;
   taskType: TaskType;
   days: string;
+  dayOfWeek: string;
   shopId: string;
   prerequisiteToolIds: string[];
 }
 
 const emptyTaskForm = (shopId = ''): TaskFormState => ({
-  title: '', description: '', creditValue: '1', taskType: 'available', days: '7',
+  title: '', description: '', creditValue: '1', taskType: 'available', days: '7', dayOfWeek: '',
   shopId, prerequisiteToolIds: [],
 });
 
@@ -537,25 +557,45 @@ interface CreateTaskModalProps {
   error: string;
 }
 
-const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
+export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   isOpen, initialShopId = '', onClose, onSave, loading, error
 }) => {
   const [form, setForm] = React.useState<TaskFormState>(
     () => emptyTaskForm(initialShopId)
   );
+  const [maxCredit, setMaxCredit] = React.useState<number | null>(null);
   React.useEffect(() => {
     if (!isOpen) setForm(emptyTaskForm(initialShopId));
   }, [isOpen, initialShopId]);
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let current = true;
+    setMaxCredit(null);
+    loadClientConfig({ refresh: true }).then(config => {
+      const maximum = Number(config.volunteer_task_max_credit);
+      if (current && Number.isFinite(maximum) && maximum > 0) setMaxCredit(maximum);
+    }).catch(() => {
+      // Saving still uses authoritative server validation if configuration cannot load.
+    });
+    return () => { current = false; };
+  }, [isOpen]);
 
   const set = (key: keyof TaskFormState) => (e: React.ChangeEvent<HTMLInputElement | { value: unknown }>) =>
     setForm(prev => ({ ...prev, [key]: e.target.value as string }));
 
-  const valid = form.title.trim() && form.description.trim() &&
-    (form.taskType !== 'recurring' || parseInt(form.days, 10) > 0);
+  const numericCredit = Number(form.creditValue);
+  const creditTooHigh = maxCredit !== null && numericCredit > maxCredit;
+  const invalidCredit = !Number.isFinite(numericCredit) || numericCredit <= 0 || creditTooHigh;
+  const valid = form.title.trim() && form.description.trim() && !invalidCredit &&
+    (form.taskType !== 'recurring' || (Number.isSafeInteger(Number(form.days)) && Number(form.days) > 0));
+  const creditHelper = creditTooHigh
+    ? `Credit value cannot exceed the configured maximum of ${maxCredit} credits.`
+    : invalidCredit ? 'Enter a positive credit value.'
+      : maxCredit !== null ? `Maximum ${maxCredit} credits.` : 'Enter a positive credit value. The configured maximum is checked when you save.';
 
   return (
     <FormModal id='create-volunteer-task' title='Create Bounty Task' isOpen={isOpen} closeHandler={onClose}
-      onSubmit={() => valid && onSave(form)} loading={loading} error={error}>
+      onSubmit={() => valid && onSave(form)} submitDisabled={!valid} loading={loading} error={error}>
       <Grid container spacing={2}>
         <Grid size={{ xs: 12 }}>
           <TextField label='Title' value={form.title} onChange={set('title')} fullWidth required autoFocus />
@@ -566,13 +606,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label='Credit Value' value={form.creditValue} onChange={set('creditValue')}
-            type='number' slotProps={{ htmlInput: { min: 0.5, max: 2, step: 0.5 } }} fullWidth required helperText='Max 2 credits' />
+            type='number' slotProps={{ htmlInput: { min: 0, ...(maxCredit !== null && { max: maxCredit }), step: 'any' } }}
+            fullWidth required error={invalidCredit} helperText={creditHelper} />
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <FormControl fullWidth>
             <InputLabel id='task-type-label'>Task Type</InputLabel>
             <Select labelId='task-type-label' value={form.taskType} label='Task Type'
-              onChange={e => setForm(prev => ({ ...prev, taskType: e.target.value as TaskType }))}>
+              onChange={e => setForm(prev => ({ ...prev, taskType: e.target.value as TaskType,
+                ...(e.target.value === 'available' ? { dayOfWeek: '' } : {}) }))}>
               <MenuItem value='available'>Standard (one-time)</MenuItem>
               <MenuItem value='reusable'>Reusable (any member once)</MenuItem>
               <MenuItem value='repeatable'>Repeatable (any member, unlimited)</MenuItem>
@@ -580,6 +622,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
             </Select>
           </FormControl>
         </Grid>
+        {form.taskType !== 'available' && <TaskWeekdayField value={form.dayOfWeek}
+          onChange={dayOfWeek => setForm(prev => ({ ...prev, dayOfWeek }))} />}
         {form.taskType === 'recurring' && (
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label='Recurrence Interval (days)' value={form.days} onChange={set('days')}
@@ -628,6 +672,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
   const [title, setTitle]             = React.useState('');
   const [description, setDescription] = React.useState('');
   const [days, setDays]               = React.useState('');
+  const [dayOfWeek, setDayOfWeek]     = React.useState('');
   const [shopId, setShopId]           = React.useState('');
   const [prerequisiteToolIds, setPrerequisiteToolIds] = React.useState<string[]>([]);
 
@@ -637,16 +682,18 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
       setTitle(task.title);
       setDescription(task.description);
       setDays(task.days != null ? String(task.days) : '');
+      setDayOfWeek(task.dayOfWeek != null ? String(task.dayOfWeek) : '');
       setShopId(task.shopId || '');
       setPrerequisiteToolIds(task.prerequisiteToolIds || []);
     } else {
-      setTitle(''); setDescription(''); setDays('');
+      setTitle(''); setDescription(''); setDays(''); setDayOfWeek('');
       setShopId(''); setPrerequisiteToolIds([]);
     }
   }, [task]);
 
   if (!task) return null;
   const isRecurring = task.status === 'recurring';
+  const hasWeekday = MULTI_USE_STATUSES.includes(task.status) && !task.parentTaskId && !task.isChildTask && !task.ticketId;
   const numericDays = Number(days);
   const invalidDays = isRecurring && (!days.trim() || !Number.isSafeInteger(numericDays) || numericDays <= 0);
   const invalidCredit = canEditCredits && (!Number.isFinite(Number(creditValue)) || Number(creditValue) <= 0);
@@ -658,6 +705,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
         title, description,
         ...(canEditCredits ? { creditValue: Number(creditValue) } : {}),
         ...(!task.ticketId ? { days: isRecurring ? numericDays : undefined, shopId: shopId || null } : {}),
+        ...(hasWeekday ? { dayOfWeek: dayOfWeek === '' ? null : Number(dayOfWeek) } : {}),
         prerequisiteToolIds,
       })}
       loading={loading} error={error}>
@@ -669,6 +717,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, onClose, onS
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={3} />
         </Grid>
+        {hasWeekday && <TaskWeekdayField value={dayOfWeek} onChange={setDayOfWeek} />}
         {isRecurring && (
           <Grid size={{ xs: 12, sm: 6 }}>
             <TextField label='Recurrence Interval (days)' value={days} onChange={e => setDays(e.target.value)}
@@ -1173,6 +1222,7 @@ const TasksTabInner: React.FC<{ search: string }> = ({ search }) => {
           creditValue: parseFloat(form.creditValue) || 1,
           status: form.taskType as VolunteerTaskStatus,
           days: form.taskType === 'recurring' ? parseInt(form.days, 10) || null : null,
+          dayOfWeek: form.taskType !== 'available' && form.dayOfWeek !== '' ? Number(form.dayOfWeek) : null,
           shopId: form.shopId || null,
           prerequisiteToolIds: form.prerequisiteToolIds,
         }})}
@@ -1213,7 +1263,7 @@ interface CreateEventModalProps {
   error: string;
 }
 
-const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, event, onSave, loading, error }) => {
+export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, event, onSave, loading, error }) => {
   const [title, setTitle]             = React.useState('');
   const [description, setDescription] = React.useState('');
   const [creditValue, setCreditValue] = React.useState('1');
@@ -1233,14 +1283,17 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, ev
       setShopId(''); setPrerequisiteToolIds([]);
     }
   }, [isOpen, event]);
+  const numericCredit = Number(creditValue);
+  const invalidCredit = !Number.isFinite(numericCredit) || numericCredit <= 0;
   return (
     <FormModal id={event ? 'edit-volunteer-event' : 'create-volunteer-event'}
       title={event ? 'Edit Volunteer Event' : 'Create Volunteer Event'}
       isOpen={isOpen} closeHandler={onClose}
-      onSubmit={() => title && onSave({
+      submitDisabled={!title.trim() || invalidCredit}
+      onSubmit={() => title.trim() && !invalidCredit && onSave({
         title,
         description,
-        creditValue: parseFloat(creditValue) || 1,
+        creditValue: numericCredit,
         eventDate,
         shopId: shopId || null,
         prerequisiteToolIds,
@@ -1254,11 +1307,12 @@ const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onClose, ev
           <TextField label='Description' value={description} onChange={e => setDescription(e.target.value)}
             fullWidth multiline rows={2} />
         </Grid>
-        <Grid size={{ xs: 6 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label='Credit Value' value={creditValue} onChange={e => setCreditValue(e.target.value)}
-            type='number' slotProps={{ htmlInput: { min: 0.5, step: 0.5 } }} fullWidth required />
+            type='number' slotProps={{ htmlInput: { min: 0, step: 'any' } }} fullWidth required
+            error={invalidCredit} helperText='Enter a positive credit value.' />
         </Grid>
-        <Grid size={{ xs: 6 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label='Event Date' value={eventDate} onChange={e => setEventDate(e.target.value)}
             type='date' fullWidth slotProps={{ inputLabel: { shrink: true } }} />
         </Grid>
