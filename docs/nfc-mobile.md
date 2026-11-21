@@ -48,7 +48,7 @@ The account menu offers **SCAN NFC** to signed-in `activeMember` users whose exp
 
 UIDs are uppercase hexadecimal ASCII byte pairs, without separators or prefix. Byte order and leading zeroes are preserved: `1b:1a:4d:2f` becomes `1B1A4D2F`. Both browser and native readings use the same codec. Existing front-door identifiers remain unchanged; compare representative cards before enabling NFC enrollment if historical database identifiers use another format.
 
-Browser NFC requires Android Chrome with NFC hardware enabled, HTTPS, permission, and a visible foreground page. Browser serial numbers may be absent; non-NDEF MIFARE fobs require the native Android reader. Installation as a PWA does not change those limits. Reading never writes or formats a card. UID possession is not identity verification.
+Browser NFC requires Android Chrome with NFC hardware enabled, HTTPS, permission, and a visible foreground page. Browser serial numbers may be absent; non-NDEF MIFARE fobs require the native Android reader. Installation as a PWA does not change those limits. Ordinary scanning never writes or formats a card. Explicit native enrollment programs only the reserved credential sector. UID possession is not identity verification.
 
 Approvers (admin, board, the shop's resource manager, assigned approvers) can also tap a member's fob in the
 Check Out Member dialog on a tool's Workshops entry, or in the Tool Checkouts roster dialog for tools and
@@ -137,3 +137,39 @@ See [the original plan](nfc-capacitor-plan.md) for design rationale. The impleme
 - Mocked browser NFC/member/admin flows passed at 320, 600, 900 and 1280 px, including visual inspection of settled dialogs.
 - Web and native production assets, Android debug APK and unsigned release AAB built successfully. The native assets use `https://members.manchestermakerspace.org`.
 - iOS project configuration was checked for repeatable generation on Windows; compilation was not performed. No physical NFC or production authentication acceptance testing was performed, and nothing was deployed.
+
+
+## Protected phone enrollment and reader fallback
+
+The existing Register/Replace and volunteer Issue Fob forms offer Continue in
+Android app and Use enrollment reader instead. Android handoff carries only member
+ID/workflow, restores the app session/TOTP, and requires fresh ID verification.
+Native enrollment checks MIFARE Classic compatibility, prepares encrypted material
+in Rails, programs sector 1, asks for removal/retap, verifies and commits. Keep the
+same card for retries. Existing fobs stay valid until native commit.
+
+Without the app, use browser UID capture or front-door Import New Key and submit
+the existing assignment. Replacement immediately disables the old fob. The success
+panel directs the operator to present the card to an enrollment-enabled reader;
+UID assignment alone is not full enrollment. No browser station-status claim is made.
+An interrupted native attempt must be resumed rather than overwritten via fallback.
+
+Deploy Rails APIs/indexes and its shared reader encryption configuration first.
+The app has no reader certificates or encryption-at-rest key. Physical Android
+Classic programming, interrupted writes, app handoff/auth and reader acceptance
+remain release gates; mocked NFC tests cannot establish these.
+
+
+### Phone enrollment implementation validation
+
+Automated checks: full Jest (115 suites / 834 tests), additional native enrollment
+controller/fallback regressions (10 tests), TypeScript, web/native webpack builds,
+Android debug APK build, and mocked NFC/fallback browser checks at 320/600/900/1280
+pixels passed. Small-screen fallback screenshots were visually inspected.
+The native controller tests cover unsupported phones, failed readback, late results
+after cancellation, and a lost commit response. They simulate hardware.
+
+Physical MIFARE programming, tag-loss recovery, app handoff through Android login/TOTP,
+reader admission and production authentication remain pending. Nothing was deployed
+or flashed. Existing webpack BASE_URL/child-compilation and Gradle flatDir warnings
+remain. See Rails card-assignment documentation for server deployment dependencies.

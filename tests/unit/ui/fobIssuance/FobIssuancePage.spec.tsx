@@ -4,6 +4,9 @@ import { createRoot, Root } from 'react-dom/client';
 import { computeCapabilities } from 'app/permissions';
 import FobIssuancePage from 'ui/fobIssuance/FobIssuancePage';
 
+jest.mock('ui/reducer/hooks', () => ({ useAuthState: () => ({ currentUser: { id: 'issuer' }, totpEnrollmentRequired: false }) }));
+jest.mock('react-router-dom', () => ({ useLocation: () => ({ search: '' }) }));
+
 jest.mock('ui/nfc/ScanNfc', () => ({ __esModule: true, default: () => null }));
 
 const newcomer = {
@@ -78,7 +81,9 @@ describe('Issue a Key Fob page', () => {
 
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === 'POST')!;
     expect(JSON.parse(post[1].body)).toEqual({ member_id: 'm1', uid: '04A1B2C3', source: 'import' });
-    expect(container.querySelector('#fob-issuance-success')!.textContent).toContain('Nina Newcomer');
+    expect(container.querySelector('#fob-issuance-success')!.textContent).toContain('present it to an enrollment-enabled reader');
+    expect(container.querySelector('#fob-issuance-success')!.textContent).toContain('04A1B2C3');
+    expect(container.querySelector('#fob-issuance-success')!.textContent).not.toContain('try it at the front door now');
     expect(container.querySelector('#fob-issuance-selected')).toBeNull();
   });
 
