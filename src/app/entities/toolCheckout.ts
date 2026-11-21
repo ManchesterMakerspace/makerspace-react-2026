@@ -6,6 +6,7 @@ export interface DurationFee {
 }
 
 export interface Shop {
+  slackAnnounceEmptyReservations?: boolean;
   canGenerateCheckoutRequiredSheet?: boolean;
   requestorAnnotation?: string | null;
   id: string;

@@ -8,6 +8,8 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Alert from "@mui/material/Alert";
 import TextField from "@mui/material/TextField";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -98,6 +100,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
   const [wikiUrl, setWikiUrl] = React.useState("");
   const [gdriveId, setGdriveId] = React.useState("");
   const [slackChannel, setSlackChannel] = React.useState("");
+  const [slackAnnounceEmptyReservations, setSlackAnnounceEmptyReservations] = React.useState(false);
   const [colorId, setColorId] = React.useState("1");
   const [floorName, setFloorName] = React.useState("1");
   const [localError, setLocalError] = React.useState("");
@@ -118,7 +121,7 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
     }
 
     setLocalError("");
-    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
+    onSave({ name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, slackAnnounceEmptyReservations, colorId, floorName, requestorAnnotation: requestorAnnotation.trim() || null, resourceManagerIds: resourceManagers.map(manager => manager.id), ...reservation });
   };
 
   return (
@@ -163,6 +166,14 @@ export const AddShopModal: React.FC<AddShopModalProps> = ({ shops, onClose, onSa
           </div>
         </Grid>
         <ResourceManagersField managers={resourceManagers} onChange={setResourceManagers} />
+        <Grid size={{ xs: 12 }}>
+          <FormControlLabel label="Announce empty reservation agendas in Slack"
+            control={<Checkbox checked={slackAnnounceEmptyReservations} disabled={loading}
+              onChange={event => setSlackAnnounceEmptyReservations(event.target.checked)} />} />
+          <Typography variant="caption" component="div" color="textSecondary">
+            Invite members to book this shop or its tools when the channel's entire day agenda is empty. Off by default.
+          </Typography>
+        </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"
@@ -198,6 +209,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
   const [wikiUrl, setWikiUrl] = React.useState(shop.wikiUrlOverride || "");
   const [gdriveId, setGdriveId] = React.useState(shop.gdriveId || "");
   const [slackChannel, setSlackChannel] = React.useState(shop.slackChannel || "");
+  const [slackAnnounceEmptyReservations, setSlackAnnounceEmptyReservations] = React.useState(shop.slackAnnounceEmptyReservations ?? false);
   const [colorId, setColorId] = React.useState(shop.colorId || "1");
   const [floorName, setFloorName] = React.useState(shop.floorName || "1");
   // Undefined means the API did not include the authoritative assignments.
@@ -225,7 +237,7 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
     const trimmedName = name.trim();
     if (!trimmedName) return;
     onSave(shop.id, {
-      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, colorId, floorName,
+      name: trimmedName, wikiUrlOverride: wikiUrl, gdriveId, slackChannel, slackAnnounceEmptyReservations, colorId, floorName,
       requestorAnnotation: requestorAnnotation.trim() || null,
       ...resourceManagerIdsUpdate(canManageResourceManagers, resourceManagers),
       ...reservation
@@ -281,6 +293,14 @@ export const EditShopModal: React.FC<EditShopModalProps> = ({
               Resource manager assignments are unavailable. Saving will preserve the existing assignments.
             </Alert>
           </Grid>}
+        <Grid size={{ xs: 12 }}>
+          <FormControlLabel label="Announce empty reservation agendas in Slack"
+            control={<Checkbox checked={slackAnnounceEmptyReservations} disabled={saving}
+              onChange={event => setSlackAnnounceEmptyReservations(event.target.checked)} />} />
+          <Typography variant="caption" component="div" color="textSecondary">
+            Invite members to book this shop or its tools when the channel's entire day agenda is empty. Off by default.
+          </Typography>
+        </Grid>
         <ReservationSettingsFields value={reservation} onChange={setReservation} tools={tools} />
         <Grid size={{ xs: 12 }}>
           <TextField fullWidth label="Slack Channel" placeholder="e.g. shop-woodworking"

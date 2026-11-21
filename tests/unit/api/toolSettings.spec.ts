@@ -5,7 +5,7 @@ jest.mock("axios", () => ({ __esModule: true, default: { create: () => ({
 }) } }));
 jest.mock("ui/common/globalAuthInterceptor", () => ({ attachGlobalAuthInterceptor: (api: unknown) => api }));
 
-import { adminCreateTool, adminUpdateTool } from "api/toolCheckouts";
+import { adminCreateShop, adminUpdateShop, adminCreateTool, adminUpdateTool } from "api/toolCheckouts";
 
 describe("tool settings requests", () => {
   beforeEach(() => {
@@ -41,5 +41,17 @@ describe("tool settings requests", () => {
       announceChannel: "", usersChannel: "", prerequisiteIds: [], reservationPrerequisiteToolIds: [], durationFees: [] } });
     expect(JSON.parse(JSON.stringify(mockPut.mock.calls[0][1]))).toEqual({ allow_pending: false, notes: "", location_id: "",
       wiki_url: "", announce_channel: "", users_channel: "", prerequisite_ids: [], reservation_prerequisite_tool_ids: [], duration_fees: [] });
+  });
+
+  it.each([true, false])("round trips the shop empty-announcement preference %s", async value => {
+    await adminCreateShop({ body: { name: "Woodshop", slackAnnounceEmptyReservations: value } });
+    await adminUpdateShop({ id: "shop", body: { slackAnnounceEmptyReservations: value } });
+    expect(mockPost.mock.calls[0][1].slack_announce_empty_reservations).toBe(value);
+    expect(mockPut.mock.calls[0][1].slack_announce_empty_reservations).toBe(value);
+  });
+
+  it("omits an unknown shop empty-announcement preference from unrelated edits", async () => {
+    await adminUpdateShop({ id: "shop", body: { name: "Renamed shop" } });
+    expect(mockPut.mock.calls[0][1]).not.toHaveProperty("slack_announce_empty_reservations");
   });
 });

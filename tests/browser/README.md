@@ -1,5 +1,15 @@
 # Browser checks
 
+## Reservation announcements
+
+After `yarn build`, run `node tests/browser/reservation-announcements.cjs`. It
+uses the real shared shop editor with mocked APIs to check a shop-scoped RM's
+empty-agenda preference: default off, availability when whole-shop reservations
+are off, keyboard focus/toggling, saved true/false reload, failed-save recovery,
+and page/dialog overflow at 320/600/900/1280 px. Screenshots are saved under
+`tmp/reservation-announcements-browser`. This does not replace server-side
+authorization, real Slack delivery, or live canvas-access verification.
+
 ## Continuous paid membership
 
 Build with `yarn webpack --config tests/browser/paid-membership/webpack.cjs`, then

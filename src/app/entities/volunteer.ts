@@ -40,6 +40,8 @@ export type VolunteerTaskStatus =
   | 'repeatable'
   | 'recurring';
 
+export type VolunteerTaskWeekday = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 export interface VolunteerTask {
   ticketId?: string;
   id: string;
@@ -54,6 +56,7 @@ export interface VolunteerTask {
   status: VolunteerTaskStatus;
   // Multi-use / recurrence fields
   days: number | null;          // Recurring tasks only — recurrence interval in days
+  dayOfWeek?: VolunteerTaskWeekday | null; // Multi-use parent tasks; 0 is Sunday, null is any day (Eastern time)
   nextAvailable: string | null; // Recurring tasks — ISO date string; null when not cooling down
   parentTaskId: string | null;  // Present on child task documents (spawned by multi-use claims)
   isChildTask: boolean;
