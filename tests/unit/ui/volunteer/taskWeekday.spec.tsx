@@ -83,10 +83,31 @@ describe('volunteer task weekdays and credit guidance', () => {
     expect(save).toHaveBeenCalledWith(expect.objectContaining({ creditValue: '3.5' }));
   });
 
+  it('reloads an increased maximum when the same mounted dialog opens again', async () => {
+    const save = jest.fn();
+    await renderCreate(save);
+    expect(document.body.textContent).toContain('Maximum 3.5 credits.');
+    await act(async () => root.render(<CreateTaskModal isOpen={false} onClose={jest.fn()} onSave={save} loading={false} error='' />));
+    (loadClientConfig as jest.Mock).mockResolvedValue({ volunteer_task_max_credit: 8 });
+    await renderCreate(save);
+    expect(loadClientConfig).toHaveBeenCalledTimes(2);
+    expect(loadClientConfig).toHaveBeenNthCalledWith(2, { refresh: true });
+    expect(document.body.textContent).toContain('Maximum 8 credits.');
+    await setField('Title', 'Clean');
+    await setField('Description', 'Clean benches');
+    const credit = await setField('Credit Value', '5');
+    expect(credit.getAttribute('max')).toBe('8');
+    await act(async () => (document.getElementById('create-volunteer-task-submit') as HTMLButtonElement).click());
+    expect(save).toHaveBeenCalledWith(expect.objectContaining({ creditValue: '5' }));
+  });
+
   it('allows server validation when the configuration request fails and keeps the actionable error visible', async () => {
     (loadClientConfig as jest.Mock).mockRejectedValue(new Error('Unavailable'));
     await act(async () => root.render(<CreateTaskModal isOpen onClose={jest.fn()} onSave={jest.fn()} loading={false}
       error='Credit value cannot exceed the configured maximum of 2 credits.' />));
+    await setField('Title', 'Clean');
+    await setField('Description', 'Clean benches');
+    await act(async () => (document.getElementById('create-volunteer-task-submit') as HTMLButtonElement).click());
     expect(document.body.textContent).toContain('configured maximum of 2 credits');
     expect(document.body.textContent).toContain('checked when you save');
   });

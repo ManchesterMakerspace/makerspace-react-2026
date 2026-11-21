@@ -152,7 +152,8 @@ const WEEKDAYS = [
 const TaskWeekdayField = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
   <Grid size={{ xs: 12, sm: 6 }}>
     <TextField select label='Day of week' value={value} onChange={event => onChange(event.target.value)}
-      fullWidth helperText='Available to claim only on this day, in Eastern time.'>
+      fullWidth slotProps={{ select: { displayEmpty: true }, inputLabel: { shrink: true } }}
+      helperText='Available to claim only on this day, in Eastern time.'>
       <MenuItem value=''>Any day</MenuItem>
       {WEEKDAYS.map(day => <MenuItem key={day.value} value={String(day.value)}>{day.label}</MenuItem>)}
     </TextField>
@@ -569,7 +570,8 @@ export const CreateTaskModal: React.FC<CreateTaskModalProps> = ({
   React.useEffect(() => {
     if (!isOpen) return;
     let current = true;
-    loadClientConfig().then(config => {
+    setMaxCredit(null);
+    loadClientConfig({ refresh: true }).then(config => {
       const maximum = Number(config.volunteer_task_max_credit);
       if (current && Number.isFinite(maximum) && maximum > 0) setMaxCredit(maximum);
     }).catch(() => {
