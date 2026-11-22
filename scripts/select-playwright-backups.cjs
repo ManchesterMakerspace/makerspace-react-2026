@@ -10,7 +10,8 @@ function selectBackups(report, warn) {
       if (!spec.tests.some(test => test.status === 'unexpected')) continue;
 
       for (const tag of spec.tags ?? []) {
-        const group = /^backup-([a-z0-9-]+)$/.exec(tag)?.[1];
+        // The JSON reporter can strip the leading '@' from declared tags.
+        const group = /^@?backup-([a-z0-9-]+)$/.exec(tag)?.[1];
         if (!group) continue;
         if (!Object.hasOwn(routes, group)) {
           warn(`Unexpected Playwright failure references unknown backup group "${group}".`);

@@ -6,13 +6,13 @@ test('selects each registered backup once for final unexpected Playwright failur
     suites: [{
       suites: [{
         specs: [
-          { tags: ['backup-signup-catalog'], tests: [{ status: 'unexpected' }] },
-          { tags: ['backup-signup-catalog'], tests: [{ status: 'unexpected' }] },
+          { tags: ['@backup-signup-catalog'], tests: [{ status: 'unexpected' }] },
+          { tags: ['@backup-signup-catalog'], tests: [{ status: 'unexpected' }] },
           { tags: ['backup-member-profile'], tests: [{ status: 'unexpected' }] },
-          { tags: ['backup-household'], tests: [{ status: 'flaky' }] },
-          { tags: ['backup-audit-log'], tests: [{ status: 'expected' }] },
-          { tags: ['backup-expired-profile'], tests: [{ status: 'skipped' }] },
-          { tags: ['backup-unknown-group'], tests: [{ status: 'unexpected' }] },
+          { tags: ['@backup-household'], tests: [{ status: 'flaky' }] },
+          { tags: ['@backup-audit-log'], tests: [{ status: 'expected' }] },
+          { tags: ['@backup-expired-profile'], tests: [{ status: 'skipped' }] },
+          { tags: ['@backup-unknown-group'], tests: [{ status: 'unexpected' }] },
           { tags: [], tests: [{ status: 'unexpected' }] },
         ],
       }],
