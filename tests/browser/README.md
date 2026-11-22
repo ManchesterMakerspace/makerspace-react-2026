@@ -1,5 +1,17 @@
 # Browser checks
 
+## Volunteer weekdays and credit validation
+
+After `yarn build`, run `node tests/browser/volunteer-weekdays.cjs`. The production
+bundle uses mocked APIs and headless Edge on Windows (Chromium elsewhere), with
+no external writes. It checks multi-use weekday controls, keyboard selection,
+Sunday/Any day save and reload, configured creation credit limits (including an
+increase while the same SPA remains open), actionable
+422 errors and preserved fields on retry, uncapped events/privileged edits, and
+the flat ten-item Home ordering at 320/600/900/1280 px. Screenshots are saved under
+`tmp/volunteer-weekdays-browser`. This does not replace Rails eligibility,
+authorization, timezone, or live API acceptance tests.
+
 ## Reservation announcements
 
 After `yarn build`, run `node tests/browser/reservation-announcements.cjs`. It

@@ -32,8 +32,8 @@ active earned memberships, and prepaid terms are distinguished.
 ## Data and actions
 
 `GET /api/home` returns the current member, confirmed Slack acceptance and the
-New Members channel link, up to ten eligible safety checkouts, and up to five
-randomly chosen eligible volunteer tasks/events. This response
+New Members channel link, up to ten eligible safety checkouts, and up to ten
+eligible volunteer tasks/events in the ordering below. This response
 is private and must not be cached. It never accepts a different member selector.
 Home and invoices load independently and expose their own retry actions.
 
@@ -51,8 +51,13 @@ existing request page, which revalidates eligibility before submission. Returnin
 to Home or refocusing the tab refreshes the recommendations.
 
 For members with status `activeMember`, **Available Volunteer Opportunities**
-appears above safety checkouts when recommendations exist. The server samples
-five items from the combined eligible pool after applying the existing task and
+appears above safety checkouts when recommendations exist. The server returns
+up to five eligible multi-use tasks assigned to today's weekday in Eastern time,
+then up to five other eligible tasks/events. Each group sorts by credit value
+descending, with title and ID breaking ties. These appear in one flat list without
+an extra divider; matching-weekday tasks beyond the first five do not reappear
+in the second group. Tasks assigned to another weekday are hidden and cannot be
+claimed that day. The server applies the existing task and
 event claim rules (including prerequisite checkouts and linked repair-bounty
 restrictions). It excludes child tasks, recurring tasks in cooldown, reusable
 tasks already claimed/completed, and repeatable/recurring tasks the member already
