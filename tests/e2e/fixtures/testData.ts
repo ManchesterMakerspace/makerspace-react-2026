@@ -57,6 +57,7 @@ export const newMastercard: CreditCard = {
 export const basicMember   = { email: 'basic_member0@test.com',   password: 'password' };
 export const adminMember   = { email: 'admin_member0@test.com',   password: 'password' };
 export const paypalMember  = { email: 'paypal_member0@test.com',  password: 'password' };
+// Reserved for active and backup expired-profile coverage. Renewal uses expired_member1.
 export const expiredMember = { email: 'expired_member0@test.com', password: 'password' };
 export const rmMember0     = { email: 'rm_member0@test.com',      password: 'password' };
 export const rmMember1     = { email: 'rm_member1@test.com',      password: 'password' };
