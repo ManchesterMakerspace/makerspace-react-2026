@@ -92,8 +92,9 @@ export class MemberPage {
   }
 
   async submitFobModal(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Submit' }).click();
-    await this.page.waitForTimeout(1000);
+    const dialog = this.page.getByRole('dialog', { name: 'Register New Fob' });
+    await dialog.getByRole('button', { name: 'Submit', exact: true }).click();
+    await expect(dialog).toBeHidden();
     await this.reloadProfile();
   }
 
@@ -109,7 +110,7 @@ export class MemberPage {
     const searchBox = this.page.getByRole('textbox', { name: 'Search...' });
     // Wait for search input to be enabled — it's disabled while members table loads
     await searchBox.waitFor({ state: 'visible', timeout: 15_000 });
-    await expect(searchBox).toBeEnabled({ timeout: 10_000 });
+    await expect(searchBox).toBeEnabled();
     // Uncheck "View only current members" so expired/non-active members appear in results
     const currentMembersCheckbox = this.page.getByRole('checkbox', { name: 'View only current members' });
     if (await currentMembersCheckbox.isChecked({ timeout: 3_000 }).catch(() => false)) {
@@ -144,12 +145,20 @@ export class MemberPage {
   }
 
   async saveAdminMemberForm(): Promise<void> {
-    await this.page.getByRole('button', { name: 'Save' }).click();
-    await this.page.waitForTimeout(2000);
-    // If SMTP error dialog is still open, dismiss it — member IS created despite the error
-    const cancelBtn = this.page.getByRole('button', { name: 'Cancel' });
-    if (await cancelBtn.isVisible({ timeout: 2_000 })) await cancelBtn.click();
-    await this.page.waitForTimeout(500);
+    const dialog = this.page.getByRole('dialog', { name: 'Create New Member' });
+    const [response] = await Promise.all([
+      this.page.waitForResponse(response =>
+        response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/admin/members'
+      ),
+      dialog.getByRole('button', { name: 'Save', exact: true }).click(),
+    ]);
+    // The member can be persisted before the signup email fails.
+    if (response.status() === 500) {
+      await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    } else {
+      expect(response.ok()).toBe(true);
+    }
+    await expect(dialog).toBeHidden();
   }
 
   async setExpirationDate(dateStr: string): Promise<void> {

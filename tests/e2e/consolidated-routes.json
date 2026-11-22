@@ -1,0 +1,114 @@
+{
+  "signup-catalog": {
+    "role": "Public visitor",
+    "portalPaths": ["/"],
+    "apiRoutes": ["GET /api/invoice_options/signup"],
+    "activeSpec": "tests/e2e/suites/00_smoke.spec.ts",
+    "steps": ["Fetch the signup catalog", "Render the seeded membership options"]
+  },
+  "member-payment-history": {
+    "role": "Member",
+    "portalPaths": ["/members/:id/transactions"],
+    "apiRoutes": ["GET /api/members/:id", "GET /api/billing/transactions"],
+    "activeSpec": "tests/e2e/suites/09_payment_history.spec.ts",
+    "steps": ["Open Payment History", "Render the transaction table and columns"]
+  },
+  "audit-log": {
+    "role": "Admin",
+    "portalPaths": ["/members/:id", "/admin/audit-log"],
+    "apiRoutes": ["PUT /api/admin/members/:id", "GET /api/admin/audit_logs", "GET /api/admin/audit_logs/filters"],
+    "activeSpec": "tests/e2e/suites/16_audit_log.spec.ts",
+    "steps": ["Save a change to member notes", "Open the audit log and verify the member update"]
+  },
+  "household": {
+    "role": "Admin",
+    "portalPaths": ["/members", "/members/:id"],
+    "apiRoutes": ["GET /api/members", "GET /api/members/:id", "GET /api/admin/groups/for_member"],
+    "activeSpec": "tests/e2e/suites/10_household.spec.ts",
+    "steps": ["Find the primary and read their role and expiration", "Find the secondary and verify their role and matching expiration", "Open and close the household management dialog"]
+  },
+  "expired-profile": {
+    "role": "Expired member",
+    "portalPaths": ["/home", "/members/:id"],
+    "apiRoutes": ["GET /api/home", "GET /api/members/:id"],
+    "activeSpec": "tests/e2e/suites/08_expired_member.spec.ts",
+    "steps": ["Render the expired member profile", "Hide subscription management for the expired member"]
+  },
+  "self-registration-fob": {
+    "role": "Public visitor, new member, and Admin",
+    "portalPaths": ["/", "/signup", "/home", "/members/:id"],
+    "apiRoutes": ["GET /api/invoice_options/signup", "POST /api/members", "POST /api/billing/payment_methods", "POST /api/billing/transactions", "GET /api/members/:id", "GET /api/admin/cards/new", "POST /api/admin/cards"],
+    "activeSpec": "tests/e2e/suites/02_registration.spec.ts",
+    "steps": ["Verify the address in the fob preview", "Import and issue the fob"]
+  },
+  "complimentary-fob": {
+    "role": "Admin",
+    "portalPaths": ["/members", "/members/:id"],
+    "apiRoutes": ["GET /api/members", "POST /api/admin/members", "PUT /api/admin/members/:id", "GET /api/members/:id", "GET /api/admin/cards/new", "POST /api/admin/cards"],
+    "activeSpec": "tests/e2e/suites/02_registration.spec.ts",
+    "steps": ["Verify the address in the fob preview", "Import and issue the fob"]
+  },
+  "member-profile": {
+    "role": "Member",
+    "portalPaths": ["/members/:id", "/members/:id/dues", "/members/:id/rentals", "/members/:id/checkouts", "/members/:id/volunteer"],
+    "apiRoutes": ["GET /api/members/:id", "GET /api/invoices", "GET /api/rentals", "GET /api/rental_spots", "GET /api/tool_checkouts", "GET /api/volunteer/summary", "GET /api/volunteer/credits", "GET /api/volunteer/events", "GET /api/volunteer/tasks", "GET /api/volunteer/tasks/my_claims"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Render the member profile", "Dues", "Rentals", "Checkouts", "Volunteer"]
+  },
+  "member-settings": {
+    "role": "Member",
+    "portalPaths": ["/members/:id/settings/profile", "/members/:id/settings/subscriptions", "/members/:id/settings/payment-methods", "/members/:id/settings/security"],
+    "apiRoutes": ["GET /api/members/:id", "GET /api/billing/subscriptions/:id", "GET /api/billing/payment_methods", "GET /api/billing/payment_methods/new"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Profile", "Subscriptions", "Payment Methods", "Security"]
+  },
+  "admin-rentals": {
+    "role": "Admin",
+    "portalPaths": ["/admin/rentals"],
+    "apiRoutes": ["GET /api/admin/rentals", "GET /api/admin/rental_types", "GET /api/admin/rental_spots"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Rental Management", "Rental Requests", "Rental Types", "Rental Spots"]
+  },
+  "admin-checkouts": {
+    "role": "Admin",
+    "portalPaths": ["/tool-checkouts"],
+    "apiRoutes": ["GET /api/admin/tool_checkouts", "GET /api/admin/shops", "GET /api/admin/tools", "GET /api/admin/checkout_approvers"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Tool Checkouts", "Shops", "Tools", "Approvers"]
+  },
+  "admin-volunteer": {
+    "role": "Admin",
+    "portalPaths": ["/volunteer"],
+    "apiRoutes": ["GET /api/admin/volunteer_credits", "GET /api/admin/volunteer_events", "GET /api/admin/volunteer_tasks"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Volunteer", "Events", "Bounty Tasks"]
+  },
+  "admin-analytics": {
+    "role": "Admin",
+    "portalPaths": ["/admin/analytics"],
+    "apiRoutes": ["GET /api/admin/analytics/member_growth", "GET /api/admin/analytics/member_losses", "GET /api/admin/analytics/active_members", "GET /api/admin/analytics/volunteer_summary", "GET /api/admin/space_usage", "GET /api/admin/space_usage/date_range"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Analytics", "Volunteer", "Space Usage"]
+  },
+  "admin-billing": {
+    "role": "Admin",
+    "portalPaths": ["/billing", "/billing/options", "/billing/subscriptions", "/billing/transactions", "/billing/outstanding"],
+    "apiRoutes": ["GET /api/admin/analytics", "GET /api/invoice_options", "GET /api/admin/billing/subscriptions", "GET /api/admin/billing/transactions", "GET /api/admin/invoices"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Billing Central", "Billing Options", "Subscriptions", "Transactions", "Outstanding Invoices / Dues"]
+  },
+  "admin-settings": {
+    "role": "Admin",
+    "portalPaths": ["/admin/system-settings"],
+    "apiRoutes": ["GET /api/admin/system_configs"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Open Member Portal Settings", "Slack", "Volunteer", "Jobs", "Security"]
+  },
+  "resource-manager-pages": {
+    "role": "Resource Manager",
+    "portalPaths": ["/shop-fees", "/tool-checkouts", "/volunteer", "/admin/rentals"],
+    "apiRoutes": ["GET /api/invoice_options", "GET /api/admin/tool_checkouts", "GET /api/tool_checkouts", "GET /api/admin/volunteer_credits", "GET /api/admin/rentals"],
+    "activeSpec": "tests/e2e/suites/01_page_load_smoke.spec.ts",
+    "steps": ["Shop fees", "Tool checkouts", "Volunteer", "Admin rentals"]
+  }
+}

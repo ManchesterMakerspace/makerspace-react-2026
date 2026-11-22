@@ -205,6 +205,10 @@ Any nonempty `SKIP_DB_RESET` value (even `false`) skips global reset. Use it onl
 for deliberately prepared disposable fixtures; other test mutations still run.
 Results/traces are under `tmp/playwright-results`.
 
+The root config runs the active E2E suite. Superseded cases use the backup config
+and their own fixtures. CI selects matching backups after final failures. For a
+manual full run or targeted diagnostics, follow the [local E2E guide](docs/local-e2e.md).
+
 Finish with changes made, checks actually run, failures/unavailable prerequisites,
 documentation updates, and companion-repository/release requirements.
 
@@ -216,6 +220,15 @@ capabilities, and UI. Authentication changes need password/TOTP/session/CSRF che
 on both sides. Keep compatible deployment order explicit.
 Rails endpoint changes require executable API specs and regenerated Swagger;
 updating `makerspace-ts-api-client` is a separate publication/dependency update.
+
+When changing a consolidated portal route, Rails endpoint, or shared behavior
+it depends on, use the [Playwright route map](tests/e2e/consolidated-routes.json)
+to identify scenarios by portal path, API method and path, actor, and test step.
+Search the other E2E specs for impacts from shared routing, authorization, API,
+and navigation changes. Run the affected active scenarios and report which ran
+or which prerequisites blocked them. Update the map and matching active and
+backup assertions when expected behavior changes. When consolidating cases,
+register the route, tag the active case, and make its backup runnable on its own.
 
 For Rails-served UI, run `yarn build` here, set absolute `RAILS_DIR` as above,
 then copy **all** compiled assets: lazy JS/CSS chunks, nested images, and generated

@@ -21,23 +21,17 @@ test.describe('Expired member portal experience', () => {
     await member.dismissNotificationModal();
   });
 
-  test('Expired member can sign in and profile loads without crash', async ({ page }) => {
-    // Profile page renders — no white screen or error boundary
-    await expect(page.locator('#member-detail-status')).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
-  });
-
-  test('Expired member profile shows non-active status', async ({ page }) => {
-    // Note: The member's status field stays "activeMember" — expiry is tracked by
-    // expirationTime. The portal shows "Active" status but the expiration date
-    // shown on the profile will be in the past, and "Manage Subscription" is not shown.
-    // Verify the expiration date is visible (confirming profile loaded) and no crash.
-    await expect(page.locator('#member-detail-status')).toBeVisible({ timeout: 10_000 });
-    // Expired members have no active Braintree subscription — "Manage Subscription"
-    // link should NOT be present
-    await expect(page.getByRole('link', { name: 'Manage Subscription' }))
-      .not.toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
+  test('Expired member can sign in and view their profile', { tag: '@backup-expired-profile' }, async ({ page }) => {
+    await test.step('Render the expired member profile', async () => {
+      await expect(page.locator('#member-detail-status')).toBeVisible();
+      const expiration = page.locator('#member-detail-expiration');
+      await expect(expiration).toHaveText(/\d{1,2}\s+\w+\s+\d{4}/);
+      expect(Date.parse(await expiration.innerText())).toBeLessThan(Date.now());
+      await expect(page.getByText(/something went wrong/i)).not.toBeVisible();
+    });
+    await test.step('Hide subscription management for the expired member', async () => {
+      await expect(page.getByRole('link', { name: 'Manage Subscription' })).not.toBeVisible();
+    });
   });
 
   test('Expired member sees Dues tab with outstanding invoices or renewal prompt', async ({ page }) => {

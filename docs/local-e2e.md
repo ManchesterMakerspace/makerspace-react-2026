@@ -48,10 +48,41 @@ npx playwright test tests/e2e/suites/14_fix_tickets.spec.ts --project=chromium
 npx playwright test
 ```
 
-Playwright uses the root `playwright.config.ts`; no `yarn e2e` script is defined.
+The root `playwright.config.ts` runs the active Playwright suite.
 Global setup runs `bundle exec rake db:db_reset`. Use `SKIP_DB_RESET=true` only
 when deliberately reusing an already prepared disposable fixture database.
 Screenshots, videos and retry traces are in `tmp/playwright-results`.
+
+## Consolidated tests and backups
+
+Use the [route map](../tests/e2e/consolidated-routes.json) when changing a portal
+route, its Rails endpoints, or shared behavior. Each map key identifies an active
+`@backup-<key>` case or group and the matching
+`tests/e2e/backups/<key>.spec.ts` file. For example, run the affected signup
+case with `npx playwright test --grep @backup-signup-catalog`.
+
+A manual full run includes both Playwright commands. Keep the exit status of each
+run and run the backups even if the active run fails.
+
+1. Run `npx playwright test` against the usual test server and disposable fixtures.
+2. Prepare a separate disposable MongoDB database and Redis DB for backups on the
+   same test services. For example, use a MongoDB database named
+   `makerspace_test_playwright_backups` on the verified replica set and Redis
+   `redis://localhost:6379/1`. Set `RAILS_ENV=test`, the backup `MLAB_URI` and
+   `REDIS_URL`, and `PORT=3036` for the second Rails server. Set `APP_DOMAIN`
+   and the React runner's `APP_URL` to `http://localhost:3036`. Keep the backup
+   server and Playwright runner on the same disposable settings, with absolute
+   `RAILS_DIR` and the usual Braintree sandbox credentials. Keep `RAILS_CONTAINER`
+   unset when using this host Rails server.
+3. Seed that database with `bundle exec rake db:db_reset` from Rails and start
+   `bundle exec rails s -b 127.0.0.1 -p 3036 --pid tmp/pids/playwright-backup.pid`.
+   In React, set `SKIP_DB_RESET=true` for the already seeded backup database and run
+   `npx playwright test --config=playwright.backups.config.ts`. To diagnose just
+   one failure, append its backup spec path.
+
+CI selects the backups for consolidated cases that still fail after retries.
+The primary CI step stays failed even if the backups pass. Backup results and
+the report use `tmp/playwright-backup-results` and `tmp/playwright-backup-report`.
 
 ## Member landing and page helpers
 
