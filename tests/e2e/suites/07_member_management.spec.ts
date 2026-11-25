@@ -3,18 +3,18 @@ import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
 import { SettingsPage } from '../pages/SettingsPage';
-import { adminMember, basicMember, expiredMember, newVisa, newMastercard } from '../fixtures/testData';
+import { adminMember, basicMember, newVisa, newMastercard } from '../fixtures/testData';
 import { restoreMemberPassword } from '../fixtures/memberPassword';
 
 // ── Test 1: Admin manually renews a member ────────────────────────────────────
 //
-// Uses expired_member0 — a seeded member with a past expiration date.
+// Uses expired_member1 so renewal leaves the expired profile fixture untouched.
 // Admin opens edit form, selects 1 month renewal, saves.
 // Verifies expiration date advances and member status becomes Active.
 
 test.describe('Admin manually renews expired member', () => {
-  const TARGET_EMAIL = expiredMember.email;
-  const TARGET_NAME  = 'Expired Member0';
+  const TARGET_EMAIL = 'expired_member1@test.com';
+  const TARGET_NAME  = 'Expired Member1';
 
   test('Admin finds expired member and renews for 1 month', async ({ page }) => {
     const auth   = new AuthPage(page);
@@ -22,7 +22,7 @@ test.describe('Admin manually renews expired member', () => {
 
     await auth.signIn(adminMember.email, adminMember.password);
     await member.goToMembersList();
-    await member.searchMembers('expired_member0');
+    await member.searchMembers(TARGET_EMAIL);
     await member.clickMemberLink(TARGET_NAME);
     await member.waitForProfile();
 
@@ -53,7 +53,7 @@ test.describe('Admin manually renews expired member', () => {
 
     await auth.signIn(adminMember.email, adminMember.password);
     await member.goToMembersList();
-    await member.searchMembers('expired_member0');
+    await member.searchMembers(TARGET_EMAIL);
     await member.clickMemberLink(TARGET_NAME);
     await member.waitForProfile();
 

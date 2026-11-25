@@ -28,6 +28,11 @@ Update overlapping instructions here whenever the canonical handbook changes.
   on 3035, `APP_URL`, absolute `RAILS_DIR`, a disposable test database/replica set,
   Redis, and real Braintree sandbox credentials. Global setup resets data.
   `RAILS_CONTAINER` uses its container environment without forcing test mode.
+- For consolidated routes and shared authorization, API, or navigation changes,
+  check the [Playwright route map](../tests/e2e/consolidated-routes.json) and search
+  for other affected specs. Run the affected active cases and report results or
+  missing prerequisites. Update the map and matching active and backup assertions
+  when expected behavior changes.
 - Native builds need HTTPS `NATIVE_API_ORIGIN` without path/trailing slash. Android
   needs JDK 21/SDK: `yarn android:sync`, then `yarn android:debug`. iOS compilation
   needs macOS/Xcode. Maintain source inputs, rebuild generated assets, and distinguish

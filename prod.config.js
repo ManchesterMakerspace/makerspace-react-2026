@@ -118,9 +118,12 @@ module.exports = env => ({
     new CopyWebpackPlugin({
       patterns: [{ from: "src/assets/favicon.png", to: "favicon.png" }]
     }),
+    // The API client uses process.env.BASE_URL. Webpack sets import.meta.env.BASE_URL from publicPath.
+    new webpack.DefinePlugin({
+      "process.env.BASE_URL": JSON.stringify(process.env.BASE_URL ?? (env?.BASE_URL || ""))
+    }),
     new webpack.EnvironmentPlugin({
       BILLING_ENABLED: true,
-      BASE_URL: (env && env.BASE_URL) || "",
       NATIVE_API_ORIGIN: "",
       // Build-time public contact address; defaults to the Makerspace inbox.
       SMTP_FROM: "contact@manchestermakerspace.org",

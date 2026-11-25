@@ -14,6 +14,14 @@ Rails links are pinned to the reviewed revision. React links point to source in
 this repository. Material differences between portal and Slack behavior are
 identified explicitly.
 
+The weekday task option, ordered Home opportunities, effective creation-limit
+guidance, and concise validation errors described below are newer coordinated
+Rails/React changes, absent from the historical Rails revision linked above.
+Deploy the matching Rails API before the React bundle. The four corresponding
+wiki-page updates remain unpublished in the
+[held wiki patch](../../makerspace-rails-2026/docs/wiki-volunteer-weekdays.patch)
+until that deployment; they have not changed the live wiki.
+
 The pinned Rails revision includes five-day approval reminders and saved
 final-outcome updates. It still uses the older channel labels/defaults and does
 not send shop resource managers individual review DMs.
@@ -68,7 +76,7 @@ Use these entry points:
 | Staff **Volunteer** page, `/volunteer` | **Credits**, **Bounty Tasks**, and **Events** tabs. Admins, board members, and RMs can enter; individual actions still require Rails authorization. |
 | Direct review links, `/volunteer?task=:id` and `/volunteer?event=:id` | **After rollout**, opens the matching tab and selects the exact task claim (including a child claim) or event after it loads successfully. **Show all** removes the review selectors from the URL and retains the current tab, so switching tabs or reloading preserves the full-list view. Missing/deleted records show a recovery message. Authentication and existing review permissions still apply. These are React routes, not public Rails resources. |
 | Your own profile, `/members/:id/volunteer` | Summary, **Open Events**, **My Active Claims**, **Available Bounty Tasks**, and **Credit History**. The Volunteer tab is shown on your own profile, not someone else's profile. |
-| **Home**, `/home` | Up to five randomly selected eligible tasks/events for members with status `activeMember`. **Claim Task** and **Join Event** act immediately. See [Member home](member-home.md). |
+| **Home**, `/home` | Up to five eligible tasks scheduled for today's weekday, followed by up to five other eligible tasks/events, for members with status `activeMember`. Each group sorts by credit value descending in one list. **Claim Task** and **Join Event** act immediately. See [Member home](member-home.md). |
 | **Workshops**, `/workshops` | Shop-specific tasks on the Volunteer tab and upcoming event information. Authorized users can use **Create Bounty Task** to open the staff task form with that shop preselected. |
 | Bounty link, `/volunteer/tasks/:id` | Task/bounty details and available claim/completion actions; linked bounties include source-ticket access. |
 | Slack, `/volunteer` | Help and subcommands for personal progress, task/event listings, claims, completion submissions, and authorized staff actions. [Command reference](#slack-command-reference) below. |
@@ -180,10 +188,11 @@ preselected.
 | Setting | Behavior |
 | --- | --- |
 | Title and description | Required. |
-| Credit value | Defaults to 1; positive finite fractions allowed. Creation maximum is `volunteer_task_max_credit`, then `VOLUNTEER_TASK_MAX_CREDIT`, then 2. The portal form advertises a maximum of 2. |
+| Credit value | Defaults to 1; positive finite fractions allowed. Creation maximum is `volunteer_task_max_credit`, then `VOLUNTEER_TASK_MAX_CREDIT`, then 2. Each time the creation form opens, the portal reads the effective maximum from public configuration and shows it beside the field. An excessive value displays the maximum and prevents submission. If configuration cannot load, saving still uses server validation with the actionable error. |
 | Shop | Optional for admin/board; must be an assigned shop for an RM. |
 | Prerequisite tools | Optional; require a shop, and every selected tool must belong to it. |
 | Recurrence interval | Required positive whole number of days for recurring tasks. Portal starts with 7 days. |
+| Day of week | Optional for Reusable, Repeatable, and Recurring parent tasks. **Any day** is the default; otherwise select Monday through Sunday. The parent appears in claimable lists and accepts claims only on that weekday in Eastern time. Existing child claims can still be completed and reviewed on any day. Standard tasks and events have no weekday control. |
 
 | Type | What a claim does | Repeat rules |
 | --- | --- | --- |
@@ -201,6 +210,9 @@ In the portal, **Edit** is offered for available, claimed, and multi-use parent
 statuses. Admin/board can change positive credit values without the creation
 maximum, and API edits record credit-value changes in the audit log. The generic
 ordinary-task API accepts broader lifecycle edits than the portal exposes.
+Task and event create/edit forms display the server's validation message,
+including the configured maximum when a task creation credit value is too high.
+Event credits and privileged task credit edits retain their existing uncapped behavior.
 
 Source: [task model][rails-task], [task administration][rails-admin-tasks],
 and [task forms][react-admin].

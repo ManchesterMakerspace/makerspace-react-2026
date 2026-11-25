@@ -2,21 +2,11 @@ import { test, expect } from '@playwright/test';
 import { AuthPage } from '../pages/AuthPage';
 import { MemberPage } from '../pages/MemberPage';
 import { PaymentPage } from '../pages/PaymentPage';
-import { buildTestMember, newVisa, newMastercard, adminMember } from '../fixtures/testData';
+import { buildTestMember, newMastercard, adminMember } from '../fixtures/testData';
 import { createRejectCard, setSignupLockout } from '../fixtures/seed';
+import { createMemberAsAdmin, registerMemberFromHome, setComplimentaryExpiration } from '../fixtures/fobRegistration';
 
 test.describe('Signup catalog and feedback', () => {
-  test('Landing page uses the signup-eligible invoice options endpoint', async ({ page }) => {
-    const signupCatalogRequest = page.waitForRequest(request =>
-      request.url().includes('/api/invoice_options/signup')
-    );
-
-    await page.goto('/');
-    await signupCatalogRequest;
-    await expect(page.getByRole('cell', { name: 'One Month', exact: true }))
-      .toBeVisible({ timeout: 30_000 });
-  });
-
   test('Explicit signup links retain the option and discount parameters', async ({ page }) => {
     const optionId = '63dda79f724abf0002042ed8';
     const discountId = '2026_Membership_Annual_Old';
@@ -57,7 +47,8 @@ test.describe('Signup catalog and feedback', () => {
 
 // ── Test 1: Customer self-registers from home page ────────────────────────────
 
-test.describe('Self-registration from home page', () => {
+test.describe('Self-registration from home page', { tag: '@backup-self-registration-fob' }, () => {
+  test.describe.configure({ mode: 'serial' });
   // Use 'fullreg' — distinct from any partial test email to avoid conflicts
   const newMember    = buildTestMember('fullreg');
   const rejectionUid = `e2e-fullreg-${Date.now()}`;
@@ -67,89 +58,8 @@ test.describe('Self-registration from home page', () => {
     createRejectCard(rejectionUid);
   });
 
-  test('Membership options table loads on home page', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByRole('cell', { name: 'One Month' }))
-      .toBeVisible({ timeout: 30_000 });
-  });
-
   test('Member completes full self-registration and lands on welcome Home', async ({ page }) => {
-    // Mock document routes BEFORE navigation to prevent Google Drive loop
-    const payment = new PaymentPage(page);
-    const member  = new MemberPage(page);
-
-    await page.goto('/');
-    const row = page.getByRole('row', { name: /one month/i });
-    await row.waitFor({ timeout: 15_000 });
-    await row.getByRole('button', { name: 'Sign Up' }).click();
-
-    // ── Step 1: Basic Info ──
-    await page.getByRole('textbox', { name: 'First Name' }).fill(newMember.firstname);
-    await page.getByRole('textbox', { name: 'Last Name' }).fill(newMember.lastname);
-    await page.getByRole('textbox', { name: 'Phone Number' }).fill(newMember.phone);
-    await page.getByRole('textbox', { name: 'Street Address' }).fill(newMember.address.street);
-    await page.getByRole('textbox', { name: 'City' }).fill(newMember.address.city);
-    await page.locator('#sign-up-form-state').selectOption(newMember.address.state);
-    await page.getByRole('textbox', { name: 'Postal Code' }).fill(newMember.address.postalCode);
-    await page.getByRole('textbox', { name: 'Email', exact: true }).fill(newMember.email);
-    await page.getByRole('textbox', { name: 'Confirm Email' }).fill(newMember.email);
-    await page.getByRole('textbox', { name: 'Password' }).fill(newMember.password);
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    // ── Step 2: Agreements ──
-    await page.getByRole('checkbox', { name: /Code of Conduct/i }).check();
-    await page.getByRole('checkbox', { name: /Member Contract/i }).check();
-    const canvas = page.locator('canvas').first();
-    await canvas.waitFor({ state: 'visible' });
-    const box = await canvas.boundingBox();
-    if (box) {
-      // Draw signature using dispatchEvent to ensure canvas registers the stroke
-      await canvas.dispatchEvent('mousedown', { clientX: box.x + 50, clientY: box.y + 50 });
-      await canvas.dispatchEvent('mousemove', { clientX: box.x + 150, clientY: box.y + 50 });
-      await canvas.dispatchEvent('mousemove', { clientX: box.x + 200, clientY: box.y + 80 });
-      await canvas.dispatchEvent('mousemove', { clientX: box.x + 150, clientY: box.y + 100 });
-      await canvas.dispatchEvent('mouseup',   { clientX: box.x + 150, clientY: box.y + 100 });
-      await page.waitForTimeout(500);
-    }
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    // ── Step 3: Membership — One Month already selected, just click Next ──
-    await page.waitForLoadState('networkidle');
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    // ── Step 4: Payment ──
-    await payment.openCreditCardAccordion();
-    await payment.waitForCreditCardForm();
-    await payment.fillCreditCard(newVisa);
-    await page.getByRole('button', { name: 'Next' }).click();
-
-    // ── Step 5: Review / Auth ──
-    await page.getByRole('checkbox', { name: 'I agree' }).check();
-    await page.getByRole('button', { name: 'Submit Payment' }).click();
-
-    await expect(page).toHaveURL(url => url.pathname === '/home' && url.search === '?newMember=true');
-    await expect(page.getByRole('heading', { name: 'Welcome!', exact: true })).toBeVisible();
-    await member.gotoOwnProfile();
-    memberProfileUrl = await member.getProfileUrl();
-    await member.dismissNotificationModal();
-    await expect(page.locator('#member-detail-type')).toBeVisible({ timeout: 15_000 });
-  });
-
-  test('FOB modal displays correct member address', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
-
-    await auth.signIn(adminMember.email, adminMember.password);
-    expect(memberProfileUrl, 'Registration must capture the new member profile before FOB checks').toMatch(/\/members\/[^/?]+$/);
-    await page.goto(memberProfileUrl);
-    await member.waitForProfile();
-    await member.openFobModal();
-    await member.verifyAddressInFobModal({
-      street:     newMember.address.street,
-      city:       newMember.address.city,
-      state:      newMember.address.state,
-      postalCode: newMember.address.postalCode,
-    });
+    memberProfileUrl = await registerMemberFromHome(page, newMember);
   });
 
   test('Admin registers FOB and membership becomes active', async ({ page }) => {
@@ -157,13 +67,20 @@ test.describe('Self-registration from home page', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await page.goto(memberProfileUrl);
-    await member.waitForProfile();
-    await member.openFobModal();
-    await member.importFob();
-    await member.waitForFobUid(rejectionUid);
-    await member.checkIdVerified();
-    await member.submitFobModal();
+    expect(memberProfileUrl, 'The member must be created before fob issuance').toMatch(/\/members\/[^/?]+$/);
+    await test.step('Verify the address in the fob preview', async () => {
+      await page.goto(memberProfileUrl);
+      await member.waitForProfile();
+      await member.openFobModal();
+      await member.verifyAddressInFobModal(newMember.address);
+    });
+
+    await test.step('Import and issue the fob', async () => {
+      await member.importFob();
+      await member.waitForFobUid(rejectionUid);
+      await member.checkIdVerified();
+      await member.submitFobModal();
+    });
 
     await member.verifyMembershipStatus('Active');
     const expiration = await member.getExpiration();
@@ -254,7 +171,8 @@ test.describe('Registration via URL with discount code', () => {
 
 // ── Test 3: Admin creates member with complimentary membership ────────────────
 
-test.describe('Admin creates member with complimentary membership', () => {
+test.describe('Admin creates member with complimentary membership', { tag: '@backup-complimentary-fob' }, () => {
+  test.describe.configure({ mode: 'serial' });
   const newMember    = buildTestMember('admincreated');
   const rejectionUid = `e2e-admincreated-${Date.now()}`;
   let   memberProfileUrl = '';
@@ -264,26 +182,11 @@ test.describe('Admin creates member with complimentary membership', () => {
   });
 
   test('Admin creates new member from members list', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
-
-    await auth.signIn(adminMember.email, adminMember.password);
-    await member.goToMembersList();
-    await member.clickCreateNewMember();
-    await member.fillAdminMemberForm(newMember);
-    await member.saveAdminMemberForm();
-
-    // SMTP may cause a 500 but member IS created — search for them
-    await member.goToMembersList();
-    await member.searchMembers(newMember.lastname);
-    await member.clickMemberLink(`${newMember.firstname} ${newMember.lastname}`);
-
-    memberProfileUrl = await member.getProfileUrl();
-    await expect(page.locator('#member-detail-status')).toBeVisible({ timeout: 15_000 });
+    memberProfileUrl = await createMemberAsAdmin(page, newMember);
   });
 
   test('Admin sets complimentary 1 month expiration via Edit form', async ({ page }) => {
-    test.skip(!memberProfileUrl, 'Requires previous test to have completed');
+    expect(memberProfileUrl, 'The member must be created before granting complimentary membership').toMatch(/\/members\/[^/?]+$/);
     const auth   = new AuthPage(page);
     const member = new MemberPage(page);
 
@@ -291,30 +194,10 @@ test.describe('Admin creates member with complimentary membership', () => {
     await page.goto(memberProfileUrl);
     await member.waitForProfile();
 
-    // Set expiration 1 month from today (YYYY-MM-DD)
-    const d = new Date();
-    d.setMonth(d.getMonth() + 1);
-    const dateStr = d.toISOString().split('T')[0];
-    await member.setExpirationDate(dateStr);
+    await setComplimentaryExpiration(member);
 
     const expiration = await member.getExpiration();
     expect(expiration).toMatch(/\d{1,2}\s+\w+\s+\d{4}/);
-  });
-
-  test('FOB modal shows correct member address', async ({ page }) => {
-    const auth   = new AuthPage(page);
-    const member = new MemberPage(page);
-
-    await auth.signIn(adminMember.email, adminMember.password);
-    await page.goto(memberProfileUrl);
-    await member.waitForProfile();
-    await member.openFobModal();
-    await member.verifyAddressInFobModal({
-      street:     newMember.address.street,
-      city:       newMember.address.city,
-      state:      newMember.address.state,
-      postalCode: newMember.address.postalCode,
-    });
   });
 
   test('Admin registers FOB and membership becomes active', async ({ page }) => {
@@ -322,13 +205,20 @@ test.describe('Admin creates member with complimentary membership', () => {
     const member = new MemberPage(page);
 
     await auth.signIn(adminMember.email, adminMember.password);
-    await page.goto(memberProfileUrl);
-    await member.waitForProfile();
-    await member.openFobModal();
-    await member.importFob();
-    await member.waitForFobUid(rejectionUid);
-    await member.checkIdVerified();
-    await member.submitFobModal();
+    expect(memberProfileUrl, 'The member must be created before fob issuance').toMatch(/\/members\/[^/?]+$/);
+    await test.step('Verify the address in the fob preview', async () => {
+      await page.goto(memberProfileUrl);
+      await member.waitForProfile();
+      await member.openFobModal();
+      await member.verifyAddressInFobModal(newMember.address);
+    });
+
+    await test.step('Import and issue the fob', async () => {
+      await member.importFob();
+      await member.waitForFobUid(rejectionUid);
+      await member.checkIdVerified();
+      await member.submitFobModal();
+    });
 
     await member.verifyMembershipStatus('Active');
   });
