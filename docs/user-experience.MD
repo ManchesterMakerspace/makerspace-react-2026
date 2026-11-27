@@ -398,6 +398,12 @@ Event loading failure leaves other answers available and offers Retry; Refresh
 event choices recovers a stale selection. Existing event snapshots survive edits.
 
 Resource Managers, Board and Admins see Eventbrite in the menu and member profile.
+The menu's Eventbrite browser filters all three tabs by event start date in Eastern
+time, from today through six calendar months ahead. **From** and **To** accept
+one-sided ranges. **Show all dates** clears both. Titles containing Open House
+are initially hidden. **Show Open House** and **Hide Open House** toggle those
+events independently. Switching tabs retains the filters and starts on page one.
+Member profiles open with the member's full linked history.
 The read-only browser uses Events/Orders/Attendees tabs, labeled filters, responsive
 cards, paging, and a details dialog for tickets/attendees. Loading, empty, error/
 Retry, invalid, refunded and email-link mismatch states are explicit. Ordinary

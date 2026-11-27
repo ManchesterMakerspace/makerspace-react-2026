@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { EventbriteRecord, listEventbrite, getEventbrite, eventLabel } from 'api/eventbrite';
+import { EventbriteRecord, listEventbrite, getEventbrite, eventLabel, defaultEventbriteDates } from 'api/eventbrite';
 import { useCapabilities } from 'app/permissions';
 import { buildProfileRouting } from 'ui/member/utils';
 
@@ -24,6 +24,9 @@ export default function EventbriteBrowser({ memberId }: { memberId?: string }) {
   const { canViewEventbriteHistory } = useCapabilities();
   const kinds = memberId ? ['orders', 'attendees'] : ['events', 'orders', 'attendees'];
   const [kind, setKind] = React.useState(kinds[0]);
+  const [dates, setDates] = React.useState(() => defaultEventbriteDates());
+  const [hideOpenHouse, setHideOpenHouse] = React.useState(true);
+  const reversedDates = !memberId && !!dates.to_date && dates.from_date > dates.to_date;
   const [filters, setFilters] = React.useState({ search: '', organization_id: '', event_id: '', status: '', linked: '' });
   const [page, setPage] = React.useState(0);
   const [revision, refresh] = React.useReducer(n => n + 1, 0);
@@ -36,12 +39,23 @@ export default function EventbriteBrowser({ memberId }: { memberId?: string }) {
   const [detailRevision, retryDetail] = React.useReducer(n => n + 1, 0);
   React.useEffect(() => {
     if (!canViewEventbriteHistory) return;
+    setError(''); setData({ records: [], total: 0 });
+    if (reversedDates) {
+      setLoading(false);
+      return;
+    }
     let active = true;
-    setLoading(true); setError(''); setData({ records: [], total: 0 });
-    listEventbrite(kind, { ...filters, pageNum: page }, memberId).then(result => { if (active) setData(result); })
+    setLoading(true);
+    const params: Record<string, string | number> = { ...filters, pageNum: page };
+    if (!memberId) {
+      if (dates.from_date) params.from_date = dates.from_date;
+      if (dates.to_date) params.to_date = dates.to_date;
+      if (hideOpenHouse) params.exclude_open_house = 'true';
+    }
+    listEventbrite(kind, params, memberId).then(result => { if (active) setData(result); })
       .catch(() => { if (active) setError('Could not load Eventbrite records.'); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [kind, filters, page, memberId, revision, canViewEventbriteHistory]);
+  }, [kind, filters, dates, hideOpenHouse, reversedDates, page, memberId, revision, canViewEventbriteHistory]);
   React.useEffect(() => {
     if (!detailId || !canViewEventbriteHistory) return;
     let active = true; setDetail(undefined); setDetailError(false);
@@ -55,6 +69,18 @@ export default function EventbriteBrowser({ memberId }: { memberId?: string }) {
       {kinds.map(value => <Tab key={value} value={value} label={value[0].toUpperCase() + value.slice(1)} />)}
     </Tabs>
     <Stack spacing={2} sx={{ my: 2 }}>
+      {!memberId && <>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          {(['from_date', 'to_date'] as const).map(key => <TextField key={key} fullWidth size="small" type="date"
+            label={key === 'from_date' ? 'From' : 'To'} value={dates[key]} slotProps={{ inputLabel: { shrink: true } }}
+            error={key === 'to_date' && reversedDates} helperText={key === 'to_date' && reversedDates ? 'From must be on or before To.' : undefined}
+            onChange={e => { setDates({ ...dates, [key]: e.target.value }); setPage(0); }} />)}
+        </Stack>
+        <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
+          <Button onClick={() => { setDates({ from_date: '', to_date: '' }); setPage(0); }}>Show all dates</Button>
+          <Button onClick={() => { setHideOpenHouse(!hideOpenHouse); setPage(0); }}>{hideOpenHouse ? 'Show Open House' : 'Hide Open House'}</Button>
+        </Stack>
+      </>}
       {Object.entries(filters).filter(([key]) => kind !== 'events' || !['event_id', 'linked'].includes(key)).map(([key, value]) =>
         <TextField key={key} size="small" fullWidth label={{ search: 'Name or email', organization_id: 'Organization ID', event_id: 'Event ID', status: 'Provider status', linked: 'Member link' }[key]}
           select={key === 'linked'} value={value} onChange={e => { setFilters({ ...filters, [key]: e.target.value }); setPage(0); }}>
@@ -62,7 +88,7 @@ export default function EventbriteBrowser({ memberId }: { memberId?: string }) {
         </TextField>)}
       {loading && <Typography role="status">Loading Eventbrite records…</Typography>}
       {error && <Alert severity="error" action={<Button onClick={refresh}>Retry</Button>}>{error}</Alert>}
-      {!loading && !error && data.records.length === 0 && <Typography>No matching Eventbrite records.</Typography>}
+      {!loading && !error && !reversedDates && data.records.length === 0 && <Typography>No matching Eventbrite records.</Typography>}
       {data.records.map(record => <Paper key={record.id} sx={{ p: 2 }}><RecordSummary record={record} /><Button onClick={() => setDetailId(record.id)}>View details</Button></Paper>)}
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Button disabled={page === 0 || loading} onClick={() => setPage(page - 1)}>Previous</Button>

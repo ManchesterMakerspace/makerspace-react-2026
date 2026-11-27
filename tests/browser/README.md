@@ -50,7 +50,8 @@ Upcoming Events Channel setting with mocked APIs: keyboard editing, channel
 normalization, blank/default behavior, and 320/600/900/1280 px layouts.
 
 After `yarn build`, run `node tests/browser/eventbrite.cjs`. The production bundle
-uses mocked APIs in a disposable Edge/Chromium session to verify staff history,
+uses mocked APIs in a disposable Edge/Chromium session to verify the staff date
+and Open House controls across all three tabs, range validation, staff history,
 retry, details, keyboard access, ordinary-member denial, provider answer/skip and overflow at
 320/600/900/1280 px. Screenshots are in `tmp/eventbrite-browser`. This does not
 replace controlled Eventbrite webhook delivery or Rails-backed acceptance.

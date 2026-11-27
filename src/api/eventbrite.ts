@@ -1,4 +1,5 @@
 import axios from 'axios';
+import moment from 'ui/utils/moment';
 import { attachGlobalAuthInterceptor } from 'ui/common/globalAuthInterceptor';
 import type { SignupEvent, SignupAttribution } from 'makerspace-ts-api-client';
 export type { SignupEvent, SignupAttribution } from 'makerspace-ts-api-client';
@@ -12,6 +13,10 @@ export interface EventbriteRecord {
   ticketClasses?: EventbriteRecord[]; attendees?: EventbriteRecord[];
 }
 const api = attachGlobalAuthInterceptor(axios.create({ withCredentials: true }));
+export const defaultEventbriteDates = (now = new Date()) => {
+  const today = moment.tz(now, 'America/New_York');
+  return { from_date: today.format('YYYY-MM-DD'), to_date: today.clone().add(6, 'months').format('YYYY-MM-DD') };
+};
 export const signupEvents = async (): Promise<SignupEvent[]> => (await api.get('/api/signup_events')).data;
 export const saveSignupSource = async (body: SignupAttribution) => {
   const csrf = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
