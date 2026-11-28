@@ -1,8 +1,13 @@
-import { sourcePayload, eventLabel } from '../../src/api/eventbrite';
+import { sourcePayload, eventLabel, defaultEventbriteDates } from '../../src/api/eventbrite';
 import { SIGNUP_SOURCES, signupSourceDetailPrompt } from '../../src/ui/member/signupSources';
 import { computeCapabilities } from '../../src/app/permissions';
 
 describe('Eventbrite attribution and visibility', () => {
+  it('starts on the Eastern date and clamps the sixth calendar month at month end', () => {
+    expect(defaultEventbriteDates(new Date('2026-08-31T23:30:00-04:00'))).toEqual({
+      from_date: '2026-08-31', to_date: '2027-02-28'
+    });
+  });
   it('maps a selected event to an ID without trusting a client-supplied name', () => {
     expect(sourcePayload('event:abc', 'arbitrary')).toEqual({ signupSource: 'eventbrite', signupEventbriteEventId: 'abc' });
     expect(sourcePayload('', '')).toEqual({ signupSource: '', signupSourceDetail: '' });

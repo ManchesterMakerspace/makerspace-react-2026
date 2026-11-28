@@ -21,6 +21,7 @@ const server = http.createServer((req, res) => {
   const browser = await chromium.launch({ channel: process.platform === 'win32' ? 'msedge' : undefined, headless: true });
   try {
     const page = await browser.newPage();
+    await page.clock.setFixedTime(new Date('2026-08-31T23:30:00-04:00'));
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     let fail = true, historyCalls = 0, role = 'resource_manager', pending = false, savedSource;
@@ -49,8 +50,31 @@ const server = http.createServer((req, res) => {
     try { await page.getByRole('button', { name: 'Retry', exact: true }).click(); }
     catch (error) { console.error('Page:', page.url(), await page.locator('body').innerText(), errors); throw error; }
     await page.getByRole('heading', { name: record.name }).waitFor();
+    const from = page.getByLabel('From', { exact: true });
+    const to = page.getByLabel('To', { exact: true });
+    assert.equal(await from.inputValue(), '2026-08-31');
+    assert.equal(await to.inputValue(), '2027-02-28');
+    async function checkFilters(tab, action, expected) {
+      const received = page.waitForRequest(req => new URL(req.url()).pathname === '/api/admin/eventbrite/' + tab);
+      await action();
+      const query = new URL((await received).url()).searchParams;
+      assert.deepEqual(['from_date', 'to_date', 'exclude_open_house', 'pageNum'].map(key => query.get(key)), [...expected, '0']);
+    }
+    await checkFilters('orders', () => page.getByRole('tab', { name: 'Orders' }).click(), ['2026-08-31', '2027-02-28', 'true']);
+    await checkFilters('orders', () => page.getByRole('button', { name: 'Show all dates' }).click(), [null, null, 'true']);
+    assert.equal(await from.inputValue(), '');
+    assert.equal(await to.inputValue(), '');
+    await checkFilters('attendees', () => page.getByRole('tab', { name: 'Attendees' }).click(), [null, null, 'true']);
+    await checkFilters('attendees', () => page.getByRole('button', { name: 'Show Open House' }).press('Enter'), [null, null, null]);
+    await checkFilters('attendees', () => from.fill('2026-12-01'), ['2026-12-01', null, null]);
+    await to.fill('2026-11-30');
+    await page.getByText('From must be on or before To.').waitFor();
+    await checkFilters('attendees', () => to.fill('2026-12-31'), ['2026-12-01', '2026-12-31', null]);
+    await checkFilters('events', () => page.getByRole('tab', { name: 'Events' }).click(), ['2026-12-01', '2026-12-31', null]);
+    await checkFilters('events', () => page.getByRole('button', { name: 'Hide Open House' }).click(), ['2026-12-01', '2026-12-31', 'true']);
     for (const width of [320, 600, 900, 1280]) {
       await page.setViewportSize({ width, height: 1000 });
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `filter overflow at ${width}`);
       await page.getByRole('button', { name: 'View details' }).click();
       await page.getByRole('heading', { name: 'General Admission' }).waitFor();
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `overflow at ${width}`);
