@@ -403,6 +403,9 @@ time, from today through six calendar months ahead. **From** and **To** accept
 one-sided ranges. **Show all dates** clears both. Titles containing Open House
 are initially hidden. **Show Open House** and **Hide Open House** toggle those
 events independently. Switching tabs retains the filters and starts on page one.
+Event titles show each local date once, including dates already written in the
+title. Multi-day events show both dates. Orders sort by Eastern event day then
+buyer email, and attendees sort by email.
 Member profiles open with the member's full linked history.
 The read-only browser uses Events/Orders/Attendees tabs, labeled filters, responsive
 cards, paging, and a details dialog for tickets/attendees. Loading, empty, error/

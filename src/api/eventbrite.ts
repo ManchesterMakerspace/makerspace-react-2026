@@ -4,9 +4,11 @@ import { attachGlobalAuthInterceptor } from 'ui/common/globalAuthInterceptor';
 import type { SignupEvent, SignupAttribution } from 'makerspace-ts-api-client';
 export type { SignupEvent, SignupAttribution } from 'makerspace-ts-api-client';
 
-export interface EventbriteRecord {
+type StaffEvent = { name?: string; startsAt?: string; endsAt?: string; timezone?: string };
+
+export interface EventbriteRecord extends StaffEvent {
   id: string; name: string; email?: string; status?: string; organizationId: string; eventbriteId: string;
-  eventId?: string; startsAt?: string; timezone?: string; event?: Omit<SignupEvent, 'id'>;
+  eventId?: string; event?: StaffEvent;
   invalidatedAt?: string; invalidationReason?: string; refundedAt?: string; refunded?: boolean;
   memberId?: string; memberIds?: string[]; linkConflict?: boolean; ticketClassId?: string;
   ticketClassName?: string;
@@ -33,3 +35,19 @@ export const sourcePayload = (value: string, detail?: string): SignupAttribution
   ? { signupSource: 'eventbrite', signupEventbriteEventId: value.slice(6) }
   : { signupSource: value || '', signupSourceDetail: detail || '' };
 export const eventLabel = (event: Omit<SignupEvent, 'id'>) => `${event.name} — ${new Date(event.startsAt).toLocaleDateString('en-US', { timeZone: event.timezone || 'America/New_York', year: 'numeric', month: 'short', day: 'numeric' })}`;
+
+export function staffEventLabel({ name, startsAt, endsAt, timezone }: StaffEvent) {
+  const normalize = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const titleWords = ` ${normalize(name || '')} `;
+  const options = { timeZone: timezone || 'America/New_York', year: 'numeric', day: 'numeric' } as const;
+  const dates = new Set<string>();
+  for (const value of [startsAt, endsAt]) {
+    if (!value) continue;
+    const day = new Date(value);
+    if (Number.isNaN(day.getTime())) continue;
+    const short = day.toLocaleDateString('en-US', { ...options, month: 'short' });
+    const long = day.toLocaleDateString('en-US', { ...options, month: 'long' });
+    if (![short, long].some(date => titleWords.includes(` ${normalize(date)} `))) dates.add(short);
+  }
+  return [name, [...dates].join(' – ')].filter(Boolean).join(' — ');
+}

@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Alert, Box, Button, Chip, Dialog, DialogTitle, DialogContent, DialogActions, MenuItem, Paper, Stack, Tab, Tabs, TextField, Typography } from '@mui/material';
 import { Link } from 'react-router-dom';
-import { EventbriteRecord, listEventbrite, getEventbrite, eventLabel, defaultEventbriteDates } from 'api/eventbrite';
+import { EventbriteRecord, listEventbrite, getEventbrite, staffEventLabel, defaultEventbriteDates } from 'api/eventbrite';
 import { useCapabilities } from 'app/permissions';
 import { buildProfileRouting } from 'ui/member/utils';
 
 const RecordSummary: React.FC<{ record: EventbriteRecord }> = ({ record }) => <Stack spacing={1}>
-  <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{record.name || record.eventbriteId}</Typography>
+  <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{staffEventLabel({ ...record, name: record.name || record.eventbriteId })}</Typography>
   {record.email && <Typography sx={{ overflowWrap: 'anywhere' }}>{record.email}</Typography>}
-  {(record.event || record.startsAt) && <Typography>{eventLabel(record.event || { name: record.name, startsAt: record.startsAt, timezone: record.timezone })}</Typography>}
+  {record.event && <Typography>{staffEventLabel(record.event)}</Typography>}
   <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
     {record.status && <Chip label={record.status} size="small" />}
     {(record.refundedAt || record.refunded) && <Chip label="Refunded" color="warning" size="small" />}

@@ -26,7 +26,7 @@ const server = http.createServer((req, res) => {
     page.on('pageerror', e => errors.push(e.message));
     let fail = true, historyCalls = 0, role = 'resource_manager', pending = false, savedSource;
     const member = () => ({ id: 'member1', firstname: 'Test', lastname: 'Member', email: 'test@example.com', role, status: 'activeMember', memberContractOnFile: true, expirationTime: 4102444800000, signupSourcePromptPending: pending });
-    const record = { id: 'record1', organizationId: 'org1', eventbriteId: 'event1', name: 'Introduction to Welding', startsAt: '2026-11-13T15:00:00Z', timezone: 'America/New_York', status: 'ended' };
+    const record = { id: 'record1', organizationId: 'org1', eventbriteId: 'event1', name: 'Introduction to Welding Saturday January 9 2027', startsAt: '2027-01-09T23:00:00Z', endsAt: '2027-01-10T02:00:00Z', timezone: 'America/New_York', status: 'live' };
     await page.route('**/api/**', async route => {
       const url = new URL(route.request().url());
       let body = [], status = 200;
@@ -49,7 +49,9 @@ const server = http.createServer((req, res) => {
     await page.goto(`${base}/admin/eventbrite`);
     try { await page.getByRole('button', { name: 'Retry', exact: true }).click(); }
     catch (error) { console.error('Page:', page.url(), await page.locator('body').innerText(), errors); throw error; }
-    await page.getByRole('heading', { name: record.name }).waitFor();
+    await page.getByRole('heading', { name: record.name, exact: true }).waitFor();
+    assert.equal(await page.getByText(/Jan 9, 2027/).count(), 0, 'same-day date is already in the title');
+    assert.equal(await page.getByText(record.name, { exact: true }).count(), 1);
     const from = page.getByLabel('From', { exact: true });
     const to = page.getByLabel('To', { exact: true });
     assert.equal(await from.inputValue(), '2026-08-31');
