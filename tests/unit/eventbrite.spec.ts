@@ -1,4 +1,4 @@
-import { sourcePayload, eventLabel, defaultEventbriteDates } from '../../src/api/eventbrite';
+import { sourcePayload, eventLabel, staffEventLabel, defaultEventbriteDates } from '../../src/api/eventbrite';
 import { SIGNUP_SOURCES, signupSourceDetailPrompt } from '../../src/ui/member/signupSources';
 import { computeCapabilities } from '../../src/app/permissions';
 
@@ -20,6 +20,14 @@ describe('Eventbrite attribution and visibility', () => {
   });
   it('renders the date in the event timezone', () => {
     expect(eventLabel({ name: 'Welding', startsAt: '2026-11-14T01:00:00Z', timezone: 'America/New_York' })).toBe('Welding — Nov 13, 2026');
+  });
+  it('shows a same-day staff event date once, including when it is already in the imported title', () => {
+    const event = { startsAt: '2027-01-09T23:00:00Z', endsAt: '2027-01-10T02:00:00Z', timezone: 'America/New_York' };
+    const name = 'MIG Welding 101 at Manchester Makerspace Saturday January 9 2027';
+    expect(staffEventLabel({ ...event, name })).toBe(name);
+    expect(staffEventLabel({ ...event, name: 'MIG Welding 101' })).toBe('MIG Welding 101 — Jan 9, 2027');
+    expect(staffEventLabel({ ...event, endsAt: '2027-01-10T14:00:00Z', name: 'Welding' })).toBe('Welding — Jan 9, 2027 – Jan 10, 2027');
+    expect(staffEventLabel({ name: 'Welding' })).toBe('Welding');
   });
   it.each(['isAdmin', 'isBoardMember', 'isResourceManager'])('allows %s to read history', role => {
     expect(computeCapabilities({ [role]: true } as any).canViewEventbriteHistory).toBe(true);
